@@ -612,7 +612,7 @@ static int _call_function_pointer(int flags,
 				"ffi_prep_cif failed");
 		return -1;
 	}
-	printf("ffi_call, &res->value is %p\n", &res->value);
+
 	Py_BEGIN_ALLOW_THREADS
 #ifdef MS_WIN32
 #ifndef DEBUG_EXCEPTIONS
