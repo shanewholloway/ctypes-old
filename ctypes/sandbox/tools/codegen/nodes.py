@@ -130,7 +130,12 @@ class Union(object):
             self.size = None
 
     def depends(self):
-        return [] # fake
+        result = set()
+        if self.bases:
+            result.update(self.bases)
+        for m in self.members:
+            result.update(m.depends())
+        return result
 
 ##class Class(object):
 ##    def __init__(self, name, members, bases):
