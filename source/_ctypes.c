@@ -272,6 +272,9 @@ static PyMethodDef CDataType_methods[] = {
 static PyObject *
 CDataType_repeat(PyObject *self, int length)
 {
+#ifdef _DEBUG
+	_asm int 3;
+#endif
 	return CreateArrayType(self, length);
 }
 
@@ -616,6 +619,8 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		StgDictObject *dict;
 		dict = PyType_stgdict(proto);
 		if (!dict) {
+			PyErr_SetString(PyExc_TypeError,
+					"invalid type ???");
 			Py_DECREF((PyObject *)stgdict);
 			return NULL;
 		}
@@ -893,6 +898,163 @@ PyTypeObject SimpleType_Type = {
 /*
   CFuncPtrType_Type
  */
+static int
+make_funcptrtype_dict(StgDictObject *stgdict)
+{
+	PyObject *ob;
+	PyObject *converters = NULL;
+	int i;
+	int nArgs;
+
+	stgdict->align = getentry("P")->align;
+	stgdict->length = 1;
+	stgdict->size = sizeof(void *);
+	stgdict->setfunc = NULL;
+	stgdict->getfunc = NULL;
+
+	ob = PyDict_GetItemString((PyObject *)stgdict, "_flags_");
+	if (!ob || !PyInt_Check(ob)) {
+		PyErr_SetString(PyExc_TypeError,
+		    "class must define _flags_ which must be an integer");
+		return -1;
+	}
+	stgdict->flags = PyInt_AS_LONG(ob);
+
+	stgdict->nArgBytes = 0;
+	ob = PyDict_GetItemString((PyObject *)stgdict, "_argtypes_");
+	if (!ob)
+		goto argtypes_error;
+	ob = PySequence_Tuple(ob); /* new reference */
+	if (!ob)
+		goto argtypes_error;
+
+	nArgs = PyTuple_GET_SIZE(ob);
+	converters = PyTuple_New(nArgs);
+	if (!converters)
+		return -1;
+
+	/* I have to check if this is correct. Using c_char, which has a size
+	   of 1, will be assumed to be pushed as only one byte!
+	   Aren't these promoted to integers by the C compiler and pushed as 4 bytes?
+	*/
+
+	for (i = 0; i < nArgs; ++i) {
+		PyObject *tp = PyTuple_GET_ITEM(ob, i);
+		StgDictObject *dict = PyType_stgdict(tp);
+		PyObject *cnv = PyObject_GetAttrString(tp, "from_param");
+		if (!dict || !cnv)
+			goto argtypes_error_1;
+		stgdict->nArgBytes += dict->size;
+		PyTuple_SET_ITEM(converters, i, cnv);
+	}
+	stgdict->argtypes = ob;
+	stgdict->converters = converters;
+
+	ob = PyDict_GetItemString((PyObject *)stgdict, "_restype_");
+	if (ob) {
+		StgDictObject *dict = PyType_stgdict(ob);
+		if (!dict && !PyCallable_Check(ob)) {
+			PyErr_SetString(PyExc_TypeError,
+				"_restype_ must be a type or callable");
+			return -1;
+		}
+		Py_INCREF(ob);
+		stgdict->restype = ob;
+	}
+	return 0;
+
+  argtypes_error:
+	Py_XDECREF(converters);
+	PyErr_SetString(PyExc_TypeError,
+			"class must define_argtypes_ as a sequence of types");
+	return -1;
+
+  argtypes_error_1:
+	Py_XDECREF(converters);
+	Py_DECREF(ob);
+	PyErr_Format(PyExc_TypeError,
+		     "item %d in _argtypes_ is not a valid C type", i+1);
+	return -1;
+}
+
+static PyObject *
+CFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	PyTypeObject *result;
+	StgDictObject *stgdict;
+
+	stgdict = (StgDictObject *)PyObject_CallObject(
+		(PyObject *)&StgDict_Type, NULL);
+	if (!stgdict)
+		return NULL;
+
+	/* create the new instance (which is a class,
+	   since we are a metatype!) */
+	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+	if (result == NULL) {
+		Py_DECREF((PyObject *)stgdict);
+		return NULL;
+	}
+
+	/* replace the class dict by our updated storage dict */
+	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
+		Py_DECREF(result);
+		Py_DECREF((PyObject *)stgdict);
+		return NULL;
+	}
+	Py_DECREF(result->tp_dict);
+	result->tp_dict = (PyObject *)stgdict;
+
+	if (-1 == make_funcptrtype_dict(stgdict)) {
+		Py_DECREF(result);
+		return NULL;
+	}
+
+	return (PyObject *)result;
+}
+
+static PyTypeObject CFuncPtrType_Type = {
+	PyObject_HEAD_INIT(NULL)
+	0,					/* ob_size */
+	"_ctypes.CFuncPtrType",			/* tp_name */
+	0,					/* tp_basicsize */
+	0,					/* tp_itemsize */
+	0,					/* tp_dealloc */
+	0,					/* tp_print */
+	0,					/* tp_getattr */
+	0,					/* tp_setattr */
+	0,					/* tp_compare */
+	0,			       		/* tp_repr */
+	0,					/* tp_as_number */
+	&CDataType_as_sequence,			/* tp_as_sequence */
+	0,					/* tp_as_mapping */
+	0,					/* tp_hash */
+	0,					/* tp_call */
+	0,					/* tp_str */
+	0,					/* tp_getattro */
+	0,					/* tp_setattro */
+	0,					/* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
+	"metatype for C function pointers",	/* tp_doc */
+	0,					/* tp_traverse */
+	0,					/* tp_clear */
+	0,					/* tp_richcompare */
+	0,					/* tp_weaklistoffset */
+	0,					/* tp_iter */
+	0,					/* tp_iternext */
+	CDataType_methods,			/* tp_methods */
+	0,					/* tp_members */
+	0,					/* tp_getset */
+	0,					/* tp_base */
+	0,					/* tp_dict */
+	0,					/* tp_descr_get */
+	0,					/* tp_descr_set */
+	0,					/* tp_dictoffset */
+	0,					/* tp_init */
+	0,					/* tp_alloc */
+	CFuncPtrType_new,			/* tp_new */
+	0,					/* tp_free */
+};
 
 
 /******************************************************************/
@@ -3325,11 +3487,12 @@ init_ctypes(void)
 	if (PyType_Ready(&CFunctionType_Type) < 0)
 		return;
 
-/*
 	CFuncPtrType_Type.tp_base = &PyType_Type;
 	if (PyType_Ready(&CFuncPtrType_Type) < 0)
 		return;
-*/
+	/* debug */
+	PyModule_AddObject(m, "CFuncPtrType", (PyObject *)&CFuncPtrType_Type);
+
 	/*************************************************
 	 *
 	 * Classes using a custom metaclass
