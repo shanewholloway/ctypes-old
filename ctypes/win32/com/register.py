@@ -45,32 +45,9 @@ class Registrar:
         The tuples must be (key, subkey, name, value).
         """
         HKCR = _winreg.HKEY_CLASSES_ROOT
-        if main_is_frozen():
-            exe = sys.executable
-        else:
-            # Or pythonw.exe?
-            exe = "%s %s" % (sys.executable, os.path.abspath(sys.argv[0]))
-        import _ctypes
-
-        modname = self._cls.__module__
-        if modname == "__main__":
-            modname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-            path = os.path.abspath(os.path.dirname(sys.argv[0]))
-        else:
-            mod = sys.modules[self._cls.__module__]
-            path = os.path.abspath(os.path.dirname(mod.__file__))
-
-        classname = "%s.%s" % (modname, self._cls.__name__)
 
         # rootkey, subkey, valuename, value
         table = [(HKCR, "CLSID\\%s" % self._reg_clsid_, "", self._reg_desc_),
-                 
-                 (HKCR, "CLSID\\%s\\LocalServer32" % self._reg_clsid_, "", exe),
-                 
-##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonClass", classname),
-##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonPath", path),
-##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "", _ctypes.__file__),
-##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "ThreadingModel", "Both"),
                  
                  (HKCR, "CLSID\\%s\\ProgID" % self._reg_clsid_, "", self._reg_progid_),
                  
@@ -79,12 +56,40 @@ class Registrar:
                  (HKCR, "%s\\CLSID" % self._reg_progid_, "", self._reg_clsid_),
                  (HKCR, self._reg_progid_, "", self._reg_desc_),
                  ]
-        table.sort()
-        table.reverse() # so the "deepest" entries com first
+
+        if self._reg_clsctx_ & CLSCTX_INPROC_SERVER:
+            import _ctypes
+            modname = self._cls.__module__
+            if modname == "__main__":
+                modname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+                path = os.path.abspath(os.path.dirname(sys.argv[0]))
+            else:
+                mod = sys.modules[self._cls.__module__]
+                path = os.path.abspath(os.path.dirname(mod.__file__))
+
+            classname = "%s.%s" % (modname, self._cls.__name__)
+            e = [(HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonClass", classname),
+                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonPath", path),
+                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "", _ctypes.__file__),
+                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "ThreadingModel", "Both")]
+            
+            table.extend(e)
+                
+        if self._reg_clsctx_ & CLSCTX_LOCAL_SERVER:
+            if main_is_frozen():
+                exe = sys.executable
+            else:
+                # Or pythonw.exe?
+                exe = "%s %s" % (sys.executable, os.path.abspath(sys.argv[0]))
+            table.append((HKCR, "CLSID\\%s\\LocalServer32" % self._reg_clsid_, "", exe))
+                 
         return table
 
     def unregister(self):
-        for root, key, name, value in self.build_table():
+        table = self.build_table()
+        table.sort()
+        table.reverse() # so the "deepest" entries come first
+        for root, key, name, value in table:
             try:
                 _winreg.DeleteKey(root, key)
             except WindowsError, detail:
@@ -92,7 +97,9 @@ class Registrar:
                     raise
 
     def register(self):
-        for root, key, name, value in self.build_table():
+        table = self.build_table()
+        table.sort() # so the "deepest" entries come last
+        for root, key, name, value in table:
             if key:
                 handle = _winreg.CreateKey(root, key)
             else:
