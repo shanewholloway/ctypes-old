@@ -9,7 +9,7 @@ from ie6_gen import InternetExplorer, IWebBrowser2, DWebBrowserEvents2
 DWORD = c_ulong
 
 ################################################################
-# This should moe into ctypes.com :
+# This should move into ctypes.com :
 from ctypes import oledll
 from ctypes.com import ole32
 
@@ -77,3 +77,5 @@ msg = MSG()
 while user32.GetMessageA(byref(msg), None, 0, 0):
     user32.TranslateMessage(byref(msg))
     user32.DispatchMessageA(byref(msg))
+
+ole32.CoUninitialize()
