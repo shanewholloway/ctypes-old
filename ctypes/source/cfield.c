@@ -1107,12 +1107,14 @@ getentry(char *fmt)
 
 	if (!initialized) {
 		initialized = 1;
+#ifdef CTYPES_UNICODE
 		if (sizeof(wchar_t) == sizeof(short))
 			getentry("u")->pffi_type = &ffi_type_sshort;
 		else if (sizeof(wchar_t) == sizeof(int))
 			getentry("u")->pffi_type = &ffi_type_sint;
 		else if (sizeof(wchar_t) == sizeof(long))
 			getentry("u")->pffi_type = &ffi_type_slong;
+#endif
 	}
 
 	for (; table->code; ++table) {
