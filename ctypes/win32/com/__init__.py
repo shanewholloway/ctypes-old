@@ -205,7 +205,7 @@ class COMObject:
         for name, proto in vtbltype._fields_:
             callable = getattr(self, name, self._notimpl)
             if callable == self._notimpl:
-                print "# name unimplemented"
+                print "# method %s unimplemented" % name
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
         itf.lpVtbl = pointer(vtbl)
