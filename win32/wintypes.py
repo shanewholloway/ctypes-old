@@ -34,7 +34,7 @@ class POINT(Structure):
                 ("y", c_long)]
 
 class MSG(Structure):
-    _fields_ = [("hwnd", HWND),
+    _fields_ = [("hWnd", HWND),
                 ("message", c_uint),
                 ("wParam", WPARAM),
                 ("lParam", LPARAM),
