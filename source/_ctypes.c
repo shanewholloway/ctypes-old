@@ -354,7 +354,7 @@ UnionType_setattro(PyObject *self, PyObject *key, PyObject *value)
 }
 
 
-static PyTypeObject StructType_Type = {
+PyTypeObject StructType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
 	"_ctypes.StructType",			/* tp_name */
