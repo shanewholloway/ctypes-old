@@ -592,6 +592,8 @@ static int _call_function_pointer(int flags,
 			push(parms[i]->value.c);
 			argbytes += sizeof(int);
 			break;
+		
+			/* This works, although it doesn't look correct! */
 		case 'b':
 		case 'h':
 		case 'i':
@@ -606,10 +608,13 @@ static int _call_function_pointer(int flags,
 			push(parms[i]->value.l);
 			argbytes += sizeof(long);
 			break;
+#ifdef HAVE_LONG_LONG
 		case 'q':
-			push(parms[i]->value.l);
+		case 'Q':
+			push(parms[i]->value.q);
 			argbytes += sizeof(LONG_LONG);
 			break;
+#endif
 		case 'f':
 			/* Cannot use push(parms[i]->value.f) here, because
 			   the C compiler would promote it to a double
@@ -645,8 +650,24 @@ static int _call_function_pointer(int flags,
 	__try {
 #endif
 		switch(res->tag) {
+		case 'c':
+			res->value.c = ((char(*)())pProc)();
+			break;
+		case 'B':
+		case 'b':
+			res->value.b = ((char(*)())pProc)();
+			break;
+		case 'H':
+		case 'h':
+			res->value.h = ((short(*)())pProc)();
+			break;
+		case 'I':
 		case 'i':
 			res->value.i = ((int(*)())pProc)();
+			break;
+		case 'l':
+		case 'L':
+			res->value.l = ((long(*)())pProc)();
 			break;
 		case 'd':
 			res->value.d = ((double(*)())pProc)();
@@ -654,7 +675,14 @@ static int _call_function_pointer(int flags,
 		case 'f':
 			res->value.f = ((float(*)())pProc)();
 			break;
+#ifdef HAVE_LONG_LONG
+		case 'q':
+		case 'Q':
+			res->value.q = ((LONG_LONG(*)())pProc)();
+			break;
+#endif
 		case 'z':
+		case 'Z':
 		case 'P':
 			res->value.p = ((void *(*)())pProc)();
 			break;
