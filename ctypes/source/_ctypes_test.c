@@ -57,6 +57,21 @@ EXPORT(void *) get_strchr(void)
 	return (void *)strchr;
 }
 
+EXPORT(char *) my_strdup(char *src)
+{
+	char *dst = malloc(strlen(src)+1);
+	if (!dst)
+		return NULL;
+	strcpy(dst, src);
+	return dst;
+}
+
+#ifdef MS_WIN32
+EXPORT(wchar_t *) my_wcsdup(wchar_t *src)
+{
+	return _wcsdup(src);
+}
+#endif
 
 #ifndef MS_WIN32
 # ifndef __stdcall
