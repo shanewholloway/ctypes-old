@@ -39,9 +39,7 @@ Changes in ctypes 0.6
 	and clients, it is centered around typelibraries.
 
     The source distribution contains additional code in a samples
-    directory tree, the full documentation, and a very cool windows
-    gui framework written by Henk Punt named 'wtl'. He even shows how
-    to embed the webbrowser control into a window ;-)
+    directory tree and full documentation.
 
   General
 
