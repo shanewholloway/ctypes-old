@@ -189,53 +189,52 @@ class test(Command):
         import glob, unittest, time
         self.run_command('build')
 
-        test_files = []
         for direct in self.test_dirs:
             mask = os.path.join(direct, self.test_prefix + "*.py")
-            test_files.extend(glob.glob(mask))
+            test_files = glob.glob(mask)
 
-        self.announce("testing")
-        self.extend_path()
+            print "=== Testing in '%s' ===" % direct
+            self.extend_path()
 
-        self.testcases = []
-        self.ok = self.fail = self.errors = 0
-        self.tracebacks = []
+            self.testcases = []
+            self.ok = self.fail = self.errors = 0
+            self.tracebacks = []
 
-        start_time = time.time()
-        for t in test_files:
-            testcases = self.run_test(t)
-            for case in testcases:
-                if self.verbosity > 1:
-                    print >> sys.stderr, case
-                elif self.verbosity == 1:
-                    if case.endswith("ok"):
-                        sys.stderr.write(".")
-                    elif case.endswith("FAIL"):
-                        sys.stderr.write("F")
-                    elif case.endswith("ERROR"):
-                        sys.stderr.write("E")
-                    else:
-                        sys.stderr.write("?")
-        stop_time = time.time()
+            start_time = time.time()
+            for t in test_files:
+                testcases = self.run_test(t)
+                for case in testcases:
+                    if self.verbosity > 1:
+                        print >> sys.stderr, case
+                    elif self.verbosity == 1:
+                        if case.endswith("ok"):
+                            sys.stderr.write(".")
+                        elif case.endswith("FAIL"):
+                            sys.stderr.write("F")
+                        elif case.endswith("ERROR"):
+                            sys.stderr.write("E")
+                        else:
+                            sys.stderr.write("?")
+            stop_time = time.time()
 
-        print >> sys.stderr
-        for f in self.tracebacks:
-            print >> sys.stderr, "=" * 42
-            print >> sys.stderr, f[0]
-            print >> sys.stderr, "-" * 42
-            print >> sys.stderr, "\n".join(f[1:])
             print >> sys.stderr
+            for f in self.tracebacks:
+                print >> sys.stderr, "=" * 42
+                print >> sys.stderr, f[0]
+                print >> sys.stderr, "-" * 42
+                print >> sys.stderr, "\n".join(f[1:])
+                print >> sys.stderr
 
-        print >> sys.stderr, "-" * 70
-        print >> sys.stderr, "Ran %d tests in %.3fs" % (len(self.testcases), stop_time - start_time)
-        print >> sys.stderr
-        if self.fail + self.errors == 0:
-            print >> sys.stderr, "OK"
-        else:
-            if self.errors:
-                print >> sys.stderr, "FAILED (failures=%d, errors=%d)" % (self.fail, self.errors)
+            print >> sys.stderr, "-" * 70
+            print >> sys.stderr, "Ran %d tests in %.3fs" % (len(self.testcases), stop_time - start_time)
+            print >> sys.stderr
+            if self.fail + self.errors == 0:
+                print >> sys.stderr, "OK"
             else:
-                print >> sys.stderr, "FAILED (failures=%d)" % self.fail
+                if self.errors:
+                    print >> sys.stderr, "FAILED (failures=%d, errors=%d)" % (self.fail, self.errors)
+                else:
+                    print >> sys.stderr, "FAILED (failures=%d)" % self.fail
 
     # run()
 
