@@ -1,3 +1,17 @@
+2004-08-26  Thomas Heller  <theller@python.net>
+
+	* ctypes\__init__.py: Cache the types that WINFUNCTYPE and
+	CFUNCTYPE creates, to avoid creation of a lot of similar classes.
+	Rearrange the code to use try:except: instead of dict.get(xxx,
+	None), the former is faster if lookup mostly succeeds - as is the
+	case for POINTER imo.
+
+	This makes importing large COM files created by readtlb a lot
+	faster, since WINFUNCTYPE is called for every COM method.  The
+	python wrapper for mshtml.tlb, which contains nearly 600
+	interfaces, now imports in 3 seconds instead of 40!
+
+
 2004-08-20  Thomas Heller  <theller@python.net>
 
 	* (Message): Add the PyDLL class and pydll object to ctypes, they
