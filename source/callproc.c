@@ -270,7 +270,6 @@ new_CArgObject(void)
 	if (p == NULL)
 		return NULL;
 	p->pffi_type = NULL;
-	p->tag = '\0';
 	p->obj = NULL;
 	memset(&p->value, 0, sizeof(p->value));
 	return p;
@@ -287,70 +286,60 @@ static PyObject *
 PyCArg_repr(PyCArgObject *self)
 {
 	char buffer[256];
-	switch(self->tag) {
-	case 'b':
-	case 'B':
-		sprintf(buffer, "<cparam '%c' (%d)>",
-			self->tag, self->value.b);
-		break;
-	case 'h':
-	case 'H':
-		sprintf(buffer, "<cparam '%c' (%d)>",
-			self->tag, self->value.h);
-		break;
-	case 'i':
-	case 'I':
-		sprintf(buffer, "<cparam '%c' (%d)>",
-			self->tag, self->value.i);
-		break;
-	case 'l':
-	case 'L':
-		sprintf(buffer, "<cparam '%c' (%ld)>",
-			self->tag, self->value.l);
-		break;
-		
+
+	if (self->pffi_type == &ffi_type_pointer) {
+		sprintf(buffer, "<cparam 'P' (%08lx)>", (long)self->value.p);
+	} else
+
+		switch(self->pffi_type->type) {
+		case FFI_TYPE_SINT8:
+			sprintf(buffer, "<cparam 'b' (%d)>", self->value.b);
+			break;
+		case FFI_TYPE_UINT8:
+			sprintf(buffer, "<cparam 'B' (%d)>", self->value.b);
+			break;
+		case FFI_TYPE_SINT16:
+			sprintf(buffer, "<cparam 'h' (%d)>", self->value.h);
+			break;
+		case FFI_TYPE_UINT16:
+			sprintf(buffer, "<cparam 'H' (%d)>", self->value.h);
+			break;
+		case FFI_TYPE_SINT32:
+			sprintf(buffer, "<cparam 'l' (%d)>", self->value.i);
+			break;
+		case FFI_TYPE_UINT32:
+			sprintf(buffer, "<cparam 'L' (%d)>", self->value.i);
+			break;
 #ifdef HAVE_LONG_LONG
-	case 'q':
-	case 'Q':
-		sprintf(buffer,
+		case FFI_TYPE_SINT64:
+			sprintf(buffer,
 #ifdef MS_WIN32
-			"<cparam '%c' (%I64d)>",
+				"<cparam 'q' (%I64d)>",
 #else
-			"<cparam '%c' (%qd)>",
+				"<cparam 'q' (%qd)>",
 #endif
-			self->tag, self->value.q);
-		break;
+				self->value.q);
+			break;
+		case FFI_TYPE_UINT64:
+			sprintf(buffer,
+#ifdef MS_WIN32
+				"<cparam 'Q' (%I64d)>",
+#else
+				"<cparam 'Q' (%qd)>",
 #endif
-	case 'd':
-		sprintf(buffer, "<cparam '%c' (%f)>",
-			self->tag, self->value.d);
-		break;
-	case 'f':
-		sprintf(buffer, "<cparam '%c' (%f)>",
-			self->tag, self->value.f);
-		break;
-
-	case 'c':
-		sprintf(buffer, "<cparam '%c' (%c)>",
-			self->tag, self->value.c);
-		break;
-
-/* Hm, are these 'z' and 'Z' codes useful at all?
-   Shouldn't they be replaced by the functionality of c_string
-   and c_wstring ?
-*/
-	case 'z':
-	case 'Z':
-	case 'P':
-		sprintf(buffer, "<cparam '%c' (%08lx)>",
-			self->tag, (long)self->value.p);
-		break;
-
-	default:
-		sprintf(buffer, "<cparam '%c' at %08lx>",
-			self->tag, (long)self);
-		break;
-	}
+				self->value.q);
+			break;
+#endif
+		case FFI_TYPE_DOUBLE:
+			sprintf(buffer, "<cparam 'd' (%f)>", self->value.d);
+			break;
+		case FFI_TYPE_FLOAT:
+			sprintf(buffer, "<cparam 'f' (%f)>", self->value.f);
+			break;
+		default:
+			sprintf(buffer, "<cparam '?' at %08lx>", (long)self);
+			break;
+		}
 	return PyString_FromString(buffer);
 }
 
@@ -1199,7 +1188,6 @@ byref(PyObject *self, PyObject *obj)
 	if (parg == NULL)
 		return NULL;
 
-	parg->tag = 'P';
 	parg->pffi_type = &ffi_type_pointer;
 	Py_INCREF(obj);
 	parg->obj = obj;
