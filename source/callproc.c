@@ -1290,7 +1290,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "OO", &obj, &ctype))
 		return NULL;
-	if (-1 == ConvParam(obj, 0, &a))
+	if (-1 == ConvParam(obj, 1, &a))
 		return NULL;
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
 	if (result == NULL)
@@ -1303,9 +1303,9 @@ static PyObject *cast(PyObject *self, PyObject *args)
 }
 
 static char memmove_doc[] =
-"memmove(dst, src, size) -> adress\n\
+"memmove(dst, src, count) -> adress\n\
 \n\
-Copy size bytes from src to dst, return the destination address as integer.\n";
+Copy count bytes from src to dst, return the dst address as integer.\n";
 
 static PyObject *
 c_memmove(PyObject *self, PyObject *args)
@@ -1320,9 +1320,9 @@ c_memmove(PyObject *self, PyObject *args)
 	memset(&a_src, 0, sizeof(struct argument));
 	if (!PyArg_ParseTuple(args, "OOi", &dst, &src, &size))
 		return NULL;
-	if (-1 == ConvParam(dst, 0, &a_dst))
+	if (-1 == ConvParam(dst, 1, &a_dst))
 		goto done;
-	if (-1 == ConvParam(src, 1, &a_src))
+	if (-1 == ConvParam(src, 2, &a_src))
 		goto done;
 	c_result = memmove(a_dst.value.p, a_src.value.p, size);
 	result = PyLong_FromVoidPtr(c_result);
@@ -1332,27 +1332,59 @@ c_memmove(PyObject *self, PyObject *args)
 	return result;
 }
 
+static char memset_doc[] =
+"memset(dst, c, count) -> adress\n\
+\n\
+Set count bytes starting at dst to c, return the dst address as integer.\n";
+static PyObject *
+c_memset(PyObject *self, PyObject *args)
+{
+	PyObject *dst, *result;
+	struct argument a_dst;
+	void *c_result;
+	int c, count;
+
+	if (!PyArg_ParseTuple(args, "Oii", &dst, &c, &count))
+		return NULL;
+	memset(&a_dst, 0, sizeof(struct argument));
+	if (-1 == ConvParam(dst, 1, &a_dst))
+		return NULL;
+	c_result = memset(a_dst.value.p, c, count);
+	result = PyLong_FromVoidPtr(c_result);
+	Py_XDECREF(a_dst.keep);
+	return result;
+}
+
 static char get_string_doc[] =
-"get_string(addr) -> string\n\
+"get_string(addr[, size]) -> string\n\
 \n\
 Return the string at addr.\n";
 
 static PyObject *
-get_string(PyObject *self, PyObject *arg)
+get_string(PyObject *self, PyObject *args)
 {
 	PyObject *result = NULL;
+	PyObject *src;
 	struct argument a_arg;
-	if (-1 == ConvParam(arg, 0, &a_arg))
-		goto done;
-	result = PyString_FromString(a_arg.value.p);
-  done:
+	int size;
+
+	if (!PyArg_ParseTuple(args, "O|i", &src, &size))
+		return NULL;
+	memset(&a_arg, 0, sizeof(struct argument));
+	if (-1 == ConvParam(src, 1, &a_arg))
+		return NULL;
+	if (PyTuple_GET_SIZE(args) == 1)
+		result = PyString_FromString(a_arg.value.p);
+	else
+		result = PyString_FromStringAndSize(a_arg.value.p, size);
 	Py_XDECREF(a_arg.keep);
 	return result;
 }
 
 PyMethodDef module_methods[] = {
-	{"get_string", get_string, METH_O, get_string_doc},
+	{"get_string", get_string, METH_VARARGS, get_string_doc},
 	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
+	{"memset", c_memset, METH_VARARGS, memset_doc},
 	{"cast", cast, METH_VARARGS, cast_doc},
 #ifdef Py_USING_UNICODE
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},

@@ -378,4 +378,4 @@ _pointer_type_cache[None] = c_void_p
 
 # functions
 
-from _ctypes import memmove, get_string
+from _ctypes import memmove, memset, get_string
