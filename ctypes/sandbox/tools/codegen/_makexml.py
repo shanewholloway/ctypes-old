@@ -1,5 +1,5 @@
 import os, re
-from gccxmlparser import parse
+import gccxmlparser
 import typedesc
 
 import time
@@ -112,9 +112,9 @@ def _gccxml_get_defines(fname=None):
             continue
 
         name, value = items
-        reason = is_excluded(name, value)
-        if reason:
-            log.write("%s: #define %s %s\n" % (reason, name, value))
+        why = is_excluded(name, value)
+        if why:
+            log.write("%s: #define %s %s\n" % (why, name, value))
             continue
 
         result[name] = value
@@ -153,9 +153,9 @@ def c_type_name(tp):
         return tp.name
     raise TypeError, type(tp).__name__
 
-################################################################
+################################
 def create_file():
-    ofi = open("glut.cpp", "w")
+    ofi = open("xxx.cpp", "w")
 ##    ofi.write('#include <gl/glut.h>\n')
 #    ofi.write("#define WIN32_LEAN_AND_MEAN\n")
     ofi.write('#include <windows.h>\n')
@@ -174,15 +174,20 @@ def find_aliases(defs):
     return aliases
 
 ################################################################
-# parse a C header file, and dump the preprocessor symbols
+#
+# script section
+#
+################################################################
+# find the preprocessor symbols from a C header file
 
 log = open("skipped.txt", "w")
 
-create_file()
+ofi = create_file()
+ofi.close()
 
 # find the preprocessor defined symbols
 print "... finding preprocessor symbol names"
-defs = gccxml_get_defines("glut.cpp")
+defs = gccxml_get_defines(ofi.name)
 
 print "%d '#define' symbols found" % len(defs)
 aliases = find_aliases(defs)
@@ -192,27 +197,32 @@ print "%d symbols are name aliases" % len(aliases)
 # invoke some C++ magic, which will create a lot of functions.
 # The function name can later be used to retrieve the symbol name again,
 # and the function's return type is the symbols's type.
-ofi = create_file()
-MAGIC = """
+
+CPPMAGIC = """
 #define DECLARE(sym) template <typename T> T symbol_##sym(T) {}
 #define DEFINE(sym) symbol_##sym(sym)
 
 """
-ofi.write(MAGIC)
-for name in defs:
-    ofi.write("// #define %s %s\n" % (name, defs[name]))
-    ofi.write("DECLARE(%s)\n" % name);
-ofi.write("int main() {\n")
-for name in defs:
-    ofi.write("  DEFINE(%s);\n" % name);
-ofi.write("}\n")
-ofi.close()
+
+def invoke_templates(ofi, defs):
+    ofi.write(CPPMAGIC)
+    for name in defs:
+        ofi.write("// #define %s %s\n" % (name, defs[name]))
+        ofi.write("DECLARE(%s)\n" % name);
+    ofi.write("int main() {\n")
+    for name in defs:
+        ofi.write("  DEFINE(%s);\n" % name);
+    ofi.write("}\n")
+    ofi.close()
+    os.system("gccxml %s -fxml=glut.xml" % ofi.name)
+    # parse the result
+    items = gccxmlparser.parse("glut.xml")
+    return items
 
 print "... finding preprocessor symbol types"
 # compile the file
-os.system("gccxml glut.cpp -fxml=glut.xml")
-# parse the result
-items = parse("glut.xml")
+ofi = create_file()
+items = invoke_templates(ofi, defs)
 
 # create a new C++ file which will later allow to retrieve the name,
 # the type and the value of the preprocessor definitions from the
@@ -227,21 +237,23 @@ for i in items:
             print "// skipped #define %s %s" % (symname, defs[symname]), detail
             # HWNDNOTOPMOST: ((HWND) -2), HWND is a structure
             continue
-        codelines.append("const %s cpp_sym_%s = %s;" % (symtype, symname, symname))
+        codelines.append("const %s cpp_sym_%s = %s;\n" % (symtype, symname, symname))
 
 print "created %d definitions" % len(codelines)
 
 ofi = create_file()
+ofi.write("namespace cpp_symbols {\n")
 for c in codelines:
-    ofi.write("%s\n" % c)
+    ofi.write(c)
+ofi.write("}\n")
 ofi.close()
 
 ################################################################
 # parse the resulting file with gccxml, to create the xml that
 # will be used to generate Python code
 print "... finding preprocessor symbol values"
-os.system("gccxml glut.cpp -fxml=glut.xml")
-
+os.system("gccxml %s -fxml=glut.xml" % ofi.name)
+os.remove(ofi.name)
 # now we should reinsert the aliases list again
 
 print "took %.2f seconds" % (time.clock() - start)
