@@ -562,13 +562,8 @@ class _DispMethod:
 
 def CreateTypeLib(syskind, name):
     ctl = ICreateTypeLibPointer()
-    
-    oleaut32.CreateTypeLib.argtypes = [c_int, c_wchar_p, POINTER(ICreateTypeLibPointer)]
-    # Using the prototype above will allow us to use a normal string
-    # as second parameter: It will be passed as unicode.
     oleaut32.CreateTypeLib(syskind,
-##                           unicode(name),
-                           name,
+                           unicode(name),
                            byref(ctl))
     return ctl
 
