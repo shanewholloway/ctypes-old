@@ -1580,12 +1580,33 @@ PyTypeObject CFuncPtrType_Type = {
 };
 
 
-/******************************************************************/
-/*
-  CData_Type
+/*****************************************************************
+ * Code to keep needed objects alive
  */
+static int
+CanKeepRef(CDataObject *target, int index)
+{
+	PyObject *objects = CData_GetList(target);
+	if (!objects)
+		return -1;
+	if (index < 0 || PyList_Size(objects) <= index) {
+		PyErr_SetString(PyExc_IndexError,
+				"invalid index");
+		return -1;
+	}
+	return 0;
+}
 
-char basespec_string[] = "base specification";
+static int
+KeepRef(CDataObject *target, int index, PyObject *keep)
+{
+	int result;
+	PyObject *list = CData_GetList(target);
+	result = PyList_SetItem(list, index, keep);
+	if (result == -1)
+		return -1;
+	return 0;
+}
 
 /*
  * Return a list of size <size> filled with None's.
@@ -1669,6 +1690,13 @@ CData_EnsureList(CDataObject *mem, int index, int length)
 	}
 	return 0;
 }
+
+/******************************************************************/
+/*
+  CData_Type
+ */
+
+char basespec_string[] = "base specification";
 
 static int
 CData_traverse(CDataObject *self, visitproc visit, void *arg)
@@ -1987,27 +2015,24 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	  int index, int size, char *ptr)
 {
 	CDataObject *mem = (CDataObject *)dst;
-	PyObject *objects, *result;
+	PyObject *result;
 
 	if (!CDataObject_Check(dst)) {
 		PyErr_SetString(PyExc_TypeError,
 				"not a ctype instance");
 		return -1;
 	}
-	objects = CData_GetList(mem);
-	if (!objects)
+
+	/* Make sure KeepRef will not fail! */
+	if (-1 == CanKeepRef(mem, index))
 		return -1;
-	if (index < 0 || PyList_Size(objects) <= index) {
-		PyErr_SetString(PyExc_IndexError,
-				"invalid index");
-		return -1;
-	}
 	result = _CData_set(mem, type, setfunc, value,
 			    size, ptr);
 	if (result == NULL)
 		return -1;
 
-	return PyList_SetItem(objects, index, result);
+	/* KeepRef steals a refcount from it's last argument */
+	return KeepRef(mem, index, result);
 }
 
 
@@ -2264,7 +2289,6 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	PyObject *obj;
 	CFuncPtrObject *self;
 	void *handle;
-	PyObject *objects;
 
 	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
 		return NULL;
@@ -2303,17 +2327,11 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	*(void **)self->b_ptr = address;
 
-	objects = CData_GetList((CDataObject *)self);
-	if (!objects) {
+	if (-1 == KeepRef((CDataObject *)self, 0, dll)) {
 		Py_DECREF((PyObject *)self);
 		return NULL;
 	}
-
-	if (-1 == PyList_SetItem(objects, 0, dll)) {
-		Py_DECREF((PyObject *)self);
-		return NULL;
-	}
-	Py_INCREF((PyObject *)dll); /* for PyList_SetItem above */
+	Py_INCREF((PyObject *)dll); /* for KeepRef above */
 
 	Py_INCREF(self);
 	self->callable = (PyObject *)self;
@@ -2354,7 +2372,6 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	PyObject *callable;
 	StgDictObject *dict;
 	THUNK thunk;
-	PyObject *objects; 
 
 	if (kwds && PyDict_GetItemString(kwds, "_basespec_")) {
 		return GenericCData_new(type, args, kwds);
@@ -2437,23 +2454,17 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	self->thunk = thunk;
 	*(void **)self->b_ptr = *(void **)thunk;
 
-	objects = CData_GetList((CDataObject *)self);
-	if (!objects) {
-		Py_DECREF((PyObject *)self);
-		return NULL;
-	}
-
 	/* We store ourself in self->b_objects[0], because the whole instance
 	   must be kept alive if stored in a structure field, for example.
 	   Cycle GC to the rescue! And we have a unittest proving that this works
 	   correctly...
 	*/
 
-	if (-1 == PyList_SetItem(objects, 0, (PyObject *)self)) {
+	if (-1 == KeepRef((CDataObject *)self, 0, (PyObject *)self)) {
 		Py_DECREF((PyObject *)self);
 		return NULL;
 	}
-	Py_INCREF((PyObject *)self); /* for PyList_SetItem above */
+	Py_INCREF((PyObject *)self); /* for KeepRef above */
 
 	return (PyObject *)self;
 }
@@ -3135,19 +3146,14 @@ static int
 Simple_set_value(CDataObject *self, PyObject *value)
 {
 	PyObject *result;
-	PyObject *objects;
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 
 	result = dict->setfunc(self->b_ptr, value, dict->size);
 	if (!result)
 		return -1;
-
-	/* Keep the object alive */
-	objects = CData_GetList(self);
-	if (!objects)
-		return -1; /* Hm. Severe bug. What now? Undo all the above? */
-	/* setfunc returns a new reference, PyList_SetItem() consumes it */
-	return PyList_SetItem(objects, 0, result); /* index is always 0 */
+       
+	/* consumes the refcount the setfunc returns */
+	return KeepRef(self, 0, result);
 }
 
 static int
@@ -3329,7 +3335,7 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 {
 	StgDictObject *stgdict;
 	CDataObject *dst;
-	PyObject *objects, *keep;
+	PyObject *keep;
 
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
@@ -3350,20 +3356,18 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	dst = (CDataObject *)value;
 	*(void **)self->b_ptr = dst->b_ptr;
 
-	objects = CData_GetList(self);
-
 	/* 
 	   A Pointer instance must keep a the value it points to alive.  So, a
 	   pointer instance has b_length set to 2 instead of 1, and we set
 	   'value' itself as the second item of the b_objects list, additionally.
 	*/
 	Py_INCREF(value);
-	if (-1 == PyList_SetItem(objects, 1, value))
+	if (-1 == KeepRef(self, 1, value))
 		return -1;
 
 	keep = CData_GetList(dst);
 	Py_INCREF(keep);
-	return PyList_SetItem(objects, 0, keep);
+	return KeepRef(self, 0, keep);
 }
 
 static PyObject *
