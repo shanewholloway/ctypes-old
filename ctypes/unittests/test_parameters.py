@@ -33,7 +33,7 @@ class SimpleTypesTestCase(unittest.TestCase):
         self.assertRaises(TypeError, c_wchar_p.from_param, 42)
 
         pa = c_wchar_p.from_param(c_wchar_p(u"123"))
-        self.failUnless(type(pa) == c_wchar_p)
+        self.failUnlessEqual(type(pa), c_wchar_p)
 
     def test_int_pointers(self):
         from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer
@@ -42,10 +42,10 @@ class SimpleTypesTestCase(unittest.TestCase):
 ##        p = pointer(c_int(42))
 ##        x = LPINT.from_param(p)
         x = LPINT.from_param(pointer(c_int(42)))
-        self.failUnless(x.contents.value == 42)
-        self.failUnless(LPINT(c_int(42)).contents.value == 42)
+        self.failUnlessEqual(x.contents.value, 42)
+        self.failUnlessEqual(LPINT(c_int(42)).contents.value, 42)
 
-        self.failUnless(LPINT.from_param(None) == 0)
+        self.failUnlessEqual(LPINT.from_param(None), 0)
 
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_long(42)))
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_uint(42)))
@@ -78,8 +78,8 @@ class SimpleTypesTestCase(unittest.TestCase):
         from ctypes import c_short, c_uint, c_int, c_long, POINTER
         INTARRAY = c_int * 3
         ia = INTARRAY()
-        self.failUnless(len(ia) == 3)
-        self.failUnless([ia[i] for i in range(3)] == [0, 0, 0])
+        self.failUnlessEqual(len(ia), 3)
+        self.failUnlessEqual([ia[i] for i in range(3)], [0, 0, 0])
 
         # Pointers are only compatible with arrays containing items of
         # the same type!
