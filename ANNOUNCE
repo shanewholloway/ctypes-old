@@ -1,0 +1,33 @@
+ctypes 0.6.3 released
+=====================
+
+Overview
+
+    'ctypes' is a Python package to create and manipulate C data types
+    in Python, and to call functions in dynamic link libraries/shared
+    dlls. It allows wrapping these libraries in pure Python.
+
+    It works on Windows, Linux and MacOS X (the latter require that
+    your machine is supported by libffi).
+
+
+Changes
+
+    A critical bug with pointer instances was fixed, this makes the
+    'incomplete types' sample code in the tutorial actually work.
+
+    All ctypes objects are now correctly garbarge collected.  This
+    *may* lead to crashes in your program (especially with callback
+    functions, or pointers handed out to longer running C code).  You
+    must keep a reference in Python to any object as long as it is
+    used in foreign C code.
+
+    All known bugs have been fixed.
+
+    Again, a lot of changes to the COM package, but all this is still work in
+    progress and unstable, and it has to be properly documented.
+
+
+Enjoy,
+
+Thomas
