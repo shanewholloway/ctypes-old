@@ -3943,7 +3943,7 @@ init_ctypes(void)
 #endif
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
 	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
-	PyModule_AddStringConstant(m, "__version__", "0.9.7beta");
+	PyModule_AddStringConstant(m, "__version__", "2.0.0.0cvs");
 	
 	PyExc_ArgError = PyErr_NewException("ctypes.ArgumentError", NULL, NULL);
 	if (PyExc_ArgError) {

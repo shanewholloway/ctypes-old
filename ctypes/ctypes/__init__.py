@@ -8,7 +8,7 @@ if _os.path.isfile(_magicfile):
     execfile(_magicfile)
 del _magicfile
 
-__version__ = "0.9.7beta"
+__version__ = "2.0.0.0cvs"
 
 from _ctypes import Union, Structure, Array
 from _ctypes import _Pointer
