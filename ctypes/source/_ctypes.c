@@ -1077,7 +1077,7 @@ static PyTypeObject CFuncPtrType_Type = {
 struct basespec {
 	CDataObject *base;
 	int index;
-	int offset;
+	char *adr;
 };
 
 static char basespec_string[] = "base specification";
@@ -1297,7 +1297,7 @@ PyTypeObject CData_Type = {
  */
 
 static PyObject *
-CData_FromBaseObj(PyObject *type, CDataObject *base, int index, int baseofs)
+CData_FromBaseObj(PyObject *type, CDataObject *base, int index, char *adr)
 {
 	struct basespec spec;
 	PyObject *cobj;
@@ -1306,7 +1306,7 @@ CData_FromBaseObj(PyObject *type, CDataObject *base, int index, int baseofs)
 	CDataObject *cd;
 
 	spec.base = (CDataObject *)base;
-	spec.offset = baseofs;
+	spec.adr = adr;
 	spec.index = index;
 	cobj = PyCObject_FromVoidPtrAndDesc(&spec, basespec_string, NULL);
 	kw = Py_BuildValue("{s:O}", "_basespec_", cobj);
@@ -1330,7 +1330,7 @@ CData_FromBaseObj(PyObject *type, CDataObject *base, int index, int baseofs)
 PyObject *
 CData_AtAddress(PyObject *type, void *buf)
 {
-	return CData_FromBaseObj(type, NULL, 0, (int)buf);
+	return CData_FromBaseObj(type, NULL, 0, buf);
 }
 
 PyObject *
@@ -1339,6 +1339,7 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 {
 	CDataObject *mem;
 	StgDictObject *dict;
+	char *adr;
 
 	if (!CDataObject_Check(src)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -1346,14 +1347,15 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 		return NULL;
 	}
 	mem = (CDataObject *)src;
+	adr = mem->b_ptr + offset;
 
 	if (type) {
 		dict = PyType_stgdict(type);
 		if (dict && dict->getfunc)
-			return dict->getfunc(mem->b_ptr + offset, dict->size);
-		return CData_FromBaseObj(type, mem, index, offset);
+			return dict->getfunc(adr, dict->size);
+		return CData_FromBaseObj(type, mem, index, adr);
 	}
-	return getfunc(mem->b_ptr + offset, size);
+	return getfunc(adr, size);
 }
 
 /*
@@ -1500,7 +1502,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			obj->b_objects = NULL;
 			obj->b_length = length;
 			
-			obj->b_ptr = spec->base->b_ptr + spec->offset;
+			obj->b_ptr = spec->adr;
 			obj->b_size = size;
 			obj->b_needsfree = 0;
 			if (-1 == CData_EnsureList(obj->b_base,
@@ -1514,7 +1516,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			obj->b_objects = NoneList(length);
 			obj->b_length = length;
 			
-			obj->b_ptr = (char *)spec->offset;
+			obj->b_ptr = spec->adr;
 			obj->b_size = size;
 			obj->b_needsfree = 0;
 		}
