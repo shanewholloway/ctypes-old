@@ -1,6 +1,3 @@
-#
-# $Id$
-#
 """create and manipulate C data types in Python"""
 
 import os
