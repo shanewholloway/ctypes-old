@@ -69,6 +69,7 @@ class SlicesTestCase(unittest.TestCase):
 
             dll = CDLL(find_test_dll())
             dll.my_wcsdup.restype = POINTER(c_wchar)
+            dll.my_wcsdup.argtypes = POINTER(c_wchar),
             res = dll.my_wcsdup(s)
             self.failUnlessEqual(res[:len(s)], s)
 
