@@ -263,6 +263,12 @@ def test_byref():
     """
 
 def test(*args, **kw):
+    try:
+        from ctypes import c_wstring
+    except ImportError:
+        # don't try to test c_wstring if it isn't available
+        test_cWIDEcstrings.__doc__ = ""
+
     import doctest, test_parameters
     doctest.testmod(test_parameters, *args, **kw)
 
