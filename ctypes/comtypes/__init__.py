@@ -2,6 +2,9 @@
 import new
 from ctypes import *
 from comtypes.GUID import GUID
+_GUID = GUID
+IID = GUID
+DWORD = c_ulong
 
 ################################################################
 # The metaclasses...
@@ -117,7 +120,7 @@ class IUnknown(object):
                   [POINTER(GUID), POINTER(c_void_p)]),
         STDMETHOD(c_ulong, "AddRef"),
         STDMETHOD(c_ulong, "Release")
-        ]
+    ]
 
     def QueryInterface(self, interface):
         "QueryInterface(klass) -> instance"
@@ -133,6 +136,7 @@ class IUnknown(object):
         "Decrease the internal refcount by one"
         return self.__com_Release()
 
+################
 class CoClass(object):
     # creation, and so on
 
@@ -145,6 +149,26 @@ class CoClass(object):
                                       byref(p._iid_),
                                       byref(p))
         return p
+
+################
+##class IErrorInfo(IUnknown):
+##    _iid_ = GUID("{1CF2B120-547D-101B-8E65-08002B2BD119}")
+##    _methods_ = [
+##        # C:/Programme/gccxml/bin/Vc71/PlatformSDK/oaidl.h 5186
+##        STDMETHOD(HRESULT, 'GetGUID', [POINTER(GUID)]),
+##        STDMETHOD(HRESULT, 'GetSource', [POINTER(BSTR)]),
+##        STDMETHOD(HRESULT, 'GetDescription', [POINTER(BSTR)]),
+##        STDMETHOD(HRESULT, 'GetHelpFile', [POINTER(BSTR)]),
+##        STDMETHOD(HRESULT, 'GetHelpContext', [POINTER(DWORD)]),
+##    ]
+
+################
+##class ISupportErrorInfo(IUnknown):
+##    _iid_ = GUID("{DF0B3D60-548F-101B-8E65-08002B2BD119}")
+##    _methods_ = [
+##        # C:/Programme/gccxml/bin/Vc71/PlatformSDK/oaidl.h 5546
+##        STDMETHOD(HRESULT, 'InterfaceSupportsErrorInfo', [POINTER(IID)]),
+##    ]
 
 __all__ = ["CoClass", "IUnknown", "GUID", "HRESULT", "BSTR", "STDMETHOD"]
 
