@@ -15,15 +15,22 @@
 # Minor things to do: move the VT_... constants into ctcom.typeinfo
 # make it into a real tool with command line arguments
 #
+#
+# See also: http://archive.devx.com/upload/free/features/vcdj/2000/03mar00/fg0300/fg0300.asp
+#
+
 from ctypes.com.typeinfo import LoadTypeLib, ITypeInfo, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT
-from ctypes.com.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS
+from ctypes.com.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS, \
+     TKIND_RECORD
 from ctypes.com.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
      DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF
 from ctypes.com.typeinfo import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
 from ctypes.com.typeinfo import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
      IMPLTYPEFLAG_FSOURCE, IMPLTYPEFLAG_FRESTRICTED, \
      IMPLTYPEFLAG_FDEFAULTVTABLE
+
+from ctypes.com import GUID
 
 from ctypes import byref, c_int, c_ulong, pointer
 
@@ -126,6 +133,36 @@ class TypeInfoReader:
     def _parse_typeattr(self, ta):
         pass
 
+    def _get_type(self, tdesc):
+        if tdesc.vt == VT_PTR:
+            td = tdesc.u.lptdesc[0]
+            if td.vt == VT_USERDEFINED:
+                # Pointer to a user defined data type.
+                hr = td.u.hreftype
+                ti = pointer(ITypeInfo())
+                self.ti.GetRefTypeInfo(hr, byref(ti))
+
+                pta = LPTYPEATTR()
+                ti.GetTypeAttr(byref(pta))
+                ta = pta.contents
+
+                name = BSTR()
+                ti.GetDocumentation(-1, byref(name), None, None, None)
+                return "POINTER(%s)" % name.value
+
+            return "POINTER(%s)" % self._get_type(td)
+
+        if tdesc.vt == VT_USERDEFINED:
+            # use hreftype
+            hr = tdesc.u.hreftype
+            ti = pointer(ITypeInfo())
+            self.ti.GetRefTypeInfo(hr, byref(ti))
+            name = BSTR()
+            ti.GetDocumentation(-1, byref(name), None, None, None)
+            return name.value
+
+        return TYPES[tdesc.vt]
+
 class EnumReader(TypeInfoReader):
     def declaration(self):
         l = []
@@ -162,6 +199,45 @@ class EnumReader(TypeInfoReader):
                                        0, VT_INT)
 
             self.items.append((name, v._.iVal))
+            self.ti.ReleaseVarDesc(pvd)
+
+class RecordReader(TypeInfoReader):
+    def declaration(self):
+        l = []
+        l.append("class %s(Structure):" % self.name)
+        if self.docstring:
+            l.append('    """%s"""' % self.docstring)
+        if self.guid != '{00000000-0000-0000-0000-000000000000}':
+            l.append("    _iid_ = GUID('%s')" % self.guid)
+        l.append("    _fields_ = [")
+        for name, value, oInst in self.fields:
+            l.append('        (%r, %s),' % (str(name), value))
+        l.append("      ]")
+        l.append("assert(sizeof(%s) == %d" % (self.name, self.size))
+        for name, value, oInst in self.fields:
+            l.append("assert(%s.%s.offset == %d)" % (self.name, name, oInst))
+        l.append("")
+        return "\n".join(l)
+
+    def _parse_typeattr(self, ta):
+        self.size = ta.cbSizeInstance
+        self.fields = []
+        for i in range(ta.cVars):
+            pvd = LPVARDESC()
+            self.ti.GetVarDesc(i, byref(pvd))
+            vd = pvd.contents
+            name = BSTR()
+            self.ti.GetDocumentation(vd.memid, byref(name),
+                                     None, None, None)
+            name = name.value
+
+            assert vd.varkind == VAR_PERINSTANCE
+            # vd.u.oInst gives the offset into the record.
+            # We should use this to separate a structure from a union,
+            # and we should check that the offsets are ok.
+            # ta.cbSizeInstance should also be checked.
+            info = (name, self._get_type(vd.elemdescVar.tdesc), vd.u.oInst)
+            self.fields.append(info)
             self.ti.ReleaseVarDesc(pvd)
 
 class Method:
@@ -207,8 +283,6 @@ class InterfaceReader(TypeInfoReader):
         l.append('    """%s"""' % self.docstring)
         l.append("    _iid_ = GUID('%s')" % self.guid)
         l.append("")
-        l.append("class %sPointer(COMPointer):" % self.name)
-        l.append("    _interface_ = %s" % self.name)
         return "\n".join(l)
     
     def definition(self):
@@ -270,42 +344,6 @@ class InterfaceReader(TypeInfoReader):
             result.append(self._get_type(e.tdesc))
         return result
 
-    def _get_type(self, tdesc):
-        if tdesc.vt == VT_PTR:
-            td = tdesc.u.lptdesc[0]
-            if td.vt == VT_USERDEFINED:
-                # Pointer to a user defined data type.
-##                # If the data type is an Interface, we don't return
-##                # POINTER(IUnknown) but IUnknownPointer instead.
-                hr = td.u.hreftype
-                ti = pointer(ITypeInfo())
-                self.ti.GetRefTypeInfo(hr, byref(ti))
-
-                pta = LPTYPEATTR()
-                ti.GetTypeAttr(byref(pta))
-                ta = pta.contents
-
-                name = BSTR()
-                ti.GetDocumentation(-1, byref(name), None, None, None)
-
-##                if ta.typekind == TKIND_INTERFACE:
-##                    return name.value + "Pointer"
-
-                return "POINTER(%s)" % name.value
-
-            return "POINTER(%s)" % self._get_type(td)
-
-        if tdesc.vt == VT_USERDEFINED:
-            # use hreftype
-            hr = tdesc.u.hreftype
-            ti = pointer(ITypeInfo())
-            self.ti.GetRefTypeInfo(hr, byref(ti))
-            name = BSTR()
-            ti.GetDocumentation(-1, byref(name), None, None, None)
-            return name.value
-
-        return TYPES[tdesc.vt]
-
 class DispatchInterfaceReader(InterfaceReader):
     baseinterface = "IDispatch"
     nummethods = 7
@@ -359,7 +397,7 @@ class CoClassReader(TypeInfoReader):
         return "\n".join(l)
 
 HEADER = r"""
-from ctypes.com import IUnknown, GUID, COMPointer, STDMETHOD, HRESULT
+from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.typeinfo import IDispatch, BSTR
 
 from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
@@ -382,6 +420,7 @@ class TypeLibReader:
         self.coclasses = {}
         self.interfaces = {}
         self.enums = {}
+        self.records = {}
 
         self.types = {}
 
@@ -403,7 +442,10 @@ class TypeLibReader:
             elif kind.value == TKIND_ENUM:
                 rdr = EnumReader(self, ti)
                 self.enums[rdr.guid] = rdr
-
+            elif kind.value == TKIND_RECORD:
+                rdr = RecordReader(self, ti)
+                self.records[rdr.guid] = rdr
+                
         for iid in self.types:
             ti = self.types[iid]
             rdr = InterfaceReader(self, ti)
@@ -418,6 +460,13 @@ class TypeLibReader:
             print >> ofi
             print >> ofi, "#" * 78
             for guid, itf in self.enums.iteritems():
+                print >> ofi
+                print >> ofi, itf.declaration()
+
+        if self.records:
+            print >> ofi
+            print >> ofi, "#" * 78
+            for guid, itf in self.records.iteritems():
                 print >> ofi
                 print >> ofi, itf.declaration()
 
@@ -445,6 +494,7 @@ if __name__ == '__main__':
         path = sys.argv[1]
     else:
         path = r"c:\tss5\bin\debug\ITInfo.dll"
+        path = r"c:\tss5\bin\debug\Measurement.dll"
 ##        path = r"c:\sms3a.tlb"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
@@ -459,5 +509,7 @@ if __name__ == '__main__':
     start = time.clock()
     reader = TypeLibReader(unicode(path))
     stop = time.clock()
+    print "# -*- python -*-"
+    print "# created from '%s' by '%s'" % (path, sys.argv[0])
     print "# It took %s seconds" % (stop -start)
     reader.dump()
