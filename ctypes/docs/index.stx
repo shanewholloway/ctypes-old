@@ -16,30 +16,20 @@ The ctypes module
 
   News
 
-    **'ctypes' version 0.9.0 has been released.**
+    **'ctypes' version 0.9.1 has been released (Sept 14, 2004).**
 
-    'ctypes' now requires Python 2.3 or higher, Python 2.2 is no longer
-    supported.
+    ctypes can now call Python API functions (without releasing the
+    global interpreter lock).
 
-    The big change is that 'ctypes' now uses the same code base on all
-    platforms, many, many bug should have been fixed this way on
-    non-windows systems.
+    Slicing is now supported for array and pointer instances.
 
-    There have been lots of improvements and additions both to ctypes
-    itself, and to the ctypes.com windows framework, too many to
-    remember now and document here.
-
-    Most prominent additions to ctypes.com are:
-
-	A ctypes.com.client module supporting dynamic dispatch
-
-	An internet explorer toolband sample
-
-	Many improvements to the stoplite sample
+    Several bugfixes.
 
     Detailed changelogs are in CVS (well, sometimes I forget to update
     them):
     
+    "ANNOUNCE":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ANNOUNCE?rev=release_0_9_1
+
     "ChangeLog":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD
 
     "com ChangeLog":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD
@@ -91,37 +81,26 @@ The ctypes module
 
   Old news
 
-    'ctypes' version 0.6.3 has been released. The changes are
-    summarized "here":changes.html.
+    **'ctypes' 0.9.0:**
 
-    Yasushi Masuda has translated the docs into
-    "japanese":http://www.python.jp/pub/doc_jp/contrib/ctypes/.
+    'ctypes' now requires Python 2.3 or higher, Python 2.2 is no longer
+    supported.
 
-    A 'ctypes'
-    "Wiki":http://starship.python.net/crew/theller/moin.cgi/CtypesModule,
-    and a mailing list which should be used to discuss the
-    usage and further development of 'ctypes'.  More info can be found
-    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
+    The big change is that 'ctypes' now uses the same code base on all
+    platforms, many, many bug should have been fixed this way on
+    non-windows systems.
 
+    There have been lots of improvements and additions both to ctypes
+    itself, and to the ctypes.com windows framework, too many to
+    remember now and document here.
 
-    'ctypes' version 0.6.0 has been released, and the
-    documentation has been updated.
+    Most prominent additions to ctypes.com are:
 
-    There have been some (also incompatible) changes, but I'm quite
-    pleased with the result: ctypes is much more consistent than before.
+	A ctypes.com.client module supporting dynamic dispatch
 
-    A proof-of-concept COM framework has been implemented, and added
-    to the package. It is in an early stage, and I would like
-    experienced COM developers to look at it, and submit feedback.
+	An internet explorer toolband sample
 
-    'ctypes' now works on Windows, Linux and MacOSX. Thanks
-    to *Robin Becker* and *Just van Rossum* for their help.
-
-    'ctypes' Development now takes place on sourceforge's "ctypes
-    project page":http://sourceforge.net/projects/ctypes.
-
-    I've started a "FAQ":faq.html which should be consulted
-    in case of problems.
+	Many improvements to the stoplite sample
 
   Documentation
 
