@@ -138,7 +138,7 @@ def test_qsort_1():
     import random
 
     class IntArray10(Array):
-        _type_ = "i"
+        _type_ = c_int
         _length_ = 10
 
     l = range(10)
