@@ -18,15 +18,19 @@ Robin Becker
 ####### hacked to use multiple threads by Robin Becker
 # from Paul Moore via comp.lang.python
 import thread, time
-from ctypes import windll, CFunction, c_string
+from ctypes import windll, CFunction, CFuncPtr, c_string, c_int
 user32 = windll.user32
 
 mutex = thread.allocate_lock()
 count = 0
 
 class EnumWindowsProc(CFunction):
-    _types_ = "ii"
+    _types_ = c_int, c_int
     _stdcall_ = 1
+
+class EnumWindowsProc(CFuncPtr):
+    _argtypes_ = c_int, c_int
+    _flags_ = 0
 
 def DisplayWindow(hwnd, lparam, where=None):
     title = c_string('\000' * 256)
@@ -68,3 +72,22 @@ if __name__ == '__main__':
     else:
         n = 5
     start(n)
+
+################################################################
+#
+# Two types of errors when EnumWindowsProc(CFuncPtr) is used:
+#
+##Traceback (most recent call last):
+##  File "C:\sf\ctypes_head\samples\Windows\test_enumwindows_mt.py", line 47, in <lambda>
+##    lambda x,y,where=where: DisplayWindow(x,y,where)), 0)
+##  File "C:\sf\ctypes_head\samples\Windows\test_enumwindows_mt.py", line 40, in DisplayWindow
+##    print >>where, "Thread%d: hwnd=%08x title=%s" % (num,hwnd, repr(title.value))
+##AttributeError: 'tuple' object has no attribute 'write'
+##Thread2332: hwnd=000804c4 title=''
+
+##Traceback (most recent call last):
+##  File "C:\sf\ctypes_head\samples\Windows\test_enumwindows_mt.py", line 47, in <lambda>
+##    lambda x,y,where=where: DisplayWindow(x,y,where)), 0)
+##  File "C:\sf\ctypes_head\samples\Windows\test_enumwindows_mt.py", line 40, in DisplayWindow
+##    print >>where, "Thread%d: hwnd=%08x title=%s" % (num,hwnd, repr(title.value))
+##AttributeErrorFatal Python error: GC object already in linked list

@@ -1,10 +1,14 @@
 # from Paul Moore via comp.lang.python
-from ctypes import windll, CFunction, c_string
+from ctypes import windll, CFunction, CFuncPtr, c_string, c_int
 user32 = windll.user32
 
 class EnumWindowsProc(CFunction):
-    _types_ = "ii"
+    _types_ = c_int, c_int
     _stdcall_ = 1
+
+class EnumWindowsProc(CFuncPtr):
+    _argtypes_ = c_int, c_int
+    _flags_ = 0
 
 def DisplayWindow(hwnd, lparam):
     title = c_string('\000' * 256)
