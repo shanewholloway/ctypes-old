@@ -706,14 +706,6 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 		}
 	}
 
-/* Remove later */
-	if (PyString_Check(restype)) {
-		assert(0);
-		/* XXX Is it single letter? */
-		result->tag = PyString_AS_STRING(restype)[0];
-		return;
-	}
-
 	if (PointerTypeObject_Check(restype)) {
 		result->pffi_type = &ffi_type_pointer;
 		result->tag = 'P';
@@ -845,9 +837,11 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *restype)
 {
 	int i, n, argcount;
-	PyCArgObject *result = NULL;
+	PyCArgObject result;
 	PyCArgObject **pargs, **pp;
 	PyObject *retval = NULL;
+
+	result.obj = NULL;
 
 	n = argcount = PyTuple_GET_SIZE(argtuple);
 
@@ -905,30 +899,25 @@ PyObject *_CallProc(PPROC pProc,
 		}
 	}
 
-	/* Is it possible to allocate Python objects on the stack
-	   instead of on the heap? */
-	result = new_CArgObject();
-	if (result == NULL)
-		goto error;
-	PrepareResult(restype, result);
+	PrepareResult(restype, &result);
 
-	if (-1 == _call_function_pointer(flags, pProc, pargs, result, argcount))
+	if (-1 == _call_function_pointer(flags, pProc, pargs, &result, argcount))
 		goto error;
 
 #ifdef MS_WIN32
 	if (flags & FUNCFLAG_HRESULT) {
-		if (result->value.i & 0x80000000)
-			retval = PyErr_SetFromWindowsErr(result->value.i);
+		if (result.value.i & 0x80000000)
+			retval = PyErr_SetFromWindowsErr(result.value.i);
 		else
-			retval = PyInt_FromLong(result->value.i);
+			retval = PyInt_FromLong(result.value.i);
 	} else
 #endif
-		retval = GetResult(restype, result);
+		retval = GetResult(restype, &result);
   error:
 	for (i = 0; i < argcount; ++i) {
-		Py_XDECREF(pargs[i]);
+		Py_XDECREF(pargs[i]->obj);
 	}
-	Py_XDECREF(result);
+	Py_XDECREF(result.obj);
 	return retval;
 }
 
