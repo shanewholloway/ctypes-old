@@ -109,6 +109,16 @@ REG_KEYS = "LocalServer32 InprocServer32 PythonClass PythonPath Control MiscStat
 def _unregister(cls):
     unregister_typelib()
 
+    if hasattr(cls, "_typelib_") and not imp.is_frozen("__main__"):
+        from ctypes import byref
+        from ctypes.com.automation import oleaut32
+        SYS_WIN32 = 1
+        tlib = cls._typelib_
+        oleaut32.UnRegisterTypeLib(byref(tlib.guid),
+                                   tlib.version[0],
+                                   tlib.version[1],
+                                   0, # XXX lcid
+                                   SYS_WIN32)
     try:
         h = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s" % cls._reg_clsid_)
     except WindowsError, detail:
