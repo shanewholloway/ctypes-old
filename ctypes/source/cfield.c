@@ -20,15 +20,21 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
-
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
  * field in *poffset, the alignment requirements for the current field in
  * *palign, and returns a field desriptor for this field.
  */
+/*
+ * bitfields extension:
+ * bitsize != 0: this is a bit field.
+ * pbitofs points to the current bit offset, this will be updated.
+ * prev_desc points to the type of the previous bitfield, if any.
+ */
 PyObject *
 CField_FromDesc(PyObject *desc, int index,
+		PyObject *prev_desc, int bitsize, int *pbitofs,
 		int *psize, int *poffset, int *palign, int pack)
 {
 	CFieldObject *self;
@@ -37,12 +43,15 @@ CField_FromDesc(PyObject *desc, int index,
 	SETFUNC setfunc = NULL;
 	GETFUNC getfunc = NULL;
 	StgDictObject *dict;
+	int fieldtype;
+#define NO_BITFIELD 0
+#define CONT_BITFIELD 1
+#define NEW_BITFIELD 2
 
 	self = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type,
 						   NULL);
 	if (self == NULL)
 		return NULL;
-
 	dict = PyType_stgdict(desc);
 	if (!dict) {
 		PyErr_SetString(PyExc_TypeError,
@@ -50,16 +59,28 @@ CField_FromDesc(PyObject *desc, int index,
 		Py_DECREF(self);
 		return NULL;
 	}
+	if (bitsize /* this is a bitfield request */
+	    && prev_desc == desc /* basic types are same */
+	    && *pbitofs /* we have a bitfield open */
+	    && (*pbitofs + bitsize) <= (dict->size * 8)) { /* fits into the space */
+		/* continue bit field */
+		fieldtype = CONT_BITFIELD;
+	} else if (bitsize) {
+		/* start new bitfield */
+		fieldtype = NEW_BITFIELD;
+		*pbitofs = 0;
+	} else {
+		/* not a bit field */
+		fieldtype = NO_BITFIELD;
+		*pbitofs = 0;
+	}
+
 	size = dict->size;
-	if (pack)
-		align = min(pack, dict->align);
-	else
-		align = dict->align;
 	length = dict->length;
 	proto = desc;
 
 	/*  Field descriptors for 'c_char * n' are be scpecial cased to
-	   return a Python string instead of an Array object instance...
+	    return a Python string instead of an Array object instance...
 	*/
 	if (ArrayTypeObject_Check(proto)) {
 		StgDictObject *adict = PyType_stgdict(proto);
@@ -88,19 +109,38 @@ CField_FromDesc(PyObject *desc, int index,
 	Py_XINCREF(proto);
 	self->proto = proto;
 
-	if (*poffset % align) {
-		int delta = align - (*poffset % align);
-		*psize += delta;
-		*poffset += delta;
+	switch (fieldtype) {
+	case NEW_BITFIELD:
+		self->size = (bitsize << 16) + *pbitofs;
+		*pbitofs = bitsize;
+		/* fall through */
+	case NO_BITFIELD:
+		if (pack)
+			align = min(pack, dict->align);
+		else
+			align = dict->align;
+		if (*poffset % align) {
+			int delta = align - (*poffset % align);
+			*psize += delta;
+			*poffset += delta;
+		}
+
+		if (bitsize == 0)
+			self->size = size;
+		*psize += size;
+
+		self->offset = *poffset;
+		*poffset += size;
+
+		*palign = align;
+		break;
+
+	case CONT_BITFIELD:
+		self->size = (bitsize << 16) + *pbitofs;
+		self->offset = *poffset - size; /* poffset is already updated for the NEXT field */
+		*pbitofs += bitsize;
+		break;
 	}
-
-	self->size = size;
-	*psize += size;
-
-	self->offset = *poffset;
-	*poffset += size;
-
-	*palign = align;
 
 	return (PyObject *)self;
 }
@@ -272,6 +312,237 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 
 #endif
 
+/*****************************************************************
+ * Integer fields, with bitfield support
+ */
+
+/* how to decode the size field, for integer get/set functions */
+#define LOW_BIT(x)  ((x) & 0xFFFF)
+#define NUM_BITS(x) ((x) >> 16)
+#define BIT_MASK(size) ((1 << NUM_BITS(size))-1)
+
+#define GET_BITFIELD(v, size) \
+  if (NUM_BITS(size)) { \
+    v <<= (sizeof(v)*8 - LOW_BIT(size) - NUM_BITS(size)); \
+    v >>= (sizeof(v)*8 - NUM_BITS(size)); \
+  }
+
+#define SET(x, v, size) \
+  NUM_BITS(size) ? \
+  ( ( x & ~(BIT_MASK(size) << LOW_BIT(size)) ) | ( (v & BIT_MASK(size)) << LOW_BIT(size) ) ) \
+  : v
+
+/*****************************************************************
+ * integer accessor methods, supporting bit fields
+ */
+
+static PyObject *
+b_set(void *ptr, PyObject *value, unsigned size)
+{
+	long val;
+	if (get_long(value, &val) < 0)
+		return NULL;
+	*(char *)ptr = (char)SET(*(char *)ptr, (char)val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+b_get(void *ptr, unsigned size)
+{
+	char val = *(char *)ptr;
+	GET_BITFIELD(val, size);
+	return PyInt_FromLong(val);
+}
+
+static PyObject *
+B_set(void *ptr, PyObject *value, unsigned size)
+{
+	unsigned long val;
+	if (get_ulong(value, &val) < 0)
+		return NULL;
+	*(unsigned char *)ptr = (unsigned char)SET(*(unsigned char*)ptr,
+						   (unsigned short)val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+B_get(void *ptr, unsigned size)
+{
+	unsigned char val = *(unsigned char *)ptr;
+	GET_BITFIELD(val, size);
+	return PyInt_FromLong(val);
+}
+
+static PyObject *
+h_set(void *ptr, PyObject *value, unsigned size)
+{
+	long val;
+	if (get_long(value, &val) < 0)
+		return NULL;
+	*(short *)ptr = (short)SET(*(short *)ptr, (short)val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+h_get(void *ptr, unsigned size)
+{
+	short val = *(short *)ptr;
+	GET_BITFIELD(val, size);
+	return PyInt_FromLong(val);
+}
+
+static PyObject *
+H_set(void *ptr, PyObject *value, unsigned size)
+{
+	unsigned long val;
+	if (get_ulong(value, &val) < 0)
+		return NULL;
+	*(unsigned short *)ptr = (unsigned short)SET(*(unsigned short *)ptr,
+						     (unsigned short)val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+H_get(void *ptr, unsigned size)
+{
+	unsigned short val = *(short *)ptr;
+	GET_BITFIELD(val, size);
+	return PyInt_FromLong(val);
+}
+
+static PyObject *
+i_set(void *ptr, PyObject *value, unsigned size)
+{
+	long val;
+	if (get_long(value, &val) < 0)
+		return NULL;
+	*(int *)ptr = (int)SET(*(int *)ptr, (int)val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+i_get(void *ptr, unsigned size)
+{
+	int val = *(int *)ptr;
+	GET_BITFIELD(val, size);
+	return PyInt_FromLong(val);
+}
+
+static PyObject *
+I_set(void *ptr, PyObject *value, unsigned size)
+{
+	unsigned long val;
+	if (get_ulong(value, &val) < 0)
+		return  NULL;
+	*(unsigned int *)ptr = (unsigned int)SET(*(unsigned int *)ptr, (unsigned int)val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+I_get(void *ptr, unsigned size)
+{
+	unsigned int val = *(unsigned int *)ptr;
+	GET_BITFIELD(val, size);
+	return PyLong_FromUnsignedLong(val);
+}
+
+static PyObject *
+l_set(void *ptr, PyObject *value, unsigned size)
+{
+	long val;
+	if (get_long(value, &val) < 0)
+		return NULL;
+	*(long *)ptr = (long)SET(*(long *)ptr, val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+l_get(void *ptr, unsigned size)
+{
+	long val = *(long *)ptr;
+	GET_BITFIELD(val, size);
+	return PyInt_FromLong(val);
+}
+
+static PyObject *
+L_set(void *ptr, PyObject *value, unsigned size)
+{
+	unsigned long val;
+	if (get_ulong(value, &val) < 0)
+		return  NULL;
+	*(unsigned long *)ptr = (unsigned long)SET(*(unsigned long *)ptr, val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+static PyObject *
+L_get(void *ptr, unsigned size)
+{
+	unsigned long val = *(unsigned long *)ptr;
+	GET_BITFIELD(val, size);
+	return PyLong_FromUnsignedLong(val);
+}
+
+#ifdef HAVE_LONG_LONG
+static PyObject *
+q_set(void *ptr, PyObject *value, unsigned size)
+{
+	PY_LONG_LONG val;
+	if (get_longlong(value, &val) < 0)
+		return NULL;
+	*(PY_LONG_LONG *)ptr = (PY_LONG_LONG)SET(*(PY_LONG_LONG *)ptr, val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject *
+q_get(void *ptr, unsigned size)
+{
+	PY_LONG_LONG val = *(PY_LONG_LONG *)ptr;
+	GET_BITFIELD(val, size);
+	return PyLong_FromLongLong(val);
+}
+
+static PyObject *
+Q_set(void *ptr, PyObject *value, unsigned size)
+{
+	unsigned PY_LONG_LONG val;
+	if (get_ulonglong(value, &val) < 0)
+		return NULL;
+	*(unsigned PY_LONG_LONG *)ptr = (unsigned PY_LONG_LONG)SET(*(unsigned PY_LONG_LONG *)ptr, val, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject *
+Q_get(void *ptr, unsigned size)
+{
+	unsigned PY_LONG_LONG val = *(unsigned PY_LONG_LONG *)ptr;
+	GET_BITFIELD(val, size);
+	return PyLong_FromUnsignedLongLong(val);
+}
+#endif
+
+/*****************************************************************
+ * non-integer accessor methods, not supporting bit fields
+ */
+
+
 
 static PyObject *
 d_set(void *ptr, PyObject *value, unsigned size)
@@ -319,55 +590,6 @@ f_get(void *ptr, unsigned size)
 	return PyFloat_FromDouble(*(float *)ptr);
 }
 
-#ifdef HAVE_LONG_LONG
-static PyObject *
-Q_set(void *ptr, PyObject *value, unsigned size)
-{
-	unsigned PY_LONG_LONG x;
-	if (get_ulonglong(value, &x) < 0)
-		return NULL;
-	*(unsigned PY_LONG_LONG *)ptr = x;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-static PyObject *
-Q_get(void *ptr, unsigned size)
-{
-	return PyLong_FromUnsignedLongLong(*(unsigned PY_LONG_LONG *)ptr);
-}
-
-static PyObject *
-q_set(void *ptr, PyObject *value, unsigned size)
-{
-	PY_LONG_LONG x;
-	if (get_longlong(value, &x) < 0)
-		return NULL;
-	*(PY_LONG_LONG *)ptr = x;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-static PyObject *
-q_get(void *ptr, unsigned size)
-{
-	return PyLong_FromLongLong(*(PY_LONG_LONG *)ptr);
-}
-#endif
-
-
-static PyObject *
-i_set(void *ptr, PyObject *value, unsigned size)
-{
-	long x;
-	if (get_long(value, &x) < 0)
-		return NULL;
-	*(int *)ptr = (int)x;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
 static PyObject *
 O_get(void *ptr, unsigned size)
 {
@@ -390,138 +612,6 @@ O_set(void *ptr, PyObject *value, unsigned size)
 	return value;
 }
 
-
-static PyObject *
-i_get(void *ptr, unsigned size)
-{
-	return PyInt_FromLong(*(int *)ptr);
-}
-
-static PyObject *
-I_set(void *ptr, PyObject *value, unsigned size)
-{
-	unsigned long val;
-	if (get_ulong(value, &val) < 0)
-		return  NULL;
-	*(unsigned int *)ptr = (unsigned int)val;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-I_get(void *ptr, unsigned size)
-{
-	return PyLong_FromUnsignedLong(*(unsigned int *)ptr);
-}
-
-static PyObject *
-l_set(void *ptr, PyObject *value, unsigned size)
-{
-	long x;
-	if (get_long(value, &x) < 0)
-		return NULL;
-	*(long *)ptr = x;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-l_get(void *ptr, unsigned size)
-{
-	return PyInt_FromLong(*(long *)ptr);
-}
-
-static PyObject *
-L_set(void *ptr, PyObject *value, unsigned size)
-{
-	unsigned long val;
-	if (get_ulong(value, &val) < 0)
-		return  NULL;
-	*(unsigned long *)ptr = val;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-L_get(void *ptr, unsigned size)
-{
-	return PyLong_FromUnsignedLong(*(unsigned long *)ptr);
-}
-
-static PyObject *
-h_set(void *ptr, PyObject *value, unsigned size)
-{
-	long val;
-	if (get_long(value, &val) < 0)
-		return NULL;
-	*(short *)ptr = (short)val;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-h_get(void *ptr, unsigned size)
-{
-	return PyInt_FromLong(*(short *)ptr);
-}
-
-static PyObject *
-H_set(void *ptr, PyObject *value, unsigned size)
-{
-	unsigned long val;
-	if (get_ulong(value, &val) < 0)
-		return NULL;
-	*(unsigned short *)ptr = (unsigned short)val;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-H_get(void *ptr, unsigned size)
-{
-	return PyInt_FromLong(*(unsigned short *)ptr);
-}
-
-static PyObject *
-b_set(void *ptr, PyObject *value, unsigned size)
-{
-	long val;
-	if (get_long(value, &val) < 0)
-		return NULL;
-	*(char *)ptr = (char)val;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-b_get(void *ptr, unsigned size)
-{
-	return PyInt_FromLong(*(char *)ptr);
-}
-
-static PyObject *
-B_set(void *ptr, PyObject *value, unsigned size)
-{
-	unsigned long val;
-	if (get_ulong(value, &val) < 0)
-		return NULL;
-	*(unsigned char *)ptr = (unsigned char)val;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-static PyObject *
-B_get(void *ptr, unsigned size)
-{
-	return PyInt_FromLong(*(unsigned char *)ptr);
-}
 
 static PyObject *
 c_set(void *ptr, PyObject *value, unsigned size)

@@ -293,6 +293,51 @@ get_last_tf_arg_u(PyObject *self, PyObject *arg)
 	return PyLong_FromUnsignedLongLong(last_tf_arg_u);
 }
 
+struct BITS {
+	int A: 1, B:2, C:3, D:4, E: 5, F: 6, G: 7, H: 8, I: 9;
+	short M: 1, N: 2, O: 3, P: 4, Q: 5, R: 6, S: 7;
+};
+
+DL_EXPORT(int) unpack_bitfields(struct BITS *bits, char name)
+{
+	switch (name) {
+	case 'A':
+		return bits->A;
+	case 'B':
+		return bits->B;
+	case 'C':
+		return bits->C;
+	case 'D':
+		return bits->D;
+	case 'E':
+		return bits->E;
+	case 'F':
+		return bits->F;
+	case 'G':
+		return bits->G;
+	case 'H':
+		return bits->H;
+	case 'I':
+		return bits->I;
+
+	case 'M':
+		return bits->M;
+	case 'N':
+		return bits->N;
+	case 'O':
+		return bits->O;
+	case 'P':
+		return bits->P;
+	case 'Q':
+		return bits->Q;
+	case 'R':
+		return bits->R;
+	case 'S':
+		return bits->S;
+	}
+	return 0;
+}
+
 PyMethodDef module_methods[] = {
 	{"get_last_tf_arg_s", get_last_tf_arg_s, METH_NOARGS},
 	{"get_last_tf_arg_u", get_last_tf_arg_u, METH_NOARGS},

@@ -88,6 +88,7 @@ extern struct fielddesc *getentry(char *fmt);
 
 extern PyObject *
 CField_FromDesc(PyObject *desc, int index,
+		PyObject *prev_desc, int bitsize, int *pbitofs,
 		int *psize, int *poffset, int *palign, int pack);
 
 extern PyObject *CData_AtAddress(PyObject *type, void *buf);
