@@ -1,0 +1,9 @@
+I added support to run ctypes from a CVS sandbox without the need to
+install the package. This even works for different Python versions.
+
+This behaviour is triggered by the presence of a .CTYPE_DEVEL file in
+the ctypes package directory.
+
+Just do a 'setup.py build' and insert the top-level directory into
+sys.path (with setting the PYTHONPATH env variable, with a .pth file,
+or however), and it should work.
