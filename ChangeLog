@@ -1,5 +1,9 @@
 2003-03-07  Thomas Heller  <theller@python.net>
 
+	* ctypes: The CFuncPtr type now supports cyclic garbage
+	collection, it is especially useful here, but GC support for other
+	types is not far away.
+
 	* ctypes: The CFunction subclass _types_ attribute does not accept
 	format characters any more, types like c_int, c_char_p and so on
 	must now be used.  The same change has been made for the argtypes
