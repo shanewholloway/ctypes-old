@@ -251,20 +251,24 @@ class Generator(object):
         self.generate(tp.typ)
         self.done.add(tp)
 
+    def EnumValue(self, tp):
+        if tp in self.done:
+            return
+        print >> self.stream, \
+              "%s = %s # enum %s" % (tp.name, tp.value, tp.enumeration.name or "")
+        self.done.add(tp)
+
     _enumtypes = 0
     def Enumeration(self, tp):
         if tp in self.done:
             return
+        self.done.add(tp)
         self._enumtypes += 1
         if tp.name:
             print >> self.stream
             print >> self.stream, "%s = c_int # enum" % tp.name
-            for n, v in tp.values:
-                print >> self.stream, "%s = %s # enum %s" % (n, v, tp.name)
-        else:
-            for n, v in tp.values:
-                print >> self.stream, "%s = %s # enum" % (n, v)
-        self.done.add(tp)
+        for item in tp.values:
+            self.EnumValue(item)
 
     def StructureBody(self, body):
         if body in self.done:

@@ -128,7 +128,13 @@ class Enumeration(object):
         self.align = int(align)
         self.values = []
 
-    def add_value(self, name, value):
-        self.values.append((name, value))
+    def add_value(self, v):
+        self.values.append(v)
+
+class EnumValue(object):
+    def __init__(self, name, value, enumeration):
+        self.name = name
+        self.value = value
+        self.enumeration = enumeration
 
 ################################################################

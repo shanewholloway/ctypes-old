@@ -31,8 +31,14 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         if result is not None:
             # record the result
             _id = attrs.get("id", None)
+            # The '_id' attribute is used to link together all the
+            # nodes, in the _fixup_ methods.
             if _id is not None:
                 self.all[_id] = result
+            else:
+                # EnumValue, for example, has no "_id" attribute.
+                # Invent our own...
+                self.all[id(result)] = result
         # if this element has children, push onto the context
         if name in self.has_values:
             self.context.append(result)
@@ -191,7 +197,9 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def EnumValue(self, attrs):
         name = self.demangle(attrs["name"])
         value = attrs["init"]
-        self.context[-1].add_value(name, value)
+        v = typedesc.EnumValue(name, value, self.context[-1])
+        self.context[-1].add_value(v)
+        return v
 
     def _fixup_EnumValue(self, e): pass
 
@@ -250,11 +258,12 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     ################
 
     def get_result(self):
-        interesting = (typedesc.Typedef, typedesc.Enumeration,
+        interesting = (typedesc.Typedef, typedesc.Enumeration, typedesc.EnumValue,
                        typedesc.Function, typedesc.Structure, typedesc.Union)
         result = []
         remove = []
         for n, i in self.all.items():
+            # link together all the nodes (the XML that gccxml generates uses this).
             mth = getattr(self, "_fixup_" + type(i).__name__)
             try:
                 mth(i)
