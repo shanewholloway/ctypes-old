@@ -40,13 +40,17 @@ def _decorate_with_api_global(func, call_api):
         code_string = _create_func_codestring(func, func.func_name)
         d = {}
         exec code_string in d
-        func = d[func.func_name]
+        wrapped_func = d[func.func_name]
+    else:
+        wrapped_func = func
     func_globals = {"_api_": call_api}
-    func_globals.update(func.func_globals)
-    return new.function(func.func_code,
-                        func_globals,
-                        func.func_name,
-                        func.func_defaults)
+    func_globals.update(wrapped_func.func_globals)
+    f = new.function(wrapped_func.func_code,
+                     func_globals,
+                     wrapped_func.func_name,
+                     wrapped_func.func_defaults)
+    f.__doc__ = func.func_doc
+    return f
 
 def STDCALL(dllname, restype, funcname, argtypes):
     # a decorator which loads the specified dll, retrieves the
