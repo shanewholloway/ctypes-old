@@ -126,7 +126,7 @@ def DllGetClassObject(rclsid, riid, ppv):
     # parameters. rcslid is a pointer to the CLSID for the coclass we
     # want to be created, riid is a pointer to the requested
     # interface.
-    _Logger.install()
+##    _Logger.install()
 
     iid = GUID.from_address(riid)
     clsid = GUID.from_address(rclsid)
@@ -159,10 +159,10 @@ def DllCanUnloadNow():
     # XXX TODO: Read about inproc server refcounting in Don Box
 ##    _Logger.install()
     if g_locks:
-        print "* DllCanUnloadNow -> S_FALSE", _active_objects
+##        print "* DllCanUnloadNow -> S_FALSE", _active_objects
         return S_FALSE
     else:
-        print "* DllCanUnloadNow -> S_OK"
+##        print "* DllCanUnloadNow -> S_OK"
         return S_OK
     # Hm Call ole32.CoUnitialize here?
 
@@ -180,15 +180,15 @@ class _ClassFactory(COMObject):
     # IClassFactory methods
 
     def CreateInstance(self, this, pUnkOuter, riid, ppvObject):
-        print "BEGIN CreateInstance"
+##        print "BEGIN CreateInstance"
         if pUnkOuter:
             return CLASS_E_NOAGGREGATION
         obj = self.objclass()
         obj._factory = self
         _active_objects.append(obj)
-        print ".....  QueryInterface"
+##        print ".....  QueryInterface"
         result = obj.QueryInterface(None, riid, ppvObject)
-        print "EBD   CreateInstance"
+##        print "END   CreateInstance"
         return result
         
 
@@ -197,13 +197,13 @@ class InprocClassFactory(_ClassFactory):
 
     def AddRef(self, this):
         self._refcnt += 1
-        print "AddRef", self, self._refcnt
+##        print "AddRef", self, self._refcnt
 ##        self._factory.LockServer(None, 1)
         return self._refcnt
 
     def Release(self, this):
         self._refcnt -= 1
-        print "Release", self, self._refcnt
+##        print "Release", self, self._refcnt
 ##        self._factory.LockServer(None, 0)
         return self._refcnt
 
@@ -213,7 +213,7 @@ class InprocClassFactory(_ClassFactory):
             g_locks += 1
         else:
             g_locks -= 1
-        print "LockServer", fLock, g_locks
+##        print "LockServer", fLock, g_locks
             
 ################################################################
 #
