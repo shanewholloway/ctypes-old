@@ -24,44 +24,49 @@ class CallbackTracbackTestCase(unittest.TestCase):
     # code prints a traceback.
     #
     # This test makes sure the exception types *and* the exception
-    # value is printed correctly - the exception value is converted
-    # into a string, and '(in callback)' is prepended to it.
+    # value is printed correctly.
+    #
+    # Changed in 0.9.3: No longer is '(in callback)' prepended to the
+    # error message - instead a additional frame for the C code is
+    # created, then a full traceback printed.  When SystemExit is
+    # raised in a callback function, the interpreter exits.
 
     def capture_stderr(self, func, *args, **kw):
         # helper - call function 'func', and return the captured stderr
         import StringIO
+        old_stderr = sys.stderr
         logger = sys.stderr = StringIO.StringIO()
         try:
             func(*args, **kw)
         finally:
-            sys.stderr = sys.__stderr__
+            sys.stderr = old_stderr
         return logger.getvalue()
 
     def test_ValueError(self):
         cb = CFUNCTYPE(c_int, c_int)(callback_func)
         out = self.capture_stderr(cb, 42)
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) exceptions.ValueError: 42")
+                             "ValueError: 42")
 
     def test_IntegerDivisionError(self):
         cb = CFUNCTYPE(c_int, c_int)(callback_func)
         out = self.capture_stderr(cb, 0)
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) exceptions.ZeroDivisionError: "
+                             "ZeroDivisionError: "
                              "integer division or modulo by zero")
 
     def test_FloatDivisionError(self):
         cb = CFUNCTYPE(c_int, c_double)(callback_func)
         out = self.capture_stderr(cb, 0.0)
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) exceptions.ZeroDivisionError: "
+                             "ZeroDivisionError: "
                              "float division")
 
     def test_TypeErrorDivisionError(self):
         cb = CFUNCTYPE(c_int, c_char_p)(callback_func)
         out = self.capture_stderr(cb, "spam")
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) exceptions.TypeError: "
+                             "TypeError: "
                              "unsupported operand type(s) for /: 'int' and 'str'")
 
 if __name__ == '__main__':
