@@ -571,6 +571,30 @@ PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 	return 0;
 }
 
+/* derived from cfield.c::_generic_field_setfunc */
+static PyObject *
+Pointer_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
+{
+	StgDictObject *dict;
+
+	if (value == Py_None) {
+		*(void **)ptr = NULL;
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	dict = PyObject_stgdict(value);
+	if (dict
+	    && ArrayObject_Check(value)
+	    /* Should we accept subclasses here? */
+	    && dict->proto == PyType_stgdict(type)->proto) {
+		*(void **)ptr = ((CDataObject *)value)->b_ptr;
+		/* We need to keep the array alive, not just the arrays b_objects. */
+		Py_INCREF(value);
+		return value;
+	}
+	return basic_setfunc(ptr, value, size, type);
+}
+
 static PyObject *
 PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -617,6 +641,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	result->tp_dict = (PyObject *)stgdict;
 
 	stgdict->getfunc = generic_getfunc;
+	stgdict->setfunc = Pointer_setfunc;
 
 	return (PyObject *)result;
 }
@@ -1577,8 +1602,8 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	stgdict->align = getentry("P")->pffi_type->alignment;
 	stgdict->length = 1;
 	stgdict->size = sizeof(void *);
-	stgdict->setfunc = NULL;
 	stgdict->getfunc = generic_getfunc;
+	stgdict->setfunc = basic_setfunc;
 	stgdict->ffi_type = ffi_type_pointer;
 
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_flags_");
