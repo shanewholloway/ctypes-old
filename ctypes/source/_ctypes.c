@@ -2327,11 +2327,15 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return CFuncPtr_FromDll(type, args, kwds);
 	}
 
-	if (1 == PyTuple_GET_SIZE(args) && PyInt_Check(PyTuple_GET_ITEM(args, 0))) {
+	if (1 == PyTuple_GET_SIZE(args)
+	    && PyInt_Check(PyTuple_GET_ITEM(args, 0))
+	    || PyLong_Check(PyTuple_GET_ITEM(args, 0))) {
 		CDataObject *ob;
+		void *ptr = PyLong_AsVoidPtr(PyTuple_GET_ITEM(args, 0));
+		if (ptr == NULL)
+			return NULL;
 		ob = (CDataObject *)GenericCData_new(type, args, kwds);
-		/* XXX The following correctly gives a warning */
-		*(void **)ob->b_ptr = PyInt_AsLong(PyTuple_GET_ITEM(args, 0));
+		*(void **)ob->b_ptr = ptr;
 		return (PyObject *)ob;
 	}
 
@@ -2343,16 +2347,18 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 
+	/* XXX XXX This would allow to pass additional options.  For COM
+	   method *implementations*, we would probably want different
+	   behaviour than in 'normal' callback functions: return a HRESULT if
+	   an exception occurrs in the callback, and print the traceback not
+	   only on the console, but also to OutputDebugString() or something
+	   like that.
+	*/
+/*
 	if (kwds && PyDict_GetItemString(kwds, "options")) {
-		/* XXX XXX This gives the possibility to pass additional
-		   options.  For COM method *implementations*, we would
-		   probably want different behaviour than in 'normal' callback
-		   functions: return a HRESULT if an exception occurrs in the
-		   callback, and print the traceback not only on the console,
-		   but also to OutputDebugString() or something like that.
-		 */
-		/* nothing so far ;-) */;
+		...
 	}
+*/
 
 	dict = PyType_stgdict((PyObject *)type);
 	/* XXXX Fails if we do: 'CFuncPtr(lambda x: x)' */
@@ -2364,18 +2370,6 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 
 	/*****************************************************************/
-	/*
-	  Thoughts:
-
-	  1. The thunk should keep (and later free) references to callable and
-	  argtypes itself.
-
-	  2. The thunk should probably be wrapped up in a PyCObject, and then
-	  stored in the _objects list.
-
-	  3. We absolutely need GC support.
-
-	*/
 	/* The thunk keeps unowned references to callable and dict->argtypes
 	   so we have to keep them alive somewhere else: callable is kept in self,
 	   dict->argtypes is in the type's stgdict.
