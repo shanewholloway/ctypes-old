@@ -32,6 +32,7 @@ class File(object):
         self.name = name
 
 class Function(_HasArgs):
+    location = None
     def __init__(self, name, returns, attributes, extern):
         self.name = name
         self.returns = returns
@@ -40,29 +41,34 @@ class Function(_HasArgs):
         self.extern = extern
 
 class Constructor(_HasArgs):
+    location = None
     def __init__(self, name):
         self.name = name
         self.arguments = []
 
 class OperatorFunction(_HasArgs):
+    location = None
     def __init__(self, name, returns):
         self.name = name
         self.returns = returns
         self.arguments = []
 
 class FunctionType(_HasArgs):
+    location = None
     def __init__(self, returns, attributes):
         self.returns = returns
         self.attributes = attributes
         self.arguments = []
 
 class Method(_HasArgs):
+    location = None
     def __init__(self, name, returns):
         self.name = name
         self.returns = returns
         self.arguments = []
 
 class FundamentalType(object):
+    location = None
     def __init__(self, name, size, align):
         self.name = name
         if name != "void":
@@ -70,31 +76,37 @@ class FundamentalType(object):
             self.align = int(align)
         
 class PointerType(object):
+    location = None
     def __init__(self, typ, size, align):
         self.typ = typ
         self.size = int(size)
         self.align = int(align)
 
 class Typedef(object):
+    location = None
     def __init__(self, name, typ):
         self.name = name
         self.typ = typ
 
 class ArrayType(object):
+    location = None
     def __init__(self, typ, min, max):
         self.typ = typ
         self.min = min
         self.max = max
 
 class StructureHead(object):
+    location = None
     def __init__(self, struct):
         self.struct = struct
 
 class StructureBody(object):
+    location = None
     def __init__(self, struct):
         self.struct = struct
 
 class _Struct_Union_Base(object):
+    location = None
     def get_body(self):
         return self.struct_body
 
@@ -143,6 +155,7 @@ class CvQualifiedType(object):
         self.volatile = volatile
 
 class Enumeration(object):
+    location = None
     def __init__(self, name, size, align):
         self.name = name
         self.size = int(size)
@@ -159,6 +172,7 @@ class EnumValue(object):
         self.enumeration = enumeration
 
 class Variable(object):
+    location = None
     def __init__(self, name, typ, init=None):
         self.name = name
         self.typ = typ
