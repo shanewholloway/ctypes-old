@@ -1904,6 +1904,14 @@ static PyGetSetDef CFuncPtr_getsets[] = {
 	{ NULL, NULL }
 };
 
+/*
+  CFuncPtr_new accepts 3 different argument types in addition to the standard
+  _basespec_ keyword arg:
+  "sO" - function name, dll object (with an integer handle)
+  "i" - vtable index, creates COM method pointers
+  "O" - must be a callable, creates a C callable function
+*/
+
 static PyObject *
 CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
