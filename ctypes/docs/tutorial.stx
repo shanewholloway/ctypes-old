@@ -1,17 +1,17 @@
 The ctypes module
 
-  'ctypes' is a Python module allowing to create and manipulate C data
-  types in Python. These can then be passed to C-functions loaded from
-  dynamic link libraries.
+  "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
+
+  "'ctypes'":../ctypes.html is a Python module allowing to create and
+  manipulate C data types in Python. These can then be passed to
+  C-functions loaded from dynamic link libraries.
 
   For background information about the C data types, see also
   "Standard C Types":http://www-ccs.ucsd.edu/c/types.html at UCSD
   (external link).
 
-<!--  For details about common operations, see "ctypes reference":reference.html
--->
-
-  **New downloads are available, see the bottom of this page!**
+  For details about common operations on these types, see "ctypes
+  reference":reference.html
 
   Purpose
 
@@ -737,57 +737,5 @@ The ctypes module
     C function pointers returning something else than integers (or
     void) cannot be constructed. Actually they can return anything
     which has sizeof(x) == sizeof(int).
-
-  Download
-
-    There is an experimental implementation which I make available for
-    download, version 0.2.0.
-
-    The source archive contains all the sources, the documentation you
-    are reading here, and sample files in a 'test' subdirectory:
-    "ctypes-0.2.0.zip":ctypes-0.2.0.zip. It requires MSVC 6.
-
-    Some of the samples show an additional feature of 'ctypes': it is
-    possible to call methods on COM-objects as well, there's a sample
-    using MS Word as client, and another one creating a type library.
-
-    The binary distribution only contains the 'ctypes' module as well
-    as the underlying '_ctypes' extension module, built for Python
-    2.2: "ctypes-0.2.0.win32-py2.2.exe":ctypes-0.2.0.win32-py2.2.exe.
-
-    These files are distibuted under the "MIT license":LICENSE.txt.
-
-  Development Snapshots
-
-   Version 0.3.5
-
-    Here are even newer versions: snapshots which contain bugfixes
-    and/or new code, but are somewhat incomplete: documentation is not
-    up to date or whatever.
-
-    "ctypes-0.3.5.tar.gz":ctypes-0.3.5.tar.gz - a version which should
-    also run on linux (tested on an SuSE linux i386 system). You need
-    to get and install the "*libffi
-    library*":http://sources.redhat.com/libffi from the CVS repository
-    at 'sources.redhat.com' ::
-
-       cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/libffi login
-	    (password is ``anoncvs'')
-       cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/libffi co libffi
-       ./configure
-       make
-       make install
-
-    'ctypes' will *not* work with *libffi-1.20*, it needs the CVS
-    version.
-
-    For convenience, I also make libffi available here:
-    "libffi-2.00-beta.tar.gz":libffi-2.00-beta.tar.gz
-
-   Version 0.3.6
-
-    Changes: I rewrote the conversion functions between primitive C
-    data types (signed and unsigned integers of various length) and
-    Python types. Now conversion and range checking actually works.
 
 <!-- Local Variables: compile-command: "make_html" End: -->

@@ -1,5 +1,7 @@
 CType types and instances
 
+  "ctypes home":../ctypes.html :: "tutorial":tutorial.html :: reference :: "faq":faq.html
+
   Common operations on CType instances
 
     'sizeof(obj) -> integer'

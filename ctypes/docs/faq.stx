@@ -1,0 +1,51 @@
+ctypes FAQ - frequently asked questions
+
+  "ctypes home":../ctypes.html :: "tutorial":tutorial.html :: "reference":reference.html :: faq
+
+  Windows topics
+
+    How do I pass a win32all 'PyHandle' to a dll function?
+
+       'win32all' functions often return a 'PyHandle' object, for
+       example the 'CreateFile' function.  'ctypes' has it's own
+       protocol to convert Python objects into C parameters when it
+       calls functions loaded from a dll, so it does not know how to
+       pass the 'PyHandle' object to the C function.
+
+       'PyHandle' objects have a '.handle' attribute which is an
+       integer, and this can be passed to a function by 'ctypes' ::
+
+           h = win32file.CreateFile(....)
+	   windll.kernel32.DeviceIoControl(h.handle, ...)
+
+       Another possibility is to convert the 'PyHandle' object into an
+       integer by writing the call in this way::
+
+           h = win32file.CreateFile(....)
+	   windll.kernel32.DeviceIoControl(int(h), ...)
+
+    How can I load a dll named 'gpib-32.dll'?
+
+       'ctypes' loads dlls by retrieving them as attributes from
+       'windll' or 'cdll', like 'windll.gdi32' which loads 'gdi32.dll'.
+       This approach cannot work when the filename contains characters
+       not allowed in Python identifiers, or when the dll is not on
+       the default Windows search path.  In these cases you should
+       call the 'CDLL' or 'WinDLL' classes directly with the filename::
+
+           gpib32 = CDLL("c:\\gpib\\gpib-32.dll")
+
+    How can I call functions in a dll written in Delphi?
+
+       Delphi uses the 'PASCAL' calling convention as default, and
+       this expects the parameters in reverse order.  Write the
+       arguments in reverse order in the call, and it should work when
+       using the __stdcall calling convention (load the Delphi dll
+       with 'windll').
+
+  General topics
+
+    How can I help to improve this FAQ?
+
+      Send new questions, better answers, or oether comments to
+      "me":mailto:theller@python.net.
