@@ -62,15 +62,15 @@ def inproc_find_class(clsid):
     else:
         if not pathdir in sys.path:
             sys.path.insert(0, str(pathdir))
-            dprint("appended %s to sys.path" % pathdir)
-            dprint("SYS.PATH", sys.path)
+##            dprint("appended %s to sys.path" % pathdir)
+##            dprint("SYS.PATH", sys.path)
     pythonclass = _winreg.QueryValueEx(key, "PythonClass")[0]
     parts = pythonclass.split(".")
     modname = ".".join(parts[:-1])
     classname = parts[-1]
     __import__(modname)
     mod = sys.modules[modname]
-    dprint("imported", mod)
+##    dprint("imported", mod)
 
     # It was a nice idea to 'reload' the module, so that during
     # debugging we would always run uptodate versions of the code.
@@ -82,7 +82,7 @@ def inproc_find_class(clsid):
 ##    if __debug__:
 ##        reload(mod)
 
-    dprint("returning", getattr(mod, classname))
+##    dprint("returning", getattr(mod, classname))
     return getattr(mod, classname)
 
 # Fake implementation, with hardcoded names
@@ -108,7 +108,7 @@ def DllGetClassObject(rclsid, riid, ppv):
 
     # Use the clsid to find additional info in the registry.
     cls = inproc_find_class(clsid)
-    dprint("DllGetClassObject", clsid, cls)
+##    dprint("DllGetClassObject", clsid, cls)
 
     # XXX Hm, does inproc_findclass return None, or raise an Exception?
     if not cls:
@@ -167,14 +167,14 @@ class InprocClassFactory(_ClassFactory):
 
     def AddRef(self, this):
         self._refcnt += 1
-        dprint("AddRef", self, self._refcnt)
-##        self._factory.LockServer(None, 1)
+##        dprint("AddRef", self, self._refcnt)
+##?##        self._factory.LockServer(None, 1)
         return self._refcnt
 
     def Release(self, this):
         self._refcnt -= 1
-        dprint("Release", self, self._refcnt)
-##        self._factory.LockServer(None, 0)
+##        dprint("Release", self, self._refcnt)
+##?##        self._factory.LockServer(None, 0)
         return self._refcnt
 
     def LockServer(self, this, fLock):
