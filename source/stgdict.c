@@ -117,7 +117,7 @@ PyObject_stginfo(PyObject *self, int *psize, int *palign, int *plength)
 */
 
 PyObject *
-StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
+StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 {
 	StgDictObject *stgdict;
 	int len, offset, size, align, i;
@@ -165,16 +165,15 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 		}
 		if (isStruct) {
 			prop = CField_FromDesc(desc, i,
-					       &size, &offset, &align);
+					       &size, &offset, &align, pack);
 		} else /* union */ {
 			size = 0;
 			offset = 0;
 			align = 0;
 			prop = CField_FromDesc(desc, i,
-					       &size, &offset, &align);
+					       &size, &offset, &align, pack);
 			union_size = max(size, union_size);
 		}
-		assert(align > 0);
 		total_align = max(align, total_align);
 
 		if (!prop) {

@@ -29,7 +29,7 @@ static char *var_field_codes = "sS";
  */
 PyObject *
 CField_FromDesc(PyObject *desc, int index,
-		int *psize, int *poffset, int *palign)
+		int *psize, int *poffset, int *palign, int pack)
 {
 	CFieldObject *self;
 	PyObject *proto;
@@ -72,7 +72,10 @@ CField_FromDesc(PyObject *desc, int index,
 			return NULL;
 		}
 		size = fieldsize ? fieldsize * fmt->size : fmt->size;
-		align = fmt->align;
+		if (pack)
+			align = min(pack, fmt->align);
+		else
+			align = fmt->align;
 		setfunc = fmt->setfunc;
 		getfunc = fmt->getfunc;
 		length = 1;

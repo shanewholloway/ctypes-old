@@ -106,6 +106,43 @@ class StructureTestCase(unittest.TestCase):
         # XXX Should we check nested data types also?
         # offset is always relative to the class...
 
+    def test_packed(self):
+        class X(Structure):
+            _fields_ = [("a", "b"),
+                        ("b", "q")]
+            _pack_ = 1
+
+        self.failUnless(sizeof(X) == 9)
+        self.failUnless(X.b.offset == 1)
+
+        class X(Structure):
+            _fields_ = [("a", "b"),
+                        ("b", "q")]
+            _pack_ = 2
+        self.failUnless(sizeof(X) == 10)
+        self.failUnless(X.b.offset == 2)
+
+        class X(Structure):
+            _fields_ = [("a", "b"),
+                        ("b", "q")]
+            _pack_ = 4
+        self.failUnless(sizeof(X) == 12)
+        self.failUnless(X.b.offset == 4)
+
+        class X(Structure):
+            _fields_ = [("a", "b"),
+                        ("b", "q")]
+            _pack_ = 8
+        self.failUnless(sizeof(X) == 16)
+        self.failUnless(X.b.offset == 8)
+
+
+        d = {"_fields_": [("a", "b"),
+                          ("b", "q")],
+             "_pack_": -1}
+        self.assertRaises(ValueError, type(Structure), "X", (Structure,), d)
+        
+
 def get_suite():
     return unittest.makeSuite(StructureTestCase)
 
