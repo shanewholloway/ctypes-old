@@ -55,11 +55,11 @@ IConnectionPointContainer._methods_ = IUnknown._methods_ + [
 
 def GetConnectionPoint(comptr, event_interface):
     # query for IConnectionPointContainer
-    cpc = pointer(IConnectionPointContainer())
+    cpc = POINTER(IConnectionPointContainer)()
     comptr.QueryInterface(byref(IConnectionPointContainer._iid_), byref(cpc))
 
     # Find the connection point
-    cp = pointer(IConnectionPoint())
+    cp = POINTER(IConnectionPoint)()
     cpc.FindConnectionPoint(byref(event_interface._iid_), byref(cp))
     return cp
 

@@ -367,17 +367,17 @@ IDispatch._methods_ = IUnknown._methods_ + [
 #
 
 def LoadTypeLib(fnm):
-    p = pointer(ITypeLib())
+    p = POINTER(ITypeLib)()
     oleaut32.LoadTypeLib(unicode(fnm), byref(p))
     return p
 
 def LoadTypeLibEx(fnm, regkind=REGKIND_NONE):
-    p = pointer(ITypeLib())
+    p = POINTER(ITypeLib)()
     oleaut32.LoadTypeLibEx(unicode(fnm), regkind, byref(p))
     return p
 
 def LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid):
-    p = pointer(ITypeLib())
+    p = POINTER(ITypeLib)()
     oleaut32.LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid, byref(p))
     return p
 
@@ -392,13 +392,13 @@ class DualObjImpl(COMObject):
 
     def LoadTypeInfo(self):
         interface = self._com_interfaces_[0]
-        tlib = pointer(ITypeLib())
+        tlib = POINTER(ITypeLib)()
         oleaut32.LoadRegTypeLib(byref(self._typelib_.guid),
                                 self._typelib_.version[0],
                                 self._typelib_.version[1],
                                 0,
                                 byref(tlib))
-        typeinfo = pointer(ITypeInfo())
+        typeinfo = POINTER(ITypeInfo)()
         tlib.GetTypeInfoOfGuid(byref(interface._iid_), byref(typeinfo))
         self.typeinfo = typeinfo
 

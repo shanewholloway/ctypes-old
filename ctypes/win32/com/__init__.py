@@ -268,7 +268,7 @@ def CreateInstance(coclass, interface=None,
                    clsctx = CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER):
     if interface is None:
         interface = coclass._com_interfaces_[0]
-    p = pointer(interface())
+    p = POINTER(interface)()
     clsid = GUID(coclass._reg_clsid_)
     ole32.CoCreateInstance(byref(clsid),
                            0,
