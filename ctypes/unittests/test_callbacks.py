@@ -14,7 +14,22 @@ class Callbacks(unittest.TestCase):
 
     def check_type_1(self, typ, arg):
         PROTO = self.functype.im_func(typ, c_byte, typ)
-        return PROTO(self.callback)(0, arg)
+        return PROTO(self.callback)(-3, arg)
+
+    if not hasattr(unittest.TestCase, "failUnlessAlmostEqual"):
+        # This method is not present in Python 2.2
+        # Copied from Python 2.3
+        def failUnlessAlmostEqual(self, first, second, places=7, msg=None):
+            """Fail if the two objects are unequal as determined by their
+               difference rounded to the given number of decimal places
+               (default 7) and comparing to zero.
+
+               Note that decimal places (from zero) is usually not the same
+               as significant digits (measured from the most signficant digit).
+            """
+            if round(second-first, places) != 0:
+                raise self.failureException, \
+                      (msg or '%s != %s within %s places' % (`first`, `second`, `places` ))
 
     ################
 
@@ -22,61 +37,61 @@ class Callbacks(unittest.TestCase):
         self.failUnlessEqual(self.check_type(c_byte, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_byte, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_ubyte(self):
         self.failUnlessEqual(self.check_type(c_ubyte, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_ubyte, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_short(self):
         self.failUnlessEqual(self.check_type(c_short, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_short, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_ushort(self):
         self.failUnlessEqual(self.check_type(c_ushort, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_ushort, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_int(self):
         self.failUnlessEqual(self.check_type(c_int, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_int, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_uint(self):
         self.failUnlessEqual(self.check_type(c_uint, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_uint, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_long(self):
         self.failUnlessEqual(self.check_type(c_long, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_long, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_ulong(self):
         self.failUnlessEqual(self.check_type(c_ulong, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_ulong, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_longlong(self):
         self.failUnlessEqual(self.check_type(c_longlong, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_longlong, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_ulonglong(self):
         self.failUnlessEqual(self.check_type(c_ulonglong, 42), 42)
         self.failUnlessEqual(self.got_args, (42,))
         self.failUnlessEqual(self.check_type_1(c_ulonglong, 42), 42)
-        self.failUnlessEqual(self.got_args, (0, 42))
+        self.failUnlessEqual(self.got_args, (-3, 42))
 
     def test_float(self):
         # only almost equal: double -> float -> double
@@ -92,19 +107,19 @@ class Callbacks(unittest.TestCase):
         self.failUnlessEqual(self.check_type(c_double, 3.14), 3.14)
         self.failUnlessEqual(self.got_args, (3.14,))
         self.failUnlessEqual(self.check_type_1(c_double, 3.14), 3.14)
-        self.failUnlessEqual(self.got_args, (0, 3.14))
+        self.failUnlessEqual(self.got_args, (-3, 3.14))
 
     def test_char(self):
         self.failUnlessEqual(self.check_type(c_char, "x"), "x")
         self.failUnlessEqual(self.got_args, ("x",))
         self.failUnlessEqual(self.check_type_1(c_char, "x"), "x")
-        self.failUnlessEqual(self.got_args, (0, "x"))
+        self.failUnlessEqual(self.got_args, (-3, "x"))
 
     def test_char_p(self):
         self.failUnlessEqual(self.check_type(c_char_p, "abc"), "abc")
         self.failUnlessEqual(self.got_args, ("abc",))
         self.failUnlessEqual(self.check_type_1(c_char_p, "abc"), "abc")
-        self.failUnlessEqual(self.got_args, (0, "abc"))
+        self.failUnlessEqual(self.got_args, (-3, "abc"))
 
 try:
     WINFUNCTYPE
