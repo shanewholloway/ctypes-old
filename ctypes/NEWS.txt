@@ -1,7 +1,44 @@
-Version 0.4.0, 2003-01-17:
+ctypes News - http://starship.python.net/crew/theller/ctypes.html
 
-	Moved the sources from local CVS to SourceForge CVS
+Version 0.4.0, 2003-02-07:
+
+    This an intermediate release, there is still a lot to be done.
+
+    Changes:
+
+	Structure and Union fields have now readonly .size and .offset
+	properties, see the docs.
+
+	POINTER instances can now be indexed as if they point to arrays
+	of objects instead of only a single object.
+
+	CFunction instances now have a .from_param class method.
+	(This is the protocol which allows to validate and convert
+	function call arguments from Python to C - in other words, you
+	can now use a CFunction subclass in the argtype attribute for
+	a function from a DLL to specify the type of the callback
+	function.  Does anyone understand this?)
+
+	Argument conversion from Python to C is somewhat faster now.
+
+	I added a lot of unittests, which not only check for bugs,
+	but also 'describe the current behaviour'.  Unittest rocks!
+	
+    Lots and lots of bugs and potential crashes have been fixed:
+
+	Alignment and sizes of structures and unions is now correct as
+	far as I can see.
+
+	Assigning Python numbers to mutable integer types (c_short,
+	c_int, c_long and so on) now correctly checks for valid range,
+	you can no longer assign a negative Python number to an unsigned
+	C data type for example.
+
+    General News:
+
+	I moved the sources from local CVS to SourceForge CVS
 	repository.
+
 
 Version 0.3.5, 2003-01-14:
 

@@ -80,14 +80,13 @@ The ctypes module
     Recent releases can be downloaded in the "sourceforge files
     section":http://sourceforge.net/project/showfiles.php?group_id=71702.
 
-    Windows users should still use version 0.2.0.  The source archive
-    contains all the sources, the documentation you are reading here,
-    and sample files in a 'test' subdirectory:
-    "ctypes-0.2.0.zip":ctypes-0.2.0.zip. It requires MSVC 6 to build
-    it.  The binary distribution only contains the 'ctypes' module as
-    well as the underlying '_ctypes' extension module, built for
-    Python 2.2:
-    "ctypes-0.2.0.win32-py2.2.exe":ctypes-0.2.0.win32-py2.2.exe.
+    The source archives contain all the sources, the documentation you
+    are reading here, and sample files in a 'samples' subdirectory.
+    Looking at the sample files is highly recommended in addition to
+    reading the documentation.
+
+    The binary Windows distribution only contains the 'ctypes' module
+    as well as the underlying '_ctypes' extension module.
 
     These files are distibuted under the "MIT license":LICENSE.txt.
 
