@@ -28,7 +28,7 @@ class LeakTestCase(unittest.TestCase):
                 if last_refcount >= total_refcount:
                     return # test passed
                 last_refcount = total_refcount
-            self.fail("it seems the total refcounts grows without bounds")
+            self.fail("leaking refcounts")
 
     def test_no_cycles_objcount(self):
         # not correct - gc.get_objects() returns only thos objects
@@ -43,7 +43,7 @@ class LeakTestCase(unittest.TestCase):
             if last_objcount >= total_objcount:
                 return # test passed
             last_objcount = total_objcount
-        self.fail("it seems the number of objects grows without bounds")
+        self.fail("leaking objects")
 
     ################
 
@@ -67,7 +67,7 @@ class LeakTestCase(unittest.TestCase):
                 if last_refcount >= total_refcount:
                     return
                 last_refcount = total_refcount
-            self.fail("it seems the total refcounts grows without bounds")
+            self.fail("leaking refcounts")
 
     def test_cycles_objcount(self):
         # not correct - gc.get_objects() returns only thos objects
@@ -82,7 +82,7 @@ class LeakTestCase(unittest.TestCase):
             if last_objcount >= total_objcount:
                 return
             last_objcount = total_objcount
-        self.fail("it seems the number of objects grows without bounds")
+        self.fail("leaking objects")
 
 if __name__ == "__main__":
     unittest.main()
