@@ -1462,7 +1462,6 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static PyObject *
 CFuncPtr_as_parameter(CDataObject *self)
 {
-	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	PyCArgObject *parg;
 	
 	parg = new_CArgObject();
@@ -3836,6 +3835,10 @@ EXPORT char * _testfunc_p_p(void *s)
 	return s;
 }
 
+
+#ifndef MS_WIN32
+# define __stdcall /* */
+#endif
 typedef struct {
 	int (*c)(int, int);
 	int (__stdcall *s)(int, int);
@@ -3847,7 +3850,6 @@ EXPORT int _testfunc_callfuncp(FUNCS *fp)
 	fp->s(3, 4);
 	return 0;
 }
-
 
 #ifdef HAVE_LONG_LONG
 EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
