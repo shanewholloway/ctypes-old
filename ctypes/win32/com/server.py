@@ -80,18 +80,6 @@ def inproc_find_class(clsid):
 ##    dprint("returning", getattr(mod, classname))
     return getattr(mod, classname)
 
-# Fake implementation, with hardcoded names
-def X_inproc_find_class(clsid):
-    import sys
-    pathdir = r"c:\sf\ctypes_head\win32\com\samples\server"
-    if not pathdir in sys.path:
-        sys.path.insert(0, pathdir)
-    classname = "SumObject"
-    modname = "sum"
-    __import__(modname)
-    mod = sys.modules[modname]
-    return getattr(mod, classname)
-
 def DllGetClassObject(rclsid, riid, ppv):
     # This function is called by C code, and receives C integers as
     # parameters. rcslid is a pointer to the CLSID for the coclass we
