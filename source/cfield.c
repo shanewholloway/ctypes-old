@@ -584,6 +584,35 @@ c_get(void *ptr, unsigned size)
 	return PyString_FromStringAndSize((char *)ptr, 1);
 }
 
+#ifdef HAVE_USABLE_WCHAR_T
+static PyObject *
+u_set(void *ptr, PyObject *value, unsigned size)
+{
+	int len;
+	wchar_t *p;
+
+	p = PyUnicode_AsUnicode(value);
+	if (!p)
+		return NULL;
+	len = PyUnicode_GET_SIZE(value);
+	if (len != 1) {
+		PyErr_SetString(PyExc_TypeError,
+				"one character unicode string expected");
+		return NULL;
+	}
+	*(wchar_t *)ptr = p[0];
+	Py_INCREF(value);
+	return value;
+}
+
+
+static PyObject *
+u_get(void *ptr, unsigned size)
+{
+	return PyUnicode_FromWideChar((wchar_t *)ptr, 1);
+}
+#endif
+
 static PyObject *
 s_get(void *ptr, unsigned size)
 {
@@ -857,7 +886,7 @@ static struct fielddesc formattable[] = {
 	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
 	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
 #ifdef HAVE_USABLE_WCHAR_T
-/*	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get}, */
+	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get},
 	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
 #endif
 #ifdef MS_WIN32

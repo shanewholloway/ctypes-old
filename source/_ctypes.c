@@ -624,6 +624,60 @@ static PyGetSetDef CharArray_getsets[] = {
 	{ NULL, NULL }
 };
 
+#ifdef HAVE_USABLE_WCHAR_T
+static PyObject *
+WCharArray_get_value(CDataObject *self)
+{
+	unsigned int i;
+	wchar_t *ptr = (wchar_t *)self->b_ptr;
+	for (i = 0; i < self->b_size/sizeof(wchar_t); ++i)
+		if (*ptr++ == (wchar_t)0)
+			break;
+	return PyUnicode_FromWideChar((wchar_t *)self->b_ptr, i);
+}
+
+static int
+WCharArray_set_value(CDataObject *self, PyObject *value)
+{
+	int result = 0;
+
+	if (PyString_Check(value)) {
+		value = PyUnicode_FromObject(value);
+		if (!value)
+			return -1;
+	} else if (!PyUnicode_Check(value)) {
+		PyErr_Format(PyExc_TypeError,
+				"unicode string expected instead of %s instance",
+				value->ob_type->tp_name);
+		return -1;
+	} else
+		Py_INCREF(value);
+	if ((unsigned)PyUnicode_GET_SIZE(value) > self->b_size/sizeof(wchar_t)) {
+		PyErr_SetString(PyExc_ValueError,
+				"string too long");
+		result = -1;
+		goto done;
+	}
+	result = PyUnicode_AsWideChar((PyUnicodeObject *)value,
+				      (wchar_t *)self->b_ptr,
+				      self->b_size/sizeof(wchar_t));
+	if (result >= 0 && (unsigned)result < self->b_size/sizeof(wchar_t))
+		((wchar_t *)self->b_ptr)[result] = (wchar_t)0;
+	if (result > 0)
+		result = 0;
+  done:
+	Py_DECREF(value);
+	/* What about CData_GetList()? We don't care, since we have a copy of the data */
+	return result;
+}
+
+static PyGetSetDef WCharArray_getsets[] = {
+	{ "value", (getter)WCharArray_get_value, (setter)WCharArray_set_value,
+	  "string value"},
+	{ NULL, NULL }
+};
+#endif
+
 /*
   The next three functions copied from Python's typeobject.c.
 
@@ -755,6 +809,11 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		if (-1 == add_getset(result, CharArray_getsets))
 			return NULL;
+#ifdef HAVE_USABLE_WCHAR_T
+	} else if (itemdict->getfunc == getentry("u")->getfunc) {
+		if (-1 == add_getset(result, WCharArray_getsets))
+			return NULL;
+#endif
 	}
 
 	return (PyObject *)result;
@@ -815,7 +874,7 @@ _type_ attribute.
 
 */
 
-static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfzZqQPX";
+static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPX";
 
 static PyObject *
 SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
