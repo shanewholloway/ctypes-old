@@ -21,8 +21,90 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
+#ifdef EXPERIMENTAL
+/* setfunc overloaded by a __to_field__ callable on the fieldtype */
+static PyObject *
+_overloaded_field_setfunc(void *ptr, PyObject *value, unsigned size,
+			  PyObject *fieldtype, CDataObject *dst)
+{
+	PyObject *result;
+	PyObject *func = PyObject_GetAttrString(fieldtype, "__to_field__");
+	if (func == NULL)
+		return NULL;
+	result = PyObject_CallFunctionObjArgs(func,
+					      PyLong_FromVoidPtr(ptr),
+					      value,
+					      NULL);
+	Py_DECREF(func);
+	return result;
+}
+#endif
+
+/* Default setfunc to be used as CFieldObject.setfunc when the field type
+   doesn't supply its own getfunc.
+*/
+static PyObject *
+_generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
+		       PyObject *type, CDataObject *dst)
+{
+	/* inlined code from _CData_set() */
+	if (CDataObject_Check(value)) {
+		CDataObject *src = (CDataObject *)value;
+
+		/* same type */
+		if (PyObject_IsInstance(value, type)) {
+			memmove(ptr,
+				src->b_ptr,
+				size);
+			value = GetKeepedObjects(src);
+			Py_INCREF(value);
+			return value;
+		}
+
+		/* field type: X*
+		   value type: X[]
+		*/
+		if (PointerTypeObject_Check(type)
+		    && ArrayObject_Check(value)
+		    && PyObject_stgdict(value)->proto == PyType_stgdict(type)->proto) {
+			*(void **)ptr = src->b_ptr;
+			/* We need to keep the array alive, not just the arrays b_objects. */
+			Py_INCREF(value);
+			return value;
+		}
+	} else {
+		/* Not a CDataObject instance */
+		if (PyTuple_Check(value)) {
+			/* If value is a tuple, we call the type with the tuple
+			   and use the result */
+			PyObject *ob;
+			PyObject *result;
+			ob = PyObject_CallObject(type, value);
+			if (ob == NULL) {
+				Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
+						  ((PyTypeObject *)type)->tp_name);
+				return NULL;
+			}
+			result = _generic_field_setfunc(ptr, ob, size, type, dst);
+			Py_DECREF(ob);
+			return result;
+		}
+
+		if (value == Py_None && PointerTypeObject_Check(type)) {
+			*(void **)ptr = NULL;
+			Py_INCREF(Py_None);
+			return Py_None;
+		}
+	}
+	PyErr_Format(PyExc_TypeError,
+		     "Incompatible types %s instance instead of %s instance",
+		     value->ob_type->tp_name,
+		     ((PyTypeObject *)type)->tp_name);
+	return NULL;
+}
+
 /* Default getfunc to be used in CFieldObject when the field type doesn't
-   supply a custom getfunc.
+   supply its own getfunc.
 */
 static PyObject *
 _generic_field_getfunc(void *ptr, unsigned size,
@@ -136,7 +218,14 @@ CField_FromDesc(PyObject *desc, int index,
 	getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
 #endif
 
-	setfunc = dict->setfunc;
+#ifdef EXPERIMENTAL
+	if (PyObject_HasAttrString(desc, "__to_field__"))
+		setfunc = _overloaded_field_setfunc;
+	else
+		setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
+#else
+	setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
+#endif
 
 	/* Currently, dict->getfunc is only != NULL for SimpleCData types.
 	   If we would set it for array types, we could get rid of the
@@ -231,77 +320,12 @@ CField_FromDesc(PyObject *desc, int index,
 	return (PyObject *)self;
 }
 
-static PyObject *
-_CField_set(char *ptr, int size,
-	    PyObject *type, CDataObject *dst, PyObject *value)
-{
-	/* inlined code from _CData_set() */
-	if (CDataObject_Check(value)) {
-		CDataObject *src = (CDataObject *)value;
-
-		/* same type */
-		if (PyObject_IsInstance(value, type)) {
-			memmove(ptr,
-				src->b_ptr,
-				size);
-			value = GetKeepedObjects(src);
-			Py_INCREF(value);
-			return value;
-		}
-
-		/* field type: X*
-		   value type: X[]
-		*/
-		if (PointerTypeObject_Check(type)
-		    && ArrayObject_Check(value)
-		    && PyObject_stgdict(value)->proto == PyType_stgdict(type)->proto) {
-			*(void **)ptr = src->b_ptr;
-			/* We need to keep the array alive, not just the arrays b_objects. */
-			Py_INCREF(value);
-			return value;
-		}
-	} else {
-		/* Not a CDataObject instance */
-		if (PyTuple_Check(value)) {
-			/* If value is a tuple, we call the type with the tuple
-			   and use the result */
-			PyObject *ob;
-			PyObject *result;
-			ob = PyObject_CallObject(type, value);
-			if (ob == NULL) {
-				Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
-						  ((PyTypeObject *)type)->tp_name);
-				return NULL;
-			}
-			result = _CField_set(ptr, size, type, dst, ob);
-			Py_DECREF(ob);
-			return result;
-		}
-
-		if (value == Py_None && PointerTypeObject_Check(type)) {
-			*(void **)ptr = NULL;
-			Py_INCREF(Py_None);
-			return Py_None;
-		}
-	}
-	PyErr_Format(PyExc_TypeError,
-		     "Incompatible types %s instance instead of %s instance",
-		     value->ob_type->tp_name,
-		     ((PyTypeObject *)type)->tp_name);
-	return NULL;
-}
-
 static int
 CField_set(CFieldObject *self, CDataObject *dst, PyObject *value)
 {
-	char *ptr = dst->b_ptr + self->offset;
-	PyObject *result;
-
-	if (self->setfunc)
-		result = self->setfunc(ptr, value, self->size);
-	else
-		result = _CField_set(ptr, self->size,
-				     self->fieldtype, dst, value);
+	PyObject *result = self->setfunc(dst->b_ptr + self->offset,
+					 value, self->size,
+					 self->fieldtype, dst);
 	if (result == NULL)
 		return -1;
 	return KeepRef(dst, self->index, result);
