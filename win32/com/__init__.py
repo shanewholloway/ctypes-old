@@ -30,7 +30,7 @@ del _Cleaner
 def _clean_exc_info():
     # the purpose of this function is to ensure that no com object
     # pointers are in sys.exc_info()
-    try: 1/0
+    try: 1//0
     except: pass
 
 import atexit
@@ -242,28 +242,30 @@ def _wrap(func, name, itfclass):
     # interface requested.  This can be very handy in debugging.
     from ctypes.com.server import dprint
     if name == "QueryInterface":
-        def wrapped(this, *args):
+        def wrapped_QI(this, *args):
             result = func(this, *args)
-            dprint("<method call> %s.%s(%s) -> %s" % \
+            dprint("<method call> %s.%s(%s) -> 0x%x" % \
                    (itfclass.__name__, name, interface_name(args[0][0]), result))
             return result
+        return wrapped_QI
     elif name == "CreateInstance":
-        def wrapped(this, *args):
+        def wrapped_CI(this, *args):
             result = func(this, *args)
-            dprint("<method call> %s.%s(%s) -> %s" % \
-                   (itfclass.__name__, name, _itf_name(args[1][0]), result))
+            dprint("<method call> %s.%s(%s) -> 0x%x" % \
+                   (itfclass.__name__, name, interface_name(args[1][0]), result))
             return result
-    else:
-        def wrapped(this, *args):
-            result = func(this, *args)
-            dprint("<method call> %s.%s -> %s" % \
-                   (itfclass.__name__, name, result))
-            return result
+        return wrapped_CI
+    def wrapped(this, *args):
+        result = func(this, *args)
+        dprint("<method call> %s.%s -> %s" % \
+               (itfclass.__name__, name, result))
+        return result
     return wrapped
 
 class COMObject(object):
     _refcnt = 0
     _factory = None
+    _com_interfaces_ = [] # should be replaced in subclasses
 
     def _get_registrar(cls):
         from ctypes.com.register import Registrar
