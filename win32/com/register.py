@@ -25,7 +25,7 @@ def _register(cls):
         if imp.is_frozen("__main__"):
             value = "%s /automation" % sys.executable
         else:
-            value = "%s %s / automation" % (sys.executable, sys.argv[0])
+            value = "%s %s /automation" % (sys.executable, sys.argv[0])
         _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
 
     if hasattr(cls, "_reg_progid_"):
