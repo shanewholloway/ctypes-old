@@ -1361,17 +1361,34 @@ CData_EnsureList(CDataObject *mem, int index, int length)
 	return 0;
 }
 
+static int
+CData_traverse(CDataObject *self, visitproc visit, void *arg)
+{
+#define TRAVERSE(o) if(o && visit(o, arg) < 0) return -1
+	TRAVERSE(self->b_objects);
+	TRAVERSE((PyObject *)self->b_base);
+#undef TRAVERSE
+	return 0;
+}
+
+static int
+CData_clear(CDataObject *self)
+{
+	Py_XDECREF(self->b_objects);
+	self->b_objects = NULL;
+	if (self->b_needsfree)
+		PyMem_Free(self->b_ptr);
+	self->b_ptr = NULL;
+	Py_XDECREF(self->b_base);
+	self->b_base = NULL;
+	return 0;
+}
 
 static void
 CData_dealloc(PyObject *self)
 {
 	CDataObject *mem = (CDataObject *)self;
-
-	if (mem->b_needsfree)
-		PyMem_Free(mem->b_ptr);
-	mem->b_ptr = NULL;
-	Py_XDECREF(mem->b_base);
-	Py_XDECREF(mem->b_objects);
+	CData_clear(mem);
 	self->ob_type->tp_free(self);
 }
 
@@ -1452,8 +1469,8 @@ PyTypeObject CData_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"XXX to be provided",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CData_traverse,		/* tp_traverse */
+	(inquiry)CData_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -2150,18 +2167,13 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 static int
 CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 {
-	int err;
-
-#define TRAVERSE(o) if(o) {err = visit(o, arg); if(err) return err;}
-
-	TRAVERSE(self->callable)
-	TRAVERSE(self->restype)
-	TRAVERSE(self->argtypes)
-	TRAVERSE(self->converters)
-	TRAVERSE(self->b_objects)
-
+#define TRAVERSE(o) if (o && visit(o, arg) < 0) return -1
+	TRAVERSE(self->callable);
+	TRAVERSE(self->restype);
+	TRAVERSE(self->argtypes);
+	TRAVERSE(self->converters);
+	TRAVERSE(self->b_objects);
 #undef TRAVERSE
-
 	return 0;
 }
 
@@ -2370,8 +2382,8 @@ static PyTypeObject Struct_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"Structure base class",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CData_traverse,		/* tp_traverse */
+	(inquiry)CData_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -2413,8 +2425,8 @@ static PyTypeObject Union_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"Union base class",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CData_traverse,		/* tp_traverse */
+	(inquiry)CData_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -2572,8 +2584,8 @@ PyTypeObject Array_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"XXX to be provided",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CData_traverse,		/* tp_traverse */
+	(inquiry)CData_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -2739,8 +2751,8 @@ static PyTypeObject Simple_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"XXX to be provided",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CData_traverse,		/* tp_traverse */
+	(inquiry)CData_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -2985,8 +2997,8 @@ static PyTypeObject Pointer_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"XXX to be provided",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CData_traverse,		/* tp_traverse */
+	(inquiry)CData_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
