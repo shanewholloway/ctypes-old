@@ -30,9 +30,9 @@ class RemoteTestRunner(unittest.TextTestRunner):
             sys.path.insert(0, dirname)
         try:
             mod = __import__(modname, globals(), locals(), [""])
-        except ImportError:
+        except:
             if self.verbosity == 2:
-                self.stream.write("%s ... ImportError " % fname)
+                self.stream.write("%s ... could not import " % fname)
             result.addError(TestFile(fname), sys.exc_info())
             return result
 
