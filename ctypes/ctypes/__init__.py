@@ -245,7 +245,6 @@ else:
             buf = buftype()
             return buf
         raise TypeError, init
-
     
 POINTER(c_char).from_param = c_char_p.from_param #_SimpleCData.c_char_p_from_param
 
@@ -378,4 +377,4 @@ _pointer_type_cache[None] = c_void_p
 
 # functions
 
-from _ctypes import memmove, memset, get_string
+from _ctypes import memmove, memset, get_string, cast
