@@ -939,6 +939,7 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("Z");
 
 		parg = new_CArgObject();
+		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'Z';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
 		if (parg->obj == NULL) {
@@ -991,6 +992,7 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("z");
 
 		parg = new_CArgObject();
+		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'z';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
 		if (parg->obj == NULL) {
@@ -1045,6 +1047,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("z");
 
 		parg = new_CArgObject();
+		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'z';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
 		if (parg->obj == NULL) {
@@ -1058,6 +1061,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("Z");
 
 		parg = new_CArgObject();
+		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'Z';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
 		if (parg->obj == NULL) {
@@ -1094,6 +1098,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 			parg = new_CArgObject();
 			if (parg == NULL)
 				return NULL;
+			parg->pffi_type = &ffi_type_pointer;
 			parg->tag = 'Z';
 			Py_INCREF(value);
 			parg->obj = value;
@@ -1273,6 +1278,7 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 		return NULL;
 
 	parg->tag = fmt[0];
+	parg->pffi_type = fd->pffi_type;
 	parg->obj = fd->setfunc(&parg->value, value, 0);
 	if (parg->obj == NULL) {
 		Py_DECREF(parg);
@@ -2071,6 +2077,7 @@ CFuncPtr_as_parameter(CDataObject *self)
 		return NULL;
 	
 	parg->tag = 'P';
+	parg->pffi_type = &ffi_type_pointer;
 	Py_INCREF(self);
 	parg->obj = (PyObject *)self;
 	parg->value.p = *(void **)self->b_ptr;
@@ -2563,6 +2570,7 @@ Struct_as_parameter(CDataObject *self)
 		return NULL;
 
 	parg->tag = 'V';
+//XXX	parg->pffi_type = ??
 	parg->value.p = self->b_ptr;
 	parg->size = self->b_size;
 	Py_INCREF(self);
@@ -2835,6 +2843,7 @@ Array_as_parameter(CDataObject *self)
 	if (p == NULL)
 		return NULL;
 	p->tag = 'P';
+	p->pffi_type = &ffi_type_pointer;
 	p->value.p = (char *)self->b_ptr;
 	Py_INCREF(self);
 	p->obj = (PyObject *)self;
@@ -2999,6 +3008,7 @@ Simple_as_parameter(CDataObject *self)
 		return NULL;
 	
 	parg->tag = fmt[0];
+	parg->pffi_type = fd->pffi_type;
 	Py_INCREF(self);
 	parg->obj = (PyObject *)self;
 	memcpy(&parg->value, self->b_ptr, self->b_size);
@@ -3187,6 +3197,7 @@ Pointer_as_parameter(CDataObject *self)
 		return NULL;
 
 	parg->tag = 'P';
+	parg->pffi_type = &ffi_type_pointer;
 	Py_INCREF(self);
 	parg->obj = (PyObject *)self;
 	parg->value.p = *(void **)self->b_ptr;
@@ -3376,6 +3387,7 @@ byref(PyObject *self, PyObject *obj)
 		return NULL;
 
 	parg->tag = 'P';
+	parg->pffi_type = &ffi_type_pointer;
 	Py_INCREF(obj);
 	parg->obj = obj;
 	parg->value.p = ((CDataObject *)obj)->b_ptr;
