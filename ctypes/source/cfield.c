@@ -20,6 +20,23 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
+/* compilers seem to have different behaviour with this structure.  GCC on x86
+ * packs the fields into one 32-bit int, MSVC creates one char and one int.
+ * The WIDEN_BITFIELDS function returns  .... XXXX FIXME
+ */
+struct b_bitfields { char a:2; int b:28; };
+#define WIDEN_BITFIELDS (!(sizeof(struct b_bitfields) - sizeof(int)))
+
+/* convert to macro? */
+static int
+can_continue_bitfield(StgDictObject *prev, StgDictObject *this)
+{
+	if (WIDEN_BITFIELDS)
+		return prev && this->size == prev->size;
+	else
+		return prev == this;
+}
+
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -34,7 +51,7 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
  */
 PyObject *
 CField_FromDesc(PyObject *desc, int index,
-		PyObject *prev_desc, int bitsize, int *pbitofs,
+		int *pfield_size, int bitsize, int *pbitofs,
 		int *psize, int *poffset, int *palign, int pack)
 {
 	CFieldObject *self;
@@ -42,7 +59,7 @@ CField_FromDesc(PyObject *desc, int index,
 	int size, align, length;
 	SETFUNC setfunc = NULL;
 	GETFUNC getfunc = NULL;
-	StgDictObject *dict, *prev_dict;
+	StgDictObject *dict;
 	int fieldtype;
 #define NO_BITFIELD 0
 #define CONT_BITFIELD 1
@@ -53,28 +70,31 @@ CField_FromDesc(PyObject *desc, int index,
 	if (self == NULL)
 		return NULL;
 	dict = PyType_stgdict(desc);
-	prev_dict = prev_desc ? PyType_stgdict(prev_desc) : NULL;
 	if (!dict) {
 		PyErr_SetString(PyExc_TypeError,
 				"has no _stginfo_");
 		Py_DECREF(self);
 		return NULL;
 	}
+#ifdef _DEBUG
+	_asm int 3;
+#endif
 	if (bitsize /* this is a bitfield request */
-//	    && prev_desc == desc /* basic types are same */
-	    && prev_dict && dict->size == prev_dict->size
-	    && *pbitofs /* we have a bitfield open */
-	    && (*pbitofs + bitsize) <= (dict->size * 8)) { /* fits into the space */
+	    && *pfield_size /* we have a bitfield open */
+	    && dict->size * 8 == *pfield_size /* MSVC */
+	    && (*pbitofs + bitsize) <= *pfield_size) {
 		/* continue bit field */
 		fieldtype = CONT_BITFIELD;
 	} else if (bitsize) {
 		/* start new bitfield */
 		fieldtype = NEW_BITFIELD;
 		*pbitofs = 0;
+		*pfield_size = dict->size * 8;
 	} else {
 		/* not a bit field */
 		fieldtype = NO_BITFIELD;
 		*pbitofs = 0;
+		*pfield_size = 0;
 	}
 
 	size = dict->size;
