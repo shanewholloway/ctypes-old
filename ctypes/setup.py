@@ -332,16 +332,22 @@ class my_build_ext(build_ext.build_ext):
         self.build_libffi_static()
         build_ext.build_ext.run(self)
 
-    def fix_extension(self, libdir, incdir):
+    def fix_extension(self, inst_dir):
+        incdir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
+        if not incdir:
+            return None
+        libdir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
+        if not libdir:
+            return None
+        incdir_2 = find_file_in_subdir(os.path.join(inst_dir, "lib"), "ffitarget.h")
+        if not incdir_2:
+            return None
         for ext in self.extensions:
             if ext.name == "_ctypes":
                 print "INCDIR", incdir
                 ext.include_dirs.append(incdir)
-                print "LIBDIR", libdir
+                ext.include_dirs.append(incdir_2)
                 ext.library_dirs.append(libdir)
-                # Newer libffi is broken: it doesn't install ffitarget.h in the right directory (IMO)
-##                print "INCDIR", os.path.join(libdir, "../gcc/include/libffi")
-##                ext.include_dirs.append(os.path.join(libdir, "gcc/include/libffi"))
 
     def build_libffi_static(self):
         if LIBFFI_SOURCES == None:
@@ -354,15 +360,10 @@ class my_build_ext(build_ext.build_ext):
         build_dir = os.path.join(self.build_temp, 'libffi')
         inst_dir = os.path.abspath(self.build_temp)
 
-        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
-        incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
-        if libffi_dir and incffi_dir:
-            self.fix_extension(libffi_dir, incffi_dir)
-            if not self.force:
-                return
+        if not self.force and self.fix_extension(inc_dir):
+            return
 
         mkpath(build_dir)
-
 	config_args = ["--disable-shared",
 		       "--enable-static",
 		       "--enable-multilib=no",
