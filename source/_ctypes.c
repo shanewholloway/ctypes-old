@@ -1831,28 +1831,25 @@ static int
 CData_clear(CDataObject *self)
 {
 	Py_CLEAR(self->b_objects);
-	if (self->b_needsfree) {
 #ifdef MS_WIN32
+	if (self->b_base == NULL) {
 		static SETFUNC BSTR_set;
 		StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 
 		if (!BSTR_set)
 			BSTR_set = getentry("X")->setfunc;
 
-		/* XXX A hacck, but hopefully a working one.  If the memory
-		   has been allocated by us (b_needsfree is true), we also
-		   have to call SysFreeString
+		/* A hack, but it works.  If we own the memory (b_base is
+		   NULL), we also have to call SysFreeString.
 		*/
-		
-		/* XXX more explanations needed !!! XXX XXX XXX */
-
 		if (dict && dict->setfunc == BSTR_set) {
 			if (*(BSTR *)self->b_ptr)
 				SysFreeString(*(BSTR *)self->b_ptr);
 		}
-#endif
-		PyMem_Free(self->b_ptr);
 	}
+#endif
+	if (self->b_needsfree)
+		PyMem_Free(self->b_ptr);
 	self->b_ptr = NULL;
 	Py_CLEAR(self->b_base);
 	return 0;
