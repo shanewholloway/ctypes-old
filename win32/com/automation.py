@@ -1,41 +1,48 @@
-from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, PIUnknown
-
 from ctypes import Structure, Union, POINTER, pointer, byref, oledll, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
-     c_float, c_double, c_byte, c_ubyte
-
-from ctypes import sizeof
+     c_float, c_double, c_byte, c_ubyte, sizeof
+from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, PIUnknown
+from ctypes.wintypes import DWORD, WORD
 
 oleaut32 = oledll.oleaut32
 
-DWORD = c_ulong
-WORD = c_ushort
-
 ################################################################
-# Interfaces declarations
-#
-def _mth(*args):
-    return args
-
-# fake
-ITypeComp = IUnknown
+# types
 
 LPOLESTR = c_wchar_p
-
 HREFTYPE = c_ulong
 
-class ITypeInfo(IUnknown):
-    _iid_ = GUID("{00020401-0000-0000-C000-000000000046}")
-                 
-class ITypeLib(IUnknown):
-    _iid_ = GUID("{00020402-0000-0000-C000-000000000046}")
+VARTYPE = c_ushort
+SCODE = DWORD
 
-class IDispatch(IUnknown):
-    _iid_ = GUID("{00020400-0000-0000-C000-000000000046}")
+################################################################
+# typeinfo, typelib and automation data types
+#
+DISPID = c_long
+MEMBERID = DISPID
+TYPEKIND = c_int # enum
+
+LCID = c_ulong
+SYSKIND = c_int # enu
+
+FUNCKIND = c_int # enum
+INVKIND = c_int # enum
+CALLCONV = c_int # enum
+
+IMPLTYPEFLAGS = c_int
 
 ################################################################
 # constants
 #
+REGKIND_DEFAULT = 0
+REGKIND_REGISTER = 1
+REGKIND_NONE = 2
+
+IMPLTYPEFLAG_FDEFAULT   = 0x1
+IMPLTYPEFLAG_FSOURCE      = 0x2
+IMPLTYPEFLAG_FRESTRICTED   = 0x4
+IMPLTYPEFLAG_FDEFAULTVTABLE   = 0x8
+
 TKIND_ENUM = 0
 TKIND_RECORD = 1
 TKIND_MODULE = 2
@@ -50,18 +57,10 @@ DISPATCH_PROPERTYGET = 0x2
 DISPATCH_PROPERTYPUT = 0x4
 DISPATCH_PROPERTYPUTREF = 0x8
 
-##VARKIND enumeration
 VAR_PERINSTANCE = 0
 VAR_STATIC = 1
 VAR_CONST = 2
 VAR_DISPATCH = 3
-
-################################################################
-# typeinfo, typelib and automation data types
-#
-DISPID = c_long
-MEMBERID = DISPID
-TYPEKIND = c_int # enum
 
 ################################################################
 # I don't know if it's possible to do BSTR correctly.
@@ -77,37 +76,6 @@ TYPEKIND = c_int # enum
 # IMallocSpy in Python.
 ################################################################
 
-##class BSTR(Union):
-##    _fields_ = [("_ptr", c_int),
-##                ("value", c_wchar_p)]
-
-##    def __init__(self, text=None, SysAllocString=oleaut32.SysAllocString):
-##        if text is not None:
-##            self._ptr = SysAllocString(unicode(text))
-
-##    # Blush, of course (it should depend on param)
-##    def from_param(cls, param):
-##        return cls(param)
-##    from_param = classmethod(from_param)
-
-##    def _as_parameter_(self):
-##        return self._ptr
-##    _as_parameter_ = property(_as_parameter_)
-
-##    def __repr__(self):
-##        if self._ptr:
-##            return "<BSTR '%s'>" % self.value
-##        else:
-##            return "<BSTR (NULL)>"
-
-##    def __del__(self, SysFreeString=oleaut32.SysFreeString):
-##        if self._ptr:
-##            SysFreeString(self._ptr)
-##            self._ptr = 0
-
-### XXX BUG: Crashed hard when _ptr set to 0
-####            self._ptr = 0
-
 from _ctypes import _SimpleCData
 
 class BSTR(_SimpleCData):
@@ -117,9 +85,24 @@ class BSTR(_SimpleCData):
 
 assert(sizeof(BSTR) == 4)
 
-# VARTYPE is unsigned short!
-VARTYPE = c_ushort
-SCODE = DWORD
+################################################################
+# Interfaces declarations
+#
+
+# fake
+ITypeComp = IUnknown
+
+class ITypeInfo(IUnknown):
+    _iid_ = GUID("{00020401-0000-0000-C000-000000000046}")
+                 
+class ITypeLib(IUnknown):
+    _iid_ = GUID("{00020402-0000-0000-C000-000000000046}")
+
+class IDispatch(IUnknown):
+    _iid_ = GUID("{00020400-0000-0000-C000-000000000046}")
+
+################################################################
+# VARIANT
 
 TypeToVT = {
     3: (3, "iVal"),
@@ -128,8 +111,7 @@ TypeToVT = {
     11: (3, "iVal"),
     }
 
-
-#fake it, in reality it's a union having 16 bytes
+# XXX get_value must be improved. And should it be exposed as value property?
 class VARIANT(Structure):
     class U(Union):
         _fields_ = [("bVal", c_byte),
@@ -185,10 +167,6 @@ class EXCEPINFO(Structure):
                 ("pfnDeferredFillIn", c_int), # XXX
                 ("scode", SCODE)]
 assert(sizeof(EXCEPINFO) == 32)
-
-LCID = c_ulong
-SYSKIND = c_int # enu
-HREFTYPE = c_ulong
 
 class TLIBATTR(Structure):
     _fields_ = [("guid", GUID),
@@ -271,10 +249,6 @@ class VARDESC(Structure):
 LPVARDESC = POINTER(VARDESC)
 assert(sizeof(VARDESC) == 36)
 
-FUNCKIND = c_int # enum
-INVKIND = c_int # enum
-CALLCONV = c_int # enum
-
 class FUNCDESC(Structure):
     _fields_ = [("memid", MEMBERID),
                 ("lprgscode", POINTER(SCODE)),
@@ -320,13 +294,6 @@ assert(sizeof(FUNCDESC) == 52), sizeof(FUNCDESC)
 
 ################################################################
 # The interfaces COM methods
-
-IMPLTYPEFLAGS = c_int
-
-IMPLTYPEFLAG_FDEFAULT   = 0x1
-IMPLTYPEFLAG_FSOURCE      = 0x2
-IMPLTYPEFLAG_FRESTRICTED   = 0x4
-IMPLTYPEFLAG_FDEFAULTVTABLE   = 0x8
 
 ITypeInfo._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "GetTypeAttr", POINTER(LPTYPEATTR)),
@@ -378,10 +345,6 @@ IDispatch._methods_ = IUnknown._methods_ + [
 # functions
 #
 
-REGKIND_DEFAULT = 0
-REGKIND_REGISTER = 1
-REGKIND_NONE = 2
-
 def LoadTypeLib(fnm):
     p = pointer(ITypeLib())
     oleaut32.LoadTypeLib(unicode(fnm), byref(p))
@@ -396,24 +359,3 @@ def LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid):
     p = pointer(ITypeLib())
     oleaut32.LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid, byref(p))
     return p
-
-if __name__ == '__main__':
-    def GetComRefcount(p):
-        p.AddRef()
-        return p.Release()
-
-    path = r"c:\tss5\bin\debug\ITInfo.dll"
-##    p = LoadTypeLibEx(path)
-    p = LoadTypeLib(path)
-    print p, "refcount 1?", GetComRefcount(p)
-
-    print "TypeInfoCount", p.GetTypeInfoCount()
-
-    p2 = PIUnknown()
-    p.QueryInterface(byref(IUnknown._iid_),
-                     byref(p2))
-    print p2, "refcount 2?", GetComRefcount(p)
-    print p, "refcount 2?", GetComRefcount(p)
-    del p2
-
-    print p, "refcount 1?", GetComRefcount(p)
