@@ -583,23 +583,18 @@ PointerType_set_type(PyTypeObject *self, PyObject *type)
 	dict = PyType_stgdict((PyObject *)self);
 	assert(dict);
 
-/* FIXME/CHECKME: What about subclasses? */
 	old_type = PyDict_GetItemString((PyObject *)dict, "_type_");
-	if (old_type == type)
-		goto done; /* nothing to do */
-
-	if (old_type && old_type != type && type != Py_None) {
+	if (old_type && old_type != type) {
 		PyErr_SetString(PyExc_AttributeError,
 				"_type_ already set");
 		return NULL;
 	}
-
 	if (-1 == PointerType_SetProto(dict, type))
 		return NULL;
 
 	if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
 		return NULL;
-  done:
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
