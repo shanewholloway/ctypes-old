@@ -1,4 +1,7 @@
-from ctcom import IUnknown, COMPointer, GUID, LCID, REFIID, REFGUID, PPUNK, PUNK, WORD
+from ctcom import IUnknown, COMPointer, GUID, REFIID, REFGUID, \
+     PPUNK, PUNK, STDMETHOD
+
+from ctcom import HRESULT, STDMETHOD
 
 from ctypes import Structure, Union, POINTER, byref, oledll, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
@@ -73,14 +76,29 @@ DISPID = c_long
 MEMBERID = DISPID
 TYPEKIND = c_int # enum
 
+################################################################
+# I don't know if it's possible to do BSTR correctly.
+#
+# For debugging BSTR memory leaks, see
+# http://www.distobj.com/comleaks.htm
+#  and
+# http://support.microsoft.com/default.aspx?scid=KB;en-us;q139071
+# Q139071
+#
+# Apparently the debug version of the ole libraries is no longer
+# required starting with windows 2000, and we could implement
+# IMallocSpy in Python.
+################################################################
+
 class BSTR(Union):
     _fields_ = [("_ptr", c_int),
                 ("value", c_wchar_p)]
 
-    def __init__(self, text=None):
+    def __init__(self, text=None, SysAllocString=oleaut32.SysAllocString):
         if text is not None:
-            self._ptr = oleaut32.SysAllocString(unicode(text))
+            self._ptr = SysAllocString(unicode(text))
 
+    # Blush, of course (it should depend on param)
     def from_param(cls, param):
         return cls(param)
     from_param = classmethod(from_param)
@@ -98,6 +116,8 @@ class BSTR(Union):
     def __del__(self, SysFreeString=oleaut32.SysFreeString):
         if self._ptr:
             SysFreeString(self._ptr)
+            self._ptr = 0
+
 # XXX BUG: Crashed hard when _ptr set to 0
 ##            self._ptr = 0
 
@@ -277,48 +297,51 @@ IMPLTYPEFLAG_FSOURCE      = 0x2
 IMPLTYPEFLAG_FRESTRICTED   = 0x4
 IMPLTYPEFLAG_FDEFAULTVTABLE   = 0x8
 
-ITypeInfo._methods_ = [("GetTypeAttr", (POINTER(LPTYPEATTR),)),
-                       ("GetTypeComp", (POINTER(ITypeCompPointer),)),
-                       ("GetFuncDesc", (c_uint,  POINTER(POINTER(FUNCDESC)))),
-                       ("GetVarDesc", (c_uint, POINTER(POINTER(VARDESC)))),
-                       ("GetNames", (MEMBERID, POINTER(BSTR), c_uint, POINTER(c_uint))),
-                       ("GetRefTypeOfImplType", (c_uint, POINTER(HREFTYPE))),
-                       ("GetImplTypeFlags", (c_uint, POINTER(IMPLTYPEFLAGS))),
-                       ("GetIDsOfNames", (POINTER(LPOLESTR), c_uint, POINTER(c_int))),
-                       ("Invoke", (PUNK, MEMBERID, WORD, POINTER(DISPPARAMS),
-                                   POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint))),
-                       ("GetDocumentation", (MEMBERID, POINTER(BSTR), POINTER(BSTR),
-                                                 POINTER(c_ulong), POINTER(BSTR))),
-                       ("GetDllEntry", (MEMBERID, c_int, POINTER(BSTR), POINTER(BSTR),
-                                            POINTER(c_ushort))),
-                       ("GetRefTypeInfo", (HREFTYPE, POINTER(ITypeInfoPointer))),
-                       ("AddressOfMember", (MEMBERID, c_int, POINTER(c_voidp))),
-                       ("CreateInstance", (c_voidp, REFIID, PPUNK)),
-                       ("GetMops", (MEMBERID, POINTER(BSTR))),
-                       ("GetContainingTypeLib", (POINTER(ITypeLibPointer), POINTER(c_uint))),
-                       ("ReleaseTypeAttr", (LPTYPEATTR,)),
-                       ("ReleaseFuncDesc", (LPFUNCDESC,)),
-                       ("ReleaseVarDesc", (LPVARDESC,))]
+ITypeInfo._methods_ = [
+    STDMETHOD(HRESULT, "GetTypeAttr", POINTER(LPTYPEATTR)),
+    STDMETHOD(HRESULT, "GetTypeComp", POINTER(ITypeCompPointer)),
+    STDMETHOD(HRESULT, "GetFuncDesc", c_uint,  POINTER(POINTER(FUNCDESC))),
+    STDMETHOD(HRESULT, "GetVarDesc", c_uint, POINTER(POINTER(VARDESC))),
+    STDMETHOD(HRESULT, "GetNames", MEMBERID, POINTER(BSTR), c_uint, POINTER(c_uint)),
+    STDMETHOD(HRESULT, "GetRefTypeOfImplType", c_uint, POINTER(HREFTYPE)),
+    STDMETHOD(HRESULT, "GetImplTypeFlags", c_uint, POINTER(IMPLTYPEFLAGS)),
+    STDMETHOD(HRESULT, "GetIDsOfNames", POINTER(LPOLESTR), c_uint, POINTER(c_int)),
+    STDMETHOD(HRESULT, "Invoke", PUNK, MEMBERID, WORD, POINTER(DISPPARAMS),
+              POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint)),
+    STDMETHOD(HRESULT, "GetDocumentation", MEMBERID, POINTER(BSTR), POINTER(BSTR),
+              POINTER(c_ulong), POINTER(BSTR)),
+    STDMETHOD(HRESULT, "GetDllEntry", MEMBERID, c_int, POINTER(BSTR), POINTER(BSTR),
+              POINTER(c_ushort)),
+    STDMETHOD(HRESULT, "GetRefTypeInfo", HREFTYPE, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "AddressOfMember", MEMBERID, c_int, POINTER(c_voidp)),
+    STDMETHOD(HRESULT, "CreateInstance", c_voidp, REFIID, PPUNK),
+    STDMETHOD(HRESULT, "GetMops", MEMBERID, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "GetContainingTypeLib", POINTER(ITypeLibPointer), POINTER(c_uint)),
+    STDMETHOD(HRESULT, "ReleaseTypeAttr", LPTYPEATTR),
+    STDMETHOD(HRESULT, "ReleaseFuncDesc", LPFUNCDESC),
+    STDMETHOD(HRESULT, "ReleaseVarDesc", LPVARDESC)]
 
-ITypeLib._methods_ = [("GetTypeInfoCount", ()),
-                      ("GetTypeInfo", (c_uint, POINTER(ITypeInfoPointer))),
-                      ("GetTypeInfoType", (c_int, POINTER(TYPEKIND))),
-                      ("GetTypeInfoOfGuid", (REFGUID, POINTER(ITypeInfoPointer))),
-                      ("GetLibAttr", (POINTER(TLIBATTR),)),
-                      ("GetTypeComp", (POINTER(ITypeComp),)),
-                      ("GetDocumentation", (c_int, POINTER(BSTR), POINTER(BSTR),
-                                                POINTER(c_ulong), POINTER(BSTR))),
-                      ("IsName", (c_wchar_p, c_ulong, c_int)),
-                      ("FindName", (c_wchar_p, c_ulong, POINTER(ITypeInfoPointer),
-                                        POINTER(MEMBERID), POINTER(c_uint))),
-                      ("ReleaseTLibAttr", (POINTER(TLIBATTR),))]
+ITypeLib._methods_ = [
+    STDMETHOD(c_uint, "GetTypeInfoCount"),
+    STDMETHOD(HRESULT, "GetTypeInfo", c_uint, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetTypeInfoType", c_int, POINTER(TYPEKIND)),
+    STDMETHOD(HRESULT, "GetTypeInfoOfGuid", REFGUID, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetLibAttr", POINTER(TLIBATTR)),
+    STDMETHOD(HRESULT, "GetTypeComp", POINTER(ITypeComp)),
+    STDMETHOD(HRESULT, "GetDocumentation", c_int, POINTER(BSTR), POINTER(BSTR),
+              POINTER(c_ulong), POINTER(BSTR)),
+    STDMETHOD(HRESULT, "IsName", c_wchar_p, c_ulong, c_int),
+    STDMETHOD(HRESULT, "FindName", c_wchar_p, c_ulong, POINTER(ITypeInfoPointer),
+              POINTER(MEMBERID), POINTER(c_uint)),
+    STDMETHOD(HRESULT, "ReleaseTLibAttr", POINTER(TLIBATTR))]
 
-IDispatch._methods_ = [("GetTypeInfoCount", (POINTER(c_uint),)),
-                       ("GetTypeInfo", (c_uint, LCID, POINTER(ITypeInfoPointer))),
-                       ("GetIDsOfNames", (REFIID, POINTER(c_wchar_p), c_uint,
-                                          LCID, POINTER(DISPID))),
-                       ("Invoke", (DISPID, REFIID, LCID, WORD, POINTER(DISPPARAMS),
-                                   POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint)))]
+IDispatch._methods_ = [
+    STDMETHOD(HRESULT, "GetTypeInfoCount", POINTER(c_uint)),
+    STDMETHOD(HRESULT, "GetTypeInfo", c_uint, LCID, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetIDsOfNames", REFIID, POINTER(c_wchar_p), c_uint,
+              LCID, POINTER(DISPID)),
+    STDMETHOD(HRESULT, "Invoke", DISPID, REFIID, LCID, WORD, POINTER(DISPPARAMS),
+              POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint))]
 
 ################################################################
 # functions
@@ -330,5 +353,19 @@ def LoadTypeLib(fnm):
     return p
 
 if __name__ == '__main__':
+    def GetComRefcount(p):
+        p.AddRef()
+        return p.Release()
+
     path = r"c:\tss5\bin\debug\ITInfo.dll"
     p = LoadTypeLib(path)
+    print p, "refcount", GetComRefcount(p)
+
+    p2 = IUnknownPointer()
+    p.QueryInterface(byref(p2._interface_._iid_),
+                     byref(p2))
+    print p2, "refcount", GetComRefcount(p)
+    print p, "refcount", GetComRefcount(p)
+    del p2
+
+    print p, "refcount", GetComRefcount(p)
