@@ -267,6 +267,7 @@ new_CArgObject(void)
 	p = PyObject_New(PyCArgObject, &PyCArg_Type);
 	if (p == NULL)
 		return NULL;
+	p->pffi_type = NULL;
 	p->tag = '\0';
 	p->obj = NULL;
 	memset(&p->value, 0, sizeof(p->value));
@@ -692,7 +693,12 @@ static int _call_function_pointer(int flags,
 	*/
 	for (i = argcount-1; i >= 0; --i) {
 		float f;
-
+		if (parms[i]->pffi_type == NULL) {
+			fprintf(stderr, "NO FFI_TYPE %c\n", parms[i]->tag);
+#ifdef _DEBUG
+			_asm int 3;
+#endif
+		}
 		switch(parms[i]->tag) {
 		case 'c':
 			push(parms[i]->value.c);
