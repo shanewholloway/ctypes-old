@@ -49,6 +49,7 @@ class Generator(ctypes.wrap.codegenerator.Generator):
                 self.generate(a[0])
             self.generate(m.returns)
 
+        self.need_COMMETHOD()
         print >> self.stream, "%s._methods_ = [" % body.itf.name
         for m in body.itf.members:
             if isinstance(m, typedesc.ComMethod):
