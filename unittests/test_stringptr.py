@@ -38,7 +38,11 @@ class StringPtrTestCase(unittest.TestCase):
 
 
     def test_functions(self):
-        strchr = cdll.msvcrt.strchr
+        try:
+            clib = cdll.msvcrt
+        except OSError:
+            clib = CDLL("/lib/libc.so.6")
+        strchr = clib.strchr
         strchr.restype = c_char_p
 
         # c_char_p and Python string is compatible
