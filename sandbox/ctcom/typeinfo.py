@@ -90,36 +90,43 @@ TYPEKIND = c_int # enum
 # IMallocSpy in Python.
 ################################################################
 
-class BSTR(Union):
-    _fields_ = [("_ptr", c_int),
-                ("value", c_wchar_p)]
+##class BSTR(Union):
+##    _fields_ = [("_ptr", c_int),
+##                ("value", c_wchar_p)]
 
-    def __init__(self, text=None, SysAllocString=oleaut32.SysAllocString):
-        if text is not None:
-            self._ptr = SysAllocString(unicode(text))
+##    def __init__(self, text=None, SysAllocString=oleaut32.SysAllocString):
+##        if text is not None:
+##            self._ptr = SysAllocString(unicode(text))
 
-    # Blush, of course (it should depend on param)
-    def from_param(cls, param):
-        return cls(param)
-    from_param = classmethod(from_param)
+##    # Blush, of course (it should depend on param)
+##    def from_param(cls, param):
+##        return cls(param)
+##    from_param = classmethod(from_param)
 
-    def _as_parameter_(self):
-        return self._ptr
-    _as_parameter_ = property(_as_parameter_)
+##    def _as_parameter_(self):
+##        return self._ptr
+##    _as_parameter_ = property(_as_parameter_)
 
-    def __repr__(self):
-        if self._ptr:
-            return "<BSTR '%s'>" % self.value
-        else:
-            return "<BSTR (NULL)>"
+##    def __repr__(self):
+##        if self._ptr:
+##            return "<BSTR '%s'>" % self.value
+##        else:
+##            return "<BSTR (NULL)>"
 
-    def __del__(self, SysFreeString=oleaut32.SysFreeString):
-        if self._ptr:
-            SysFreeString(self._ptr)
-            self._ptr = 0
-
-# XXX BUG: Crashed hard when _ptr set to 0
+##    def __del__(self, SysFreeString=oleaut32.SysFreeString):
+##        if self._ptr:
+##            SysFreeString(self._ptr)
 ##            self._ptr = 0
+
+### XXX BUG: Crashed hard when _ptr set to 0
+####            self._ptr = 0
+
+from _ctypes import _SimpleCData
+
+class BSTR(_SimpleCData):
+    _type_ = "X"
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.value)
 
 assert(sizeof(BSTR) == 4)
 
