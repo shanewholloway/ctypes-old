@@ -2430,11 +2430,15 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 	if (self->index) {
 		/* It's a COM method */
 		CDataObject *this;
-		this = (CDataObject *)PyTuple_GetItem(args, 0);
-		if (!this || !CDataObject_Check(this)) {
-			/* XXX Better error msg when this == NULL */
+		this = (CDataObject *)PyTuple_GetItem(args, 0); /* borrowed ref! */
+		if (!this) {
+			PyErr_SetString(PyExc_ValueError,
+					"native com method call without 'this' parameter");
+			return NULL;
+		}
+		if (!CDataObject_Check(this)) {
 			PyErr_SetString(PyExc_TypeError,
-					"wrong type for this arg");
+					"Expected a COM this pointer as first argument");
 			return NULL;
 		}
 		/* there should be more checks? No, in Python*/
@@ -3217,6 +3221,7 @@ Pointer_item(CDataObject *self, int index)
 	assert(stgdict);
 	
 	proto = stgdict->proto;
+	/* XXXXXX MAKE SURE PROTO IS NOT NULL! */
 	itemdict = PyType_stgdict(proto);
 	size = itemdict->size;
 	offset = index * itemdict->size;
@@ -3256,6 +3261,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 	}
 	size = stgdict->size / stgdict->length;
 
+	/* XXXXX Make sure proto is NOT NULL! */
 	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
 			 index, size, *(void **)self->b_ptr);
 }
