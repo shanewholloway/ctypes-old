@@ -199,9 +199,9 @@ class MyBand(COMObject):
             polewindow.GetWindow(byref(hwndParent))
             self.hwndParent = hwndParent.value
             # Register and create window
-            import win32con
+            WS_CHILD = 0x40000000
             self.m_hwnd = windll.user32.CreateWindowExA(0, "button", "button",
-                                                        win32con.WS_CHILD,
+                                                        WS_CHILD,
                                                         0, 0, 0, 0,
                                                         hwndParent,
                                                         0,
@@ -233,11 +233,12 @@ class MyBand(COMObject):
 
     def IDockingWindow_ShowDW(self, this, bShow):
         if self.m_hwnd:
-            import win32con
+            SW_SHOW = 5
+            SW_HIDE = 0
             if bShow:
-                windll.user32.ShowWindow(self.m_hwnd, win32con.SW_SHOW)
+                windll.user32.ShowWindow(self.m_hwnd, SW_SHOW)
             else:
-                windll.user32.ShowWindow(self.m_hwnd, win32con.SW_HIDE)
+                windll.user32.ShowWindow(self.m_hwnd, SW_HIDE)
         
         return S_OK
 
