@@ -419,6 +419,26 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
   : v
 
 /*****************************************************************
+ * The setter methods return an object which must be kept alive, to keep the
+ * data valid which has been stored in the memory block.  The ctypes object
+ * instance inserts this object into its 'b_objects' list.
+ *
+ * For simple Python types like integers or characters, there is nothing that
+ * has to been kept alive, so Py_None is returned in these cases.  But this
+ * makes inspecting the 'b_objects' list, which is accessible from Python for
+ * debugging, less useful.
+ *
+ * So, defining the _CTYPES_DEBUG_KEEP symbol returns the original value
+ * instead of Py_None.
+ */
+
+#ifdef _CTYPES_DEBUG_KEEP
+#define _RET(x) Py_INCREF(x); return x
+#else
+#define _RET(X) Py_INCREF(Py_None); return Py_None
+#endif
+
+/*****************************************************************
  * integer accessor methods, supporting bit fields
  */
 
@@ -429,8 +449,7 @@ b_set(void *ptr, PyObject *value, unsigned size)
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(char *)ptr = (char)SET(*(char *)ptr, (char)val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -450,8 +469,7 @@ B_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	*(unsigned char *)ptr = (unsigned char)SET(*(unsigned char*)ptr,
 						   (unsigned short)val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -470,8 +488,7 @@ h_set(void *ptr, PyObject *value, unsigned size)
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(short *)ptr = (short)SET(*(short *)ptr, (short)val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -491,8 +508,7 @@ H_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	*(unsigned short *)ptr = (unsigned short)SET(*(unsigned short *)ptr,
 						     (unsigned short)val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -511,8 +527,7 @@ i_set(void *ptr, PyObject *value, unsigned size)
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(int *)ptr = (int)SET(*(int *)ptr, (int)val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -531,8 +546,7 @@ I_set(void *ptr, PyObject *value, unsigned size)
 	if (get_ulong(value, &val) < 0)
 		return  NULL;
 	*(unsigned int *)ptr = (unsigned int)SET(*(unsigned int *)ptr, (unsigned int)val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -551,8 +565,7 @@ l_set(void *ptr, PyObject *value, unsigned size)
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(long *)ptr = (long)SET(*(long *)ptr, val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -571,8 +584,7 @@ L_set(void *ptr, PyObject *value, unsigned size)
 	if (get_ulong(value, &val) < 0)
 		return  NULL;
 	*(unsigned long *)ptr = (unsigned long)SET(*(unsigned long *)ptr, val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -592,8 +604,7 @@ q_set(void *ptr, PyObject *value, unsigned size)
 	if (get_longlong(value, &val) < 0)
 		return NULL;
 	*(PY_LONG_LONG *)ptr = (PY_LONG_LONG)SET(*(PY_LONG_LONG *)ptr, val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 static PyObject *
@@ -611,8 +622,7 @@ Q_set(void *ptr, PyObject *value, unsigned size)
 	if (get_ulonglong(value, &val) < 0)
 		return NULL;
 	*(unsigned PY_LONG_LONG *)ptr = (unsigned PY_LONG_LONG)SET(*(unsigned PY_LONG_LONG *)ptr, val, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 static PyObject *
@@ -643,8 +653,7 @@ d_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(double *)ptr = x;
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 static PyObject *
@@ -666,8 +675,7 @@ f_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(float *)ptr = x;
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 static PyObject *
@@ -708,8 +716,7 @@ c_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(char *)ptr = PyString_AS_STRING(value)[0];
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -751,8 +758,7 @@ u_set(void *ptr, PyObject *value, unsigned size)
 	*(wchar_t *)ptr = PyUnicode_AS_UNICODE(value)[0];
 	Py_DECREF(value);
 
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -875,8 +881,7 @@ s_set(void *ptr, PyObject *value, unsigned length)
 	}
 	/* Also copy the terminating NUL character */
 	memcpy((char *)ptr, data, size);
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 static PyObject *
@@ -902,8 +907,7 @@ z_set(void *ptr, PyObject *value, unsigned size)
 		return str;
 	} else if (PyInt_Check(value) || PyLong_Check(value)) {
 		*(char **)ptr = (char *)PyInt_AsUnsignedLongMask(value);
-		Py_INCREF(Py_None);
-		return Py_None;
+		_RET(value);
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "string or integer address expected instead of %s instance",
@@ -1040,8 +1044,7 @@ BSTR_set(void *ptr, PyObject *value, unsigned size)
 	*(BSTR *)ptr = bstr;
 
 	/* We don't need to keep any other object */
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 
@@ -1068,8 +1071,7 @@ P_set(void *ptr, PyObject *value, unsigned size)
 	void *v;
 	if (value == Py_None) {
 		*(void **)ptr = NULL;
-		Py_INCREF(Py_None);
-		return Py_None;
+		_RET(value);
 	}
 	
 	v = PyLong_AsVoidPtr(value);
@@ -1082,8 +1084,7 @@ P_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(void **)ptr = v;
-	Py_INCREF(Py_None);
-	return Py_None;
+	_RET(value);
 }
 
 static PyObject *
