@@ -43,7 +43,7 @@ else:
         kw["sources"].append("source/darwin/dlfcn_simple.c")
         extra_link_args.extend(['-read_only_relocs', 'warning'])
 
-    extensions = [Extension("ctypes._ctypes",
+    extensions = [Extension("_ctypes",
                             libraries=["ffi"],
                             include_dirs=include_dirs,
                             extra_link_args=extra_link_args,
