@@ -428,17 +428,6 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 		return parm;
 	}
 #endif
-#ifdef CAN_PASS_BY_VALUE
-	if (CDataObject_Check(obj)) {
-		CDataObject *mem = (CDataObject *)obj;
-		parm->tag = 'V';
-		parm->value.p = mem->b_ptr;
-		parm->size = mem->b_size;
-		Py_INCREF(obj);
-		parm->obj = obj;
-		return parm;
-	}
-#endif
 	{
 		PyObject *arg;
 		arg = PyObject_GetAttrString(obj, "_as_parameter_");
@@ -465,6 +454,23 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 			parm->obj = obj;
 			return parm;
 		}
+#if 0
+/* Does this make sense? Now that even Structure and Union types
+   have an _as_parameter_ property implemented in C, which returns
+   a PyCArgObject?
+*/
+#ifdef CAN_PASS_BY_VALUE
+		if (CDataObject_Check(arg)) {
+			CDataObject *mem = (CDataObject *)arg;
+			parm->tag = 'V';
+			parm->value.p = mem->b_ptr;
+			parm->size = mem->b_size;
+			/* This consumes the refcount of arg */
+			parm->obj = arg;
+			return parm;
+		}
+#endif
+#endif
 		Py_DECREF(parm);
 		PyErr_Format(PyExc_TypeError,
 			     "Don't know how to convert parameter %d", index);
@@ -738,9 +744,6 @@ static int _call_function_pointer(int flags,
 		{
 			int n;
 			int *p;
-#ifdef _DEBUG
-			_asm int 3;
-#endif			
 			n = parms[i]->size;
 			if (n % sizeof(int))
 				n += sizeof(int);
