@@ -166,7 +166,7 @@ if LIBFFI_SOURCES is not None:
                        "cd build/libffi/BLD && '%s/configure' --prefix='%s' && make install"%(src_path, inst_dir), None)
 
             subprocess('Building float1.c',
-                       "gcc -lffi build/libffi/testsuite/libffi.call/float1.c")
+                       "gcc -lffi %s/libffi/testsuite/libffi.call/float1.c" % src_path)
 
     LIBFFI_BASE='build/libffi'
     LIBFFI_CFLAGS=[
