@@ -3451,10 +3451,12 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
  	cpp = (char **)arg->b_ptr;
 #ifdef _DEBUG
 	_asm int 3;
+/*
 	Py_BEGIN_ALLOW_THREADS
 	x = pIunk->lpVtbl->AddRef(pIunk);
 	x = pIunk->lpVtbl->Release(pIunk);
 	Py_END_ALLOW_THREADS
+*/
 #endif
 #endif
 	Py_INCREF(Py_None);
@@ -3524,6 +3526,13 @@ EXPORT int _testfunc_piunk(IUnknown FAR *piunk)
 	return piunk->lpVtbl->Release(piunk);
 }
 #endif
+
+EXPORT int _testfunc_callback_with_pointer(int (*func)(int *))
+{
+	int table[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+	return (*func)(table);
+}
 
 #ifdef HAVE_LONG_LONG
 EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
