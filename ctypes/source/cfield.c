@@ -539,6 +539,30 @@ i_get(void *ptr, unsigned size)
 	return PyInt_FromLong(val);
 }
 
+#ifdef MS_WIN32
+/* short BOOL - VARIANT_BOOL */
+static PyObject *
+vBOOL_set(void *ptr, PyObject *value, unsigned size)
+{
+	switch (PyObject_IsTrue(value)) {
+	case -1:
+		return NULL;
+	case 0:
+		*(short int *)ptr = VARIANT_FALSE;
+		_RET(value);
+	default:
+		*(short int *)ptr = VARIANT_TRUE;
+		_RET(value);
+	}
+}
+
+static PyObject *
+vBOOL_get(void *ptr, unsigned size)
+{
+	return PyBool_FromLong((long)*(short int *)ptr);
+}
+#endif
+
 static PyObject *
 I_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -1133,6 +1157,7 @@ static struct fielddesc formattable[] = {
 #endif
 #ifdef MS_WIN32
 	{ 'X', BSTR_set, BSTR_get, &ffi_type_pointer},
+	{ 'v', vBOOL_set, vBOOL_get, &ffi_type_sshort},
 #endif
 	{ 'O', O_set, O_get, &ffi_type_pointer},
 	{ 0, NULL, NULL, NULL},

@@ -11,7 +11,7 @@ except ImportError:
     
 from ctypes import _SimpleCData
 class VARIANT_BOOL(_SimpleCData):
-    _type_ = "y"
+    _type_ = "v"
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 assert(sizeof(VARIANT_BOOL) == 2)
@@ -118,6 +118,8 @@ class tagVARIANT(Structure):
             ("VT_CY", c_longlong),
             ("c_wchar_p", c_wchar_p),
             ("c_void_p", c_void_p),
+
+            ("bstrVal", BSTR),
             ]
     _fields_ = [("vt", VARTYPE),
                 ("wReserved1", c_ushort),
@@ -146,10 +148,11 @@ class tagVARIANT(Structure):
             self._.VT_R8 = value
         elif isinstance(value, unicode):
             self.vt = VT_BSTR
-            self._.c_void_p = _oleaut32.SysAllocString(value)
+            self._.c_void_p = _oleaut32.SysAllocStringLen(value, len(value))
         elif isinstance(value, str):
             self.vt = VT_BSTR
-            self._.c_void_p = _oleaut32.SysAllocString(unicode(value))
+            value = unicode(value)
+            self._.c_void_p = _oleaut32.SysAllocStringLen(value, len(value))
         elif isinstance(value, bool):
             self.vt = VT_BOOL
             self._.VT_BOOL = value
@@ -199,7 +202,7 @@ class tagVARIANT(Structure):
         elif vt == VT_BOOL:
             return self._.VT_BOOL
         elif vt == VT_BSTR:
-            return self._.c_wchar_p
+            return self._.bstrVal or u''
         elif vt == VT_DATE:
             days = self._.VT_R8
             return datetime.timedelta(days=days) + _com_null_date
@@ -240,6 +243,10 @@ class tagVARIANT(Structure):
 
 VARIANT = tagVARIANT
 VARIANTARG = VARIANT
+
+##from _ctypes import VARIANT_set
+##import new
+##VARIANT.value = property(VARIANT._get_value, new.instancemethod(VARIANT_set, None, VARIANT))
 
 
 class tagEXCEPINFO(Structure):
