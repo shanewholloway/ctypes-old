@@ -19,6 +19,15 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
+static int
+is_big_endian(void)
+{
+	short word = 0x4321;
+	if ((*(char *)&word) != 0x21)
+		return 1;
+	return 0;
+}
+
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -128,7 +137,10 @@ CField_FromDesc(PyObject *desc, int index,
 
 	switch (fieldtype) {
 	case NEW_BITFIELD:
-		self->size = (bitsize << 16) + *pbitofs;
+		if (is_big_endian())
+			self->size = (bitsize << 16) + *pfield_size - *pbitofs - bitsize;
+		else
+			self->size = (bitsize << 16) + *pbitofs;
 		*pbitofs = bitsize;
 		/* fall through */
 	case NO_BITFIELD:
@@ -158,13 +170,19 @@ CField_FromDesc(PyObject *desc, int index,
 
 		*pfield_size = dict->size * 8;
 
-		self->size = (bitsize << 16) + *pbitofs;
+		if (is_big_endian())
+			self->size = (bitsize << 16) + *pfield_size - *pbitofs - bitsize;
+		else
+			self->size = (bitsize << 16) + *pbitofs;
 		self->offset = *poffset - size; /* poffset is already updated for the NEXT field */
 		*pbitofs += bitsize;
 		break;
 
 	case CONT_BITFIELD:
-		self->size = (bitsize << 16) + *pbitofs;
+		if (is_big_endian())
+			self->size = (bitsize << 16) + *pfield_size - *pbitofs - bitsize;
+		else
+			self->size = (bitsize << 16) + *pbitofs;
 		self->offset = *poffset - size; /* poffset is already updated for the NEXT field */
 		*pbitofs += bitsize;
 		break;
