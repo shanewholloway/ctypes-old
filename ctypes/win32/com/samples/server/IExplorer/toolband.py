@@ -1,4 +1,8 @@
 """
+Based on an idea and sample code from
+         Author: Eric Koome
+         Email: ekoome@kpmg.co.ke
+
 http://msdn.microsoft.com/library/default.asp?url=/library/en-us/shellcc/platform/Shell/programmersguide/shell_adv/bands.asp
 
 http://msdn.microsoft.com/archive/default.asp?url=/archive/en-us/samples/internet/components/bandobjs/default.asp
