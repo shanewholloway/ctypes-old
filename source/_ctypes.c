@@ -1590,6 +1590,9 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 	Py_INCREF((PyObject *)dll); /* for PyList_SetItem above */
+
+	Py_INCREF(self);
+	self->callable = (PyObject *)self;
 	return (PyObject *)self;
 }
 
@@ -1708,13 +1711,14 @@ CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 {
 	int err;
 
-	err = visit(self->callable, arg);
-	if (err)
-		return err;
+#define TRAVERSE(o) if(o) {err = visit(o, arg); if(err) return err;}
 
-	err = visit(self->b_objects, arg);
-	if (err)
-		return err;
+	TRAVERSE(self->callable)
+	TRAVERSE(self->restype)
+	TRAVERSE(self->converters)
+	TRAVERSE(self->b_objects)
+
+#undef TRAVERSE
 
 	return 0;
 }
@@ -1726,10 +1730,17 @@ CFuncPtr_clear(CFuncPtrObject *self)
 	Py_XDECREF(self->callable);
 	self->callable = NULL;
 
-	*(void **)self->b_ptr = NULL;
+	Py_XDECREF(self->restype);
+	self->restype = NULL;
+
+	Py_XDECREF(self->converters);
+	self->converters = NULL;
+
+	self->b_ptr = NULL;
 	if (self->thunk)
 		FreeCallback(self->thunk);
 	self->thunk = NULL;
+
 	Py_XDECREF(self->b_objects);
 	self->b_objects = NULL;
 
@@ -1739,12 +1750,7 @@ CFuncPtr_clear(CFuncPtrObject *self)
 static void
 CFuncPtr_dealloc(CFuncPtrObject *self)
 {
-	Py_XDECREF(self->callable);
-	self->callable = NULL;
-	if (self->thunk)
-		FreeCallback(self->thunk);
-	self->thunk = NULL;
-
+	CFuncPtr_clear(self);
 	CData_dealloc((PyObject *)self);
 }
 
