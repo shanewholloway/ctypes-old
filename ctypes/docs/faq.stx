@@ -24,17 +24,6 @@ ctypes FAQ - frequently asked questions
            h = win32file.CreateFile(....)
 	   windll.kernel32.DeviceIoControl(int(h), ...)
 
-    How can I load a dll named 'gpib-32.dll'?
-
-       'ctypes' loads dlls by retrieving them as attributes from
-       'windll' or 'cdll', like 'windll.gdi32' which loads 'gdi32.dll'.
-       This approach cannot work when the filename contains characters
-       not allowed in Python identifiers, or when the dll is not on
-       the default Windows search path.  In these cases you should
-       call the 'CDLL' or 'WinDLL' classes directly with the filename::
-
-           gpib32 = CDLL("c:\\gpib\\gpib-32.dll")
-
     How can I call functions in a dll written in Delphi?
 
        Delphi uses the 'PASCAL' calling convention as default, and
@@ -42,6 +31,26 @@ ctypes FAQ - frequently asked questions
        arguments in reverse order in the call, and it should work when
        using the __stdcall calling convention (load the Delphi dll
        with 'windll').
+
+  General topics
+
+    How can I access a value (an integer, a pointer) in a shared library?
+
+       **New in 0.6.1**: 'ctypes' types now have a '.in_dll' class
+       method, which accepts a dll/shared library instance and a
+       symbol name as parameters. See the tutorial for details.
+
+    How can I load a dll named 'gpib-32.dll'?
+
+       'ctypes' loads dlls by retrieving them as attributes from
+       'windll' or 'cdll', like 'windll.gdi32' which loads
+       'gdi32.dll'.  This approach cannot work when the filename
+       contains characters not allowed in Python identifiers, or when
+       the dll is not on the default Windows search path.  In these
+       cases you should call the 'CDLL' or 'WinDLL' classes directly
+       with the filename::
+
+           gpib32 = CDLL("c:\\gpib\\gpib-32.dll")
 
     How can I call functions written in "C++" ?
 
@@ -51,9 +60,8 @@ ctypes FAQ - frequently asked questions
        to the ctypes-users mailing list.
 
 
-  General topics
-
     How can I help to improve this FAQ?
 
-      Send new questions, better answers, or other comments to the
-      "ctypes-users":mailto:ctypes-users@lists.sourceforge.net mailing list.
+       Send new questions, better answers, or other comments to the
+       "ctypes-users":mailto:ctypes-users@lists.sourceforge.net
+       mailing list.
