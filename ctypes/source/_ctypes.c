@@ -2591,7 +2591,6 @@ IBUG(char *msg)
 	return -1;
 }
 
-#ifdef CAN_PASS_BY_VALUE
 static PyObject *
 Struct_as_parameter(CDataObject *self)
 {
@@ -2615,7 +2614,6 @@ Struct_as_parameter(CDataObject *self)
 	parg->obj = (PyObject *)self;
 	return (PyObject *)parg;	
 }
-#endif
 
 static int
 Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
@@ -2683,11 +2681,9 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 static PyGetSetDef Struct_getsets[] = {
-#ifdef CAN_PASS_BY_VALUE
 	{ "_as_parameter_", (getter)Struct_as_parameter, NULL,
 	  "return a magic value so that this can be converted to a C parameter (readonly)",
 	  NULL },
-#endif
 	{ NULL, NULL }
 };
 

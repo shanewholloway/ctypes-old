@@ -166,7 +166,6 @@ EXPORT(int) getSPAMANDEGGS(EGG **eggs)
 	return 1;
 }
 
-#ifdef CAN_PASS_BY_VALUE
 typedef struct tagpoint {
 	int x;
 	int y;
@@ -181,8 +180,6 @@ EXPORT(int) _testfunc_byval(point in, point *pout)
 	}
 	return in.x + in.y;
 }
-
-#endif
 
 EXPORT (int) an_integer = 42;
 

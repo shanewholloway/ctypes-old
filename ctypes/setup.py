@@ -49,7 +49,6 @@ if os.name == "nt":
         "source/libffi_msvc/win32.c",
         ])
     extensions = [Extension("_ctypes",
-                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             export_symbols=["DllGetClassObject,PRIVATE",
                                             "DllCanUnloadNow,PRIVATE",
                                             "CopyComPointer"],
@@ -77,16 +76,13 @@ else:
         include_dirs.append("source/darwin")
 
     extensions = [Extension("_ctypes",
-                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             libraries=["ffi"],
                             include_dirs=include_dirs,
                             library_dirs=library_dirs,
                             extra_link_args=extra_link_args,
                             **kw),
                   Extension("_ctypes_test",
-                            sources=["source/_ctypes_test.c"],
-                            include_dirs=include_dirs,
-                            )
+                            sources=["source/_ctypes_test.c"])
                   ]
 ################################################################
 # This section copied from the PyObjC project

@@ -225,9 +225,7 @@ typedef struct {
 		void *p;
 	} value;
 	PyObject *obj;
-#ifdef CAN_PASS_BY_VALUE
 	int size; /* for the 'V' tag */
-#endif
 } PyCArgObject;
 
 extern PyTypeObject PyCArg_Type;
