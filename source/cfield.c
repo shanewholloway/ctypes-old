@@ -94,7 +94,13 @@ CField_FromDesc(PyObject *desc, int index,
 	size = dict->size;
 	length = dict->length;
 
-	/*  Field descriptors for 'c_char * n' are be scpecial cased to
+	getfunc = dict->getfunc;
+
+	/* Currently, dict->getfunc is only != NULL for SimpleCData types.
+	   If we would set it for array types, we could get rid of the
+	   following code block.
+	 */
+	/*  Field descriptors for 'c_char * n' are be special cased to
 	    return a Python string instead of an Array object instance...
 	*/
 	if (ArrayTypeObject_Check(desc)) {
@@ -207,13 +213,6 @@ CField_get(CFieldObject *self, CDataObject *src, PyTypeObject *type)
 
 	if (self->getfunc)
 		return self->getfunc(src->b_ptr + self->offset, self->size);
-
-	/* If we would set self->getfunc in the CFieldObject constructor,
-	   we could delete the following 3 lines of code
-	*/
-	dict = PyType_stgdict(self->fieldtype);
-	if (dict && dict->getfunc)
-		return dict->getfunc(src->b_ptr + self->offset, self->size);
 
 	return CData_FromBaseObj(self->fieldtype, (PyObject *)src,
 				 self->index, src->b_ptr + self->offset);
