@@ -11,7 +11,7 @@ dlls. It allows wrapping these libraries in pure Python.
 
 LIBFFI_SOURCES='source/gcc/libffi'
 
-__version__ = "0.9.7beta"
+__version__ = "2.0.0.0cvs"
 
 ################################################################
 
