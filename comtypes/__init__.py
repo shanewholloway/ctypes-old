@@ -186,6 +186,16 @@ class _cominterface_meta(type):
                 warnings.warn("Named property '%s'" % name,
                               NotYetImplemented,
                               stacklevel=3)
+                g = getters.get(item)
+                s = setters.get(item)
+                if g is not None:
+                    name, doc, kind = item
+                    setattr(self, "_get_%s" % name,
+                            new.instancemethod(g, None, self))
+                if s is not None:
+                    name, doc, kind = item
+                    setattr(self, "_set_%s" % name,
+                            new.instancemethod(s, None, self))
                 continue
             setattr(self, name, prop)
 
