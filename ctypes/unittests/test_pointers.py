@@ -2,15 +2,8 @@ import unittest
 
 from ctypes import *
 def find_test_dll():
-    import sys, os
-    if os.name == "nt":
-        name = "_ctypes_test.pyd"
-    else:
-        name = "_ctypes_test.so"
-    for p in sys.path:
-        f = os.path.join(p, name)
-        if os.path.isfile(f):
-            return f
+    import _ctypes_test
+    return _ctypes_test.__file__
 
 ctype_types = [c_byte, c_ubyte, c_short, c_ushort, c_int, c_uint,
                  c_long, c_ulong, c_longlong, c_ulonglong, c_double, c_float]

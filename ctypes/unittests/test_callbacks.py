@@ -1,5 +1,6 @@
 import unittest
 from ctypes import *
+import _ctypes_test
 
 class Callbacks(unittest.TestCase):
     functype = CFUNCTYPE
@@ -105,22 +106,11 @@ else:
 
 ################################################################
 
-def find_test_dll():
-    import sys, os
-    if os.name == "nt":
-        name = "_ctypes_test.pyd"
-    else:
-        name = "_ctypes_test.so"
-    for p in sys.path:
-        f = os.path.join(p, name)
-        if os.path.isfile(f):
-            return f
-
 class SampleCallbacksTestCase(unittest.TestCase):
 
     def test_integrate(self):
         # Derived from some then non-working code, posted by David Foster
-        dll = CDLL(find_test_dll())
+        dll = CDLL(_ctypes_test.__file__)
 
         # The function prototype called by 'integrate': double func(double);
         CALLBACK = CFUNCTYPE(c_double, c_double)
