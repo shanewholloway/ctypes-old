@@ -331,7 +331,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
             # or unknown.
             else:
                 # not known
-                print "skip %s = %s" % (name, value)
+##                print "skip %s = %s" % (name, value)
+                pass
 
     def get_result(self):
         interesting = (typedesc.Typedef, typedesc.Enumeration, typedesc.EnumValue,
