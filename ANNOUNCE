@@ -1,5 +1,5 @@
-ctypes 0.9.1 released
-=====================
+ctypes 0.9.1 released - Sept 14, 2004
+=====================================
 
 Overview
 
@@ -34,10 +34,10 @@ Changes in 0.9.1
     called with string and unicode instances, they will do the needed
     conversions themselves.
 
-    ctypes now allows calling Python C api functions.  The pythonapi
+    ctypes now allows calling Python C api functions.  The 'pythonapi'
     symbol should be used to access these functions, this will
     automatically use the correct calling convention and exception
-    handling.  The py_object type is the ctypes variant of 'PyObject *'.
+    handling.  The 'py_object' type is the ctypes variant of 'PyObject *'.
     This feature should also work if you are using a static python
     build.
 
@@ -72,7 +72,6 @@ Changes in 0.9.1
 
 
   ctypes.com changes
-
 
     Applied a patch from Bruce Dodson which fixes an infinite loop in
     readtlb.py if a typelib references types defined in another
