@@ -215,6 +215,21 @@ class StructureTestCase(unittest.TestCase):
         # too long
         self.assertRaises(ValueError, Person, "1234567", 5)
 
+    
+    def test_keyword_initializers(self):
+        class POINT(Structure):
+            _fields_ = [("x", c_int), ("y", c_int)]
+        pt = POINT(1, 2)
+        self.failUnlessEqual((pt.x, pt.y), (1, 2))
+
+        pt = POINT(y=2, x=1)
+        self.failUnlessEqual((pt.x, pt.y), (1, 2))
+
+    def test_invalid_field_types(self):
+        class POINT(Structure):
+            pass
+        self.assertRaises(TypeError, setattr, POINT, "_fields_", [("x", 1), ("y", 2)])
+
     def test_intarray_fields(self):
         class SomeInts(Structure):
             _fields_ = [("a", c_int * 4)]
