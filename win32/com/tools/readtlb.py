@@ -563,8 +563,8 @@ HEADER = r"""
 
 from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
-from ctypes.com.automation import IDispatch, BSTR, VARIANT, \
-                                  dispinterface, DISPMETHOD
+from ctypes.com.automation import IDispatch, BSTR, VARIANT, dispinterface, \
+                                  DISPMETHOD, DISPPARAMS, EXCEPINFO
 
 """
 
