@@ -9,10 +9,18 @@ Python, and to call functions in dynamic link libraries/shared
 dlls. It allows wrapping these libraries in pure Python.
 """
 
+# XXX explain LIBFFI_SOURCES
+##LIBFFI_SOURCES='libffi-src'
+LIBFFI_SOURCES='../gcc/libffi'
+
 
 from distutils.core import setup, Extension, Command
 import distutils.core
 from distutils.errors import DistutilsOptionError
+from distutils.command import build_py
+from distutils.command import build_ext
+
+
 
 import os, sys
 
@@ -60,13 +68,8 @@ if os.name == "nt":
                               "source/libffi_msvc/ffitarget.h",
                               "source/libffi_msvc/ffi_common.h"])
 else:
-    include_dirs = ["build/libffi/include",
-                    "build/libffi/lib/gcc/3.5.0/include/libffi",
-                    "build/libffi/lib/gcc/include/libffi"]
-    library_dirs = ["build/libffi/lib"]
-##    if os.path.exists('source/libffi'):
-##        include_dirs.append('source/libffi/include')
-##        library_dirs.append('source/libffi/lib')
+    include_dirs = []
+    library_dirs = []
     extra_link_args = []
     if sys.platform == "darwin":
         kw["sources"].append("source/darwin/dlfcn_simple.c")
@@ -97,88 +100,9 @@ if sys.platform == 'darwin':
         print "Fixing Apple strangeness in Python configuration"
         distutils.sysconfig._config_vars['LDSHARED'] = y
 
-##LIBFFI_SOURCES='libffi-src'
-LIBFFI_SOURCES='../gcc/libffi'
 if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h'):
     # A system with a pre-existing libffi.
     LIBFFI_SOURCES=None
-
-def subprocess(taskName, cmd, validRes=None):
-    print "Performing task: %s" % (taskName,)
-    res = os.system(cmd)
-    validRes = 0
-##    fd = os.popen(cmd, 'r')
-##    for data in fd.read(256):
-##        sys.stdout.write(data)
-##        if not data:
-##            break
-
-##    res = fd.close()
-    if res is not validRes:
-        sys.stderr.write("Task '%s' failed [%d]\n"%(taskName, res))
-        sys.exit(1)
-
-# We need at least Python 2.2
-req_ver = (2, 2)
-
-if sys.version_info < req_ver:
-    sys.stderr.write('ctypes: Need at least Python %s\n'%('.'.join(req_ver)))
-    sys.exit(1)
-
-if LIBFFI_SOURCES is not None:
-
-    def task_build_libffi(force=0):
-        if sys.platform == "win32":
-            return
-        if not os.path.isdir(LIBFFI_SOURCES):
-            sys.stderr.write(
-                'LIBFFI_SOURCES is not a directory: %s\n'%LIBFFI_SOURCES)
-            sys.stderr.write('\tSee Install.txt or Install.html for more information.\n')
-            sys.exit(1)
-
-        from distutils.dir_util import mkpath
-        mkpath('build/libffi/BLD')
-
-        if force or not os.path.exists('build/libffi/lib/libffi.a'):
-            # No pre-build version available, build it now.
-            # Do not use a relative path for the build-tree, libtool on
-            # MacOS X doesn't like that.
-            inst_dir = os.path.join(os.getcwd(), 'build/libffi')
-            src_path = os.path.abspath(LIBFFI_SOURCES)
-
-            if ' ' in src_path+inst_dir:
-                print >>sys.stderr, "LIBFFI can not build correctly in a path that contains spaces."
-                print >>sys.stderr, "This limitation includes the entire path (all parents, etc.)"
-                print >>sys.stderr, "Move the ctypes and libffi source to a path without spaces and build again."
-                sys.exit(1)
-
-            inst_dir = inst_dir.replace("'", "'\"'\"'")
-            src_path = src_path.replace("'", "'\"'\"'")
-
-            subprocess('Building FFI',
-                       "cd build/libffi/BLD && '%s/configure' --prefix='%s' --disable-shared --enable-static && make install"%(src_path, inst_dir), None)
-            subprocess('Building test',
-                       "cd build/libffi/BLD && '%s/configure' --prefix='%s' && make install"%(src_path, inst_dir), None)
-
-            subprocess('Building float1.c',
-                       "gcc -lffi %s/libffi/testsuite/libffi.call/float1.c" % src_path)
-
-    LIBFFI_BASE='build/libffi'
-    LIBFFI_CFLAGS=[
-        "-isystem", "%s/include"%LIBFFI_BASE,
-    ]
-    LIBFFI_LDFLAGS=[
-        '-L%s/lib'%LIBFFI_BASE, '-lffi',
-    ]
-    libffi_include = ["include/%s" % LIBFFI_BASE]
-    libffi_lib = ["%s/lib" % LIBFFI_BASE]
-
-else:
-    def task_build_libffi(force=0):
-        pass
-    LIBFFI_CFLAGS=[]
-    LIBFFI_LDFLAGS=['-lffi']
-
 
 ################################################################
 
@@ -303,8 +227,6 @@ if (hasattr(distutils.core, 'setup_keywords') and
                   ]
 
 
-from distutils.command import build_py
-
 class my_build_py(build_py.build_py):
     def find_package_modules (self, package, package_dir):
         """We extend distutils' build_py.find_package_modules() method
@@ -318,12 +240,41 @@ class my_build_py(build_py.build_py):
                 result.append(('ctypes', modname, pathname))
         return result
 
-from distutils.command import build_ext
-
 class my_build_ext(build_ext.build_ext):
     def run(self):
-        task_build_libffi(self.force)
+        self.build_libffi_static()
         build_ext.build_ext.run(self)
+
+    def build_libffi_static(self):
+        src_dir = os.path.abspath(LIBFFI_SOURCES)
+
+        build_dir = os.path.join(self.build_temp, 'libffi')
+        inst_dir = os.path.abspath(self.build_temp)
+        lib_dir = os.path.abspath(os.path.join(inst_dir, 'lib'))
+        inc_dir = os.path.abspath(os.path.join(inst_dir, 'include'))
+
+        if not self.force and os.path.isfile(os.path.join(lib_dir, "libffi.a")):
+            return
+
+        mkpath(build_dir)
+
+        cmd = "cd %s && '%s/configure' --prefix='%s' --disable-shared --enable-static && make install" \
+              % (build_dir, src_dir, inst_dir)
+
+        print 'Building static FFI library:'
+        print cmd
+        res = os.system(cmd)
+        if res:
+            print "Failed"
+            sys.exit(res)
+
+        for ext in self.extensions:
+            if "$LIBFFI" in ext.include_dirs:
+                ext.include_dirs.append(inc_dir)
+                ext.include_dirs.append(os.path.join(lib_dir, "gcc/3.5.0/include/libffi"))
+            if "$LIBFFI" in ext.library_dirs:
+                ext.library_dirs.append(lib_dir)
+
 
 if __name__ == '__main__':
     setup(name="ctypes",
@@ -345,5 +296,5 @@ if __name__ == '__main__':
           )
 
 ## Local Variables:
-## compile-command: "python setup.py build -g && python setup.py build install"
+## compile-command: "python setup.py build"
 ## End:
