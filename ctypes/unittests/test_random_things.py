@@ -47,35 +47,5 @@ class CallbackTracbackTestCase(unittest.TestCase):
         self.failUnlessEqual(out.splitlines()[-1],
               "TypeError: (in callback) unsupported operand type(s) for /: 'int' and 'str'")
 
-if sys.platform == "win32":
-    def __del__(self):
-        pass
-
-    class MyTestCase(unittest.TestCase):
-        # This test makes sure that calling a COM method on a COM
-        # interface pointer raises a ValueError, when the interface
-        # pointer points to NULL.
-
-        def setUp(self):
-            from ctypes.com import IUnknown
-            self._orig_del = POINTER(IUnknown).__del__
-            # We replace the __del__ method (which calls self.Release(),
-            # because it would crash.
-            POINTER(IUnknown).__del__ = __del__
-
-        def tearDown(self):
-            from ctypes.com import IUnknown
-            POINTER(IUnknown).__del__ = self._orig_del
-
-        def test_comcrash(self):
-            from ctypes.com import IUnknown
-            p = pointer(IUnknown())
-            try:
-                p.AddRef()
-            except ValueError, message:
-                self.failUnlessEqual(str(message), "COM method call without VTable")
-            else:
-                self.fail("Exception expected")
-
 if __name__ == '__main__':
     unittest.main()
