@@ -310,58 +310,6 @@ static PySequenceMethods CDataType_as_sequence = {
 };
 
 static int
-StructUnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value,
-			 int isStruct)
-{
-	/* keep this for bw compatibility */
-	if (PyDict_GetItemString(self->tp_dict, "_abstract_"))
-		return PyObject_GenericSetAttr((PyObject *)self, name, value);
-
-	if (PyString_Check(name)
-	    && 0 == strcmp("_fields_", PyString_AS_STRING(name))) {
-		PyObject *dict;
-		if (PyType_stgdict((PyObject *)self)) {
-			PyErr_SetString(PyExc_AttributeError,
-					"_fields_ attribute cannot be overwritten");
-			return -1;
-		}
-		dict = StgDict_FromDict(value, self->tp_dict, isStruct);
-		if (dict == NULL)
-			return -1;
-
-		/* replace the class dict by our updated stgdict, which holds info
-		   about storage requirements of the instances */
-		if (-1 == PyDict_Update(dict, self->tp_dict)) {
-			Py_DECREF(dict);
-			return -1;
-		}
-		Py_DECREF(self->tp_dict);
-		self->tp_dict = dict;
-	}
-	if (PyString_Check(name)
-	    && 0 == strcmp("_pack_", PyString_AS_STRING(name))) {
-		if (PyType_stgdict((PyObject *)self)) {
-			PyErr_SetString(PyExc_AttributeError,
-					"_pack_ attribute cannot be overwritten");
-			return -1;
-		}
-	}
-	return PyObject_GenericSetAttr((PyObject *)self, name, value);
-}
-
-static int
-StructType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
-{
-	return StructUnionType_setattro(self, name, value, 1);
-}
-
-static int
-UnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
-{
-	return StructUnionType_setattro(self, name, value, 0);
-}
-
-static int
 CDataType_clear(PyTypeObject *self)
 {
 	StgDictObject *dict = PyType_stgdict((PyObject *)self);
@@ -398,7 +346,7 @@ static PyTypeObject StructType_Type = {
 	0,					/* tp_call */
 	0,					/* tp_str */
 	0,					/* tp_getattro */
-	(setattrofunc)StructType_setattro,	/* tp_setattro */
+	0,					/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
@@ -441,7 +389,7 @@ static PyTypeObject UnionType_Type = {
 	0,					/* tp_call */
 	0,					/* tp_str */
 	0,					/* tp_getattro */
-	(setattrofunc)UnionType_setattro,	/* tp_setattro */
+	0,					/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
@@ -2765,17 +2713,6 @@ static PyGetSetDef Struct_getsets[] = {
 	{ NULL, NULL }
 };
 
-static PyObject *
-StructUnion_new(PyTypeObject *type, PyObject *args, PyObject *kw)
-{
-	if (!PyType_stgdict((PyObject *)type)) {
-		PyErr_SetString(PyExc_TypeError,
-				"Cannot create instance: no _fields_");
-		return NULL;
-	}
-	return GenericCData_new(type, args, kw);
-}
-
 static PyTypeObject Struct_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -2815,7 +2752,7 @@ static PyTypeObject Struct_Type = {
 	0,					/* tp_dictoffset */
 	Struct_init,				/* tp_init */
 	0,					/* tp_alloc */
-	StructUnion_new,			/* tp_new */
+	GenericCData_new,			/* tp_new */
 	0,					/* tp_free */
 };
 
@@ -2858,7 +2795,7 @@ static PyTypeObject Union_Type = {
 	0,					/* tp_dictoffset */
 	Struct_init,				/* tp_init */
 	0,					/* tp_alloc */
-	StructUnion_new,			/* tp_new */
+	GenericCData_new,			/* tp_new */
 	0,					/* tp_free */
 };
 
