@@ -546,52 +546,6 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 
 #ifndef MS_WIN32
 
-ffi_type *tag2ffitype(char tag)
-{
-	switch (tag) {
-	case 'c':
-		return &ffi_type_schar;
-	case 'b':
-		return &ffi_type_sint8;
-	case 'B':
-		return &ffi_type_uint8;
-	case 'h':
-		return &ffi_type_sint16;
-	case 'H':
-		return &ffi_type_uint16;
-	case 'i':
-		return &ffi_type_sint32;
-	case 'I':
-		return &ffi_type_uint32;
-	case 'l':
-		return &ffi_type_sint32;
-	case 'L':
-		return &ffi_type_uint32;
-	case 'q':
-		return &ffi_type_sint64;
-	case 'Q':
-		return &ffi_type_uint64;
-	case 'z':
-	case 'Z':
-	case 'P':
-		return &ffi_type_pointer;
-	case 'd':
-		return &ffi_type_double;
-	case 'f':
-		return &ffi_type_float;
-	case 'v':
-		return &ffi_type_void;
-/* Ahh.
-	case 'V':
-		return &ffi_type_structure;
-*/
-	default:
-		PyErr_Format(PyExc_TypeError,
-			     "cannot pass type tag %c", tag);
-		return NULL;
-	}	
-}
-
 /*
  * libffi uses:
  *
@@ -611,7 +565,6 @@ static int _call_function_pointer(int flags,
 				  int argcount)
 {
 	ffi_cif cif;
-	ffi_type *rtype;
 	ffi_type **atypes;
 	void **values;
 	int i;
@@ -622,23 +575,22 @@ static int _call_function_pointer(int flags,
 	for (i = 0; i < argcount; ++i) {
 		ffi_type *tp = parms[i]->pffi_type;
 		if (tp == NULL) {
-			fprintf(stderr, "BUG (arg): NO TYPE FOR '%c'\n", parms[i]->tag);
-			tp = tag2ffitype(parms[i]->tag);
-		}
-		if (tp == NULL)
+			PyErr_SetString(PyExc_RuntimeError,
+					"No ffi_type for an argument");
 			return -1;
+		}
 		atypes[i] = tp;
 		values[i] = &parms[i]->value;
 	}
-	rtype = res->pffi_type;
-	if (rtype == NULL) {
-		fprintf(stderr, "BUG (result): NO TYPE FOR '%c'\n", res->tag);
-		rtype = tag2ffitype(res->tag);
+	if (res->pffi_type == NULL) {
+		PyErr_SetString(PyExc_RuntimeError,
+				"No ffi_type for result");
+		return -1;
 	}
     
 	if (FFI_OK != ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
 				   argcount,
-				   rtype,
+				   res->pffi_type,
 				   atypes)) {
 		PyErr_SetString(PyExc_RuntimeError,
 				"ffi_prep_cif failed");
