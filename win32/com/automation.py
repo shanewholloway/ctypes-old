@@ -310,6 +310,7 @@ class VARIANT(Structure):
 
                     # faked fields, only for our convenience:
                     ("wstrVal", c_wchar_p),
+                    ("bstrVal", BSTR),
                     ("voidp", c_void_p),
                     ]
     _fields_ = [("vt", VARTYPE),
@@ -345,10 +346,11 @@ class VARIANT(Structure):
             self._.VT_R8 = float(value)
         elif typ is str:
             self.vt = VT_BSTR
-            self._.voidp = oleaut32.SysAllocString(unicode(value))
+            value = unicode(value)
+            self._.voidp = oleaut32.SysAllocStringLen(value, len(value))
         elif typ is unicode:
             self.vt = VT_BSTR
-            self._.voidp = oleaut32.SysAllocString(value)
+            self._.voidp = oleaut32.SysAllocStringLen(value, len(value))
         elif value is None:
             return
         elif typ is bool:
@@ -398,7 +400,8 @@ class VARIANT(Structure):
             return self._.VT_R8
         elif self.vt == VT_BSTR:
             # NULL BSTR count as empty strings, not None!
-            return self._.wstrVal or u''
+##            return self._.wstrVal or u''
+            return self._.bstrVal or u''
         # The following code can be enabled again when all the POINTER(ISomeInterface)
         # classes have a constructor that calls AddRef() if not-null.
 ##        elif self.vt == VT_UNKNOWN:
