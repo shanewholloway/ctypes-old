@@ -1728,7 +1728,12 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	PyObject *objects;
 	int size, offset;
 	StgDictObject *stgdict;
-	
+
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError,
+				"Array does not support item deletion");
+		return -1;
+	}
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
 	if (index < 0 || index >= stgdict->length) {
@@ -2116,6 +2121,12 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 static int
 Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 {
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError,
+				"Pointer does not support item deletion");
+		return -1;
+	}
+	
 	if (index != 0) {
 		PyErr_SetString(PyExc_IndexError,
 				"index out of range");
