@@ -1852,7 +1852,7 @@ PyTypeObject CData_Type = {
   
   Fix later.
  */
-static PyObject *
+PyObject *
 CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 {
 	struct basespec spec;
