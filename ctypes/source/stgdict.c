@@ -199,7 +199,6 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 			switch(dict->ffi_type.type) {
 			case FFI_TYPE_UINT8:
 			case FFI_TYPE_UINT16:
-			case FFI_TYPE_SINT32:
 			case FFI_TYPE_UINT32:
 			case FFI_TYPE_SINT64:
 			case FFI_TYPE_UINT64:
@@ -207,6 +206,7 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 
 			case FFI_TYPE_SINT8:
 			case FFI_TYPE_SINT16:
+			case FFI_TYPE_SINT32:
 				if (dict->getfunc != getentry("c")->getfunc
 #ifdef Py_USING_UNICODE
 				    && dict->getfunc != getentry("u")->getfunc
