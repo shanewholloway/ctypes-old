@@ -136,14 +136,8 @@ if LIBFFI_SOURCES is not None:
             sys.stderr.write('\tSee Install.txt or Install.html for more information.\n')
             sys.exit(1)
 
-        if not os.path.exists('build'):
-            os.mkdir('build')
-
-        if not os.path.exists('build/libffi'):
-            os.mkdir('build/libffi')
-
-        if not os.path.exists('build/libffi/BLD'):
-            os.mkdir('build/libffi/BLD')
+        from distutils.dir_util import mkpath
+        mkpath('build/libffi/BLD')
 
         if force or not os.path.exists('build/libffi/lib/libffi.a'):
             # No pre-build version available, build it now.
