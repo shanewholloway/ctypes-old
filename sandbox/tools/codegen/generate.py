@@ -50,7 +50,61 @@ struct_packing = {
     "tagPDA": 2,
     "tagPDW": 2,
     "DLGITEMTEMPLATE": 2,
+    "tWAVEFORMATEX": 2,
+    "DLGTEMPLATE": 2,
+    "tagMETAHEADER": 2,
+    "tagBITMAPFILEHEADER": 2,
+
+    "_SHQUERYRBINFO": 4,
+
+    "waveformat_tag": 2,
+    "_py_N17_IMAGE_AUX_SYMBOL4__26E": 2,
+    "_IMAGE_AUX_SYMBOL": 2,
+    "IMAGE_AUX_SYMBOL_TOKEN_DEF": 2,
+    "_IMAGE_LINENUMBER": 2,
+    "_IMAGE_RELOCATION": 2,
+
+    "_SHFILEOPSTRUCTW": 2,
+    "_SHFILEOPSTRUCTA": 2,
     }
+
+dont_assert_size = set(
+    [
+    "__si_class_type_info_pseudo",
+    "__class_type_info_pseudo",
+    ]
+    )
+
+dll_names = """\
+user32
+kernel32
+gdi32
+advapi32
+oleaut32
+ole32
+imm32
+comdlg32
+shell32
+version
+winmm
+mpr
+winscard
+winspool.drv
+urlmon
+crypt32
+cryptnet
+ws2_32
+opengl32
+mswsock
+msvcrt
+rpcrt4""".split()
+
+##rpcndr
+##ntdll
+
+
+from ctypes import CDLL
+searched_dlls = [CDLL(name) for name in dll_names]
 
 class Generator(object):
     def __init__(self):
@@ -94,7 +148,8 @@ class Generator(object):
             self.more.add(tp.typ)
         else:
             self.generate([tp.typ])
-        print "%s = %s" % (tp.name, type_name(tp.typ))
+        if tp.name != type_name(tp.typ):
+            print "%s = %s" % (tp.name, type_name(tp.typ))
         self.done.add(tp)
 
     def ArrayType(self, tp):
@@ -169,7 +224,13 @@ class Generator(object):
         else:
             print "%s._pack_ = %s" % (body.struct.name, pack)
         if fields:
-            print "%s._fields_ = [" % body.struct.name
+            if body.struct.bases:
+                assert len(body.struct.bases) == 1
+                base = body.struct.bases[0].name
+                self.StructureBody(body.struct.bases[0].get_body())
+                print "%s._fields_ = %s._fields_ + [" % (body.struct.name, base)
+            else:
+                print "%s._fields_ = [" % body.struct.name
             for f in fields:
                 if f.bits is None:
                     print "    ('%s', %s)," % (f.name, type_name(f.typ))
@@ -185,25 +246,36 @@ class Generator(object):
                     m.name,
                     ", ".join(args))
             print "]"
-        if body.struct.size:
+        if body.struct.size and body.struct.name not in dont_assert_size:
             size = body.struct.size // 8
             print "assert sizeof(%s) == %s, sizeof(%s)" % \
                   (body.struct.name, size, body.struct.name)
         self.done.add(body)
 
+    def find_dllname(self, name):
+        for dll in searched_dlls:
+            try:
+                getattr(dll, name)
+            except AttributeError:
+                pass
+            else:
+                return dll._name
+        return None
+
     def Function(self, func):
         if func in self.done:
             return
-        if func.extern:
+        dllname = self.find_dllname(func.name)
+        if dllname and func.extern:
             self.generate([func.returns])
             self.generate(func.arguments)
             args = [type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
-                print "STDCALL(%s, '%s', %s)" % \
-                      (type_name(func.returns), func.name, ", ".join(args))
+                print "STDCALL('%s', %s, '%s', %s)" % \
+                      (dllname, type_name(func.returns), func.name, ", ".join(args))
             else:
-                print "CDECL(%s, '%s', %s)" % \
-                      (type_name(func.returns), func.name, ", ".join(args))
+                print "CDECL('%s', %s, '%s', %s)" % \
+                      (dllname, type_name(func.returns), func.name, ", ".join(args))
         self.done.add(func)
 
     def generate(self, items):
