@@ -486,6 +486,14 @@ PointerType_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
+	if (PointerObject_Check(value)) {
+		StgDictObject *v = PyObject_stgdict(value);
+		StgDictObject *t = PyType_stgdict(type);
+		if (PyObject_IsSubclass(v->proto, t->proto)) {
+			Py_INCREF(value);
+			return value;
+		}
+	}
      	return CDataType_from_param(type, value);
 }
 
