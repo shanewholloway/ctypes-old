@@ -1,4 +1,4 @@
-include MANIFEST MANIFEST.in LICENSE.txt NEWS.txt
+include MANIFEST MANIFEST.in LICENSE.txt NEWS.txt README*
 include source/*.c source/*.h
 
 include unittests/*.py
