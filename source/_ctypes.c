@@ -1173,7 +1173,7 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'Z';
-		parg->obj = fd->setfunc(&parg->value, value, 0, NULL);
+		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
@@ -1222,7 +1222,7 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'z';
-		parg->obj = fd->setfunc(&parg->value, value, 0, NULL);
+		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
