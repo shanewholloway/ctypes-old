@@ -3204,7 +3204,7 @@ Array_item(CDataObject *self, int index)
 static PyObject *
 Array_slice(CDataObject *self, int ilow, int ihigh)
 {
-	StgDictObject *stgdict, *itemdict;
+	StgDictObject *stgdict;
 	PyListObject *np;
 	int i, len;
 
@@ -3219,14 +3219,11 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 	len = ihigh - ilow;
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	itemdict = PyType_stgdict(stgdict->itemtype);
-
-	/* XXX XXX XXX Can we use getfunc here? */
-	if (itemdict->getfunc == getentry("c")->getfunc) {
+	if (stgdict->itemtype == CTYPE_c_char) {
 		char *ptr = (char *)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
 #ifdef CTYPES_UNICODE
-	} else if (itemdict->getfunc == getentry("u")->getfunc) {
+	} else if (stgdict->itemtype == CTYPE_c_wchar) {
 		wchar_t *ptr = (wchar_t *)self->b_ptr;
 		return PyUnicode_FromWideChar(ptr + ilow, len);
 #endif
