@@ -150,16 +150,26 @@ class tagVARIANT(Structure):
         _oleaut32.VariantClear(byref(self))
         if value is None:
             self.vt = VT_NULL
+        # since bool is a subclass of int, this check must be first
+        elif isinstance(value, bool):
+            self.vt = VT_BOOL
+            self._.VT_BOOL = value
         elif isinstance(value, int):
             self.vt = VT_I4
             self._.VT_I4 = value
         elif isinstance(value, long):
-            self.vt = VT_I4
             u = self._
             u.VT_I4 = value
-            if u.VT_I4 != value:
-                self.vt = VT_R8
-                u.VT_R8 = float(value)
+            if u.VT_I4 == value:
+                self.vt = VT_I4
+                return
+            if value >= 0:
+                u.VT_UI4 = value
+                if u.VT_UI4 == value:
+                    self.vt = VT_UI4
+                    return
+            self.vt = VT_R8
+            u.VT_R8 = float(value)
         elif isinstance(value, float):
             self.vt = VT_R8
             self._.VT_R8 = value
@@ -170,9 +180,6 @@ class tagVARIANT(Structure):
             self.vt = VT_BSTR
             value = unicode(value)
             self._.c_void_p = _oleaut32.SysAllocStringLen(value, len(value))
-        elif isinstance(value, bool):
-            self.vt = VT_BOOL
-            self._.VT_BOOL = value
         elif isinstance(value, datetime.datetime):
             delta = value - _com_null_date
             # a day has 24 * 60 * 60 = 86400 seconds
