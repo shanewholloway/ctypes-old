@@ -173,18 +173,18 @@ IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnk
 
 ################################################################
 
-E_NOTIMPL = 0x80000001
+E_NOTIMPL = 0x80004001
 
 class COMObject:
     _refcnt = 1
 
     def _notimpl(self, *args):
-##        print "notimpl", args
+        print "notimpl", args
         return E_NOTIMPL
 
-    def QueryInterface(self, this, refiid, ppiunk):
-        print "QI", refiid[0] #, ppiunk
-        return E_NOTIMPL
+##    def QueryInterface(self, this, refiid, ppiunk):
+##        print "QI", refiid[0] #, ppiunk
+##        return E_NOTIMPL
 
     def AddRef(self, this):
         self._refcnt += 1
@@ -204,10 +204,12 @@ class COMObject:
         methods = []
         for name, proto in vtbltype._fields_:
             callable = getattr(self, name, self._notimpl)
+            if callable == self._notimpl:
+                print "# name unimplemented"
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
         itf.lpVtbl = pointer(vtbl)
         return pointer(itf)
 
 
-__all__ = "IUnknown PIUnknown STDMETHOD GUID REFIID HRESULT ole32".split()
+__all__ = "IUnknown PIUnknown STDMETHOD GUID REFIID HRESULT ole32 COMObject".split()
