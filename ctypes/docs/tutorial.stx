@@ -586,15 +586,34 @@ ctypes tutorial
      you *know* that the pointer actually points to an array instead
      of a single item.
 
+  Pointer classes/types
+
+    Behind the scenes, the 'pointer' function does more than simply
+    create pointer instances, it has to create pointer *types* first.
+    This is done with the 'POINTER' function, which accepts any
+    'ctypes' type, and returns a new type::
+
+       >>> from ctypes import c_int, POINTER
+       >>> PI = POINTER(c_int)
+       >>> PI
+       <class 'ctypes.LP_c_int>
+       >>> PI(42)
+       Traceback (most recent call last):
+         File "<stdin>", line 1, in ?
+       TypeError: expected c_int instead of int
+       >>> PI(c_int(42))
+       <ctypes.LP_c_int object at 0x008ECCE8>
+       >>>
+
   Incomplete Types
 
-    XXX Incomplete XXX
+    XXX This currently doesn't seem to work XXX
 
     *Incomplete Types* are structures, unions or arrays whose members
     are not yet specified. In the 'ctypes' context, you can create
-    types representing pointers to these types by passing their name
-    (as a string) to the POINTER function, and complete the result
-    subclass later.
+    types representing pointers to these incomplete types by passing
+    their name (as a string) to the POINTER function, and complete the
+    result subclass later.
 
     Consider this example (C-code)::
 
@@ -605,33 +624,40 @@ ctypes tutorial
           struct cell *next;
       } cell;
 
-    The straightforward translation into Python would be::
+    The straightforward translation into Python would be this, but it
+    does not work::
 
-      class cell(Structure):
-          _fields_ = [("value", "i"),
-	              ("next", Pointer(cell))]
+       >>> class cell(Structure):
+       ...     _fields_ = [("value", c_int),
+       ...                 ("next", POINTER(cell))]
+       ...
+       Traceback (most recent call last):
+         File "<stdin>", line 1, in ?
+	 File "<stdin>", line 2, in cell
+       NameError: name 'cell' is not defined
+       >>>
 
-    Unfortunately this will not work - it raises a name error::
+    because the new 'class cell' is not available in the class
+    statement itself.
 
-      Traceback (most recent call last):
-        File "<stdin>", line 1, in ?
-        File "<stdin>", line 2, in cell
-      NameError: name 'cell' is not defined
+    We can do it by creating an *incomplete pointer type* by
+    calling POINTER with the class _name_, and later setting the
+    complete type of the result::
 
-    because 'class cell' is not available in the class statement itself.
+       >>> from ctypes import *
+       >>> lpcell = POINTER("cell")
+       >>> class cell(Structure):
+       ...     _fields_ = [("value", c_int),
+       ...                 ("next", lpcell)]
+       ...
+       >>> SetPointerType(lpcell, cell)
+       >>> c = cell()
+       >>> c.next = c
+       Traceback (most recent call last):
+         File "<stdin>", line 1, in ?
+       TypeError: incompatible types, cell instance instead of LP_cell instanc
+       >>>
 
-    We can do it by creating an *incomplete _Pointer subclass* by
-    calling Pointer with the class _name_, and later setting the
-    complete type of the _Pointer subclass 'lpcell' ::
-
-      from ctypes import Structure, Pointer, SetPointerType
-      lpcell = POINTER("cell")
-
-      class cell(Structure):
-          _fields_ = [("value", "i"),
-                      ("next", lpcell)]
-
-      SetPointerType(lpcell, cell)
 
   Callback functions
 
