@@ -55,6 +55,8 @@ class SimpleTypesTestCase(unittest.TestCase):
         from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer
         LPINT = POINTER(c_int)
 
+##        p = pointer(c_int(42))
+##        x = LPINT.from_param(p)
         x = LPINT.from_param(pointer(c_int(42)))
         self.failUnless(x.contents.value == 42)
         self.failUnless(LPINT(c_int(42)).contents.value == 42)
@@ -152,5 +154,8 @@ def test(verbose=0):
     runner.run(get_suite())
 
 if __name__ == '__main__':
-    check_perf()
+    import sys
+    if '-p' in sys.argv:
+        check_perf()
+        sys.argv.remove('-p')
     unittest.main()
