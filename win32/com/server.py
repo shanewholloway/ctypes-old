@@ -6,6 +6,10 @@ from ctypes import c_int, c_ulong, byref, c_voidp, Structure, windll, POINTER, p
 user32 = windll.user32
 ole32.CoInitialize(None)
 
+# We need to call this when we're done:
+import atexit
+atexit.register(ole32.CoUninitialize)
+
 S_OK = 0
 E_NOTIMPL = 0x80004001
 E_NOINTERFACE = 0x80004002
@@ -132,4 +136,3 @@ def localserver(objclass):
     factory._register_class()
     pump_messages()
     factory._revoke_class()
-##    ole32.CoUninitialize()
