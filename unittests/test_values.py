@@ -54,8 +54,46 @@ class ValuesTestCase(unittest.TestCase):
         expected = [("__hello__", 100), ("__phello__", -100), ("__phello__.spam", 100)]
         self.failUnlessEqual(items, expected)
 
-    def test_function_pointer(self):
-        hook_ptr = c_int.in_dll
+    def test_undefined(self):
+        self.assertRaises(ValueError, c_int.in_dll, pydll, "Undefined_Symbol")
+
+##    def test_function_pointer(self):
+##        # A C function type of no arguments, which returns an integer
+##        HOOKFUNC = CFUNCTYPE(c_int)
+
+##        hook_ptr = HOOKFUNC.in_dll(pydll, "PyOS_InputHook")
+
+##        def my_hook():
+##            print "*hook called*"
+##            return 0
+
+##        c_hook = HOOKFUNC(my_hook)
+
+##        print hex(addressof(c_hook))
+
+##        hook_ptr.contents = c_hook
+
+##    def test_function_pointer_2(self):
+##        HOOKFUNC = CFUNCTYPE(c_int)
+
+##        class X(Structure):
+##            _fields_ = [("func", HOOKFUNC)]
+
+##        hook_ptr = X.in_dll(pydll, "PyOS_InputHook")
+
+##        def my_hook():
+##            print "*hook called*"
+##            return 0
+
+##        c_hook = HOOKFUNC(my_hook)
+
+##        hook_ptr.func = c_hook
+##        raw_input()
+
+##    def test_func_ptr_3(self):
+##        f = pydll.PyOS_InputHook
+
+##        print dir(f)
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
