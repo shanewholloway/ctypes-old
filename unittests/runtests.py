@@ -40,7 +40,7 @@ def main():
     for flag, value in opts:
         if flag == "-q":
             verbosity -= 1
-        elif flag in "-v":
+        elif flag == "-v":
             verbosity += 1
     if args:
         mask = args[0]
