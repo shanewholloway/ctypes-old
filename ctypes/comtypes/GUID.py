@@ -48,6 +48,11 @@ class GUID(Structure):
         return inst
     from_progid = classmethod(from_progid)
 
+    def progid(self):
+        progid = c_wchar_p()
+        _ole32.ProgIDFromCLSID(byref(self), byref(progid))
+        return progid.value
+
 assert(sizeof(GUID) == 16), sizeof(GUID)
 
 __all__ = ["GUID"]
