@@ -52,6 +52,7 @@ if os.name == "nt":
                             **kw),
                   Extension("_ctypes_test",
                             libraries=["oleaut32"],
+                            include_dirs=["source/libffi_msvc"],
                             sources=["source/_ctypes_test.c"])
                   ]
 else:

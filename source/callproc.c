@@ -446,7 +446,6 @@ void SetException(DWORD code)
 					"exception: nocontinuable");
 			break;
 		default:
-			printf("error %d\n", code);
 			PyErr_Format(PyExc_WindowsError,
 				     "exception code 0x%08x",
 				     code);
