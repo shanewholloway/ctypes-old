@@ -38,13 +38,13 @@
 #define HAVE_MEMCPY 1
 
 /* Define if read-only mmap of a plain file works. */
-#define HAVE_MMAP_FILE 1
+//#define HAVE_MMAP_FILE 1
 
 /* Define if mmap of /dev/zero works. */
-#define HAVE_MMAP_DEV_ZERO 1
+//#define HAVE_MMAP_DEV_ZERO 1
 
 /* Define if mmap with MAP_ANON(YMOUS) works. */
-#define HAVE_MMAP_ANON 1
+//#define HAVE_MMAP_ANON 1
 
 /* The number of bytes in type double */
 #define SIZEOF_DOUBLE 8
