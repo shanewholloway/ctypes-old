@@ -320,16 +320,14 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
             self.all[name] = a
 
         for name, a in aliases.items():
-##            if name == "main":
-##                continue
             value = a.alias
             # the value should be either in namespace...
             if value in namespace:
                 # set the type
                 a.typ = namespace[value]
             # or in aliases...
-##            elif value in aliases:
-##                a.typ = aliases[value]
+            elif value in aliases:
+                a.typ = aliases[value]
             # or unknown.
             else:
                 # not known
