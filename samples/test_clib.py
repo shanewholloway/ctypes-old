@@ -201,84 +201,6 @@ def test_qsort_2():
     print
     print
 
-def test_qsort_3():
-    from _ctypes import CFunction
-
-    class LPSTR(Structure):
-        _fields_ = [("value", "z")]
-        __slots__ = []
-
-    class CMPFUNC(CFunction):
-        _types_ = LPSTR.from_address, LPSTR.from_address
-        _stdcall_ = 0
-
-    def compare(a, b):
-        return cmp(a.value, b.value)
-    
-    words = "the quick brown fox jumps over the lazy dog".split()
-
-    StringArray10 = LPSTR * len(words)
-
-    words = map(LPSTR, words)
-
-    s10 = StringArray10(*words)
-
-    print "BEFORE sorting:",
-    for item in s10:
-        print item.value,
-    print
-
-    libc.qsort(s10,
-                 len(s10),
-                 4,
-                 CMPFUNC(compare))
-
-    print "AFTER  sorting:", 
-    for item in s10:
-        print item.value,
-    print
-    print
-
-def test_qsort_4():
-    """Demonstrates using the builtin 'cmp' function as callback"""
-    from _ctypes import CFunction
-
-    class LPSTR(Structure):
-        _fields_ = [("value", "z")]
-        __slots__ = []
-
-        def value_from_address(cls, adr):
-            return cls.from_address(adr).value
-        value_from_address = classmethod(value_from_address)
-
-    class CMPFUNC(CFunction):
-        _types_ = LPSTR.value_from_address, LPSTR.value_from_address
-        _stdcall_ = 0
-
-    words = "the quick brown fox jumps over the lazy dog".split()
-
-    StringArray10 = LPSTR * len(words)
-
-    words = map(LPSTR, words)
-
-    s10 = StringArray10(*words)
-
-    print "BEFORE sorting:",
-    for item in s10:
-        print item.value,
-    print
-
-    libc.qsort(s10,
-                 len(s10),
-                 4,
-                 CMPFUNC(cmp))
-
-    print "AFTER  sorting:", 
-    for item in s10:
-        print item.value,
-    print
-    print
-
 def test_qsort_5():
     # demonstrates callback functions specified by using types in the _types_ list
     import random
@@ -327,6 +249,4 @@ if __name__ == '__main__':
     test_qsort()
     test_qsort_1()
     test_qsort_2()
-    test_qsort_3()
-    test_qsort_4()
     test_qsort_5()
