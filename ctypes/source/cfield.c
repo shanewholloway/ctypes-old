@@ -813,9 +813,6 @@ z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		*(char **)ptr = PyString_AS_STRING(str);
 		Py_INCREF(str);
 		return str;
-	} else if (PyInt_Check(value) || PyLong_Check(value)) {
-		*(char **)ptr = (char *)PyInt_AsUnsignedLongMask(value);
-		_RET(value);
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "string or integer address expected instead of %s instance",
@@ -850,10 +847,6 @@ Z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 						    conversion_mode_errors);
 		if (!value)
 			return NULL;
-	} else if (PyInt_Check(value) || PyLong_Check(value)) {
-		*(wchar_t **)ptr = (wchar_t *)PyInt_AsUnsignedLongMask(value);
-		Py_INCREF(Py_None);
-		return Py_None;
 	} else if (!PyUnicode_Check(value)) {
 		PyErr_Format(PyExc_TypeError,
 			     "unicode string or integer address expected instead of %s instance",
