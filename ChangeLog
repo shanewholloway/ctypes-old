@@ -1,3 +1,13 @@
+2005-02-10  Thomas Heller  <theller@python.net>
+
+	* Clean up the_ semantics on Structure/Union types. The _fields_
+	attribute can no longer be set after one of the following happens:
+	
+	- The _fields_ attribute is set.
+	- An instance of the type is created.
+	- The type is used as field in another Structure/Union.
+	- The type is subclassed.
+
 2005-01-26  Thomas Heller  <theller@python.net>
 
 	*  source\_ctypes.c: Prevent a crash when .restype or .argtypes
