@@ -3,14 +3,12 @@
 #
 """create and manipulate C data types in Python"""
 
-__version__ = "0.4.1"
+__version__ = "0.5.1"
 
-from _ctypes import Union, Structure, Array
+from _ctypes import Union, Structure, Array, CFuncPtr, CFunction
 from _ctypes import c_string
-try:
-    from _ctypes import _Pointer, CFunction
-except ImportError:
-    pass
+
+from _ctypes import _Pointer
 
 import os as _os
 
