@@ -1,3 +1,28 @@
+2003-03-07  Thomas Heller  <theller@python.net>
+
+	* ctypes: The CFunction subclass _types_ attribute does not accept
+	format characters any more, types like c_int, c_char_p and so on
+	must now be used.  The same change has been made for the argtypes
+	and restype attribute of dll functions.
+
+	A new base type CFuncPtr was added.  This will soon make CFunction
+	and DynFunction obsolete.  Subclass creation requires an _argtype_
+	attribute mush must be a sequence of types like c_int or c_charp,
+	a _flags_attribute which must be a bitwise or of FUNCFLAG_CDECL,
+	FUNCFLAG_STDCALL and FUNCFLAG_HRESULT (the latter two only on
+	Windows) to specify the calling convention, and an optional
+	_restype_ attribute which defaults to c_int.
+
+	The plan is to create some factory functions like STDCALL() and
+	CDECL() which return CFuncPtr subclasses, this is useful to define
+	these subclasses in an expression instead of a class statement, also
+	it probably makes it easier to use.
+
+	Obscure change: If the CFunction instance uses c_int in the
+	_types_ sequence, it will now receive a standard Python integer
+	and no longer a c_int instance if it is called. (CFuncPtr
+	instances behave in the same way).
+
 2003-03-04  Thomas Heller  <theller@python.net>
 
 	* ctypes.py (cdll): Changed the __getattr__ implementations for
