@@ -26,10 +26,10 @@ def _register(cls):
 
     if not hasattr(cls, "_reg_clsctx_") or cls._reg_clsctx_ & CLSCTX_LOCAL_SERVER:
         if is_frozen():
-            value = "%s /automation" % sys.executable
+            value = sys.executable
         else:
             import os
-            value = "%s %s /automation" % \
+            value = "%s %s" % \
                     (sys.executable, os.path.abspath(sys.argv[0]))
         print "LocalServer32", value
         _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
