@@ -1,4 +1,25 @@
+2004-10-29  Thomas Heller  <theller@python.net>
+
+	* (Message): Define a new protocol for function's restype.  If it
+	is a ctypes' type, it is handled in the usual way.  But if it
+	additionally has an _check_retval_ attribute, this is called with
+	the result, and the return value of this call is the functions
+	return value.
+
+	This allows to define HRESULT as a ctypes' type, because it can
+	check for failure in it's _check_retval_ static method, and raise
+	a WindowsError.
+
+	Although HRESULT is defined in python code (since it is derived
+	from c_long), the _check_retval_ method is implemented in C - in
+	this way the traceback won't include the _check_retval_ method
+	definition itself.
+
+	* (Message): Increased version number to 0.9.3.
+
 2004-10-28  Thomas Heller  <theller@python.net>
+
+	* (Message): ctypes 0.9.2 released.
 
 	* Renamed the functions: get_string -> string_at,
 	get_wstring -> wstring_at
@@ -91,7 +112,7 @@
 
 2004-09-21  Thomas Heller  <theller@python.net>
 
-	*  (Message): Increased version number to 0.9.2.
+	* (Message): Increased version number to 0.9.2.
 
 2004-09-16  Thomas Heller  <theller@python.net>
 
