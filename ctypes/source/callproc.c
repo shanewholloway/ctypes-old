@@ -584,6 +584,7 @@ static int _call_function_pointer(int flags,
 				  struct argument *res,
 				  int argcount)
 {
+	PyThreadState *_save;
 	ffi_cif cif;
 	int cc;
 #ifdef MS_WIN32
@@ -614,7 +615,8 @@ static int _call_function_pointer(int flags,
 		return -1;
 	}
 
-	Py_BEGIN_ALLOW_THREADS
+	if ((flags & FUNCFLAG_PYTHONAPI) == 0)
+		Py_UNBLOCK_THREADS
 #ifdef MS_WIN32
 #ifndef DEBUG_EXCEPTIONS
 	__try {
@@ -631,7 +633,8 @@ static int _call_function_pointer(int flags,
 	}
 #endif
 #endif
-	Py_END_ALLOW_THREADS
+	if ((flags & FUNCFLAG_PYTHONAPI) == 0)
+		Py_BLOCK_THREADS
 #ifdef MS_WIN32
 	if (dwExceptionCode) {
 		SetException(dwExceptionCode, &record);
@@ -1107,9 +1110,6 @@ call_function(PyObject *self, PyObject *args)
 	PyObject *arguments;
 	PyObject *result;
 
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	if (!PyArg_ParseTuple(args,
 			      "iO!",
 			      &func,
@@ -1170,6 +1170,18 @@ static char addressof_doc[] =
 "Return the address of the C instance internal buffer";
 
 
+static PyObject *
+My_PyObj_FromPtr(PyObject *self, PyObject *args)
+{
+	int i;
+	PyObject *ob;
+	if (!PyArg_ParseTuple(args, "i", &i))
+		return NULL;
+	ob = (PyObject *)i;
+	Py_INCREF(ob);
+	return ob;
+}
+
 PyMethodDef module_methods[] = {
 #ifdef MS_WIN32
 	{"CopyComPointer", copy_com_pointer, METH_VARARGS, copy_com_pointer_doc},
@@ -1189,6 +1201,7 @@ PyMethodDef module_methods[] = {
 	{"addressof", addressof, METH_O, addressof_doc},
 	{"call_function", call_function, METH_VARARGS },
 	{"call_cdeclfunction", call_cdeclfunction, METH_VARARGS },
+	{"PyObj_FromPtr", My_PyObj_FromPtr, METH_VARARGS },
 	{NULL,      NULL}        /* Sentinel */
 };
 
