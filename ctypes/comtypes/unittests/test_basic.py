@@ -56,6 +56,13 @@ class BasicTest(unittest.TestCase):
             STDMETHOD(HRESULT, "Blah", [])]
         self.failUnlessEqual(method_count(IMyInterface), 4)
 
+    def test_heirarchy(self):
+        class IMyInterface(IUnknown):
+            pass
+
+        self.failUnless(issubclass(IMyInterface, IUnknown))
+        self.failUnless(issubclass(POINTER(IMyInterface), POINTER(IUnknown)))
+
     def test_mro(self):
         mro = POINTER(IUnknown).__mro__
 
