@@ -272,10 +272,6 @@ extern PyCArgObject *new_CArgObject(void);
 #define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
 extern PyCArgObject *new_CArgObject(void);
 
-extern int
-CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
-	  int index, int size, char *ptr);
-
 extern void Extend_Error_Info(PyObject *exc_class, char *fmt, ...);
 
 struct basespec {
