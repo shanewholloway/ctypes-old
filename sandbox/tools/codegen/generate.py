@@ -1,6 +1,5 @@
 # bugs:
-# packing of unions (assertion errors at import time of generated module)
-# bitfields?
+# packing of structures/unions with bitfields? See '##XXX FIXME'
 
 import nodes
 
@@ -51,7 +50,7 @@ def storage(t):
 class PackingError(Exception):
     pass
 
-def _calc_packing(struct, fields, pack):
+def _calc_packing(struct, fields, pack, isStruct):
     # Try a certain packing, raise PackingError if field offsets,
     # total size ot total alignment is wrong.
     if struct.size is None: # incomplete struct
@@ -66,15 +65,19 @@ def _calc_packing(struct, fields, pack):
         total_align = 8 # in bits
     for i, f in enumerate(fields):
         if f.bits:
+            print "##XXX FIXME"
             return -2 # XXX FIXME
         s, a = storage(f.typ)
         if pack is not None:
             a = min(pack, a)
         if size % a:
             size += a - size % a
-        if size != f.offset:
-            raise PackingError, "field offset (%s/%s)" % (size, f.offset)
-        size += s
+        if isStruct:
+            if size != f.offset:
+                raise PackingError, "field offset (%s/%s)" % (size, f.offset)
+            size += s
+        else:
+            size = max(size, s)
         total_align = max(total_align, a)
     if total_align != struct.align:
         raise PackingError, "total alignment (%s/%s)" % (total_align, struct.align)
@@ -88,9 +91,10 @@ def _calc_packing(struct, fields, pack):
 
 def calc_packing(struct, fields):
     # try several packings, starting with unspecified packing
+    isStruct = isinstance(struct, nodes.Structure)
     for pack in [None, 16*8, 8*8, 4*8, 2*8, 1*8]:
         try:
-            _calc_packing(struct, fields, pack)
+            _calc_packing(struct, fields, pack, isStruct)
         except PackingError, details:
             continue
         else:
@@ -146,32 +150,7 @@ def get_real_type(tp):
         return get_real_type(tp.typ)
     return tp
 
-struct_packing = {
-    "_IMAGE_SYMBOL": 2,
-    "tagPDA": 2,
-    "tagPDW": 2,
-    "DLGITEMTEMPLATE": 2,
-    "tWAVEFORMATEX": 2,
-    "DLGTEMPLATE": 2,
-    "tagMETAHEADER": 2,
-    "tagBITMAPFILEHEADER": 2,
-
-    "_SHQUERYRBINFO": 4,
-
-    "waveformat_tag": 2,
-    "_py_N17_IMAGE_AUX_SYMBOL4__26E": 2,
-    "_IMAGE_AUX_SYMBOL": 2,
-    "IMAGE_AUX_SYMBOL_TOKEN_DEF": 2,
-    "_IMAGE_LINENUMBER": 2,
-    "_IMAGE_RELOCATION": 2,
-
-    "_SHFILEOPSTRUCTW": 2,
-    "_SHFILEOPSTRUCTA": 2,
-
-    "_SENDCMDOUTPARAMS": 1,
-    "_SENDCMDINPARAMS": 1,
-    }
-
+# XXX These should be filtered out in gccxmlparser.
 dont_assert_size = set(
     [
     "__si_class_type_info_pseudo",
@@ -235,18 +214,22 @@ class Generator(object):
         print "    pass"
         self.done.add(head)
 
+    _structures = 0
     def Structure(self, struct):
         if struct in self.done:
             return
+        self._structures += 1
         head = struct.get_head()
         self.StructureHead(head)
         body = struct.get_body()
         self.StructureBody(body)
         self.done.add(struct)
         
+    _typedefs = 0
     def Typedef(self, tp):
         if tp in self.done:
             return
+        self._typedefs += 1
         if type(tp.typ) in (nodes.Structure, nodes.Union):
             self.StructureHead(tp.typ.get_head())
             self.more.add(tp.typ)
@@ -256,23 +239,29 @@ class Generator(object):
             print "%s = %s # typedef" % (tp.name, type_name(tp.typ))
         self.done.add(tp)
 
+    _arraytypes = 0
     def ArrayType(self, tp):
         if tp in self.done:
             return
+        self._arraytypes += 1
         self.generate(get_real_type(tp.typ))
         self.generate(tp.typ)
         self.done.add(tp)
 
+    _functiontypes = 0
     def FunctionType(self, tp):
         if tp in self.done:
             return
+        self._functiontypes += 1
         self.generate(tp.returns)
         self.generate_all(tp.arguments)
         self.done.add(tp)
         
+    _pointertypes = 0
     def PointerType(self, tp):
         if tp in self.done:
             return
+        self._pointertypes += 1
         if type(tp.typ) is nodes.PointerType:
             self.PointerType(tp.typ)
         elif type(tp.typ) in (nodes.Union, nodes.Structure):
@@ -290,9 +279,11 @@ class Generator(object):
         self.generate(tp.typ)
         self.done.add(tp)
 
+    _enumtypes = 0
     def Enumeration(self, tp):
         if tp in self.done:
             return
+        self._enumtypes += 1
         if tp.name:
             print
             print "%s = c_int # enum" % tp.name
@@ -325,8 +316,8 @@ class Generator(object):
         # not on COM interfaces:
         #
         # Hm, how to detect a COM interface with no methods? IXMLDOMCDATASection is such a beast...
-        if not isinstance(body.struct, nodes.Union) and not methods:
-##        if not methods:
+##        if not isinstance(body.struct, nodes.Union) and not methods:
+        if not methods:
             pack = calc_packing(body.struct, fields)
             if pack is not None:
                 print "%s._pack_ = %s" % (body.struct.name, pack)
@@ -375,9 +366,11 @@ class Generator(object):
 ##        return None
         return "?"
 
+    _functiontypes = 0
     def Function(self, func):
         if func in self.done:
             return
+        self._functiontypes += 1
         dllname = self.find_dllname(func.name)
         if dllname and func.extern:
             self.generate(func.returns)
@@ -405,6 +398,22 @@ class Generator(object):
     def generate_all(self, items):
         for item in items:
             self.generate(item)
+
+    def print_stats(self):
+        print "################################################################"
+        print "# Statistics:"
+        print "#"
+        print "# Struct/Unions: %5d" % self._structures
+        print "# Functions:     %5d" % self._functiontypes
+        print "# Enums:         %5d" % self._enumtypes
+        print "# Typedefs:      %5d" % self._typedefs
+        print "# Pointertypes:  %5d" % self._pointertypes
+        print "# Arraytypes:    %5d" % self._arraytypes
+        print "#"
+        total = self._structures + self._functiontypes + self._enumtypes + self._typedefs +\
+                self._pointertypes + self._arraytypes
+        print "# Total symbols: %5d" % total
+        print "################################################################"
 
 ################################################################
 
@@ -449,6 +458,8 @@ def main():
         print "left after 20 loops", len(items)
         import pdb
         pdb.set_trace()
+
+    gen.print_stats()
 
 if __name__ == "__main__":
     import sys
