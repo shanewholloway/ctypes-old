@@ -2001,6 +2001,7 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		   callback, and print the traceback not only on the console,
 		   but also to OutputDebugString() or something like that.
 		 */
+		/* nothing so far ;-) */;
 	}
 
 	dict = PyType_stgdict((PyObject *)type);
@@ -3492,6 +3493,30 @@ integrate(double a, double b, double (*f)(double), long nstep)
 	for(x=a+0.5*dx; (b-x)*(x-a)>0.0; x+=dx)
 		sum += f(x);
 	return sum/(double)nstep;
+}
+
+typedef struct {
+	void (*initialize)(void *(*)(int), void(*)(void *));
+} xxx_library;
+
+static void _xxx_init(void *(*Xalloc)(int), void (*Xfree)(void *))
+{
+	void *ptr;
+	
+	printf("_xxx_init got %x %x\n", Xalloc, Xfree);
+	printf("calling\n");
+	ptr = Xalloc(32);
+	Xfree(ptr);
+	printf("calls done, ptr was %x\n", ptr);
+}
+
+xxx_library _xxx_lib = {
+	_xxx_init
+};
+
+EXPORT xxx_library *library_get(void)
+{
+	return &_xxx_lib;
 }
 
 /*
