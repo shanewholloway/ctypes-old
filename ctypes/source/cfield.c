@@ -385,7 +385,7 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 #ifdef MS_WIN32
 #  define BIT_MASK(size) ((1 << NUM_BITS(size))-1)
 #else
-#  define BIT_MASK(size) ((1L << NUM_BITS(size))-1)
+#  define BIT_MASK(size) ((1LL << NUM_BITS(size))-1)
 #endif
 
 #define GET_BITFIELD(v, size) \
