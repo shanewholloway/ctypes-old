@@ -69,13 +69,11 @@ CField_FromDesc(PyObject *desc, int index,
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
-/*
 			if (idict->getfunc == getentry("u")->getfunc) {
-				fd = getentry("s");
+				struct fielddesc *fd = getentry("U");
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
-*/
 		}
 	}
 
@@ -587,6 +585,7 @@ c_get(void *ptr, unsigned size)
 }
 
 #ifdef HAVE_USABLE_WCHAR_T
+/* u - a single unicode character */
 static PyObject *
 u_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -613,6 +612,64 @@ u_get(void *ptr, unsigned size)
 {
 	return PyUnicode_FromWideChar((wchar_t *)ptr, 1);
 }
+
+/* U - a unicode string */
+static PyObject *
+U_get(void *ptr, unsigned size)
+{
+	PyObject *result;
+	unsigned int len;
+
+	size /= sizeof(wchar_t); /* we count character units here, not bytes */
+
+	result = PyUnicode_FromWideChar((wchar_t *)ptr, size);
+	if (!result)
+		return NULL;
+	/* We need 'result' to be able to count the characters with wcslen,
+	   since ptr may not be NUL terminated.  If the length is smaller (if
+	   it was actually NUL terminated, we construct a new one and thorw
+	   away the result.
+	*/
+	/* chop off at the first NUL character, if any. */
+	len = wcslen(PyUnicode_AS_UNICODE(result));
+	if (len < size) {
+		PyObject *ob = PyUnicode_FromWideChar((wchar_t *)ptr, len);
+		Py_DECREF(result);
+		return ob;
+	}
+	return result;
+}
+
+static PyObject *
+U_set(void *ptr, PyObject *value, unsigned length)
+{
+	unsigned int size;
+
+	if (PyString_Check(value)) {
+		value = PyUnicode_FromObject(value);
+		if (!value)
+			return NULL;
+	} else if (!PyUnicode_Check(value)) {
+		PyErr_Format(PyExc_TypeError,
+				"unicode string expected instead of %s instance",
+				value->ob_type->tp_name);
+		return NULL;
+	} else
+		Py_INCREF(value);
+	size = PyUnicode_GET_DATA_SIZE(value);
+	if (size > length) {
+		PyErr_Format(PyExc_ValueError,
+			     "too long (%d instead of less than %d)",
+			     size, length);
+		Py_DECREF(value);
+		return NULL;
+	} else if (size < length-sizeof(wchar_t))
+		/* copy terminating NUL character */
+		size += sizeof(wchar_t);
+	memcpy((wchar_t *)ptr, PyUnicode_AS_UNICODE(value), size);
+	return value;
+}
+
 #endif
 
 static PyObject *
@@ -663,6 +720,9 @@ s_set(void *ptr, PyObject *value, unsigned length)
 	return value;
 }
 
+
+/* XXX Seems the S format is no longer used anywhere, remove after 0.6.0 release */
+#if 1
 static PyObject *
 S_get(void *ptr, unsigned length)
 {
@@ -689,6 +749,7 @@ S_set(void *ptr, PyObject *value, unsigned length)
 	Py_INCREF(value);
 	return value;
 }
+#endif
 
 static PyObject *
 z_set(void *ptr, PyObject *value, unsigned size)
@@ -869,7 +930,10 @@ typedef struct { char c; PY_LONG_LONG x; } s_long_long;
 
 static struct fielddesc formattable[] = {
 	{ 's', sizeof(char),		CHAR_ALIGN,		s_set, s_get},
+#if 1
+	/* See comment above S_get() */
 	{ 'S', sizeof(char),		CHAR_ALIGN,		S_set, S_get},
+#endif
 	{ 'B', sizeof(char),		CHAR_ALIGN,		B_set, B_get},
 	{ 'b', sizeof(char),		CHAR_ALIGN,		b_set, b_get},
 	{ 'c', sizeof(char),		CHAR_ALIGN,		c_set, c_get},
@@ -889,6 +953,7 @@ static struct fielddesc formattable[] = {
 	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
 #ifdef HAVE_USABLE_WCHAR_T
 	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get},
+	{ 'U', sizeof(char),		WCHAR_ALIGN,		U_set, U_get},
 	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
 #endif
 #ifdef MS_WIN32
