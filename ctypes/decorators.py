@@ -76,8 +76,22 @@ LOGGING = False
 ################################################################
 
 def stdcall(restype, dll, argtypes, logging=False):
+    """stdcall(restype, dll, argtypes, logging=False) -> decorator.
+
+    The decorator, when applied to a function, attaches an '_api_'
+    attribute to the function.  Calling this attribute calls the
+    function exported from the dll, using the MS '__stdcall' calling
+    convention.
+
+    restype - result type
+    dll - name or instance of a dll
+    argtypes - list of argument types
+    logging - if this is True, the result of each function call
+        is printed to stderr.
+    """
     def decorate(func):
         if isinstance(dll, basestring):
+            # this call should cache the result
             this_dll = ctypes.CDLL(dll)
         else:
             this_dll = dll
@@ -100,8 +114,22 @@ def stdcall(restype, dll, argtypes, logging=False):
     return decorate
 
 def cdecl(restype, dll, argtypes, logging=False):
+    """cdecl(restype, dll, argtypes, logging=False) -> decorator.
+
+    The decorator, when applied to a function, attaches an '_api_'
+    attribute to the function.  Calling this attribute calls the
+    function exported from the dll, using the standard C calling
+    convention.
+   
+    restype - result type
+    dll - name or instance of a dll/shared library
+    argtypes - list of argument types
+    logging - if this is True, the result of each function call
+        is printed to stderr.
+    """
     def decorate(func):
         if isinstance(dll, basestring):
+            # this call should cache the result
             this_dll = ctypes.CDLL(dll)
         else:
             this_dll = dll
