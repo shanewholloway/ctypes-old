@@ -124,7 +124,7 @@ extern void FreeCallback(THUNK);
 
 extern PyMethodDef module_methods[];
 
-typedef PyObject *(* GETFUNC)(void *, unsigned size);
+typedef PyObject *(* GETFUNC)(void *, unsigned size, ...);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 
 /* a table entry describing a predefined ctypes type */
@@ -268,10 +268,6 @@ extern PyTypeObject PyCArg_Type;
 extern PyCArgObject *new_CArgObject(void);
 #define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
 extern PyCArgObject *new_CArgObject(void);
-
-extern PyObject *
-CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
-	  int index, int size, char *ptr);
 
 extern int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
