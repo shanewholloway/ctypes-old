@@ -846,56 +846,6 @@ U_set(void *ptr, PyObject *value, unsigned length, PyObject *type)
 #endif
 
 static PyObject *
-s_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
-{
-	PyObject *result;
-
-	result = PyString_FromString((char *)ptr);
-	if (!result)
-		return NULL; /*COV*/
-	/* chop off at the first NUL character, if any.
-	 * On error, result will be deallocated and set to NULL.
-	 */
-	size = min(size, strlen(PyString_AS_STRING(result)));
-	if (result->ob_refcnt == 1) {
-		/* shorten the result */
-		_PyString_Resize(&result, size);
-		return result;
-	} else
-		/* cannot shorten the result */
-		return PyString_FromStringAndSize(ptr, size); /*COV*/
-}
-
-static PyObject *
-s_set(void *ptr, PyObject *value, unsigned length, PyObject *type)
-{
-	char *data;
-	unsigned size;
-
-	/* XXX This accepts unicode converting it with the default ancoding.
-	   Not what we want.
-	*/
-	data = PyString_AsString(value);
-	if (!data)
-		return NULL;
-	size = strlen(data);
-	if (size < length) {
-		/* This will copy the leading NUL character
-		 * if there is space for it.
-		 */
-		++size;
-	} else if (size > length) {
-		PyErr_Format(PyExc_ValueError,
-			     "string too long (%d, maximum length %d)",
-			     size, length);
-		return NULL;
-	}
-	/* Also copy the terminating NUL character if there is space */
-	memcpy((char *)ptr, data, size);
-	_RET(value);
-}
-
-static PyObject *
 z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	if (value == Py_None) {
@@ -1110,7 +1060,6 @@ P_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static struct fielddesc formattable[] = {
-	{ 's', s_set, s_get, &ffi_type_pointer},
 	{ 'b', b_set, b_get, &ffi_type_schar},
 	{ 'B', B_set, B_get, &ffi_type_uchar},
 	{ 'c', c_set, c_get, &ffi_type_schar},
