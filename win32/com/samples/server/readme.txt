@@ -26,3 +26,11 @@ above.
 
 Note: Currently py2exe cannot embed the type library into the
 exe-file, and the registration will raise an exception.
+
+Note2: If you are using ctypes from the CVS sandbox without installing
+it, py2exe will not be able to build sum.exe correctly. This is
+because py2exe is not able to simulate the magic which appears in the
+ctypes\.CTYPES_DEVEL file. To build it anyway, you need to build and
+(temporarily) install ctypes. Best would be to build a bdist_wininst
+installer and run it, since you can remove it later very easily.
+
