@@ -134,6 +134,51 @@ class NumberTestCase(unittest.TestCase):
             # and alingment of an instance
             self.failUnless(alignment(t()) == align)
             
+    def test_int_from_address(self):
+        from array import array
+        for t in signed_types + unsigned_types:
+            # the array module doesn't suppport all format codes
+            # (no 'q' or 'Q')
+            try:
+                array(t._type_)
+            except ValueError:
+                continue
+            a = array(t._type_, [100])
+
+            # v now is an integer at an 'external' memory location
+            v = t.from_address(a.buffer_info()[0])
+            self.failUnless(v.value == a[0])
+            self.failUnless(type(v) == t)
+
+            # changing the value at the memory location changes v's value also
+            a[0] = 42
+            self.failUnless(v.value == a[0])
+            
+
+    def test_float_from_address(self):
+        from array import array
+        for t in float_types:
+            a = array(t._type_, [3.14])
+            v = t.from_address(a.buffer_info()[0])
+            self.failUnless(v.value == a[0])
+            self.failUnless(type(v) is t)
+            a[0] = 2.3456e17
+            self.failUnless(v.value == a[0])
+            self.failUnless(type(v) is t)
+
+    def test_char_from_address(self):
+        from ctypes import c_char
+        from array import array
+        
+        a = array('c', 'x')
+        v = c_char.from_address(a.buffer_info()[0])
+        self.failUnless(v.value == a[0])
+        self.failUnless(type(v) is c_char)
+
+        a[0] = '?'
+        self.failUnless(v.value == a[0])
+        
+
 def get_suite():
     return unittest.makeSuite(NumberTestCase)
 
