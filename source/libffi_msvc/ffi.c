@@ -292,10 +292,14 @@ ffi_closure_SYSV (closure)
     }
   else if (rtype == FFI_TYPE_FLOAT)
     {
+	    _asm mov eax, resp ;
+	    _asm fld DWORD PTR [eax] ;
 //      asm ("flds (%0)" : : "r" (resp) : "st" );
     }
   else if (rtype == FFI_TYPE_DOUBLE)
     {
+	    _asm mov eax, resp ;
+	    _asm fld QWORD PTR [eax] ;
 //      asm ("fldl (%0)" : : "r" (resp) : "st", "st(1)" );
     }
   else if (rtype == FFI_TYPE_LONGDOUBLE)
@@ -304,6 +308,9 @@ ffi_closure_SYSV (closure)
     }
   else if (rtype == FFI_TYPE_SINT64)
     {
+	    _asm mov edx, resp ;
+	    _asm mov eax, [edx] ;
+	    _asm mov edx, [edx + 4] ;
 //      asm ("movl 0(%0),%%eax;"
 //	   "movl 4(%0),%%edx" 
 //	   : : "r"(resp)
