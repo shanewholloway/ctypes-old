@@ -272,6 +272,11 @@ CDataType_from_param(PyObject *type, PyObject *value)
 			Py_INCREF(value);
 			return value;
 		}
+		PyErr_Format(PyExc_TypeError,
+			     "expected %s instance instead of pointer to %s",
+			     ((PyTypeObject *)type)->tp_name,
+			     ob->ob_type->tp_name);
+		return NULL;
 	}
 #if 1
 /* XXX Remove this section ??? */
