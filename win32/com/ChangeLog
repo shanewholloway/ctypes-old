@@ -1,3 +1,8 @@
+2004-07-28  Thomas Heller  <theller@python.net>
+
+	* com/hresult.py, samples: Make all 8-digit hex constants long, to
+	avoid future warnings in Python 2.3
+
 2004-07-20  Thomas Heller  <theller@python.net>
 
 	* ctypes.com: Improve the automatic COM reference counting.
