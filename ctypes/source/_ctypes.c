@@ -1387,8 +1387,7 @@ CData_clear(CDataObject *self)
 static void
 CData_dealloc(PyObject *self)
 {
-	CDataObject *mem = (CDataObject *)self;
-	CData_clear(mem);
+	CData_clear((CDataObject *)self);
 	self->ob_type->tp_free(self);
 }
 
@@ -3225,7 +3224,6 @@ init_ctypes(void)
 	 * Classes using a custom metaclass
 	 */
 
-	CData_Type.tp_base = &PyBaseObject_Type;
 	if (PyType_Ready(&CData_Type) < 0)
 		return;
 
