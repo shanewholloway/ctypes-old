@@ -608,7 +608,8 @@ static int _call_function_pointer(int flags,
 				  PPROC pProc,
 				  void **avalues,
 				  ffi_type **atypes,
-				  struct argument *res,
+				  ffi_type *restype,
+				  void *resmem,
 				  int argcount)
 {
 	PyThreadState *_save = NULL; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
@@ -620,7 +621,7 @@ static int _call_function_pointer(int flags,
 	EXCEPTION_RECORD record;
 #endif
 	/* XXX check before here */
-	if (res->ffi_type == NULL) {
+	if (restype == NULL) {
 		PyErr_SetString(PyExc_RuntimeError,
 				"No ffi_type for result");
 		return -1;
@@ -635,7 +636,7 @@ static int _call_function_pointer(int flags,
 	if (FFI_OK != ffi_prep_cif(&cif,
 				   cc,
 				   argcount,
-				   res->ffi_type,
+				   restype,
 				   atypes)) {
 		PyErr_SetString(PyExc_RuntimeError,
 				"ffi_prep_cif failed");
@@ -650,7 +651,7 @@ static int _call_function_pointer(int flags,
 #endif
 		delta =
 #endif
-			ffi_call(&cif, (void *)pProc, &res->value, avalues);
+			ffi_call(&cif, (void *)pProc, resmem, avalues);
 #ifdef MS_WIN32
 #ifndef DEBUG_EXCEPTIONS
 	}
@@ -905,6 +906,12 @@ PyObject *_CallProc(PPROC pProc,
 		}
 	}
 
+	/* XXX If we have a structure as return value, the storage area that
+	   'result.value' provides may not be large enough.  We should
+	   probably create the result value (an instance of the structure
+	   type) before the call, and use the instance's memory buffer as the
+	   storage area.
+	 */
 	result.ffi_type = GetType(restype);
 
 	avalues = (void **)alloca(sizeof(void *) * argcount);
@@ -917,7 +924,8 @@ PyObject *_CallProc(PPROC pProc,
 			avalues[i] = (void *)&args[i].value;
 	}
 
-	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes, &result, argcount))
+	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes,
+					 result.ffi_type, &result.value, argcount))
 		goto cleanup;
 
 #ifdef MS_WIN32
