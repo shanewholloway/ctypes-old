@@ -882,6 +882,10 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 		return;
 	}
 
+	/* XXX Wouldn't it be better to store the 'fmt' directly
+	   in the stgdict? And for the libffi version, store the ffi_type
+	   pointer there?
+	*/
 	dict = PyType_stgdict(restype);
 	if (dict && dict->getfunc && dict->proto && PyString_Check(dict->proto)) {
 		char *fmt = PyString_AS_STRING(dict->proto);
