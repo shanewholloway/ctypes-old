@@ -193,7 +193,7 @@ class BitFieldTest(unittest.TestCase):
         except Exception, detail:
             return detail.__class__, str(detail)
 
-    def test_mixed(self):
+    def test_mixed_1(self):
         class X(Structure):
             _fields_ = [("a", c_byte, 4),
                         ("b", c_int, 4)]
@@ -202,11 +202,13 @@ class BitFieldTest(unittest.TestCase):
         else:
             self.failUnlessEqual(sizeof(X), sizeof(c_int))
 
+    def test_mixed_2(self):
         class X(Structure):
             _fields_ = [("a", c_byte, 4),
                         ("b", c_int, 32)]
         self.failUnlessEqual(sizeof(X), sizeof(c_int)*2)
 
+    def test_mixed_3(self):
         class X(Structure):
             _fields_ = [("a", c_byte, 4),
                         ("b", c_ubyte, 4)]
