@@ -1,17 +1,18 @@
-from ctcom import IUnknown, COMPointer, GUID, REFIID, REFGUID, \
+from ctypes.com import IUnknown, COMPointer, GUID, REFIID, REFGUID, \
      PPUNK, PUNK, STDMETHOD
 
-from ctcom import HRESULT, STDMETHOD
+from ctypes.com import HRESULT, STDMETHOD
 
 from ctypes import Structure, Union, POINTER, byref, oledll, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
-     c_float, c_double
+     c_float, c_double, c_byte, c_ubyte
 
 from ctypes import sizeof
 
-from windows import *
-
 oleaut32 = oledll.oleaut32
+
+DWORD = c_ulong
+WORD = c_ushort
 
 ################################################################
 # Interfaces declarations
@@ -20,7 +21,7 @@ def _mth(*args):
     return args
 
 # fake
-from ctcom import IUnknownPointer
+from ctypes.com import IUnknownPointer
 ITypeCompPointer = IUnknownPointer
 ITypeComp = IUnknown
 
@@ -201,7 +202,7 @@ class TLIBATTR(Structure):
                 ("wMajorVersionNum", WORD),
                 ("wMinorVersionNum", WORD),
                 ("wLibFlags", WORD)]
-assert(sizeof(TLIBATTR) == 32)
+assert(sizeof(TLIBATTR) == 32), sizeof(TLIBATTR)
 
 class PARAMDESCEX(Structure):
     _fields_ = [("cBytes", c_ulong),
@@ -354,10 +355,20 @@ IDispatch._methods_ = [
 # functions
 #
 
+REGKIND_DEFAULT = 0
+REGKIND_REGISTER = 1
+REGKIND_NONE = 2
+
 def LoadTypeLib(fnm):
     p = ITypeLibPointer()
     oleaut32.LoadTypeLib(unicode(fnm), byref(p))
     return p
+
+def LoadTypeLibEx(fnm, regkind=REGKIND_NONE):
+    p = ITypeLibPointer()
+    oleaut32.LoadTypeLibEx(unicode(fnm), regkind, byref(p))
+    return p
+    
 
 if __name__ == '__main__':
     def GetComRefcount(p):
@@ -365,7 +376,7 @@ if __name__ == '__main__':
         return p.Release()
 
     path = r"c:\tss5\bin\debug\ITInfo.dll"
-    p = LoadTypeLib(path)
+    p = LoadTypeLibEx(path)
     print p, "refcount", GetComRefcount(p)
 
     p2 = IUnknownPointer()
