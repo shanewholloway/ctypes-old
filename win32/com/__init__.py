@@ -65,7 +65,7 @@ def STDMETHOD(restype, name, *argtypes):
 
 def COMPointer__del__(self):
     if self.contents.lpVtbl:
-        print "Release", self, self.Release()
+        self.Release()
 
 
 class _interface_meta(type(Structure)):
@@ -181,11 +181,12 @@ E_NOTIMPL = 0x80004001
 E_NOINTERFACE = 0x80004002
 
 class COMObject:
-    _refcnt = 1
+    _refcnt = 0
 
     def __init__(self):
         # actually this contains (iid, interface) pairs, where iid is
         # a GUID instance, and interface is an IUnknown or subclass instance.
+        # The address of this instance is the actual COM interface pointer!
         self._com_pointers_ = []
 
     def _make_interface_pointer(self, itfclass):
@@ -203,6 +204,8 @@ class COMObject:
         itf.lpVtbl = pointer(vtbl)
         for iid in [cls._iid_ for cls in itfclass.mro()[:-3]]:
             self._com_pointers_.append((iid, itf))
+        # If we would return pointer(itf) instead of byref(itf),
+        # we would have to call AddRef first!
         return byref(itf)
 
     def _notimpl(self, *args):
