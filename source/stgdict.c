@@ -131,8 +131,9 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 {
 	StgDictObject *stgdict;
 	int len, offset, size, align, i;
-
 	int union_size, total_align;
+	PyObject *prev_desc = NULL;
+	int bitofs;
 
 	if (!typedict)
 		return NULL;
@@ -171,8 +172,9 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 		PyObject *pair = PySequence_GetItem(fields, i);
 		PyObject *prop;
 		StgDictObject *dict;
+		int bitsize = 0;
 
-		if (!pair  || !PyArg_Parse(pair, "(OO)", &name, &desc)) {
+		if (!pair  || !PyArg_ParseTuple(pair, "OO|i", &name, &desc, &bitsize)) {
 			PyErr_SetString(PyExc_AttributeError,
 					"'_fields_' must be a sequence of pairs");
 			Py_XDECREF(pair);
@@ -181,14 +183,55 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 		dict = PyType_stgdict(desc);
 		if (dict)
 			stgdict->ffi_type.elements[i] = &dict->ffi_type;
+		if (PyTuple_Size(pair) == 3) { /* bits specified */
+			switch(dict->ffi_type.type) {
+			case FFI_TYPE_UINT8:
+			case FFI_TYPE_UINT16:
+			case FFI_TYPE_SINT32:
+			case FFI_TYPE_UINT32:
+			case FFI_TYPE_SINT64:
+			case FFI_TYPE_UINT64:
+				break;
+
+			case FFI_TYPE_SINT8:
+			case FFI_TYPE_SINT16:
+				if (dict->getfunc != getentry("c")->getfunc
+#ifdef HAVE_USABLE_WCHAR_T
+				    && dict->getfunc != getentry("u")->getfunc
+#endif
+					)
+					break;
+				/* else fall through */
+			default:
+				PyErr_Format(PyExc_TypeError,
+					     "bit fields not allowed for type %s",
+					     ((PyTypeObject *)desc)->tp_name);
+				Py_DECREF(pair);
+				return NULL;
+			}
+			if (bitsize <= 0 || bitsize > dict->size * 8) {
+				PyErr_SetString(PyExc_ValueError,
+						"number of bits invalid for bit field");
+				Py_DECREF(pair);
+				return NULL;
+			}
+		} else
+			bitsize = 0;
+/*
+#ifdef _DEBUG
+		_asm int 3;
+#endif
+*/
 		if (isStruct) {
 			prop = CField_FromDesc(desc, i,
+					       prev_desc, bitsize, &bitofs,
 					       &size, &offset, &align, pack);
 		} else /* union */ {
 			size = 0;
 			offset = 0;
 			align = 0;
 			prop = CField_FromDesc(desc, i,
+					       prev_desc, bitsize, &bitofs,
 					       &size, &offset, &align, pack);
 			union_size = max(size, union_size);
 		}
@@ -207,6 +250,7 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 		}
 		Py_DECREF(pair);
 		Py_DECREF(prop);
+		prev_desc = desc; /* store, in case of continued bitfield */
 	}
 #undef realdict
 

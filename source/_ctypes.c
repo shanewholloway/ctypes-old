@@ -1836,10 +1836,8 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	if (type) {
 		StgDictObject *dict;
 		dict = PyType_stgdict(type);
-		if (dict)
-			assert(size == dict->size);
 		if (dict && dict->getfunc)
-			return dict->getfunc(adr, dict->size);
+			return dict->getfunc(adr, size);
 		return CData_FromBaseObj(type, src, index, adr);
 	}
 	return getfunc(adr, size);
@@ -1860,8 +1858,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	if (!CDataObject_Check(value)) {
 		StgDictObject *dict = PyType_stgdict(type);
 		if (dict && dict->setfunc)
-			return dict->setfunc(ptr, value,
-					     dict->size); /* Or simply size? */
+			return dict->setfunc(ptr, value, size);
 		/*
 		   If value is a tuple, we try to call the type with the tuple
 		   and use the result!
