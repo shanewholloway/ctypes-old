@@ -19,7 +19,7 @@ def valid_ranges(*types):
         result.append((min(a, b, c, d), max(a, b, c, d)))
     return result
 
-ArgType = type(c_int(0)._as_parameter_)
+ArgType = type(c_int.from_param(0))
 
 unsigned_types = [c_ubyte, c_ushort, c_uint, c_ulong]
 signed_types = [c_byte, c_short, c_int, c_long, c_longlong]
@@ -80,7 +80,9 @@ class NumberTestCase(unittest.TestCase):
         for t in signed_types + unsigned_types + float_types:
             self.failUnlessEqual(ArgType, type(t.from_param(0)))
 
-    def test_as_parameter(self):
+    # This test won't work any longer, the types doen't have a
+    # _as_parameter_ property any longer
+    def X_test_as_parameter(self):
         # The _as_parameter_ property must also
         # be a PyCArgObject instance
         for t in signed_types + unsigned_types + float_types:
