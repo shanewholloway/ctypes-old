@@ -490,7 +490,7 @@ if __name__ == '__main__':
           classifiers = classifiers,
 
           version=__version__,
-          description="create and manipulate C data types in Python",
+          description="create and manipulate C data types in Python, call functions in shared libraries",
           long_description = __doc__,
           author="Thomas Heller",
           author_email="theller@python.net",
