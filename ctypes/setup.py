@@ -74,6 +74,7 @@ else:
     if sys.platform == "darwin":
         kw["sources"].append("source/darwin/dlfcn_simple.c")
         extra_link_args.extend(['-read_only_relocs', 'warning'])
+        include_dirs.append("source/darwin")
 
     extensions = [Extension("_ctypes",
                             define_macros=[("CAN_PASS_BY_VALUE", "1")],
@@ -100,7 +101,8 @@ if sys.platform == 'darwin':
         print "Fixing Apple strangeness in Python configuration"
         distutils.sysconfig._config_vars['LDSHARED'] = y
 
-if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h'):
+if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h') \
+       or os.path.exists('/usr/local/include/ffi.h'):
     # A system with a pre-existing libffi.
     LIBFFI_SOURCES=None
 
@@ -246,12 +248,21 @@ class my_build_ext(build_ext.build_ext):
         build_ext.build_ext.run(self)
 
     def build_libffi_static(self):
+        if LIBFFI_SOURCES == None:
+            return
         src_dir = os.path.abspath(LIBFFI_SOURCES)
+
+        self.build_temp = self.build_temp.replace(" ", "")
 
         build_dir = os.path.join(self.build_temp, 'libffi')
         inst_dir = os.path.abspath(self.build_temp)
         lib_dir = os.path.abspath(os.path.join(inst_dir, 'lib'))
         inc_dir = os.path.abspath(os.path.join(inst_dir, 'include'))
+
+        for ext in self.extensions:
+            ext.include_dirs.append(inc_dir)
+            ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
+            ext.library_dirs.append(lib_dir)
 
         if not self.force and os.path.isfile(os.path.join(lib_dir, "libffi.a")):
             return
@@ -267,11 +278,6 @@ class my_build_ext(build_ext.build_ext):
         if res:
             print "Failed"
             sys.exit(res)
-
-        for ext in self.extensions:
-            ext.include_dirs.append(inc_dir)
-            ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
-            ext.library_dirs.append(lib_dir)
 
 
 if __name__ == '__main__':
