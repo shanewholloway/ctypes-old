@@ -299,9 +299,11 @@ class Generator(object):
         self.generate(tp.typ)
         self.done.add(tp)
 
+    _variables = 0
     def Variable(self, tp):
         if tp in self.done:
             return
+        self._variables += 1
         self.done.add(tp)
         if tp.init is None:
             # wtypes.h contains IID_IProcessInitControl, for example
@@ -517,6 +519,7 @@ class Generator(object):
         print >> stream, "###########################"
         print >> stream, "# Symbols defined:"
         print >> stream, "#"
+        print >> stream, "# Variables:          %5d" % self._variables
         print >> stream, "# Struct/Unions:      %5d" % self._structures
         print >> stream, "# Functions:          %5d" % self._functiontypes
         print >> stream, "# Enums:              %5d" % self._enumtypes
