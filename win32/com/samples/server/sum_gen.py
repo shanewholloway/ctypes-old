@@ -6,16 +6,9 @@
 # they will be overwritten next time it is regenerated.       #
 ###############################################################
 
+from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT
-
-from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
-     c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
-     c_float, c_double, Structure, byref, sizeof
-
-class COMObject:
-    # later this class will be used to create COM objects.
-    pass
 
 class enum(c_int):
     pass
@@ -27,12 +20,9 @@ class dispinterface(IDispatch):
     class __metaclass__(type(IDispatch)):
         def __setattr__(self, name, value):
             if name == '_dispmethods_':
-##                protos = []
                 dispmap = {}
                 for dispid, mthname, proto in value:
-##                    protos.append(proto)
                     dispmap[dispid] = mthname
-##                setattr(self, '_methods_', IDispatch._methods_ + protos)
                 setattr(self, '_methods_', IDispatch._methods_)
                 type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
             type(IDispatch).__setattr__(self, name, value)
@@ -58,12 +48,12 @@ class IDualSum(IDispatch):
 
 
 IDualSum._methods_ = IDispatch._methods_ + [
-    (STDMETHOD(HRESULT, "Add", c_double, c_double, POINTER(c_double))),
+    STDMETHOD(HRESULT, "Add", c_double, c_double, POINTER(c_double)),
 ]
 
 ##############################################################################
 
-class CSum(COMObject):
+class CSum:
     """CSum Class"""
     _reg_clsid_ = '{2E0504A1-1A23-443F-939D-869A6C731521}'
     _com_interfaces_ = [IDualSum]
