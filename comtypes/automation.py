@@ -229,6 +229,69 @@ REGKIND = tagREGKIND # typedef
 
 ################################################################
 
+class tagTLIBATTR(Structure):
+    _fields_ = [
+        ('guid', GUID),
+        ('lcid', LCID),
+        ('syskind', SYSKIND),
+        ('wMajorVerNum', WORD),
+        ('wMinorVerNum', WORD),
+        ('wLibFlags', WORD),
+    ]
+assert sizeof(tagTLIBATTR) == 32, sizeof(tagTLIBATTR)
+assert alignment(tagTLIBATTR) == 4, alignment(tagTLIBATTR)
+TLIBATTR = tagTLIBATTR # typedef
+
+class tagIDLDESC(Structure):
+    _fields_ = [
+        ('dwReserved', ULONG_PTR),
+        ('wIDLFlags', USHORT),
+    ]
+assert sizeof(tagIDLDESC) == 8, sizeof(tagIDLDESC)
+assert alignment(tagIDLDESC) == 4, alignment(tagIDLDESC)
+IDLDESC = tagIDLDESC # typedef
+
+class tagSAFEARRAYBOUND(Structure):
+    _fields_ = [
+        ('cElements', DWORD),
+        ('lLbound', LONG),
+    ]
+assert sizeof(tagSAFEARRAYBOUND) == 8, sizeof(tagSAFEARRAYBOUND)
+assert alignment(tagSAFEARRAYBOUND) == 4, alignment(tagSAFEARRAYBOUND)
+SAFEARRAYBOUND = tagSAFEARRAYBOUND # typedef
+
+class tagSAFEARRAY(Structure):
+    _fields_ = [
+        ('cDims', USHORT),
+        ('fFeatures', USHORT),
+        ('cbElements', DWORD),
+        ('cLocks', DWORD),
+        ('pvData', PVOID),
+        ('rgsabound', SAFEARRAYBOUND * 1),
+    ]
+assert sizeof(tagSAFEARRAY) == 24, sizeof(tagSAFEARRAY)
+assert alignment(tagSAFEARRAY) == 4, alignment(tagSAFEARRAY)
+SAFEARRAY = tagSAFEARRAY # typedef
+
+class tagEXCEPINFO(Structure):
+    pass
+tagEXCEPINFO._fields_ = [
+    ('wCode', WORD),
+    ('wReserved', WORD),
+    ('bstrSource', BSTR),
+    ('bstrDescription', BSTR),
+    ('bstrHelpFile', BSTR),
+    ('dwHelpContext', DWORD),
+    ('pvReserved', PVOID),
+    ('pfnDeferredFillIn', WINFUNCTYPE(HRESULT, POINTER(tagEXCEPINFO))),
+    ('scode', SCODE),
+]
+assert sizeof(tagEXCEPINFO) == 32, sizeof(tagEXCEPINFO)
+assert alignment(tagEXCEPINFO) == 4, alignment(tagEXCEPINFO)
+EXCEPINFO = tagEXCEPINFO # typedef
+
+################################################################
+
 class ITypeLib(IUnknown):
     # c:/vc98/include/OAIDL.H 4460
     _iid_ = GUID("{00020402-0000-0000-C000-000000000046}")
@@ -259,9 +322,9 @@ class ITypeLib(IUnknown):
 ##    STDMETHOD(HRESULT, 'GetLibAttr', [POINTER(POINTER(TLIBATTR))]),
     def GetLibAttr(self):
         p = POINTER(TLIBATTR)()
-        self.GetLibAttr._api_(byref(p))
+        self.__com_GetLibAttr(byref(p))
         # XXX register for release
-        return p.value
+        return p
 
 ##    STDMETHOD(HRESULT, 'GetTypeComp', [POINTER(POINTER(ITypeComp))]),
     def GetTypeComp(self, p0):
@@ -382,9 +445,6 @@ class ITypeInfo(IUnknown):
         pass
 
 
-class tagTLIBATTR(Structure):
-    pass
-TLIBATTR = tagTLIBATTR # typedef
 class ITypeComp(IUnknown):
     def Bind(self, p0, p1, p2, p3, p4, p5):
         pass
@@ -414,17 +474,6 @@ ITypeComp._methods_ = [
     STDMETHOD(HRESULT, 'BindType', [LPOLESTR, DWORD, POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp))]),
 ]
 
-# tagTLIBATTR
-tagTLIBATTR._fields_ = [
-    ('guid', GUID),
-    ('lcid', LCID),
-    ('syskind', SYSKIND),
-    ('wMajorVerNum', WORD),
-    ('wMinorVerNum', WORD),
-    ('wLibFlags', WORD),
-]
-assert sizeof(tagTLIBATTR) == 32, sizeof(tagTLIBATTR)
-assert alignment(tagTLIBATTR) == 4, alignment(tagTLIBATTR)
 class tagTYPEATTR(Structure):
     _owner = None
     def __del__(self):
@@ -471,10 +520,6 @@ def from_param(self, var):
 POINTER(VARIANT).from_param = classmethod(from_param)
 
 
-class tagEXCEPINFO(Structure):
-    pass
-EXCEPINFO = tagEXCEPINFO # typedef
-
 ITypeInfo._methods_ = [
     STDMETHOD(HRESULT, 'GetTypeAttr', [POINTER(POINTER(TYPEATTR))]),
     STDMETHOD(HRESULT, 'GetTypeComp', [POINTER(POINTER(ITypeComp))]),
@@ -496,20 +541,7 @@ ITypeInfo._methods_ = [
     STDMETHOD(None, 'ReleaseFuncDesc', [POINTER(FUNCDESC)]),
     STDMETHOD(None, 'ReleaseVarDesc', [POINTER(VARDESC)]),
 ]
-# tagEXCEPINFO
-tagEXCEPINFO._fields_ = [
-    ('wCode', WORD),
-    ('wReserved', WORD),
-    ('bstrSource', BSTR),
-    ('bstrDescription', BSTR),
-    ('bstrHelpFile', BSTR),
-    ('dwHelpContext', DWORD),
-    ('pvReserved', PVOID),
-    ('pfnDeferredFillIn', WINFUNCTYPE(HRESULT, POINTER(tagEXCEPINFO))),
-    ('scode', SCODE),
-]
-assert sizeof(tagEXCEPINFO) == 32, sizeof(tagEXCEPINFO)
-assert alignment(tagEXCEPINFO) == 4, alignment(tagEXCEPINFO)
+
 VARIANTARG = VARIANT # typedef
 # tagDISPPARAMS
 tagDISPPARAMS._fields_ = [
@@ -550,17 +582,7 @@ tagTYPEDESC._fields_ = [
 assert sizeof(tagTYPEDESC) == 8, sizeof(tagTYPEDESC)
 assert alignment(tagTYPEDESC) == 4, alignment(tagTYPEDESC)
 TYPEDESC = tagTYPEDESC # typedef
-class tagIDLDESC(Structure):
-    pass
-# tagIDLDESC
-tagIDLDESC._fields_ = [
-    ('dwReserved', ULONG_PTR),
-    ('wIDLFlags', USHORT),
-]
-assert sizeof(tagIDLDESC) == 8, sizeof(tagIDLDESC)
-assert alignment(tagIDLDESC) == 4, alignment(tagIDLDESC)
-IDLDESC = tagIDLDESC # typedef
-# tagTYPEATTR
+
 tagTYPEATTR._fields_ = [
     ('guid', GUID),
     ('lcid', LCID),
@@ -622,9 +644,6 @@ class IDispatch(IUnknown):
     def Invoke(self, p0, p1, p2, p3, p4, p5, p6, p7):
         pass
 
-class tagSAFEARRAY(Structure):
-    pass
-SAFEARRAY = tagSAFEARRAY # typedef
 class tagDEC(Structure):
     pass
 DECIMAL = tagDEC # typedef
@@ -881,27 +900,7 @@ tagFUNCDESC._fields_ = [
 ]
 assert sizeof(tagFUNCDESC) == 52, sizeof(tagFUNCDESC)
 assert alignment(tagFUNCDESC) == 4, alignment(tagFUNCDESC)
-class tagSAFEARRAYBOUND(Structure):
-    pass
-# tagSAFEARRAYBOUND
-tagSAFEARRAYBOUND._fields_ = [
-    ('cElements', DWORD),
-    ('lLbound', LONG),
-]
-assert sizeof(tagSAFEARRAYBOUND) == 8, sizeof(tagSAFEARRAYBOUND)
-assert alignment(tagSAFEARRAYBOUND) == 4, alignment(tagSAFEARRAYBOUND)
-SAFEARRAYBOUND = tagSAFEARRAYBOUND # typedef
-# tagSAFEARRAY
-tagSAFEARRAY._fields_ = [
-    ('cDims', USHORT),
-    ('fFeatures', USHORT),
-    ('cbElements', DWORD),
-    ('cLocks', DWORD),
-    ('pvData', PVOID),
-    ('rgsabound', SAFEARRAYBOUND * 1),
-]
-assert sizeof(tagSAFEARRAY) == 24, sizeof(tagSAFEARRAY)
-assert alignment(tagSAFEARRAY) == 4, alignment(tagSAFEARRAY)
+
 # tagPARAMDESCEX
 tagPARAMDESCEX._fields_ = [
     ('cBytes', DWORD),
