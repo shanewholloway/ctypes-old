@@ -2714,7 +2714,7 @@ CFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 	CFunctionObject *self;
 	PyObject *callable;
 	int size, i;
-	int is_stdcall;
+	int is_cdecl;
 	int nArgBytes; /* number of ints the function expects as parameters.
 		      May be larger than size */
 
@@ -2729,7 +2729,7 @@ CFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 				"abstract class");
 		return NULL;
 	}
-	is_stdcall = PyObject_IsTrue(stdcall);
+	is_cdecl = !PyObject_IsTrue(stdcall);
 
 	if (!PyArg_ParseTuple(args, "O", &callable))
 		return NULL;
@@ -2774,7 +2774,7 @@ CFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 	self->converters = types;
 
 	self->callback = AllocFunctionCallback(callable, nArgBytes,
-					       types, is_stdcall);
+					       types, is_cdecl);
 	if (!self->callback) {
 		Py_DECREF(self);
 		return NULL;
