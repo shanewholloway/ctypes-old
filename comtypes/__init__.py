@@ -108,8 +108,13 @@ class _cominterface_meta(type):
 
     def __get_baseinterface_methodcount(self):
         "Return the number of com methods in the base interfaces"
-        return sum([len(itf.__dict__.get("_methods_", ()))
-                    for itf in self.__mro__[1:]])
+        try:
+            return sum([len(itf.__dict__["_methods_"])
+                        for itf in self.__mro__[1:-1]])
+        except KeyError, (name,):
+            if name == "_methods_":
+                raise TypeError, "baseinterface '%s' has no _methods_" % itf.__name__
+            raise
 
     def _make_methods(self, methods):
         # we insist on an _iid_ in THIS class!
