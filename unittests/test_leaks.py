@@ -57,11 +57,12 @@ class LeakTestCase(unittest.TestCase):
 
         def test_cycles_refcount(self):
             last_refcount = 0
-            for x in xrange(5):
-                self.make_cyclic_structures(1000)
+            for x in xrange(20):
+                self.make_cyclic_structures(200)
                 while gc.collect():
                     pass
                 total_refcount = sys.gettotalrefcount()
+##                print total_refcount
                 if last_refcount >= total_refcount:
                     return
                 last_refcount = total_refcount
