@@ -191,7 +191,6 @@ class MyBand(COMObject):
 
     def IObjectWithSite_SetSite(self, this, punkSite):
         if punkSite:
-            punkSite.AddRef() # I think this is still required, but SHOULD be automatic
             self.m_Site = punkSite
             polewindow = POINTER(IOleWindow)()
             punkSite.QueryInterface(byref(IOleWindow._iid_),

@@ -92,7 +92,6 @@ class StopliteObject(COMObject):
         # sink so that the advise sink can receive notifications of
         # changes in the view object.
         if AdvSink:
-            AdvSink.AddRef() # We have to take ownership of the COM pointer
             self._view_advisesink = AdvSink
         else: # got NULL pointer
             self._view_advisesink = None
@@ -141,12 +140,6 @@ class StopliteObject(COMObject):
         return var.value
 
     def IPersistPropertyBag_Load(self, this, pPropBag, pErrorLog):
-        # We must *always* AddRef() the COM pointers we receive,
-        # to match the Release() call when they go out of scope!
-        if pErrorLog:
-            pErrorLog.AddRef()
-        if pPropBag:
-            pPropBag.AddRef()
         val = self._load_property(u"digits", pPropBag, pErrorLog)
         self.model._interval = val
         return S_OK
@@ -158,13 +151,9 @@ class StopliteObject(COMObject):
         return S_FALSE
 
     def IPersistStreamInit_Load(self, this, pStm):
-        if pStm:
-            pStm.AddRef()
         return S_OK
 
     def IPersistStreamInit_Save(self, this, pStm, fClearDirty):
-        if pStm:
-            pStm.AddRef()
         return S_OK
 
     def IPersistStreamInit_GetSizeMax(self, this, pcbSize):
@@ -184,7 +173,6 @@ class StopliteObject(COMObject):
 
     def IOleObject_SetClientSite(self, this, ppClientSite):
         if ppClientSite:
-            ppClientSite.AddRef()
             self._clientsite = ppClientSite
         else:
             self._clientsite = None
@@ -214,8 +202,6 @@ class StopliteObject(COMObject):
 
     def IOleObject_Advise(self, this, pAdvSink, pdwConnection):
         # IOleObject::Advise
-        if pAdvSink:
-            pAdvSink.AddRef()
         return self._adviseholder.Advise(pAdvSink, pdwConnection)
 
     def IOleObject_Unadvise(self, this, dwConnection):
@@ -226,8 +212,6 @@ class StopliteObject(COMObject):
 
     def IOleObject_DoVerb(self, this, iVerb, lpmsg, pActiveSite, lindex, hwndParent, lprcPosRect):
         print "LOG: DoVerb %d" % iVerb
-        if pActiveSite:
-            pActiveSite.AddRef()
         if iVerb == OLEIVERB_PRIMARY and hasattr(self, "_DoVerbPrimary"):
             return self._DoVerbPrimary(lprcPosRect[0], hwndParent)
         if iVerb == OLEIVERB_SHOW and hasattr(self, "_DoVerbShow"):
