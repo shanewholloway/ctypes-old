@@ -1521,10 +1521,8 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	  int index, int size, char *ptr)
 {
 	CDataObject *src;
-	PyObject *result;
 
 	if (setfunc)
-//	if (!type)
 		return setfunc(ptr, value, size);
 	
 	if (!CDataObject_Check(value)) {
