@@ -15,6 +15,8 @@
 /*
   How are functions called, and how are parameters converted to C ?
 
+  XXX to be rewritten..., no longer what happens!
+
    1. (in CFuncPtr_call) restype and converters are got from self or stgdict.
    2. If it's a COM method, the COM pointer is retrieved from the argument list.
    3. If converters are there, the number of arguments is checked.
@@ -693,37 +695,6 @@ static int _call_function_pointer(int flags,
 
 #define RESULT_PASTE_INTO 1
 #define RESULT_CALL_RESTYPE 2
-
-/*
- * Fill out the format field of 'result', depending on 'restype'.
- */
-void PrepareResult(PyObject *restype, PyCArgObject *result)
-{
-	StgDictObject *dict;
-
-	if (restype == NULL) {
-		result->pffi_type = &ffi_type_sint;
-		return;
-	}
-
-	dict = PyType_stgdict(restype);
-	if (dict && dict->getfunc) {
-		result->pffi_type = &dict->ffi_type;
-		return;
-	}
-
-	if (PyCallable_Check(restype)) {
-		result->pffi_type = &ffi_type_sint;
-		return;
-	}
-
-	if (restype == Py_None) {
-		result->pffi_type = &ffi_type_void;
-		return;
-	}
-	/* should not occurr */
-	result->pffi_type = &ffi_type_sint;
-}
 
 /*
  * Convert the C value in result into an instance described by restype
