@@ -23,9 +23,9 @@ class FunctionTestCase(unittest.TestCase):
         # wasn't checked, and it even crashed Python.
         # Found by Greg Chapman.
         try:
-            class X(object, CFunction):
-                _types_ = c_int, c_int
-                _stdcall_ = 1
+            class X(object, CFuncPtr):
+                _argtypes_ = c_int, c_int
+                _flags_ = FUNCFLAG_STDCALL
         except TypeError:
             pass
         
@@ -178,9 +178,9 @@ class FunctionTestCase(unittest.TestCase):
         def callback(v):
             args.append(v)
 
-        class CallBack(CFunction):
-            _stdcall_ = 0
-            _types_ = c_int,
+        class CallBack(CFuncPtr):
+            _flags_ = FUNCFLAG_CDECL
+            _argtypes_ = c_int,
 
         cb = CallBack(callback)
         f(2**18, cb)
@@ -193,9 +193,9 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_callback_i_if
         f.restype = c_int
 
-        class MyCallback(CFunction):
-            _stdcall_ = 0
-            _types_ = c_int,
+        class MyCallback(CFuncPtr):
+            _flags_ = FUNCFLAG_CDECL
+            _argtypes_ = c_int,
 
         def callback(value):
             #print "called back with", value
@@ -211,9 +211,9 @@ class FunctionTestCase(unittest.TestCase):
         result = f(-10, cb)
         self.failUnless(result == -18)
                 
-        class AnotherCallback(CFunction):
-            _stdcall_ = 1
-            _types_ = c_int, c_int, c_int, c_int
+        class AnotherCallback(CFuncPtr):
+            _flags_ = FUNCFLAG_STDCALL
+            _argtypes_ = c_int, c_int, c_int, c_int
 
         # check that the prototype works: we call f with wrong
         # argument types
@@ -228,9 +228,9 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_callback_i_if
         f.restype = c_int
 
-        class MyCallback(CFunction):
-            _stdcall_ = 0
-            _types_ = (c_int,)
+        class MyCallback(CFuncPtr):
+            _flags_ = FUNCFLAG_CDECL
+            _argtypes_ = (c_int,)
 
         f.argtypes = [c_int, MyCallback]
 
@@ -247,9 +247,9 @@ class FunctionTestCase(unittest.TestCase):
 
         f = dll._testfunc_callback_q_qf
         f.restype = c_longlong
-        class MyCallback(CFunction):
-            _stdcall_ = 0
-            _types_ = (c_longlong,)
+        class MyCallback(CFuncPtr):
+            _flags_ = FUNCFLAG_CDECL
+            _argtypes_ = (c_longlong,)
             _restype_ = c_longlong
 
         f.argtypes = [c_longlong, MyCallback]

@@ -1,10 +1,6 @@
 # from Paul Moore via comp.lang.python
-from ctypes import windll, CFunction, CFuncPtr, c_string, c_int
+from ctypes import windll, CFuncPtr, c_string, c_int
 user32 = windll.user32
-
-class EnumWindowsProc(CFunction):
-    _types_ = c_int, c_int
-    _stdcall_ = 1
 
 class EnumWindowsProc(CFuncPtr):
     _argtypes_ = c_int, c_int

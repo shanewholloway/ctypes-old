@@ -2,10 +2,9 @@ import unittest
 import ctypes
 import gc
 
-class MyCallback(ctypes.CFunction):
-    _stdcall_ = 0
-    _types_ = ctypes.c_int,
-
+class MyCallback(ctypes.CFuncPtr):
+    _flags_ = ctypes.FUNCFLAG_CDECL
+    _argtypes_ = ctypes.c_int,
 
 class OtherCallback(ctypes.CFuncPtr):
     _flags_ = ctypes.FUNCFLAG_CDECL
@@ -35,6 +34,9 @@ class RefcountTestCase(unittest.TestCase):
         result = f(-10, cb)
         self.failUnless(result == -18)
         cb = None
+
+        gc.collect()
+
         self.failUnless(grc(callback) == 2)
 
 

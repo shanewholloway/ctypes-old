@@ -1,4 +1,4 @@
-from ctypes import windll, cdll, Structure, pointer, WinError, CFunction, sizeof, c_int
+from ctypes import windll, cdll, Structure, pointer, WinError, CFuncPtr, sizeof, c_int
 from ctypes import CFuncPtr
 
 #TODO: auto unicode selection,
@@ -14,11 +14,6 @@ def ValidHandle(value):
     else:
         return value
 
-##class WndProc(CFunction):
-##    _types_ = c_int, c_int, c_int, c_int
-##    _stdcall_ = 1
-
-# CFuncPtr is the prefered way now
 class WndProc(CFuncPtr):
     _argtypes_ = c_int, c_int, c_int, c_int
     _flags_ = 0
