@@ -2013,8 +2013,6 @@ Pointer_get_contents(CDataObject *self, void *closure)
 		return NULL;
 	}
 
-//	result = (CDataObject *)CData_FromPointer((PyObject *)stgdict->proto,
-//						    NULL, 0, (int)adr);
 	result = (CDataObject *)CData_AtAddress((PyObject *)stgdict->proto, adr);
 	/* Hm. Should we have an 'owner' parameter in the above call? */
 	/* self owns the buffer, so result must keep a reference to it */
@@ -2074,6 +2072,34 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 }
 
 static PyObject *
+Pointer_item(CDataObject *self, int index)
+{
+	if (index != 0) {
+		PyErr_SetString(PyExc_IndexError,
+				"index out of range");
+		return NULL;
+	}
+	return Pointer_get_contents(self, NULL);
+}
+
+static int
+Pointer_ass_item(CDataObject *self, int index, PyObject *value)
+{
+	if (index != 0) {
+		PyErr_SetString(PyExc_IndexError,
+				"index out of range");
+		return -1;
+	}
+	return Pointer_set_contents(self, value, NULL);
+}
+
+static int
+Pointer_length(CDataObject *self)
+{
+	return 1;
+}
+
+static PyObject *
 Pointer_as_parameter(CDataObject *self)
 {
 	PyCArgObject *parg;
@@ -2120,34 +2146,6 @@ Pointer_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 		return NULL;
 	}
 	return GenericCData_new(type, args, kw);
-}
-
-static PyObject *
-Pointer_item(CDataObject *self, int index)
-{
-	if (index != 0) {
-		PyErr_SetString(PyExc_IndexError,
-				"index out of range");
-		return NULL;
-	}
-	return Pointer_get_contents(self, NULL);
-}
-
-static int
-Pointer_ass_item(CDataObject *self, int index, PyObject *value)
-{
-	if (index != 0) {
-		PyErr_SetString(PyExc_IndexError,
-				"index out of range");
-		return -1;
-	}
-	return Pointer_set_contents(self, value, NULL);
-}
-
-static int
-Pointer_length(CDataObject *self)
-{
-	return 1;
 }
 
 static PySequenceMethods Pointer_as_sequence = {
