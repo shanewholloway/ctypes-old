@@ -10,7 +10,7 @@
 #
 # See also: http://archive.devx.com/upload/free/features/vcdj/2000/03mar00/fg0300/fg0300.asp
 #
-
+import sys
 from ctypes.com.automation import LoadTypeLibEx, LoadTypeLib, ITypeInfo, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT, LPTLIBATTR
 
@@ -238,15 +238,7 @@ class EnumReader(TypeInfoReader):
             assert vd.elemdescVar.tdesc.vt == VT_INT
 
             vsrc = vd.u.lpvarValue.contents # the source variant containing the value
-            v = VARIANT() # destination variant
-
-            # change the type to VT_INT which is c_int
-            oleaut32 = oledll.oleaut32
-            oleaut32.VariantChangeType(byref(v),
-                                       byref(vsrc),
-                                       0, VT_INT)
-
-            self.items.append((name, v._.iVal))
+            self.items.append((name, vsrc.value))
             self.ti.ReleaseVarDesc(pvd)
 
 class RecordReader(TypeInfoReader):
@@ -318,7 +310,7 @@ class DispatchMethod(Method):
 
 class DispMethod(Method):
     def declaration(self):
-        items = ['DISPMETHOD(0x%x' % self.dispid]
+        items = ['DISPMETHOD(0x%x' % (self.dispid & (sys.maxint*2 + 1))]
         if self.restype is not None:
             items.append(self.restype)
         else:
@@ -747,7 +739,6 @@ class TypeLibReader:
                 print >> ofi, cls.declaration()
 
 def main():
-    import sys
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
@@ -767,8 +758,9 @@ def main():
         # Microsoft PictureClip Control 6.0 (Ver 1.1)
 ##        path = r"c:\Windows\System32\PICCLP32.OCX"
 ##        path = r"c:\windows\system32\Macromed\Flash\swflash.ocx"
-        path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
-
+##        path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
+##        path = r"c:\windows\system32\hnetcfg.dll"
+##        path = r"C:\WINDOWS\System32\MSHFLXGD.OCX"
     import time
     start = time.clock()
     reader = TypeLibReader(unicode(path))
