@@ -1086,7 +1086,7 @@ static char basespec_string[] = "base specification";
  * Return a list of size <size> filled with None's.
  */
 static PyObject *
-NoneList(int size)
+RepeatedList(PyObject *ob, int size)
 {
 	int i;
 	PyObject *list;
@@ -1095,10 +1095,16 @@ NoneList(int size)
 	if (!list)
 		return NULL;
 	for (i = 0; i < size; ++i) {
-		Py_INCREF(Py_None);
-		PyList_SET_ITEM(list, i, Py_None);
+		Py_INCREF(ob);
+		PyList_SET_ITEM(list, i, ob);
 	}
 	return list;
+}
+
+static PyObject *
+NoneList(int size)
+{
+	return RepeatedList(Py_None, size);
 }
 
 #define ASSERT_CDATA(x) assert(((x)->b_base == NULL) ^ ((x)->b_objects == NULL))
@@ -2430,130 +2436,110 @@ static PyTypeObject Simple_Type = {
 static PyObject *
 Pointer_item(CDataObject *self, int index)
 {
-	void *adr;
+	int size;
 	StgDictObject *stgdict;
-	CDataObject *result;
 
-/* See below.
 	if (index != 0) {
 		PyErr_SetString(PyExc_IndexError,
-				"index out of range");
+				"invalid index");
 		return NULL;
 	}
-*/
-	adr = *(void **)self->b_ptr;
-	if (adr == NULL) {
+
+	if (*(void **)self->b_ptr == NULL) {
 		PyErr_SetString(PyExc_ValueError,
 				"NULL pointer access");
 		return NULL;
 	}
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	if (!stgdict || !stgdict->proto) {
-		PyErr_SetString(PyExc_RuntimeError,
-				"typeless pointer?");
-		return NULL;
-	}
+	assert(stgdict);
+	size = stgdict->size / stgdict->length;
 
-	/* Dangerous code. Pointer instances can point to a single
-	   data item, or they can point to an array of values.
-	   Back in the distant past ;-), I had a SetSize() method, which
-	   would enable indexes != 0. Don't know when and why I removed
-	   it, but I need it again. Should it have to be enabled explicitely?
-	   Would be better, it seems.
-
-	   Note that there's no corresponding ass_item implementation
-	   with indexes != 0. This means, we can get and change the items
-	   the pointer points to, if they are mutable, but not
-	   replace the items by different ones.
-	*/
-	if (index != 0) {
-		StgDictObject *xx;
-		xx = PyType_stgdict(stgdict->proto);
-		adr = (void *)((char *)adr + index*xx->size);
-	}
-
-	result = (CDataObject *)CData_AtAddress((PyObject *)stgdict->proto, adr);
-	if (!result)
-		return NULL;
-	/* Hm. Should we have an 'owner' parameter in the above call? */
-	/* self owns the buffer, so result must keep a reference to it */
-	Py_INCREF(self);
-	result->b_base = self;
-	return (PyObject *)result;
-}
-
-static PyObject *
-Pointer_get_contents(CDataObject *self, void *closure)
-{
-	return Pointer_item(self, 0);
-}
-
-static int
-Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
-{
-	StgDictObject *stgdict;
-	CDataObject *mem;
-	PyObject *objects;
-	PyObject *type;
-	PyObject *list;
-
-	stgdict = PyObject_stgdict((PyObject *)self);
-	if (!stgdict || !stgdict->proto) {
-		PyErr_SetString(PyExc_RuntimeError,
-				"typeless pointer?");
-		return -1;
-	}
-	type = stgdict->proto;
-
-	/* typecheck */
-	/* This can return -1 on Error */
-	if (1 != PyObject_IsInstance(value, type)) {
-		PyErr_Format(PyExc_TypeError,
-			     "expected %s instance instead of %s",
-			     ((PyTypeObject *)type)->tp_name,
-			     value->ob_type->tp_name);
-		return -1;
-	}
-
-	/* Needed? Isn't the check above sufficient? */
-	if (!CDataObject_Check(value)) {
-		PyErr_SetString(PyExc_TypeError,
-				"CData object expected");
-		return -1;
-	}
-	objects = CData_GetList(self);
-	if (!objects)
-		return -1;
-	/* We must create a list containing 'value'
-	   and store this at index 0 */
-	list = PyList_New(1);
-	if (!list)
-		return -1;
-	Py_INCREF(value); /* PyList_SET_ITEM consumes one */
-	PyList_SET_ITEM(list, 0, value);
-
-	mem = (CDataObject *)value;
-	*(void **)self->b_ptr = mem->b_ptr;
-
-	return PyList_SetItem(objects, 0, list);
+	return CData_get(stgdict->proto, stgdict->getfunc, (PyObject *)self,
+			 index, size, *(void **)self->b_ptr);
 }
 
 static int
 Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 {
+	int size;
+	StgDictObject *stgdict;
+
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
 				"Pointer does not support item deletion");
 		return -1;
 	}
 	
+	stgdict = PyObject_stgdict((PyObject *)self);
 	if (index != 0) {
 		PyErr_SetString(PyExc_IndexError,
-				"index out of range");
+				"invalid index");
 		return -1;
 	}
-	return Pointer_set_contents(self, value, NULL);
+	size = stgdict->size / stgdict->length;
+
+	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
+			 index, size, *(void **)self->b_ptr);
+}
+
+static PyObject *
+Pointer_get_contents(CDataObject *self, void *closure)
+{
+	StgDictObject *stgdict;
+
+	if (*(void **)self->b_ptr == NULL) {
+		PyErr_SetString(PyExc_ValueError,
+				"NULL pointer access");
+		return NULL;
+	}
+
+	stgdict = PyObject_stgdict((PyObject *)self);
+	assert(stgdict);
+	return CData_FromBaseObj(stgdict->proto,
+				   (PyObject *)self, 0,
+				   *(void **)self->b_ptr);
+}
+
+static int
+Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
+{
+	StgDictObject *stgdict;
+	CDataObject *dst;
+	PyObject *objects, *keep;
+
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError,
+				"Pointer does not support item deletion");
+		return -1;
+	}
+	stgdict = PyObject_stgdict((PyObject *)self);
+	if (!CDataObject_Check(value) 
+	    || 0 == PyObject_IsInstance(value, stgdict->proto)) {
+		/* XXX PyObject_IsInstance could return -1! */
+		PyErr_Format(PyExc_TypeError,
+			     "expected %s instead of %s",
+			     ((PyTypeObject *)(stgdict->proto))->tp_name,
+			     value->ob_type->tp_name);
+		return -1;
+	}
+
+	dst = (CDataObject *)value;
+	*(void **)self->b_ptr = dst->b_ptr;
+
+	objects = CData_GetList(self);
+#if 1
+	keep = RepeatedList(value, PyList_GET_SIZE(CData_GetList(dst)));
+	/* We need the whole (sub)tree of the object we point to.
+	   But we need the object itself, too.
+	*/
+	/* XXX Explain why this works (to myself, at least) */
+	/* XXX Need GC support to avoid immortal objects ? */
+	return PyList_SetItem(objects, 0, keep);
+#else
+	keep = Py_BuildValue("[O]", value);
+	return PyList_SetItem(objects, 0, keep);
+#endif
 }
 
 static int
@@ -3554,6 +3540,11 @@ EXPORT int _testfunc_callfuncp(FUNCS *fp)
 	fp->c(1, 2);
 	fp->s(3, 4);
 	return 0;
+}
+
+EXPORT int _testfunc_deref_pointer(int *pi)
+{
+	return *pi;
 }
 
 #ifdef HAVE_LONG_LONG
