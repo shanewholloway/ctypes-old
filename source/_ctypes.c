@@ -797,6 +797,9 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
 
+	/* Special case for character arrays.
+	   A permanent annoyance: char arrays are also strings!
+	*/
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		if (-1 == add_getset(result, CharArray_getsets))
 			return NULL;
@@ -1496,6 +1499,8 @@ PyObject *
 CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	  int index, int size, char *adr)
 {
+	if (getfunc)
+		return getfunc(adr, size);
 	if (type) {
 		StgDictObject *dict;
 		dict = PyType_stgdict(type);
@@ -1518,17 +1523,36 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	CDataObject *src;
 	PyObject *result;
 
-	if (!type)
+	if (setfunc)
+//	if (!type)
 		return setfunc(ptr, value, size);
 	
 	if (!CDataObject_Check(value)) {
 		StgDictObject *dict = PyType_stgdict(type);
 		if (dict && dict->setfunc)
-			return dict->setfunc(ptr,
-					     value, dict->size); /* Or simply size? */
-		PyErr_SetString(PyExc_TypeError,
-				"cannot use this type");
-		return NULL;
+			return dict->setfunc(ptr, value,
+					     dict->size); /* Or simply size? */
+		/*
+		   If value is a tuple, we try to call the type with the tuple
+		   and use the result!
+		*/
+		assert(PyType_Check(type));
+		if (PyTuple_Check(value)) {
+			PyObject *ob;
+			ob = PyObject_CallObject(type, value);
+			if (ob == NULL) {
+				Extend_Error_Info("(%s) ", ((PyTypeObject *)type)->tp_name);
+				return NULL;
+			}
+			return _CData_set(dst, type, setfunc, ob,
+					  index, size, ptr);
+		} else {
+			PyErr_Format(PyExc_TypeError,
+				     "expected %s instance, got %s",
+				     ((PyTypeObject *)type)->tp_name,
+				     value->ob_type->tp_name);
+			return NULL;
+		}
 	}
 	src = (CDataObject *)value;
 
