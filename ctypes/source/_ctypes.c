@@ -3237,6 +3237,12 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 				"Pointer does not support item deletion");
 		return -1;
 	}
+
+	if (*(void **)self->b_ptr == NULL) {
+		PyErr_SetString(PyExc_ValueError,
+				"NULL pointer access");
+		return -1;
+	}
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
 	if (index != 0) {
