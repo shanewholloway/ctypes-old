@@ -76,14 +76,20 @@ CField_FromDesc(PyObject *desc, int index,
 		Py_DECREF(self);
 		return NULL;
 	}
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	if (bitsize /* this is a bitfield request */
+#ifdef _MSC_VER
 	    && *pfield_size /* we have a bitfield open */
 	    && dict->size * 8 == *pfield_size /* MSVC */
-	    && (*pbitofs + bitsize) <= *pfield_size) {
+	    && (*pbitofs + bitsize) <= *pfield_size
+#else
+	    && *pfield_size /* we have a bitfield open */
+	    && ( (*pbitofs + bitsize) <= *pfield_size
+		 || (*pbitofs + bitsize) <= dict->size)
+#endif
+		)
+	{
 		/* continue bit field */
+		*pfield_size = max(*pfield_size, dict->size);
 		fieldtype = CONT_BITFIELD;
 	} else if (bitsize) {
 		/* start new bitfield */
