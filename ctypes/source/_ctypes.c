@@ -1,6 +1,41 @@
+/*  
+    The most important internal functions:
+    ======================================
+
+    PyObject *SETFUNC(void *ptr, PyObject *value, unsigned size, PyObject *type);
+    
+    'type' is a ctypes type - it has an stgdict.
+
+    SETFUNC checks if value is 'compatible' with 'type', then stores 'value'
+    into the memory block pointed to by 'ptr'. The interpretation of 'size'
+    depends on the type: for array types it means the length of the array
+    (could that also be accessed via the storage dict?), for integer types it
+    may specify bit offset and size (in structure fields).
+
+    Returns a Python object which must be kept alive to keep the memory block
+    contents valid.
+
+    -----
+
+    PyObject *GETFUNC(void *ptr, unsigned size, PyObject *type, CDataObject *base, int index);
+  
+    Construct an instance of 'type' from the memory block 'ptr'.  'size' has
+    the same meaning as in SETFUNC, if 'base' is non-NULL, the resulting
+    instance uses the memory of 'base'. 'index' is used to specify which
+    objects from 'base' must be kept alive.
+
+    -----
+
+    int ASPARAM(CDataObject *self, struct argument *pa);
+
+    ASPARAM knows how a ctypes instance is used as parameter in a function
+    call.
+
+ */
+
 /*
   xyz_asparam(CDataObject *self, struct argument *pa)
-
+  
   Instance method.
 
   Copies the contents of self's buffer into pa's buffer,
@@ -1182,7 +1217,7 @@ static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
 static PyObject *
 c_wchar_p_from_param(PyObject *type, PyObject *value)
 {
-	/* Again, this should use setfunc (Z_set).
+	/*
 	   Z_set handles None, Unicode, String, but not Array, Pointer,
 	   CArgObject.
 
@@ -1238,10 +1273,10 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 static PyObject *
 c_char_p_from_param(PyObject *type, PyObject *value)
 {
-	/* This should use setfunc in the same way as SimpleType_from_param does it.
-	   setfunc (which is z_set) handles None, String, and Unicode,
-	   but not Array, Pointer, c_char_p, and CArgObject.
-	   Instead (!) it accepts integers as well, which seems wrong.
+	/*
+	   setfunc (which is z_set) handles None, String, and Unicode, but not
+	   Array, Pointer, c_char_p, and CArgObject.  Instead (!) it accepts
+	   integers as well, which seems wrong.
 
 	   And fixing this would be a severe api change.
 	*/
@@ -1481,25 +1516,19 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 /*
- * This is a *class method*.
- * Convert a parameter into something that ConvParam can handle.
- *
- * This is either an instance of the requested type, a Python integer, or a
- * 'magic' 3-tuple.
- *
- * (These are somewhat related to Martin v. Loewis 'Enhanced Argument Tuples',
- * described in PEP 286.)
- *
- * The tuple must contain
- *
- * - a format character, currently 'ifdqc' are understood
- *   which will inform ConvParam about how to push the argument on the stack.
- *
- * - a corresponding Python object: i - integer, f - float, d - float,
- *   q - longlong, c - integer
- *
- * - any object which can be used to keep the original parameter alive
- *   as long as the tuple lives.
+  The from_param protocol should change. Suggested by Andreas Degert.
+
+  The ctypes buildin types probably should NOT have a from_param method any
+  longer.  The from_param method of other types must return something that
+  ConvParam can handle: int, string, or a ctypes instance.
+
+  When a ctypes type is used in the argtypes list:
+  - argtypes[i] is the type
+  - converters[i] is type.from_param or NULL
+
+  ConvParam does:
+  - if converters[i] is non-NULL: call it with the actual argument, use the result
+  - if converters[i] is NULL: call argtypes[i]->setfunc with the actual argument, use the result
  */
 static PyObject *
 SimpleType_from_param(PyObject *type, PyObject *value)
@@ -1507,13 +1536,6 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	StgDictObject *dict;
 	char *fmt;
 	PyCArgObject *parg;
-
-	/* If the value is already an instance of the requested type,
-	   we can use it as is */
-	if (1 == PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
-	}
 
 	dict = PyType_stgdict(type);
 
