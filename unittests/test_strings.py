@@ -53,21 +53,26 @@ class StringArrayTestCase(unittest.TestCase):
 ##        print BUF.from_param(c_char_p("python"))
 ##        print BUF.from_param(BUF(*"pyth"))
 
-class WStringArrayTestCase(unittest.TestCase):
-    def test(self):
-        BUF = c_wchar * 4
+try:
+    c_wchar
+except NameError:
+    pass
+else:
+    class WStringArrayTestCase(unittest.TestCase):
+        def test(self):
+            BUF = c_wchar * 4
 
-        buf = BUF(u"a", u"b", u"c")
-        self.failUnless(buf.value == u"abc")
+            buf = BUF(u"a", u"b", u"c")
+            self.failUnless(buf.value == u"abc")
 
-        buf.value = u"ABCD"
-        self.failUnless(buf.value == u"ABCD")
+            buf.value = u"ABCD"
+            self.failUnless(buf.value == u"ABCD")
 
-        buf.value = u"x"
-        self.failUnless(buf.value == u"x")
+            buf.value = u"x"
+            self.failUnless(buf.value == u"x")
 
-        buf[1] = u"Z"
-        self.failUnless(buf.value == u"xZCD")
+            buf[1] = u"Z"
+            self.failUnless(buf.value == u"xZCD")
 
 class StringTestCase(unittest.TestCase):
     def XX_test_basic_strings(self):
@@ -130,46 +135,51 @@ class StringTestCase(unittest.TestCase):
 ##    def test_perf(self):
 ##        check_perf()
 
-class WStringTestCase(unittest.TestCase):
-    def test_wchar(self):
-        c_wchar(u"x")
-        repr(byref(c_wchar(u"x")))
-        c_wchar("x")
-        
+try:
+    c_wchar
+except NameError:
+    pass
+else:
+    class WStringTestCase(unittest.TestCase):
+        def test_wchar(self):
+            c_wchar(u"x")
+            repr(byref(c_wchar(u"x")))
+            c_wchar("x")
 
-    def X_test_basic_wstrings(self):
-        cs = c_wstring(u"abcdef")
 
-        # XXX This behaviour is about to change:
-        # len returns the size of the internal buffer in bytes.
-        # This includes the terminating NUL character.
-        self.failUnless(sizeof(cs) == 14)
+        def X_test_basic_wstrings(self):
+            cs = c_wstring(u"abcdef")
 
-        # The value property is the string up to the first terminating NUL.
-        self.failUnless(cs.value == u"abcdef")
-        self.failUnless(c_wstring(u"abc\000def").value == u"abc")
+            # XXX This behaviour is about to change:
+            # len returns the size of the internal buffer in bytes.
+            # This includes the terminating NUL character.
+            self.failUnless(sizeof(cs) == 14)
 
-        self.failUnless(c_wstring(u"abc\000def").value == u"abc")
+            # The value property is the string up to the first terminating NUL.
+            self.failUnless(cs.value == u"abcdef")
+            self.failUnless(c_wstring(u"abc\000def").value == u"abc")
 
-        # The raw property is the total buffer contents:
-        self.failUnless(cs.raw == u"abcdef\000")
-        self.failUnless(c_wstring(u"abc\000def").raw == u"abc\000def\000")
+            self.failUnless(c_wstring(u"abc\000def").value == u"abc")
 
-        # We can change the value:
-        cs.value = u"ab"
-        self.failUnless(cs.value == u"ab")
-        self.failUnless(cs.raw == u"ab\000\000\000\000\000")
+            # The raw property is the total buffer contents:
+            self.failUnless(cs.raw == u"abcdef\000")
+            self.failUnless(c_wstring(u"abc\000def").raw == u"abc\000def\000")
 
-        self.assertRaises(TypeError, c_wstring, "123")
-        self.assertRaises(ValueError, c_wstring, 0)
+            # We can change the value:
+            cs.value = u"ab"
+            self.failUnless(cs.value == u"ab")
+            self.failUnless(cs.raw == u"ab\000\000\000\000\000")
 
-    def X_test_toolong(self):
-        cs = c_wstring(u"abcdef")
-        # Much too long string:
-        self.assertRaises(ValueError, setattr, cs, "value", u"123456789012345")
+            self.assertRaises(TypeError, c_wstring, "123")
+            self.assertRaises(ValueError, c_wstring, 0)
 
-        # One char too long values:
-        self.assertRaises(ValueError, setattr, cs, "value", u"1234567")
+        def X_test_toolong(self):
+            cs = c_wstring(u"abcdef")
+            # Much too long string:
+            self.assertRaises(ValueError, setattr, cs, "value", u"123456789012345")
+
+            # One char too long values:
+            self.assertRaises(ValueError, setattr, cs, "value", u"1234567")
 
         
 def run_test(rep, msg, func, arg):
@@ -199,23 +209,7 @@ def check_perf():
 #      c_string(None): 2.95 us
 #     c_string('abc'): 3.67 us
 
-def get_suite():
-    try:
-        from ctypes import c_wchar
-    except ImportError:
-        return unittest.TestSuite((unittest.makeSuite(StringTestCase),
-                                   unittest.makeSuite(StringArrayTestCase)))
-    return unittest.TestSuite((unittest.makeSuite(StringTestCase),
-                               unittest.makeSuite(WStringTestCase),
-                               unittest.makeSuite(StringArrayTestCase)
-##                               unittest.makeSuite(WStringArrayTestCase)
-                              ))
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
 
 if __name__ == '__main__':
 ##    check_perf()
-##    unittest.main()
-    test()
+    unittest.main()
