@@ -19,7 +19,8 @@ News
 
     ctypes now uses the same code base and libffi on all platforms.
     For easier installation, the libffi sources are now included in
-    the source distribution.
+    the source distribution - no need to find, build, and install a
+    compatible libffi version.
 
 
 Requirements
@@ -40,13 +41,19 @@ Installation
 
     Installation from source
 
+        Separate source distributions are available for windows and
+        non-windows systems.  Please use the .zip file for Windows (it
+        contains the ctypes.com framework), and use the .tar.gz file
+        for non-Windows systems (it contains the complete
+        cross-platform libffi sources).
+
         To install ctypes from source, unpack the distribution, enter
         the ctypes-0.9.0 directory, and enter
 
             python setup.py build
 
-	This will build a static version of libffi, and then the
-	Python extension modules.  A C compiler is required.
+	This will build the Python extension modules.  A C compiler is
+	required.
 
 	To run the builtin unittests, enter
 
