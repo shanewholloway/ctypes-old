@@ -45,7 +45,7 @@ class ObjectsTestCase(unittest.TestCase):
         self.failUnlessEqual(x._objects, None)
         x.a = a
         x.b = b
-        self.failUnlessEqual(x._objects, {"0": None, "1": None})
+        self.failUnlessEqual(x._objects, None)
 
     def test_embedded_structs(self):
         class X(Structure):
@@ -61,7 +61,7 @@ class ObjectsTestCase(unittest.TestCase):
         y.x, y.y = x1, x2
         self.failUnlessEqual(y._objects, {"0": {}, "1": {}})
         x1.a, x2.b = 42, 93
-        self.failUnlessEqual(y._objects, {"0": {"0": None}, "1": {"1": None}})
+        self.failUnlessEqual(y._objects, {"0": {}, "1": {}})
 
     def test_xxx(self):
         class X(Structure):
@@ -91,8 +91,7 @@ class ObjectsTestCase(unittest.TestCase):
 
         A = c_int*4
         a = A(11, 22, 33, 44)
-        self.failUnlessEqual(a._objects,
-                             {"0": None, "1": None, "2": None, "3": None})
+        self.failUnlessEqual(a._objects, None)
 
         x = X()
         x.data = a

@@ -4,23 +4,17 @@ import unittest
 class SimpleTestCase(unittest.TestCase):
     def test_cint(self):
         x = c_int()
-        # a simple object has an empty _objects dict, if uninitialized
         self.assertEquals(x._objects, None)
-        # setting the value populates the dict
         x.value = 42
         self.assertEquals(x._objects, None)
-
         x = c_int(99)
         self.assertEquals(x._objects, None)
 
     def test_ccharp(self):
         x = c_char_p()
-        # a simple object has an empty _objects dict, if uninitialized
         self.assertEquals(x._objects, None)
-        # setting the value populates the dict
         x.value = "abc"
         self.assertEquals(x._objects, "abc")
-
         x = c_char_p("spam")
         self.assertEquals(x._objects, "spam")
 
@@ -32,10 +26,9 @@ class StructureTestCase(unittest.TestCase):
 
         x = X()
         self.assertEquals(x._objects, None)
-
         x.a = 42
         x.b = 99
-        self.assertEquals(x._objects, {"0": None, "1": None})
+        self.assertEquals(x._objects, None)
 
     def test_ccharp_struct(self):
         class X(Structure):
@@ -59,22 +52,15 @@ class StructureTestCase(unittest.TestCase):
         r.ul.y = 1
         r.lr.x = 2
         r.lr.y = 3
-        self.assertEquals(r._objects,
-                          {'00': None, '01': None, '10': None, '11': None})
+        self.assertEquals(r._objects, None)
 
         r = RECT()
-        r.ul = POINT(1, 2)
-        self.assertEquals(r._objects, {'0': {'0': None, '1': None}})
+        pt = POINT(1, 2)
+        r.ul = pt
+        self.assertEquals(r._objects, {'0': {}})
         r.ul.x = 22
         r.ul.y = 44
-        # The current solution retains unneeded objects as well:
-        self.assertEquals(r._objects,
-                          {'0': {'0': None, '1': None}, # r.ul = POINT(1, 2)
-                           '00': None,  # r.ul.x = 22
-                           '10': None}) # r.ul.x = 44
-        # The entry marked '<-' above is no longer needed, it refers to the
-        # POINT we have assigned, but the coords are already overwritten.
-        # But, oh well...
+        self.assertEquals(r._objects, {'0': {}})
 
 class ArrayTestCase(unittest.TestCase):
     def test_cint_array(self):
@@ -85,7 +71,7 @@ class ArrayTestCase(unittest.TestCase):
         ia[0] = 1
         ia[1] = 2
         ia[2] = 3
-        self.assertEquals(ia._objects, {"0": None, "1": None, "2": None})
+        self.assertEquals(ia._objects, None)
 
         class X(Structure):
             _fields_ = [("x", c_int),
@@ -95,15 +81,9 @@ class ArrayTestCase(unittest.TestCase):
         x.x = 1000
         x.a[0] = 42
         x.a[1] = 96
-        self.assertEquals(x._objects, {"0": None, "01": None, "11": None})
-
+        self.assertEquals(x._objects, None)
         x.a = ia
-        self.assertEquals(x._objects,
-                          {'0': None,
-                           '1': {'0': None, '1': None, '2': None},
-                           '01': None,
-                           '11': None})
-        # See above, some entries unneeded.
+        self.assertEquals(x._objects, {'1': {}})
 
 class PointerTestCase(unittest.TestCase):
     def X_test_p_cint(self):
@@ -141,22 +121,24 @@ class DeletePointerTestCase(unittest.TestCase):
         print "+" * 42
         print x._objects
 
-##class PointerToStructure(unittest.TestCase):
-##    def test(self):
-##        class POINT(Structure):
-##            _fields_ = [("x", c_int), ("y", c_int)]
-##        class RECT(Structure):
-##            _fields_ = [("a", POINTER(POINT)),
-##                        ("b", POINTER(POINT))]
-##        r = RECT()
-##        p1 = POINT(1, 2)
-##        p2 = POINT(3, 4)
+class PointerToStructure(unittest.TestCase):
+    def test(self):
+        class POINT(Structure):
+            _fields_ = [("x", c_int), ("y", c_int)]
+        class RECT(Structure):
+            _fields_ = [("a", POINTER(POINT)),
+                        ("b", POINTER(POINT))]
+        r = RECT()
+        p1 = POINT(1, 2)
     
-##        r.a = pointer(p1)
-##        r.a[0].x = 42
-##        r.a[0].y = 99
+        r.a = pointer(p1)
+        r.b = pointer(p1)
+        from pprint import pprint as pp
+        pp(p1._objects)
+        pp(r._objects)
 
-##        r.b = pointer(p2)
+        r.a[0].x = 42
+        r.a[0].y = 99
 
 if __name__ == "__main__":
     unittest.main()
