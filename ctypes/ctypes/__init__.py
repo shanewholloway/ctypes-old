@@ -1,10 +1,12 @@
 """create and manipulate C data types in Python"""
 
+# special developer support to use ctypes from the CVS sandbox,
+# without installing it
 import os
-magic = os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")
-if os.path.isfile(magic):
-    execfile(magic)
-del os, magic
+_magicfile = os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")
+if os.path.isfile(_magicfile):
+    execfile(_magicfile)
+del os, _magicfile
 
 __version__ = "0.6.0"
 
@@ -51,11 +53,11 @@ def c_buffer(init, size=None):
 
 
 def CFUNCTYPE(restype, *argtypes):
-    class X(_CFuncPtr):
+    class CFunctionType(_CFuncPtr):
         _argtypes_ = argtypes
         _restype_ = restype
         _flags_ = _FUNCFLAG_CDECL
-    return X
+    return CFunctionType
 
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
@@ -64,11 +66,11 @@ if _os.name == "nt":
          FUNCFLAG_STDCALL as _FUNCFLAG_STDCALL
 
     def WINFUNCTYPE(restype, *argtypes):
-        class X(_CFuncPtr):
+        class WinFunctionType(_CFuncPtr):
             _argtypes_ = argtypes
             _restype_ = restype
             _flags_ = _FUNCFLAG_STDCALL
-        return X
+        return WinFunctionType
 
 elif _os.name == "posix":
     from _ctypes import dlopen as _LoadLibrary
