@@ -1,7 +1,4 @@
 /******************************************************************/
-//#ifdef MS_WIN32
-#define USE_CALLBACKS
-//#endif
 
 #ifndef MS_WIN32
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -98,7 +95,6 @@ typedef struct tagFunctionObject {
 	THUNK callback;			/* C function pointer */
 } CFunctionObject;
 
-#ifdef USE_CALLBACKS
 extern PyTypeObject CFunction_Type;
 #define CFunctionObject_CheckExact(v)	    ((v)->ob_type == &CFunction_Type)
 #define CFunctionObject_Check(v)	    PyObject_TypeCheck(v, &CFunction_Type)
@@ -110,7 +106,6 @@ extern THUNK AllocFunctionCallback(PyObject *callable,
 				   PyObject *converters,
 				   int stdcall);
 extern void FreeCallback(THUNK);
-#endif
 
 extern PyMethodDef module_methods[];
 
