@@ -1,51 +1,8 @@
 #include <Python.h>
-#include <ffi.h>
-#include "ctypes.h"
 
 #ifdef MS_WIN32
 #include <windows.h>
 #endif
-
-/* Although this is compiled as a Python extension module, it's not really
-   one.  But this is the easiest way to create a shared library.
-
-   This library exports functions for testing _ctypes.
-*/
-
-PyObject *my_debug(PyObject *self, CDataObject *arg)
-{
-#ifdef MS_WIN32
-  	DISPPARAMS *dp;
-  	VARIANT *va;
- 	OLECHAR FAR * FAR *p;
-	FUNCDESC *f = (FUNCDESC *)(arg->b_ptr);
-
-	ELEMDESC *pelemdesc = *(ELEMDESC **)arg->b_ptr;
- 	int *pi;
- 	char *cp;
- 	char **cpp;
-	IUnknown *pIunk = *(IUnknown **)(arg->b_ptr);
-	IDispatch *pIDisp = (IDispatch *)(arg->b_ptr);
- 	dp = (DISPPARAMS *)arg->b_ptr;
- 	va = (VARIANT *)arg->b_ptr;
- 	p = (OLECHAR FAR * FAR *)arg->b_ptr;
- 	pi = (int *)arg->b_ptr;
- 	cp = arg->b_ptr;
- 	cpp = (char **)arg->b_ptr;
-#ifdef _DEBUG
-	_asm int 3;
-/*
-	Py_BEGIN_ALLOW_THREADS
-	x = pIunk->lpVtbl->AddRef(pIunk);
-	x = pIunk->lpVtbl->Release(pIunk);
-	Py_END_ALLOW_THREADS
-*/
-#endif
-#endif
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
 
 #ifdef MS_WIN32
 #define EXPORT(x) __declspec(dllexport) x
@@ -305,9 +262,6 @@ EXPORT(void) _py_func(void)
 PyMethodDef module_methods[] = {
 	{"func_si", py_func_si, METH_VARARGS},
 	{"func", py_func, METH_NOARGS},
-#ifdef _DEBUG
-	{"my_debug", my_debug, METH_O},
-#endif
 	{ NULL, NULL, 0, NULL},
 };
 
