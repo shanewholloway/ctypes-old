@@ -106,9 +106,9 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def CvQualifiedType(self, attrs):
         # id, type, [const|volatile]
         typ = attrs["type"]
-##        const = attrs["const"]
-##        volatile = attrs["volatile"]
-        return typedesc.CvQualifiedType(typ, "xxx")
+        const = attrs.get("const", None)
+        volatile = attrs.get("volatile", None)
+        return typedesc.CvQualifiedType(typ, const, volatile)
 
     def _fixup_CvQualifiedType(self, c):
         c.typ = self.all[c.typ]
