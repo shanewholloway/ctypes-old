@@ -273,7 +273,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyErr_NoMemory();
 		return NULL;
 	}
-	p->pcl = MallocExecMem(sizeof(ffi_info));
+	p->pcl = MallocExecMem(sizeof(ffi_closure));
 
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
