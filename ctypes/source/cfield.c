@@ -552,7 +552,9 @@ u_set(void *ptr, PyObject *value, unsigned size)
 	wchar_t *p;
 
 	if (PyString_Check(value)) {
-		value = PyUnicode_FromObject(value);
+		value = PyUnicode_FromEncodedObject(value,
+						    conversion_mode_encoding,
+						    conversion_mode_errors);
 		if (!value)
 			return NULL;
 	} else if (!PyUnicode_Check(value)) {
@@ -622,7 +624,9 @@ U_set(void *ptr, PyObject *value, unsigned length)
 	unsigned int size;
 
 	if (PyString_Check(value)) {
-		value = PyUnicode_FromObject(value);
+		value = PyUnicode_FromEncodedObject(value,
+						    conversion_mode_encoding,
+						    conversion_mode_errors);
 		if (!value)
 			return NULL;
 	} else if (!PyUnicode_Check(value)) {
@@ -709,7 +713,9 @@ z_set(void *ptr, PyObject *value, unsigned size)
 		Py_INCREF(value);
 		return value;
 	} else if (PyUnicode_Check(value)) {
-		PyObject *str = PyUnicode_AsASCIIString(value);
+		PyObject *str = PyUnicode_AsEncodedString(value,
+							  conversion_mode_encoding,
+							  conversion_mode_errors);
 		if (str == NULL)
 			return NULL;
 		*(char **)ptr = PyString_AS_STRING(str);
@@ -747,7 +753,9 @@ Z_set(void *ptr, PyObject *value, unsigned size)
 		return value;
 	}
 	if (PyString_Check(value)) {
-		value = PyUnicode_FromObject(value);
+		value = PyUnicode_FromEncodedObject(value,
+						    conversion_mode_encoding,
+						    conversion_mode_errors);
 		if (!value)
 			return NULL;
 	} else if (PyInt_Check(value) || PyLong_Check(value)) {
@@ -789,7 +797,9 @@ BSTR_set(void *ptr, PyObject *value, unsigned size)
 	if (Py_None == value) {
 		value = NULL;
 	} else if (PyString_Check(value)) {
-		value = PyUnicode_FromObject(value);
+		value = PyUnicode_FromEncodedObject(value,
+						    conversion_mode_encoding,
+						    conversion_mode_errors);
 		if (!value)
 			return NULL;
 	} else if (PyUnicode_Check(value)) {

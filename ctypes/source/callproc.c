@@ -780,6 +780,10 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 	return NULL; /* to silence the compiler */
 }
 
+/*
+ * Raise a new exception 'exc_class', adding additional text to the original
+ * exception string.
+ */
 void Extend_Error_Info(PyObject *exc_class, char *fmt, ...)
 {
 	va_list vargs;
@@ -794,19 +798,25 @@ void Extend_Error_Info(PyObject *exc_class, char *fmt, ...)
 	PyErr_Fetch(&tp, &v, &tb);
 	PyErr_NormalizeException(&tp, &v, &tb);
 	cls_str = PyObject_Str(tp);
-	msg_str = PyObject_Str(v);
-	if (cls_str) { 
+	if (cls_str) {
 		PyString_ConcatAndDel(&s, cls_str);
 		PyString_ConcatAndDel(&s, PyString_FromString(": "));
-	}
+	} else
+		PyErr_Clear();
+	msg_str = PyObject_Str(v);
 	if (msg_str)
 		PyString_ConcatAndDel(&s, msg_str);
+	else {
+		PyErr_Clear();
+		PyString_ConcatAndDel(&s, PyString_FromString("???"));
+	}
 	PyErr_SetObject(exc_class, s);
 	Py_XDECREF(tp);
 	Py_XDECREF(v);
 	Py_XDECREF(tb);
 	Py_DECREF(s);
 }
+
 
 #ifdef MS_WIN32
 #define alloca _alloca
@@ -1214,7 +1224,41 @@ My_Py_DECREF(PyObject *self, PyObject *arg)
 	return arg;
 }
 
+#ifdef HAVE_USABLE_WCHAR_T
+
+static PyObject *
+set_conversion_mode(PyObject *self, PyObject *args)
+{
+	char *coding, *mode;
+	PyObject *result;
+
+	if (!PyArg_ParseTuple(args, "zs", &coding, &mode))
+		return NULL;
+	result = Py_BuildValue("(zz)", conversion_mode_encoding, conversion_mode_errors);
+	if (coding) {
+		PyMem_Free(conversion_mode_encoding);
+		conversion_mode_encoding = PyMem_Malloc(strlen(coding) + 1);
+		strcpy(conversion_mode_encoding, coding);
+	} else {
+		conversion_mode_encoding = NULL;
+	}
+	PyMem_Free(conversion_mode_errors);
+	conversion_mode_errors = PyMem_Malloc(strlen(mode) + 1);
+	strcpy(conversion_mode_errors, mode);
+	return result;
+}
+
+static char set_conversion_mode_doc[] =
+"FormatError(encoding, errors) -> (previous-encoding, previous-errors)\n\
+\n\
+Set the encoding and error handling ctypes uses when converting\n\
+between unicode and strings.  Returns the previous values.\n";
+#endif
+
 PyMethodDef module_methods[] = {
+#ifdef HAVE_USABLE_WCHAR_T
+	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
+#endif
 #ifdef MS_WIN32
 	{"CopyComPointer", copy_com_pointer, METH_VARARGS, copy_com_pointer_doc},
 	{"FormatError", format_error, METH_VARARGS, format_error_doc},

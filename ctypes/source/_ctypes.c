@@ -98,6 +98,9 @@ bytes(cdata)
 
 PyObject *PyExc_ArgError;
 
+char *conversion_mode_encoding = NULL;
+char *conversion_mode_errors = NULL;
+
 
 /******************************************************************/
 /*
@@ -688,7 +691,9 @@ WCharArray_set_value(CDataObject *self, PyObject *value)
 	int result = 0;
 
 	if (PyString_Check(value)) {
-		value = PyUnicode_FromObject(value);
+		value = PyUnicode_FromEncodedObject(value,
+						    conversion_mode_encoding,
+						    conversion_mode_errors);
 		if (!value)
 			return -1;
 	} else if (!PyUnicode_Check(value)) {

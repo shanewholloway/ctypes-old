@@ -257,6 +257,9 @@ extern ffi_type *GetType(PyObject *obj);
 /* exception classes */
 extern PyObject *PyExc_ArgError;
 
+extern char *conversion_mode_encoding;
+extern char *conversion_mode_errors;
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
