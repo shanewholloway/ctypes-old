@@ -41,10 +41,22 @@ class GUID(Structure):
             return not ole32.IsEqualGUID(byref(self), byref(other))
         return -1
 
+    def __nonzero__(self):
+        result = str(buffer(self)) != "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        print "__nonzero__", self, result
+        return result
+
     def __eq__(self, other, IsEqualGUID=ole32.IsEqualGUID):
         return isinstance(other, GUID) and \
                IsEqualGUID(byref(self), byref(other))               
 assert(sizeof(GUID) == 16), sizeof(GUID)
+
+##guid = GUID()
+
+##if guid:
+##    print "True", guid
+##else:
+##    print "False", guid
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
 
@@ -158,5 +170,44 @@ POINTER(PIUnknown).from_param = classmethod(from_param)
 IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnknown)),
                       STDMETHOD(c_ulong, "AddRef"),
                       STDMETHOD(c_ulong, "Release")]
+
+################################################################
+
+E_NOTIMPL = 0x80000001
+
+class COMObject:
+    _refcnt = 1
+
+    def _notimpl(self, *args):
+##        print "notimpl", args
+        return E_NOTIMPL
+
+    def QueryInterface(self, this, refiid, ppiunk):
+        print "QI", refiid[0] #, ppiunk
+        return E_NOTIMPL
+
+    def AddRef(self, this):
+        self._refcnt += 1
+        print "ADDREF", self, self._refcnt
+        return self._refcnt
+
+    def Release(self, this):
+        self._refcnt -= 1
+        print "RELEASE", self, self._refcnt
+        return self._refcnt
+
+    def _make_interface_pointer(self, itfclass):
+        # Take an interface class like 'IUnknown' and create
+        # an pointer to it, implementing this interface.
+        itf = itfclass()
+        vtbltype = itfclass._fields_[0][1]._type_
+        methods = []
+        for name, proto in vtbltype._fields_:
+            callable = getattr(self, name, self._notimpl)
+            methods.append(proto(callable))
+        vtbl = vtbltype(*methods)
+        itf.lpVtbl = pointer(vtbl)
+        return pointer(itf)
+
 
 __all__ = "IUnknown PIUnknown STDMETHOD GUID REFIID HRESULT ole32".split()
