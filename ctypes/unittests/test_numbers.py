@@ -235,5 +235,5 @@ def check_perf():
 #   c_int_S(999): 9.85 us
 
 if __name__ == '__main__':
-    check_perf()
+##    check_perf()
     unittest.main()
