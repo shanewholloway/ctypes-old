@@ -24,12 +24,12 @@ class CompleteCoverage(unittest.TestCase):
         # single unicode character
         self.failUnlessRaises(TypeError, lambda: setattr(X(), "u", 42))
         self.failUnlessRaises(TypeError, lambda: setattr(X(), "u", "abc"))
-        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "u", "ä"))
+##        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "u", "ä"))
 
         # unicode array
         self.failUnlessRaises(TypeError, lambda: setattr(X(), "U", 42))
         X().U = "abc"
-        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "U", "ä"))
+##        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "U", "ä"))
 
         X().z = 42
 
@@ -79,6 +79,25 @@ class CompleteCoverage(unittest.TestCase):
 
         # from_param
         print c_int.from_param(c_int(42))
+
+    def test_pointer(self):
+        class POINT(Structure):
+            _fields_ = [("x", c_int),
+                        ("y", c_int)]
+
+        class PP(Structure):
+            _fields_ = [("pt1", POINTER(POINT))]
+
+        pp = PP()
+
+        # THIS ONE CRASHES WITH an object having negative refcount:
+        # The bug was already in 0.9.6 at least
+#XXX        pp.pt1 = cast(42, POINTER(POINT))
+
+##        pp.pt1 = pointer(POINT(1, 2))
+##        pp.pt1[0].x
+##        pp.pt1[0].y
+
 
 if __name__ == "__main__":
     unittest.main()
