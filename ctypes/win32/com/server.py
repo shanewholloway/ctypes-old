@@ -132,29 +132,33 @@ def DllGetClassObject(rclsid, riid, ppv):
     clsid = GUID.from_address(rclsid)
     p = PIUnknown.from_address(ppv)
 
-    print "\tDllGetClassObject called with", clsid, iid
     # Use the clsid to find additional info in the registry.
     cls = inproc_find_class(clsid)
     # XXX Hm, does inproc_findclass return None, or raise an Exception?
     if not cls:
         return CLASS_E_CLASSNOTAVAILABLE
-    global _active_objects
-    factory = ClassFactory(cls)
+    factory = InprocClassFactory(cls)
     _active_objects.append(factory)
-    obj = pointer(factory._com_pointers_[0][1])
-    # obj is a pointer to the class factory's IClassFactory interface.
-    return obj.QueryInterface(byref(iid), byref(p))
 
-_active_objects = []
+    obj = pointer(factory._com_pointers_[0][1])
+    obj.AddRef()
+    
+    # XXX Why is this one needed?
+    obj.AddRef()
+
+    # QueryInterface, if successful, increments the refcount itself.
+    return obj.QueryInterface(byref(iid), byref(p))
 
 S_FALSE = 0x00000001
 S_OK = 0x00000000
 
+_active_objects = []
+g_locks = 0
+
 def DllCanUnloadNow():
     # XXX TODO: Read about inproc server refcounting in Don Box
-    return S_FALSE
-    _Logger.install()
-    if _active_objects:
+##    _Logger.install()
+    if g_locks:
         print "* DllCanUnloadNow -> S_FALSE", _active_objects
         return S_FALSE
     else:
@@ -164,18 +168,60 @@ def DllCanUnloadNow():
 
 
 ################################################################
-#
-# Algorithm for the server lifetime taken from Don Box: Essential COM
-# (German edition, chapter 6.3: Lebensdauer von Server-Prozessen)
-#
-class ClassFactory(COMObject):
-    _com_interfaces_ = [IClassFactory, IExternalConnection]
+class _ClassFactory(COMObject):
+    _com_interfaces_ = [IClassFactory]
 
     def __init__(self, objclass):
         COMObject.__init__(self)
         for itf in self._com_interfaces_:
             self._make_interface_pointer(itf)
         self.objclass = objclass
+
+    # IClassFactory methods
+
+    def CreateInstance(self, this, pUnkOuter, riid, ppvObject):
+        print "BEGIN CreateInstance"
+        if pUnkOuter:
+            return CLASS_E_NOAGGREGATION
+        obj = self.objclass()
+        obj._factory = self
+        _active_objects.append(obj)
+        print ".....  QueryInterface"
+        result = obj.QueryInterface(None, riid, ppvObject)
+        print "EBD   CreateInstance"
+        return result
+        
+
+################################################################
+class InprocClassFactory(_ClassFactory):
+
+    def AddRef(self, this):
+        self._refcnt += 1
+        print "AddRef", self, self._refcnt
+##        self._factory.LockServer(None, 1)
+        return self._refcnt
+
+    def Release(self, this):
+        self._refcnt -= 1
+        print "Release", self, self._refcnt
+##        self._factory.LockServer(None, 0)
+        return self._refcnt
+
+    def LockServer(self, this, fLock):
+        global g_locks
+        if fLock:
+            g_locks += 1
+        else:
+            g_locks -= 1
+        print "LockServer", fLock, g_locks
+            
+################################################################
+#
+# Algorithm for the server lifetime taken from Don Box: Essential COM
+# (German edition, chapter 6.3: Lebensdauer von Server-Prozessen)
+#
+class LocalServerClassFactory(_ClassFactory):
+    _com_interfaces_ = [IClassFactory, IExternalConnection]
 
     def get_interface_pointer(self, interface=IUnknown):
         # XXX Should this be reworked to return itf instead of byref(itf)?
@@ -201,21 +247,12 @@ class ClassFactory(COMObject):
     # IUnknown methods
 
     def AddRef(self, this):
-        print "AddRef", self
+##        print "AddRef", self
         return 2
 
     def Release(self, this):
-        print "Release", self
+##        print "Release", self
         return 1
-
-    # IClassFactory methods
-
-    def CreateInstance(self, this, pUnkOuter, riid, ppvObject):
-        if pUnkOuter:
-            return CLASS_E_NOAGGREGATION
-        obj = self.objclass()
-        obj._factory = self
-        return obj.QueryInterface(None, riid, ppvObject)
 
     def LockServer(self, this, fLock):
         if fLock:
@@ -248,7 +285,7 @@ def pump_messages():
         user32.DispatchMessageA(byref(msg))
 
 def localserver(objclass):
-    factory = ClassFactory(objclass)
+    factory = LocalServerClassFactory(objclass)
     factory._register_class()
     pump_messages()
     factory._revoke_class()
