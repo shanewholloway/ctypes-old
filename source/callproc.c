@@ -1302,7 +1302,57 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	return (PyObject *)result;
 }
 
+static char memmove_doc[] =
+"memmove(dst, src, size) -> adress\n\
+\n\
+Copy size bytes from src to dst, return the destination address as integer.\n";
+
+static PyObject *
+c_memmove(PyObject *self, PyObject *args)
+{
+	struct argument a_dst, a_src;
+	int size;
+	void *c_result;
+	PyObject *result = NULL;
+	PyObject *dst, *src;
+
+	memset(&a_dst, 0, sizeof(struct argument));
+	memset(&a_src, 0, sizeof(struct argument));
+	if (!PyArg_ParseTuple(args, "OOi", &dst, &src, &size))
+		return NULL;
+	if (-1 == ConvParam(dst, 0, &a_dst))
+		goto done;
+	if (-1 == ConvParam(src, 1, &a_src))
+		goto done;
+	c_result = memmove(a_dst.value.p, a_src.value.p, size);
+	result = PyLong_FromVoidPtr(c_result);
+  done:
+	Py_XDECREF(a_dst.keep);
+	Py_XDECREF(a_src.keep);
+	return result;
+}
+
+static char get_string_doc[] =
+"get_string(addr) -> string\n\
+\n\
+Return the string at addr.\n";
+
+static PyObject *
+get_string(PyObject *self, PyObject *arg)
+{
+	PyObject *result = NULL;
+	struct argument a_arg;
+	if (-1 == ConvParam(arg, 0, &a_arg))
+		goto done;
+	result = PyString_FromString(a_arg.value.p);
+  done:
+	Py_XDECREF(a_arg.keep);
+	return result;
+}
+
 PyMethodDef module_methods[] = {
+	{"get_string", get_string, METH_O, get_string_doc},
+	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
 	{"cast", cast, METH_VARARGS, cast_doc},
 #ifdef Py_USING_UNICODE
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
