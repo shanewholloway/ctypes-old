@@ -55,6 +55,12 @@ DISPATCH_PROPERTYGET = 0x2
 DISPATCH_PROPERTYPUT = 0x4
 DISPATCH_PROPERTYPUTREF = 0x8
 
+##VARKIND enumeration
+VAR_PERINSTANCE = 0
+VAR_STATIC = 1
+VAR_CONST = 2
+VAR_DISPATCH = 3
+
 ################################################################
 # typeinfo, typelib and automation data types
 #
@@ -232,13 +238,20 @@ LPFUNCDESC = POINTER(FUNCDESC)
 ################################################################
 # The interfaces COM methods
 
+IMPLTYPEFLAGS = c_int
+
+IMPLTYPEFLAG_FDEFAULT   = 0x1
+IMPLTYPEFLAG_FSOURCE      = 0x2
+IMPLTYPEFLAG_FRESTRICTED   = 0x4
+IMPLTYPEFLAG_FDEFAULTVTABLE   = 0x8
+
 ITypeInfo._methods_ = [("GetTypeAttr", (POINTER(LPTYPEATTR),)),
                        ("GetTypeComp", (POINTER(ITypeCompPointer),)),
                        ("GetFuncDesc", (c_uint,  POINTER(POINTER(FUNCDESC)))),
                        ("GetVarDesc", (c_uint, POINTER(POINTER(VARDESC)))),
                        ("GetNames", (MEMBERID, POINTER(BSTR), c_uint, POINTER(c_uint))),
                        ("GetRefTypeOfImplType", (c_uint, POINTER(HREFTYPE))),
-                       ("GetImplTypeFlags", (c_uint, POINTER(c_int))),
+                       ("GetImplTypeFlags", (c_uint, POINTER(IMPLTYPEFLAGS))),
                        ("GetIDsOfNames", (POINTER(LPOLESTR), c_uint, POINTER(c_int))),
                        ("Invoke", (PUNK, MEMBERID, WORD, POINTER(DISPPARAMS),
                                    POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint))),
