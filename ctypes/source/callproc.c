@@ -733,7 +733,9 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 		char c;
 		short s;
 		int i;
+#if (SIZEOF_LONG != SIZEOF_INT)
 		long l;
+#endif
 		switch (dict->size) {
 		case 1:
 			c = (char)result->value.l;
