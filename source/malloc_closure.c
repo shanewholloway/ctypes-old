@@ -24,19 +24,12 @@
 #include <ffi.h>
 #include "ctypes.h"
 
-/* BLOCKSIZE can be adjusted.  Larger blocksize will make MallocClosure() and
-   FreeClosure() somewhat slower, but allocate less blocks from the system.
-   It may be that some systems have a limit of how many mmap'd blocks can be
-   open.
-
-   sizeof(ffi_closure) typically is:
-
-   Windows: 28 bytes
-   Linux x86, OpenBSD x86: 24 bytes
-   Linux x86_64: 48 bytes
+/* BLOCKSIZE can be adjusted.  Larger blocksize will take a larger memory
+   overhead, but allocate less blocks from the system.  It may be that some
+   systems have a limit of how many mmap'd blocks can be open.
 */
 
-#define BLOCKSIZE _pagesize * 4
+#define BLOCKSIZE _pagesize
 
 /* #define MALLOC_CLOSURE_DEBUG */ /* enable for some debugging output */
 
@@ -52,153 +45,85 @@
 # endif
 #endif
 
-typedef struct _tagblock {
-	struct _tagblock *next;
-	struct _tagblock *prev;
-	int count;
-	int used;
-	ffi_closure closure[0];
-} BLOCK;
+typedef struct _tagITEM {
+	ffi_closure closure;
+	struct _tagITEM *next;
+} ITEM;
 
-static BLOCK *start; /* points to the list of allocated blocks */
-static unsigned int _pagesize; /* the system's pagesize */
+static ITEM *free_list;
+int _pagesize;
 
-static BLOCK *allocate_block(void)
+static void more_core(void)
 {
-	BLOCK *block;
+	ITEM *item;
+	int count, i;
+
+/* determine the pagesize */
 #ifdef MS_WIN32
 	if (!_pagesize) {
 		SYSTEM_INFO systeminfo;
 		GetSystemInfo(&systeminfo);
 		_pagesize = systeminfo.dwPageSize;
 	}
-
-	block = (BLOCK *)VirtualAlloc(NULL,
-				    BLOCKSIZE,
-				    MEM_COMMIT,
-				    PAGE_EXECUTE_READWRITE);
-	if (block == NULL)
-		return NULL;
 #else
 	if (!_pagesize) {
 		_pagesize = sysconf(_SC_PAGESIZE);
 	}
-	block = (BLOCK *)mmap(NULL,
-			    BLOCKSIZE,
+#endif
+
+	/* calculate the number of nodes to allocate */
+	count = BLOCKSIZE / sizeof(ITEM);
+
+	/* allocate a memory block */
+#ifdef MS_WIN32
+	item = (ITEM *)VirtualAlloc(NULL,
+					       count * sizeof(ITEM),
+					       MEM_COMMIT,
+					       PAGE_EXECUTE_READWRITE);
+	if (item == NULL)
+		return;
+#else
+	item = (ITEM *)mmap(NULL,
+			    count * sizeof(ITEM),
 			    PROT_READ | PROT_WRITE | PROT_EXEC,
 			    MAP_PRIVATE | MAP_ANONYMOUS,
 			    -1,
 			    0);
-	if (block == (void *)MAP_FAILED)
-		return NULL;
-	memset(block, 0, BLOCKSIZE);
+	if (item == (void *)MAP_FAILED)
+		return;
 #endif
-	block->count = (BLOCKSIZE - sizeof(block)) / sizeof(ffi_closure);
 
 #ifdef MALLOC_CLOSURE_DEBUG
-	printf("One BLOCK has %d closures of %d bytes each\n",
-	       block->count, sizeof(ffi_closure));
-	block->count = 1;
-	printf("ALLOCATED block %p\n", block);
+	printf("block at %p allocated (%d bytes), %d ITEMs\n",
+	       item, count * sizeof(ITEM), count);
 #endif
-	return block;
-}
-
-static void free_block(BLOCK *block)
-{
-#ifdef MS_WIN32
-	if (0 == VirtualFree(block, 0, MEM_RELEASE))
-		Py_FatalError("ctypes: executable memory head corrupted");
-#else
-	if (-1 == munmap((void *)block, BLOCKSIZE))
-		Py_FatalError("ctypes: executable memory head corrupted");
-#endif
+	/* put them into the free list */
+	for (i = 0; i < count; ++i) {
+		item->next = free_list;
+		free_list = item;
+		++item;
+	}
 }
 
 /******************************************************************/
 
+/* put the item back into the free list */
 void FreeClosure(void *p)
 {
-	BLOCK *block = start;
-	ffi_closure *pcl = (ffi_closure *)p;
-	int i;
-
-	while (block) {
-		/* We could calculate the entry by pointer arithmetic,
-		   to avoid a linear search.
-		*/
-		for (i = 0; i < block->count; ++i) {
-			if (&block->closure[i] == pcl) {
-				block->closure[i].cif = NULL;
-				--block->used;
-				goto done;
-			}
-		}
-		block = block->next;
-	}
-	Py_FatalError("ctypes: closure not found in any block");
-
-  done:
-	if (block->used == 0) {
-		if (block == start && block->next == NULL) {
-			/* don't free the last block */
-#ifdef MALLOC_CLOSURE_DEBUG
-			printf("Don't free the very last block %p\n", block);
-#endif
-			return;
-		}
-		/* unlink the current block from the chain */
-		if (block->next)
-			block->next->prev = block->prev;
-		if (block->prev) {
-			block->prev->next = block->next;
-		} else {
-			start = block->next;
-			start->prev = NULL;
-		}
-
-		/* now, the block can be freed */
-		free_block(block);
-#ifdef MALLOC_CLOSURE_DEBUG
-		printf("FREEING block %p\n", block);
-#endif
-	}
+	ITEM *item = (ITEM *)p;
+	item->next = free_list;
+	free_list = item;
 }
 
+/* return one item from the free list, allocating more if needed */
 void *MallocClosure(void)
 {
-	BLOCK *block = start;
-	int i;
-
-	if (start == NULL)
-		block = start = allocate_block();
-
-	while(block) {
-		if (block->used < block->count) {
-			/* This block has a free entry */
-			for (i = 0; i < block->count; ++i) {
-				if (block->closure[i].cif == NULL) {
-					block->closure[i].cif = (ffi_cif *)-1;
-					++block->used;
-					return &block->closure[i];
-				}
-			}
-			/* oops, where is it? */
-			Py_FatalError("ctypes: use count on block is wrong");
-		}
-		if (block->next)
-			/* try the next block, if there is one */
-			block = block->next;
-		else {
-			/* need a fresh block */
-			BLOCK *new_block = allocate_block();
-			if (new_block == NULL)
-				return NULL;
-			/* insert into chain */
-			new_block->prev = block;
-			block->next = new_block;
-			block = new_block;
-		}
-	}
-	return NULL;
+	ITEM *item;
+	if (!free_list)
+		more_core();
+	if (!free_list)
+		return NULL;
+	item = free_list;
+	free_list = item->next;
+	return item;
 }
