@@ -369,9 +369,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 void init_callbacks_in_module(PyObject *m)
 {
-	if (PyType_Ready((PyTypeObject *)&PyType_Type) < 0)
-		return;
-
 #ifndef CTYPES_USE_GILSTATE
 	g_interp = PyThreadState_Get()->interp;
 #endif
