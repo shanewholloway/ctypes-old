@@ -28,6 +28,8 @@ REGCLS_SURROGATE         = 8
 
 ################################################################
 
+_quit_enabled = 1
+
 class IClassFactory(IUnknown):
     _iid_ = GUID("{00000001-0000-0000-C000-000000000046}")
     _methods_ = IUnknown._methods_ + [
@@ -93,7 +95,7 @@ class ClassFactory(COMObject):
             ole32.CoAddRefServerProcess()
         else:
             result = ole32.CoReleaseServerProcess()
-            if result == 0: # and _quit_enabled:
+            if result == 0 and _quit_enabled:
                 user32.PostQuitMessage(0)
         return S_OK
 
