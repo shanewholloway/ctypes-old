@@ -520,10 +520,11 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
-		PrepareResult(restype, &cResult);
+		PrepareResult(cnv, &cResult);
 		p->atypes[i] = cResult.pffi_type;
 		Py_DECREF(cnv);
 	}
+	p->atypes[i] = NULL;
 
 	PrepareResult(restype, &cResult);
 
