@@ -183,20 +183,20 @@ static void _CallPythonObject(void *mem,
 		switch (restype->size) {
 		case 1:
 			keep = setfunc(&r, result, 0);
-			*(int *)mem = r.c;
+			*(ffi_arg *)mem = r.c;
 			break;
 		case SIZEOF_SHORT:
 			keep = setfunc(&r, result, 0);
-			*(int *)mem = r.s;
+			*(ffi_arg *)mem = r.s;
 			break;
 		case SIZEOF_INT:
 			keep = setfunc(&r, result, 0);
-			*(int *)mem = r.i;
+			*(ffi_arg *)mem = r.i;
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
 			keep = setfunc(&r, result, 0);
-			*(long *)mem = r.l;
+			*(ffi_arg *)mem = r.l;
 			break;
 #endif
 		default:
