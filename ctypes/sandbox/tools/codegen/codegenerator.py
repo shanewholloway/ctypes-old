@@ -8,6 +8,10 @@ try:
 except NameError:
     from sets import Set as set
 
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
 
 
 # XXX Should this be in ctypes itself?
@@ -129,8 +133,10 @@ dont_assert_size = set(
     )
 
 class Generator(object):
-    def __init__(self, stream, use_decorators=False):
-        self.stream = stream
+    def __init__(self, output, use_decorators=False):
+        self.output = output
+        self.stream = StringIO.StringIO()
+        self.imports = StringIO.StringIO()
         self.use_decorators = use_decorators
         self.done = set() # type descriptions that have been generated
         self.names = set() # names that have been generated
@@ -279,13 +285,13 @@ class Generator(object):
             self.more.add(tp.typ)
         else:
             self.generate(tp.typ)
+        if self.type_name(tp.typ) in  self.known_symbols:
+            stream = self.imports
+        else:
+            stream = self.stream
         if tp.name != self.type_name(tp.typ):
-            if getattr(tp, "location", None):
-                print >> self.stream, "%s = %s # typedef %s %s" % \
-                      (tp.name, self.type_name(tp.typ), tp.location[0], tp.location[1])
-            else:
-                print >> self.stream, "%s = %s # typedef" % \
-                      (tp.name, self.type_name(tp.typ))
+            print >> self.stream, "%s = %s" % \
+                  (tp.name, self.type_name(tp.typ))
         self.names.add(tp.name)
 
     _arraytypes = 0
@@ -337,7 +343,7 @@ class Generator(object):
     def EnumValue(self, tp):
         value = int(tp.value)
         print >> self.stream, \
-              "%s = %d # enum %s" % (tp.name, value, tp.enumeration.name or "")
+              "%s = %d" % (tp.name, value)
         self.names.add(tp.name)
         self._enumvalues += 1
 
@@ -415,6 +421,7 @@ class Generator(object):
                       (body.struct.name, align, body.struct.name)
 
         if methods:
+            self.need_STDMETHOD()
             # method definitions normally span several lines.
             # Before we generate them, we need to 'import' everything they need.
             # So, call type_name for each field once,
@@ -468,14 +475,21 @@ class Generator(object):
     def need_cominterface(self):
         if self._cominterface_defined:
             return
-        print >> self.stream, "from comtypes import _com_interface"
+        print >> self.imports, "from comtypes import _com_interface"
         self._cominterface_defined = True
+
+    _STDMETHOD_defined = False
+    def need_STDMETHOD(self):
+        if self._STDMETHOD_defined:
+            return
+        print >> self.imports, "from comtypes import STDMETHOD"
+        self._STDMETHOD_defined = True
 
     _decorators_defined = False
     def need_decorators(self):
         if self._decorators_defined:
             return "decorators"
-        print >> self.stream, "from ctypes import decorators"
+        print >> self.imports, "from ctypes import decorators"
         self._decorators_defined = True
         return "decorators"
 
@@ -524,10 +538,17 @@ class Generator(object):
     def generate(self, item):
         if item in self.done:
             return
-        name = getattr(item, "name", None)
+        if isinstance(item, typedesc.StructureHead):
+            name = getattr(item.struct, "name", None)
+        else:
+            name = getattr(item, "name", None)
         if name in self.known_symbols:
-            print >> self.stream, "from %s import %s" % (self.known_symbols[name], name)
+            mod = self.known_symbols[name]
+            print >> self.imports, "from %s import %s" % (mod, name)
             self.done.add(item)
+            if isinstance(item, typedesc.Structure):
+                self.done.add(item.get_head())
+                self.done.add(item.get_body())
             return
         mth = getattr(self, type(item).__name__)
         mth(item)
@@ -538,7 +559,7 @@ class Generator(object):
             self.generate(item)
 
     def generate_code(self, items, known_symbols, searched_dlls):
-        print >> self.stream, "from ctypes import *"
+        print >> self.imports, "from ctypes import *"
         items = set(items)
         if known_symbols:
             self.known_symbols = known_symbols
@@ -553,6 +574,11 @@ class Generator(object):
 
             items |= self.more
             items -= self.done
+
+        self.output.write(self.imports.getvalue())
+        self.output.write("\n\n")
+        self.output.write(self.stream.getvalue())
+
         return loops
 
     def print_stats(self, stream):
