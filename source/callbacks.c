@@ -1,4 +1,7 @@
 #include "Python.h"
+#include "compile.h" /* required only for 2.3, as it seems */
+#include "frameobject.h"
+
 #include <ffi.h>
 #include "ctypes.h"
 
@@ -52,6 +55,64 @@ PrintError(char *msg, ...)
 	if (f)
 		PyFile_WriteString(buf, f);
 	PyErr_Print();
+}
+
+
+/* after code that pyrex generates */
+static void _AddTraceback(char *funcname, char *filename, int lineno)
+{
+	PyObject *py_srcfile = 0;
+	PyObject *py_funcname = 0;
+	PyObject *py_globals = 0;
+	PyObject *empty_tuple = 0;
+	PyObject *empty_string = 0;
+	PyCodeObject *py_code = 0;
+	PyFrameObject *py_frame = 0;
+    
+	py_srcfile = PyString_FromString(filename);
+	if (!py_srcfile) goto bad;
+	py_funcname = PyString_FromString(funcname);
+	if (!py_funcname) goto bad;
+	py_globals = PyDict_New();
+	if (!py_globals) goto bad;
+	empty_tuple = PyTuple_New(0);
+	if (!empty_tuple) goto bad;
+	empty_string = PyString_FromString("");
+	if (!empty_string) goto bad;
+	py_code = PyCode_New(
+		0,            /*int argcount,*/
+		0,            /*int nlocals,*/
+		0,            /*int stacksize,*/
+		0,            /*int flags,*/
+		empty_string, /*PyObject *code,*/
+		empty_tuple,  /*PyObject *consts,*/
+		empty_tuple,  /*PyObject *names,*/
+		empty_tuple,  /*PyObject *varnames,*/
+		empty_tuple,  /*PyObject *freevars,*/
+		empty_tuple,  /*PyObject *cellvars,*/
+		py_srcfile,   /*PyObject *filename,*/
+		py_funcname,  /*PyObject *name,*/
+		lineno,   /*int firstlineno,*/
+		empty_string  /*PyObject *lnotab*/
+		);
+	if (!py_code) goto bad;
+	py_frame = PyFrame_New(
+		PyThreadState_Get(), /*PyThreadState *tstate,*/
+		py_code,             /*PyCodeObject *code,*/
+		py_globals,          /*PyObject *globals,*/
+		0                    /*PyObject *locals*/
+		);
+	if (!py_frame) goto bad;
+	py_frame->f_lineno = lineno;
+	PyTraceBack_Here(py_frame);
+  bad:
+	Py_XDECREF(py_globals);
+	Py_XDECREF(py_srcfile);
+	Py_XDECREF(py_funcname);
+	Py_XDECREF(empty_tuple);
+	Py_XDECREF(empty_string);
+	Py_XDECREF(py_code);
+	Py_XDECREF(py_frame);
 }
 
 #ifdef MS_WIN32
@@ -166,18 +227,13 @@ static void _CallPythonObject(void *mem,
 		/* XXX error handling! */
 		pArgs++;
 	}
+
+#define CHECK(what, x) \
+if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
+
 	result = PyObject_CallObject(callable, arglist);
-	if (!result) {
-		/* If the exception is SystemExit, we cannot call ExtendErrorInfo,
-		   because otherwise PyErr_Print() would not call Py_Exit().
-		*/
-		if (!PyErr_ExceptionMatches(PyExc_SystemExit))
-			Extend_Error_Info(PyExc_RuntimeError, "(in callback) ");
-		PyErr_Print();
-		/* See also PyErr_WriteUnraisable(...), but this
-		   prints only the repr of the original exception
-		*/
-	} else if (result != Py_None) {
+	CHECK("'calling callback function'", result);
+	if (result && result != Py_None) { /* XXX What is returned for Py_None ? */
 		/* another big endian hack */
 		union {
 			char c;
@@ -189,35 +245,35 @@ static void _CallPythonObject(void *mem,
 		switch (restype->size) {
 		case 1:
 			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.c;
 			break;
 		case SIZEOF_SHORT:
 			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.s;
 			break;
 		case SIZEOF_INT:
 			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.i;
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
 			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.l;
 			break;
 #endif
 		default:
 			keep = setfunc(mem, result, 0);
+			CHECK("'converting callback result'", keep);
 			break;
 		}
-		if (keep == NULL) {
-			Extend_Error_Info(PyExc_RuntimeError, "(callback return type) ");
-			PyErr_Print();
-		} else {
-			/* assert (keep == Py_None); */
-			/* XXX We have no way to keep the needed reference XXX */
-			/* Should we emit a warning? */
-			Py_DECREF(keep);
-		}
+		/* assert (keep == Py_None); */
+		/* XXX We have no way to keep the needed reference XXX */
+		/* Should we emit a warning? */
+		Py_XDECREF(keep);
 	}
 	Py_XDECREF(result);
   Done:
