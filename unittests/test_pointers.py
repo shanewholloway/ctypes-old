@@ -7,6 +7,7 @@ numeric_types = [c_byte, c_ubyte, c_short, c_ushort, c_int, c_uint,
 
 class PointersTestCase(unittest.TestCase):
     def test_basics(self):
+        from operator import delitem
         for t in numeric_types:
             i = t(42)
             p = pointer(i)
@@ -14,6 +15,8 @@ class PointersTestCase(unittest.TestCase):
             # p.contents is the same as p[0]
             self.failUnless(p.contents.value == 42)
             self.failUnless(p[0].value == 42)
+
+            self.assertRaises(TypeError, delitem, p, 0)
 
     def test_from_address(self):
         from array import array
