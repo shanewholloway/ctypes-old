@@ -547,21 +547,6 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 			pa->keep = arg;
 			return 0;
 		}
-#if 0
-/* Does this make sense? Now that even Structure and Union types
-   have an _as_parameter_ property implemented in C, which returns
-   a PyCArgObject?
-*/
-		if (CDataObject_Check(arg)) {
-			CDataObject *mem = (CDataObject *)arg;
-			parm->tag = 'V';
-			parm->value.p = mem->b_ptr;
-			parm->size = mem->b_size;
-			/* This consumes the refcount of arg */
-			parm->obj = arg;
-			return parm;
-		}
-#endif
 		Py_DECREF(arg);
 		PyErr_Format(PyExc_TypeError,
 			     "Don't know how to convert parameter %d", index);
