@@ -109,8 +109,8 @@ class Test(unittest.TestCase):
         dll = CDLL(_ctypes_test.__file__)
 
         # the COM idl of this function would be:
-        # int TwoOutArgs([in] int a, [out] int *p1, [in] int b, [out] int *p2);
-        proto = CFUNCTYPE(c_int, c_int, POINTER(c_int), c_int, POINTER(c_int))
+        # void TwoOutArgs([in] int a, [out] int *p1, [in] int b, [out] int *p2);
+        proto = CFUNCTYPE(None, c_int, POINTER(c_int), c_int, POINTER(c_int))
         func = proto("TwoOutArgs", dll, ((1, "a"), (2, "p1"), (1, "b"), (2, "p2")))
         self.failUnlessEqual((1, 2), func(1, 2))
         self.failUnlessEqual((1, 2), func(b=2, a=1))
@@ -120,7 +120,7 @@ class Test(unittest.TestCase):
         dll = CDLL(_ctypes_test.__file__)
 
         # this is not yet implemented
-        proto = CFUNCTYPE(c_int, c_int, POINTER(c_int), c_int, POINTER(c_int))
+        proto = CFUNCTYPE(None, c_int, POINTER(c_int), c_int, POINTER(c_int))
         self.failUnlessRaises(TypeError,
                               lambda: proto("TwoOutArgs", dll,
                                             ((1, "a"),
