@@ -1,14 +1,16 @@
-from ctypes import windll, cdll, Structure, pointer, WinError, CFunction, sizeof
+from ctypes import windll, cdll, Structure, pointer, WinError, sizeof
+from ctypes import c_short, c_long, c_char_p
 from windows import ValidHandle
 
+
 class BITMAP(Structure):
-    _fields_ = [("bmType", "l"),
-    		("bmWidth", "l"),
-    		("bmHeight", "l"),
-    		("bmWidthBytes", "l"),
-    		("bmPlanes", "h"),
-    		("bmBitsPixel", "h"),
-    		("bmBits", "z")]
+    _fields_ = [("bmType", c_long),
+    		("bmWidth", c_long),
+    		("bmHeight", c_long),
+    		("bmWidthBytes", c_long),
+    		("bmPlanes", c_short),
+    		("bmBitsPixel", c_short),
+    		("bmBits", c_char_p)]
 
 MONO_FONT = 8
 OBJ_FONT = 6

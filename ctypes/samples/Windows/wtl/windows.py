@@ -1,4 +1,5 @@
-from ctypes import windll, cdll, Structure, pointer, WinError, CFunction, sizeof
+from ctypes import windll, cdll, Structure, pointer, WinError, sizeof, STDAPI
+from ctypes import c_char, c_ubyte, c_byte, c_ushort, c_short, c_uint, c_int, c_char_p
 
 WIN32_IE = 0x0550
 
@@ -17,36 +18,34 @@ def ValidHandle(value):
     else:
         return value
 
-class WndProc(CFunction):
-    _types_ = 'iiii'
-    _stdcall_ = 1
+WndProc = STDAPI(c_int, c_int, c_int, c_int, c_int)
     
 class WNDCLASSEX(Structure):
-    _fields_ = [("cbSize", "I"),
-                ("style",  "I"),
+    _fields_ = [("cbSize", c_uint),
+                ("style",  c_uint),
                 ("lpfnWndProc", WndProc),
-                ("cbClsExtra", "i"),
-                ("cbWndExtra", "i"),
-                ("hInstance", "I"),
-                ("hIcon", "I"),
-                ("hCursor", "I"),
-                ("hbrBackground", "I"),
-                ("lpszMenuName", "z"),
-                ("lpszClassName", "z"),
-                ("hIconSm", "I")]
+                ("cbClsExtra", c_int),
+                ("cbWndExtra", c_int),
+                ("hInstance", c_uint),
+                ("hIcon", c_uint),
+                ("hCursor", c_uint),
+                ("hbrBackground", c_uint),
+                ("lpszMenuName", c_char_p),
+                ("lpszClassName", c_char_p),
+                ("hIconSm", c_uint)]
 
 class POINT(Structure):
-    _fields_ = [("x", "I"),
-                ("y", "I")]
+    _fields_ = [("x", c_uint),
+                ("y", c_uint)]
 
     def __str__(self):
         return "POINT {x: %d, y: %d}" % (self.x, self.y)
 
 class RECT(Structure):
-    _fields_ = [("left", "i"),
-                ("top", "i"),
-                ("right", "i"),
-                ("bottom", "i")]
+    _fields_ = [("left", c_int),
+                ("top", c_int),
+                ("right", c_int),
+                ("bottom", c_int)]
 
     def __str__(self):
         return "RECT {left: %d, top: %d, right: %d, bottom: %d}" % (self.left, self.top,
@@ -63,124 +62,124 @@ class RECT(Structure):
     width = property(getWidth, None, None, "")
     
 class MSG(Structure):
-    _fields_ = [("hWnd", "I"),
-                ("message", "I"),
-                ("wParam", "I"),
-                ("lParam", "I"),
-                ("time", "I"),
+    _fields_ = [("hWnd", c_uint),
+                ("message", c_uint),
+                ("wParam", c_uint),
+                ("lParam", c_uint),
+                ("time", c_uint),
                 ("pt", POINT)]
 
 class ACCEL(Structure):
-    _fields_ = [("fVirt", "b"),
-                ("key", "h"),
-                ("cmd", "h")]
+    _fields_ = [("fVirt", c_byte),
+                ("key", c_short),
+                ("cmd", c_short)]
     
 class CREATESTRUCT(Structure):
-    _fields_ = [("lpCreateParams", "I"),
-                ("hInstance", "I"),
-                ("hMenu", "I"),
-                ("hwndParent", "I"),
-                ("cx", "i"),
-                ("cy", "i"),
-                ("x", "i"),
-                ("y", "i"),
-                ("style", "I"),
-                ("lpszName", "z"),
-                ("lpszClass", "z"),
-                ("dwExStyle", "I")]
+    _fields_ = [("lpCreateParams", c_uint),
+                ("hInstance", c_uint),
+                ("hMenu", c_uint),
+                ("hwndParent", c_uint),
+                ("cx", c_int),
+                ("cy", c_int),
+                ("x", c_int),
+                ("y", c_int),
+                ("style", c_uint),
+                ("lpszName", c_char_p),
+                ("lpszClass", c_char_p),
+                ("dwExStyle", c_uint)]
 
 class INITCOMMONCONTROLSEX(Structure):
-    _fields_ = [("dwSize", "I"),
-                ("dwICC", "I")]
+    _fields_ = [("dwSize", c_uint),
+                ("dwICC", c_uint)]
 
 class REBARINFO(Structure):
-    _fields_ = [("cbSize", "I"),
-                ("fMask", "I"),
-                ("himl", "I")]
+    _fields_ = [("cbSize", c_uint),
+                ("fMask", c_uint),
+                ("himl", c_uint)]
 
 class REBARBANDINFO(Structure):
-    _fields_ = [("cbSize", "I"),
-                ("fMask", "i"),
-                ("fStyle", "i"),
-                ("clrFore", "I"),
-                ("clrBack", "I"),
-                ("lpText", "z"),
-                ("cch", "I"),
-                ("iImage", "i"),
-                ("hwndChild", "I"),
-                ("cxMinChild", "i"),
-                ("cyMinChild", "i"),
-                ("cx", "i"),
-                ("hbmBack", "I"),
-                ("wID", "I"),
-                ("cyChild", "I"),
-                ("cyMaxChild", "I"),
-                ("cyIntegral", "I"),
-                ("cxIdeal", "I"),
-                ("lParam", "I"),
-                ("cxHeader", "I")]
+    _fields_ = [("cbSize", c_uint),
+                ("fMask", c_int),
+                ("fStyle", c_int),
+                ("clrFore", c_uint),
+                ("clrBack", c_uint),
+                ("lpText", c_char_p),
+                ("cch", c_uint),
+                ("iImage", c_int),
+                ("hwndChild", c_uint),
+                ("cxMinChild", c_int),
+                ("cyMinChild", c_int),
+                ("cx", c_int),
+                ("hbmBack", c_uint),
+                ("wID", c_uint),
+                ("cyChild", c_uint),
+                ("cyMaxChild", c_uint),
+                ("cyIntegral", c_uint),
+                ("cxIdeal", c_uint),
+                ("lParam", c_uint),
+                ("cxHeader", c_uint)]
 
 
 class TBBUTTON(Structure):
-    _fields_ = [("iBitmap", "i"),
-                ("idCommand", "i"),
-                ("fsState", "B"),
-                ("fsStyle", "B"),
-                ("bReserved", "2s"),
-                ("dwData", "I"),
-                ("iString", "I")]
+    _fields_ = [("iBitmap", c_int),
+                ("idCommand", c_int),
+                ("fsState", c_ubyte),
+                ("fsStyle", c_ubyte),
+                ("bReserved", c_char * 2),
+                ("dwData", c_uint),
+                ("iString", c_uint)]
 
 class TBBUTTONINFO(Structure):
-    _fields_ = [("cbSize", "I"),
-                ("dwMask", "I"),
-                ("idCommand", "i"),
-                ("iImage", "i"),
-                ("fsState", "B"),
-                ("fsStyle", "B"),
-                ("cx", "H"),
-                ("lParam", "I"),
-                ("pszText", "z"),
-                ("cchText", "i")]
+    _fields_ = [("cbSize", c_uint),
+                ("dwMask", c_uint),
+                ("idCommand", c_int),
+                ("iImage", c_int),
+                ("fsState", c_ubyte),
+                ("fsStyle", c_ubyte),
+                ("cx", c_ushort),
+                ("lParam", c_uint),
+                ("pszText", c_char_p),
+                ("cchText", c_int)]
 
 class NMHDR(Structure):
-    _fields_ = [("hwndFrom", "I"),
-                ("idFrom", "I"),
-                ("code", "I")]
+    _fields_ = [("hwndFrom", c_uint),
+                ("idFrom", c_uint),
+                ("code", c_uint)]
 
 class PAINTSTRUCT(Structure):
-    _fields_ = [("hdc", "I"),
-                ("fErase", "i"),
+    _fields_ = [("hdc", c_uint),
+                ("fErase", c_int),
                 ("rcPaint", RECT),
-                ("fRestore", "i"),
-                ("fIncUpdate", "i"),
-                ("rgbReserved", "32s")]
+                ("fRestore", c_int),
+                ("fIncUpdate", c_int),
+                ("rgbReserved", c_char * 32)]
 
 class TVITEMEX(Structure):
-    _fields_ = [("mask", "I"),
-                ("hItem", "I"),
-                ("state", "I"),
-                ("stateMask", "I"),
-                ("pszText", "z"),
-                ("cchTextMax", "i"),
-                ("iImage", "i"),
-                ("iSelectedImage", "i"),
-                ("cChildren", "i"),
-                ("lParam", "I"),
-                ("iIntegral", "i")]
+    _fields_ = [("mask", c_uint),
+                ("hItem", c_uint),
+                ("state", c_uint),
+                ("stateMask", c_uint),
+                ("pszText", c_char_p),
+                ("cchTextMax", c_int),
+                ("iImage", c_int),
+                ("iSelectedImage", c_int),
+                ("cChildren", c_int),
+                ("lParam", c_uint),
+                ("iIntegral", c_int)]
 
 class TVINSERTSTRUCT(Structure):
-    _fields_ = [("hParent", "i"),
-                ("hInsertAfter", "i"),
+    _fields_ = [("hParent", c_int),
+                ("hInsertAfter", c_int),
                 ("itemex", TVITEMEX)]
 
 class TCITEM(Structure):
-    _fields_ = [("mask", "I"),
-                ("dwState", "I"),
-                ("dwStateMask", "I"),
-                ("pszText", "z"),
-                ("cchTextMax", "i"),
-                ("iImage", "i"),
-                ("lParam", "I")]
+    _fields_ = [("mask", c_uint),
+                ("dwState", c_uint),
+                ("dwStateMask", c_uint),
+                ("pszText", c_char_p),
+                ("cchTextMax", c_int),
+                ("iImage", c_int),
+                ("lParam", c_uint)]
     
 TVIF_TEXT    = 1
 

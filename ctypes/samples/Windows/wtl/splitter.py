@@ -1,11 +1,9 @@
 from windows import *
 from wtl import *
-from ctypes import Array, pointer
+from ctypes import c_ushort, pointer
 import gdi
 
-class BrushPatternArray(Array):
-    _type_ = 'H'
-    _length_ = 8
+BrushPatternArray = c_ushort * 8
     
 class Splitter(Window):
     _class_ws_style_ = WS_CHILD | WS_VISIBLE

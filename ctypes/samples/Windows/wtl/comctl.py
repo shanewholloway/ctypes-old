@@ -1,37 +1,38 @@
 from windows import *
 from wtl import *
+from ctypes import c_int, c_uint, c_char, c_char_p
 
 ATL_IDW_BAND_FIRST = 0xEB00
 UINT = 1l << 32
 
 class NMCBEENDEDIT(Structure):
     _fields_ = [("hdr", NMHDR),
-                ("fChanged", "i"),
-                ("iNewSelection", "i"),
-                ("szText", "s"),
-                ("iWhy", "i")]
+                ("fChanged", c_int),
+                ("iNewSelection", c_int),
+                ("szText", c_char * 260),
+                ("iWhy", c_int)]
 
 class LVCOLUMN(Structure):
-    _fields_ = [("mask", "I"),
-                ("fmt", "i"),
-                ("cx", "i"),
-                ("pszText", "z"),
-                ("cchTextMax", "i"),
-                ("iSubItem", "i"),
-                ("iImage", "i"),
-                ("iOrder", "i")]
+    _fields_ = [("mask", c_uint),
+                ("fmt", c_int),
+                ("cx", c_int),
+                ("pszText", c_char_p),
+                ("cchTextMax", c_int),
+                ("iSubItem", c_int),
+                ("iImage", c_int),
+                ("iOrder", c_int)]
 
 class LVITEM(Structure):
-    _fields_ = [("mask", "I"),
-                ("iItem", "i"),
-                ("iSubItem", "i"),
-                ("state", "I"),
-                ("stateMask", "I"),
-                ("pszText", "z"),
-                ("cchTextMax", "i"),
-                ("iImage", "i"),
-                ("lParam", "I"),
-                ("iIndent", "i")]
+    _fields_ = [("mask", c_uint),
+                ("iItem", c_int),
+                ("iSubItem", c_int),
+                ("state", c_uint),
+                ("stateMask", c_uint),
+                ("pszText", c_char_p),
+                ("cchTextMax", c_int),
+                ("iImage", c_int),
+                ("lParam", c_uint),
+                ("iIndent", c_int)]
 ##if (_WIN32_IE >= 0x560)
 #    int iGroupId;
 #    UINT cColumns; // tile view columns
