@@ -767,6 +767,7 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 		/* This hack is needed for big endian machines.
 		   Is there another way?
 		 */
+		PyObject *retval;
 		char c;
 		short s;
 		int i;
@@ -776,20 +777,27 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 		switch (dict->size) {
 		case 1:
 			c = (char)result->value.l;
-			return dict->getfunc(&c, dict->size);
+			retval = dict->getfunc(&c, dict->size);
+			break;
 		case SIZEOF_SHORT:
 			s = (short)result->value.l;
-			return dict->getfunc(&s, dict->size);
+			retval = dict->getfunc(&s, dict->size);
+			break;
 		case SIZEOF_INT:
 			i = (int)result->value.l;
-			return dict->getfunc(&i, dict->size);
+			retval = dict->getfunc(&i, dict->size);
+			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
 			l = (long)result->value.l;
-			return dict->getfunc(&l, dict->size);
+			retval = dict->getfunc(&l, dict->size);
+			break;
 #endif
+		default:
+			retval = dict->getfunc(&result->value, dict->size);
+			break;
 		}
-		return dict->getfunc(&result->value, dict->size);
+		return retval;
 	}
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
@@ -1381,12 +1389,41 @@ get_string(PyObject *self, PyObject *args)
 	return result;
 }
 
+#ifdef CTYPES_UNICODE
+static char get_wstring_doc[] =
+"get_wstring(addr[, size]) -> unicode string\n\
+\n\
+Return the wide string at addr.\n";
+
+static PyObject *
+get_wstring(PyObject *self, PyObject *args)
+{
+	PyObject *result = NULL;
+	PyObject *src;
+	struct argument a_arg;
+	int size;
+
+	if (!PyArg_ParseTuple(args, "O|i", &src, &size))
+		return NULL;
+	memset(&a_arg, 0, sizeof(struct argument));
+	if (-1 == ConvParam(src, 1, &a_arg))
+		return NULL;
+	if (PyTuple_GET_SIZE(args) == 1)
+		result = PyUnicode_FromWideChar(a_arg.value.p, wcslen(a_arg.value.p));
+	else
+		result = PyUnicode_FromWideChar(a_arg.value.p, size);
+	Py_XDECREF(a_arg.keep);
+	return result;
+}
+#endif
+
 PyMethodDef module_methods[] = {
 	{"get_string", get_string, METH_VARARGS, get_string_doc},
 	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
 	{"memset", c_memset, METH_VARARGS, memset_doc},
 	{"cast", cast, METH_VARARGS, cast_doc},
 #ifdef CTYPES_UNICODE
+	{"get_wstring", get_wstring, METH_VARARGS, get_wstring_doc},
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
 #endif
 #ifdef MS_WIN32
