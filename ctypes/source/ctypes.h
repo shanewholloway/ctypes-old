@@ -51,6 +51,8 @@ extern PyTypeObject CWString_Type;
 #define CWString_Check(v)		PyObject_TypeCheck(v, &CWString_Type)
 
 extern PyTypeObject CFunctionType_Type;
+extern PyTypeObject CFunction_Type;
+#define CFunction_Check(v)		PyObject_TypeCheck(v, &CFunction_Type)
 
 extern int
 PyType_stginfo(PyTypeObject *self, int *psize, int *palign, int *plength);
