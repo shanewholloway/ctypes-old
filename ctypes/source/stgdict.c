@@ -199,6 +199,7 @@ StgDict_ForType(PyObject *type, int isStruct)
 		if (!pair  || !PyArg_ParseTuple(pair, "OO|i", &name, &desc, &bitsize)) {
 			PyErr_SetString(PyExc_AttributeError,
 					"'_fields_' must be a sequence of pairs");
+			Py_DECREF(fields);
 			Py_XDECREF(pair);
 			return NULL;
 		}
@@ -228,12 +229,14 @@ StgDict_ForType(PyObject *type, int isStruct)
 				PyErr_Format(PyExc_TypeError,
 					     "bit fields not allowed for type %s",
 					     ((PyTypeObject *)desc)->tp_name);
+				Py_DECREF(fields);
 				Py_DECREF(pair);
 				return NULL;
 			}
 			if (bitsize <= 0 || bitsize > dict->size * 8) {
 				PyErr_SetString(PyExc_ValueError,
 						"number of bits invalid for bit field");
+				Py_DECREF(fields);
 				Py_DECREF(pair);
 				return NULL;
 			}
@@ -255,11 +258,13 @@ StgDict_ForType(PyObject *type, int isStruct)
 		total_align = max(align, total_align);
 
 		if (!prop) {
+			Py_DECREF(fields);
 			Py_DECREF(pair);
 			Py_DECREF((PyObject *)stgdict);
 			return NULL;
 		}
 		if (-1 == PyDict_SetItem(realdict, name, prop)) {
+			Py_DECREF(fields);
 			Py_DECREF(prop);
 			Py_DECREF(pair);
 			Py_DECREF((PyObject *)stgdict);
