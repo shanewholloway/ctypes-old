@@ -1156,7 +1156,7 @@ static PyObject *py_dl_sym(PyObject *self, PyObject *args)
 #endif
 
 /*
- * Only for debugging so far: So that we cann call CFunction instances
+ * Only for debugging so far: So that we can call CFunction instances
  *
  * XXX Needs to accept more arguments: flags, argtypes, restype
  */
@@ -1177,6 +1177,33 @@ call_function(PyObject *self, PyObject *args)
 			    arguments,
 			    NULL,
 			    0, /* flags */
+			    NULL, /* self->argtypes */
+			    NULL); /* self->restype */
+	return result;
+}
+
+/*
+ * Only for debugging so far: So that we can call CFunction instances
+ *
+ * XXX Needs to accept more arguments: flags, argtypes, restype
+ */
+static PyObject *
+call_cdeclfunction(PyObject *self, PyObject *args)
+{
+	PPROC func;
+	PyObject *arguments;
+	PyObject *result;
+
+	if (!PyArg_ParseTuple(args,
+			      "iO!",
+			      &func,
+			      &PyTuple_Type, &arguments))
+		return NULL;
+
+	result =  _CallProc(func,
+			    arguments,
+			    NULL,
+			    FUNCFLAG_CDECL, /* flags */
 			    NULL, /* self->argtypes */
 			    NULL); /* self->restype */
 	return result;
@@ -1203,6 +1230,7 @@ PyMethodDef module_methods[] = {
 	{"byref", byref, METH_O},
 	{"addressof", addressof, METH_O},
 	{"call_function", call_function, METH_VARARGS },
+	{"call_cdeclfunction", call_cdeclfunction, METH_VARARGS },
 #ifdef _DEBUG
 	{"my_debug", my_debug, METH_O},
 #endif
