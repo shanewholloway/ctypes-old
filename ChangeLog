@@ -1,5 +1,11 @@
 2003-02-05  Thomas Heller  <theller@python.net>
 
+	* The 'raw' and 'value' properties of c_wstring are back, also
+	fixed some severe bugs (it seems c_wstring never worked
+	correctly).
+
+	Added unittests.
+
 	* Fixed a problem in c_string: The NUL byte at the buffer end
 	could be overwritten.  Added unittests for c_strings.
 
