@@ -165,8 +165,7 @@ class test(Command):
             try:
                 mod = __import__(os.path.splitext(self.test_prefix + case)[0])
             except Exception, detail:
-                print "Could not import", self.test_prefix + case
-                print "\t", detail
+                self.warn("Could not import %s (%s)" % (self.test_prefix + case, detail))
                 continue
             for name in dir(mod):
                 if name.startswith("_"):
