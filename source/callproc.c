@@ -1184,6 +1184,22 @@ My_PyObj_FromPtr(PyObject *self, PyObject *args)
 	return ob;
 }
 
+static PyObject *
+My_Py_INCREF(PyObject *self, PyObject *arg)
+{
+	Py_INCREF(arg); /* that's what this function is for */
+	Py_INCREF(arg); /* that for returning it */
+	return arg;
+}
+
+static PyObject *
+My_Py_DECREF(PyObject *self, PyObject *arg)
+{
+	Py_DECREF(arg); /* that's what this function is for */
+	Py_INCREF(arg); /* that's for returning it */
+	return arg;
+}
+
 PyMethodDef module_methods[] = {
 #ifdef MS_WIN32
 	{"CopyComPointer", copy_com_pointer, METH_VARARGS, copy_com_pointer_doc},
@@ -1204,6 +1220,8 @@ PyMethodDef module_methods[] = {
 	{"call_function", call_function, METH_VARARGS },
 	{"call_cdeclfunction", call_cdeclfunction, METH_VARARGS },
 	{"PyObj_FromPtr", My_PyObj_FromPtr, METH_VARARGS },
+	{"Py_INCREF", My_Py_INCREF, METH_O },
+	{"Py_DECREF", My_Py_DECREF, METH_O },
 	{NULL,      NULL}        /* Sentinel */
 };
 
