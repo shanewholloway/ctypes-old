@@ -1019,24 +1019,24 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 }
 
 static PyObject *
-CharArray_getfunc(char *ptr, unsigned size,
+CharArray_getfunc(void *ptr, unsigned size,
 		  PyObject *type, CDataObject *src, int index)
 {
 	int i;
 	for (i = 0; i < size; ++i)
-		if (ptr[i] == '\0')
+		if (((char *)ptr)[i] == '\0')
 			break;
 	return PyString_FromStringAndSize(ptr, i);
 }
 
 #ifdef CTYPES_UNICODE
 static PyObject *
-WCharArray_getfunc(wchar_t *ptr, unsigned size,
+WCharArray_getfunc(void *ptr, unsigned size,
 		   PyObject *type, CDataObject *src, int index)
 {
 	unsigned int i;
 	for (i = 0; i < size/sizeof(wchar_t); ++i)
-		if (ptr[i] == (wchar_t)0)
+		if (((wchar_t *)ptr)[i] == (wchar_t)0)
 			break;
 	return PyUnicode_FromWideChar((wchar_t *)ptr, i);
 }
