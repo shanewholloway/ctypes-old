@@ -29,7 +29,6 @@ def main():
         parser.values.gccxml_options.extend((opt, value))
 
     parser = OptionParser("usage: %prog includefile ... [options]")
-##    parser.add_option("-h", action="help")
     parser.add_option("-q", "--quiet",
                       dest="quiet",
                       action="store_true",
@@ -43,6 +42,7 @@ def main():
                       help="macros to define",
                       metavar="NAME[=VALUE]",
                       default=[])
+
     parser.add_option("-U",
                       type="string",
                       action="callback",
@@ -62,6 +62,21 @@ def main():
                       dest="xmlfile",
                       help="XML output filename",
                       default=None)
+
+    parser.add_option("-c", "--cpp-symbols",
+                      dest="cpp_symbols",
+                      action="store_true",
+                      help="try to find #define symbols - this may give compiler errors, " \
+                      "so it's off by default.",
+                      default=False)
+
+    parser.add_option("-k",
+                      dest="keep_temporary_files",
+                      action="store_true",
+                      help="don't delete the temporary files created "\
+                      "(useful for finding problems)",
+                      default=False)
+
     options, files = parser.parse_args()
 
     if not files:
