@@ -60,9 +60,9 @@ class ArrayTestCase(unittest.TestCase):
         self.failUnless(ca[2] == "c")
         self.failUnless(ca[-3] == "a")
         self.failUnless(ca[-2] == "b")
-        print ca[-1]
-        print len(ca)
-##        self.failUnless(ca[-1] == "c")
+        self.failUnless(ca[-1] == "c")
+
+        self.failUnless(len(ca) == 3)
 
         # slicing is not supported:
         from operator import getslice, delitem
@@ -71,7 +71,7 @@ class ArrayTestCase(unittest.TestCase):
         # cannot delete items
         self.assertRaises(TypeError, delitem, ca, 0)
 
-    def _test_numeric_arrays(self):
+    def test_numeric_arrays(self):
 
         alen = 5
 
