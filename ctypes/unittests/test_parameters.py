@@ -40,8 +40,7 @@ class SimpleTypesTestCase(unittest.TestCase):
 
         pa = c_wchar_p.from_param(c_wchar_p(u"123"))
         self.failUnless(type(pa) == c_wchar_p)
-##XXX        print c_wchar_p.from_param(None)
-##XXX        self.failUnless(c_wchar_p.from_param(None)._obj is None)
+        self.failUnless(c_wchar_p.from_param(None)._obj is None)
 
 
         # Hm, how to check the c_wchar_p(xxx)._as_parameter_ attribute?

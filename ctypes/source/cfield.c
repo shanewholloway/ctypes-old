@@ -801,6 +801,11 @@ z_get(void *ptr, unsigned size)
 static PyObject *
 Z_set(void *ptr, PyObject *value, unsigned size)
 {
+	if (value == Py_None) {
+		*(wchar_t **)ptr = NULL;
+		Py_INCREF(value);
+		return value;
+	}
 	if (PyString_Check(value)) {
 		value = PyUnicode_FromObject(value);
 		if (!value)
