@@ -65,6 +65,22 @@ class SimpleTypesTestCase(unittest.TestCase):
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_uint(42)))
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_short(42)))
 
+    def test_array_pointers(self):
+        from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer
+        INTARRAY = c_int * 3
+        ia = INTARRAY()
+        self.failUnless(len(ia) == 3)
+        self.failUnless([ia[i].value for i in range(3)] == [0, 0, 0])
+
+        # Pointers are only compatible with arrays containing items of
+        # the same type!
+        LPINT = POINTER(c_int)
+        LPINT.from_param((c_int*3)())
+        self.assertRaises(TypeError, LPINT.from_param, c_short*3)
+        self.assertRaises(TypeError, LPINT.from_param, c_long*3)
+        self.assertRaises(TypeError, LPINT.from_param, c_uint*3)
+        print "OK"
+
 ##    def test_performance(self):
 ##        check_perf()
 
