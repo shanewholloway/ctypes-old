@@ -1803,6 +1803,25 @@ CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
 	return 0;
 }
 
+static PyObject *
+CFuncPtr_get_restype(CFuncPtrObject *self)
+{
+	StgDictObject *dict;
+	if (self->restype) {
+		Py_INCREF(self->restype);
+		return self->restype;
+	}
+	dict = PyObject_stgdict((PyObject *)self);
+	assert(dict);
+	if (dict->restype) {
+		Py_INCREF(dict->restype);
+		return dict->restype;
+	} else {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+}
+
 static int
 CFuncPtr_set_argtypes(CFuncPtrObject *self, PyObject *ob)
 {
@@ -1837,7 +1856,7 @@ CFuncPtr_get_argtypes(CFuncPtrObject *self)
 }
 
 static PyGetSetDef CFuncPtr_getsets[] = {
-	{ "restype", NULL, (setter)CFuncPtr_set_restype,
+	{ "restype", (getter)CFuncPtr_get_restype, (setter)CFuncPtr_set_restype,
 	  "specify the result type", NULL },
 	{ "argtypes", (getter)CFuncPtr_get_argtypes,
 	  (setter)CFuncPtr_set_argtypes,
