@@ -7,7 +7,9 @@ Overview
     and complicated C data types transparently from Python - in other
     words: wrap libraries in pure Python.
 
-    ctypes runs on Windows, MacOS X, Linux, Solaris.
+    ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD.  It may
+    also run on other systems, provided that libffi supports this
+    platform.
 
     On Windows, ctypes contains (the beginning of) a COM framework
     mainly targetted to use and implement custom COM interfaces.

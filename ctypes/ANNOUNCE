@@ -1,33 +1,73 @@
-It's release day ;-)
 
-ctypes 0.6.3 released
+ctypes 0.9.0 released
 =====================
 
 Overview
 
-    'ctypes' is a Python package to create and manipulate C data types
-    in Python, and to call functions in dynamic link libraries/shared
-    dlls. It allows wrapping these libraries in pure Python.
+    ctypes is a ffi (Foreign Function Interface) package for Python.
 
-    It works on Windows, Linux and MacOS X (the latter require that
-    your machine is supported by libffi).
+    It allows to call functions exposed from dlls/shared libraries and
+    has extensive facilities to create, access and manipulate simpole
+    and complicated C data types transparently from Python - in other
+    words: wrap libraries in pure Python.
+
+    ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD.  It may
+    also run on other systems, provided that libffi supports this
+    platform.
 
 
-Changes
+Changes in 0.9.0
 
-    A critical bug with pointer instances was fixed, this makes the
-    'incomplete types' sample code in the tutorial actually work.
+    ctypes now requires Python 2.3 or higher, Python 2.2 is no longer
+    supported.
 
-    All ctypes objects are now correctly garbarge collected.  This
-    *may* lead to crashes in your program (especially with callback
-    functions, or pointers handed out to longer running C code).  You
-    must keep a reference in Python to any object as long as it is
-    used in foreign C code.
+    The big change is that ctypes now uses the same code base on all
+    platforms, many, many bug should have been fixed this way on
+    non-windows systems.
 
-    All other known bugs have been fixed.
+    There have been lots of improvements and additions both to ctypes
+    itself, and to the ctypes.com windows framework, too many to
+    remember now and document here.
 
-    Again, a lot of changes to the COM package, but all this is still work in
-    progress and unstable, and it has to be properly documented.
+    Most prominent additions to ctypes.com are:
+
+	A ctypes.com.client module supporting dynamic dispatch
+
+	An internet explorer toolband sample
+
+	Many improvements to the stoplite sample
+
+    Detailed changelogs are in CVS (well, sometimes I forget to update
+    them):
+    
+  <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD>
+
+  <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD>
+
+
+Future plans
+
+    The ultimate purpose of the 0.9 release series is to shake out the
+    remaining bugs, especially on platforms I have no access to, and
+    to target a rock stable ctypes 1.0 release.
+
+    When ctypes 1.0 is released, the com framework will be split off
+    into a separate framework named 'comtypes'.
+
+
+Download
+
+    Downloads are available in the sourceforge files section
+    <http://sourceforge.net/project/showfiles.php?group_id=71702>
+
+    Source distributions are available for non windows systems as tar.gz file,
+    for windows you should download the zip-file if you want to build
+    ctypes from source - MSVC is required for that.
+
+    Binary windows installers, which contain compiled extension
+    modules, are also available, be sure to download the one for the
+    Python version you are using.
+
 
 Homepage
 
