@@ -140,16 +140,26 @@ class FunctionTestCase(unittest.TestCase):
 
         v = c_int(42)
 
-        result = f(byref(v))
+        self.failUnless(pointer(v).contents.value == 42)
+        result = f(pointer(v))
         self.failUnless(type(result) == POINTER(c_int))
         self.failUnless(result.contents.value == 42)
+
+        # This on works...
+        result = f(pointer(v))
+        self.failUnless(result.contents.value == v.value)
+
+        # XXX But this not! WHY on earth?
+        arg = byref(v)
+        result = f(arg)
+        self.failUnless(result.contents != v.value)
 
         self.assertRaises(TypeError, f, byref(c_short(22)))
 
         # It is dangerous, however, because you don't control the lifetime
         # of the pointer:
         result = f(byref(c_int(99)))
-        self.failUnless(result.contents.value != 99)
+        self.failUnless(result.contents != 99)
 
     def test_errors(self):
         f = dll._testfunc_p_p

@@ -219,8 +219,10 @@ CDataType_from_param(PyObject *type, PyObject *value)
 		dict = PyType_stgdict(type);
 
 		/* If we got a PyCArgObject, we must check if the object packed in it
-		   is the same type as the type's dict->proto */
-		if(dict && ob && dict->proto == (PyObject *)ob->ob_type){
+		   is an instance of the type's dict->proto */
+//		if(dict && ob && dict->proto == (PyObject *)ob->ob_type){
+		if(dict && ob
+		   && PyObject_IsInstance(ob, dict->proto)) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -473,6 +475,9 @@ PointerType_set_type(PyTypeObject *self, PyObject *type)
 
 	Py_INCREF(type);
 	dict->proto = type;
+
+	if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
+		return NULL;
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -1096,6 +1101,8 @@ NoneList(int size)
 	return list;
 }
 
+#define ASSERT_CDATA(x) assert(((x)->b_base == NULL) ^ ((x)->b_objects == NULL))
+
 /*
  * Return the list(tree) entry corresponding to a memory object.
  * Borrowed reference!
@@ -1105,9 +1112,11 @@ CData_GetList(CDataObject *mem)
 {
 	PyObject *list;
 	PyObject *obj;
+	ASSERT_CDATA(mem);
 	if (!mem->b_base) {
 		return mem->b_objects;
 	} else {
+//		assert(mem->b_objects == NULL);
 		list = CData_GetList(mem->b_base);
 		if (list == NULL)
 			return NULL;
@@ -1294,6 +1303,7 @@ CData_FromBaseObj(PyObject *type, CDataObject *base, int index, int baseofs)
 	PyObject *cobj;
 	PyObject *mem;
 	PyObject *args, *kw;
+	CDataObject *cd;
 
 	spec.base = (CDataObject *)base;
 	spec.offset = baseofs;
@@ -1309,6 +1319,10 @@ CData_FromBaseObj(PyObject *type, CDataObject *base, int index, int baseofs)
 	/* XXX cobj will be invalid once we leave this function! */
 	assert(cobj->ob_refcnt == 1);
 	Py_DECREF(cobj);
+
+	cd = (CDataObject *)mem;
+
+	ASSERT_CDATA(cd);
 
 	return mem;
 }
@@ -1530,6 +1544,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		obj->b_needsfree = 1;
 		memset(obj->b_ptr, 0, size);
 	}
+	ASSERT_CDATA(obj);
 	return (PyObject *)obj;
 }
 /*****************************************************************/
@@ -1800,7 +1815,8 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 
 #ifdef MS_WIN32
 	if (self->index) {
-		CDataObject *this = (CDataObject *)PyTuple_GetItem(args, 0);
+		CDataObject *this;
+		this = (CDataObject *)PyTuple_GetItem(args, 0);
 		if (!this || !CDataObject_Check(this)) {
 			PyErr_SetString(PyExc_TypeError,
 					"wrong type for this arg");
@@ -2590,7 +2606,7 @@ Pointer_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 {
 	if (!PyType_stgdict((PyObject *)type)) {
 		PyErr_SetString(PyExc_RuntimeError,
-				"Cannot create instances: has no type");
+				"Cannot create instances: has no _type_");
 		return NULL;
 	}
 	return GenericCData_new(type, args, kw);
@@ -3457,7 +3473,7 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
  	int *pi;
  	char *cp;
  	char **cpp;
-	IUnknown *pIunk = (IUnknown *)(arg->b_ptr);
+	IUnknown *pIunk = *(IUnknown **)(arg->b_ptr);
 	IDispatch *pIDisp = (IDispatch *)(arg->b_ptr);
 #ifdef _DEBUG
 	int x;
@@ -3517,6 +3533,17 @@ EXPORT char * _testfunc_p_p(void *s)
 
 #ifndef MS_WIN32
 # define __stdcall /* */
+#else
+
+EXPORT void *_testfunc_piunk(IUnknown FAR *punk)
+{
+	IDispatch FAR *pdisp = (IDispatch FAR *)punk;
+#ifdef _DEBUG
+	_asm int 3;
+#endif
+	return NULL;
+}
+
 #endif
 typedef struct {
 	int (*c)(int, int);
