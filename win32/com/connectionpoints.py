@@ -79,9 +79,8 @@ class dispinterface_EventReceiver(COMObject):
     def _get_args(self, dp):
         args = []
         for i in range(dp.cArgs-1, -1, -1):
-            args.append(dp.rgvarg[i].get_value())
+            args.append(dp.rgvarg[i].value)
         return tuple(args)
-
 
     def Invoke(self,
                this,      dispid,    refiid,    lcid,
