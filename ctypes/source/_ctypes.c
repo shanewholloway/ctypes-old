@@ -2125,6 +2125,11 @@ CFuncPtr_as_parameter(CDataObject *self)
 static int
 CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
 {
+	if (ob == NULL) {
+		Py_XDECREF(self->restype);
+		self->restype = NULL;
+		return 0;
+	}
 	if (ob != Py_None && !PyType_stgdict(ob) && !PyCallable_Check(ob)) {
 		PyErr_SetString(PyExc_TypeError,
 				"restype must be a type, a callable, or None");
@@ -2160,7 +2165,7 @@ CFuncPtr_set_argtypes(CFuncPtrObject *self, PyObject *ob)
 {
 	PyObject *converters;
 
-	if (ob == Py_None) {
+	if (ob == NULL || ob == Py_None) {
 		Py_XDECREF(self->converters);
 		self->converters = NULL;
 		Py_XDECREF(self->argtypes);
