@@ -1,38 +1,61 @@
-import os
+import os, re
 from gccxmlparser import parse
 import typedesc
 
 
 # C keywords, according to MSDN, plus some additional
-# names like __forceinline, near and far.
-C_KEYWORDS = """__asm else main struct
-__assume enum __multiple_inheritance switch
-auto __except __single_inheritance template
-__based explicit __virtual_inheritance this
-bool extern mutable thread
-break false naked throw
-case __fastcall namespace true
-catch __finally new try
-__cdecl float noreturn __try
-char for operator typedef
-class friend private typeid
-const goto protected typename
-const_cast if public union
-continue inline register unsigned
-__declspec __inline
-default int return uuid
-delete __int8 short __uuidof
-dllexport __int16 signed virtual
-dllimport __int32 sizeof void
-do __int64 static volatile
-double __leave static_cast wmain
-dynamic_cast long __stdcall while
-far near __forceinline __w64 __noop""".split()
+# names like __forceinline, near, far.
 
-# defines that won't work
-SKIPME = """STDAPI
+# Skip all definitions where the rhs is a keyword
+# Example: #define CALLBACK __stdcall
+#
+# Hm, should types be handled differently?
+# Example: #define VOID void
+C_KEYWORDS = """__asm else main struct __assume enum
+__multiple_inheritance switch auto __except __single_inheritance
+template __based explicit __virtual_inheritance this bool extern
+mutable thread break false naked throw case __fastcall namespace true
+catch __finally new try __cdecl float noreturn __try char for operator
+typedef class friend private typeid const goto protected typename
+const_cast if public union continue inline register unsigned
+__declspec __inline default int return uuid delete __int8 short
+__uuidof dllexport __int16 signed virtual dllimport __int32 sizeof
+void do __int64 static volatile double __leave static_cast wmain
+dynamic_cast long __stdcall while far near __forceinline __w64
+__noop""".split()
+
+"""
+PROPSHEETPAGEA_V1_FIELDS
+PROPSHEETPAGEW_V1_FIELDS
+"""
+
+# defines we know that won't work
+EXCLUDED = """\
+NOTIFYICONDATAA_V1_SIZE
+NOTIFYICONDATAA_V2_SIZE
+PROPSHEETHEADERA_V1_SIZE
+PROPSHEETHEADERA_V2_SIZE
+PROPSHEETHEADERW_V2_SIZE
+NOTIFYICONDATAW_V2_SIZE
+s_imp
+s_host
+s_lh
+s_net
+s_addr
+h_addr
+s_impno
+_VARIANT_BOOL
+MIDL_uhyper
+WINSCARDDATA
+__MIDL_DECLSPEC_DLLIMPORT
+__MIDL_DECLSPEC_DLLEXPORT
+NCB_POST
+STDAPI
 STDAPIV
 WINAPI
+SHDOCAPI
+WINOLEAUTAPI
+WINOLEAPI
 APIENTRY
 EXTERN_C
 FIRMWARE_PTR
@@ -60,20 +83,9 @@ SECURITY_NON_UNIQUE_AUTHORITY
 NETWORKSERVICE_LUID
 REFGUID""".split()
 
-# gccxml complains that these functions are undefined (?)
-FUNC_MACROS = """CreateWindowA
-CreateDialogA
-DialogBoxA
-PostAppMessageA
-RtlZeroMemory
-MAKEINTRESOURCEA
-RtlMoveMemory
-RtlCopyMemory
-CreateDialogIndirectA
-DialogBoxIndirectA
-RtlFillMemory""".split()
-
 log = open("skipped.txt", "w")
+
+wordpat = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 def _gccxml_get_defines(fname=None):
     cmd = "gccxml --preprocess -dM "
@@ -89,20 +101,33 @@ def _gccxml_get_defines(fname=None):
         line = line[len("#define "):].strip()
         items = line.split(None, 1)
         if len(items) < 2:
+            log.write("empty definition: #define %s\n" % items[0])
             continue
+
         name, value = items
         if "(" in name: # we want only macros without parameters
             log.write("has params: #define %s %s\n" % (name, value))
             continue
+
         if value in C_KEYWORDS:
             log.write("rhs is keyword: #define %s %s\n" % (name, value))
             continue
-        if name in SKIPME:
+
+        if name in EXCLUDED:
+            log.write("excluded: #define %s %s\n" % (name, value))
+            continue
+
+        # This is probably not correct: What when one of these characters is in a string literal?
+        if value and value[0] in r"=/{};" \
+           or value and value[-1] in r"=/{};":
             log.write("won't work: #define %s %s\n" % (name, value))
             continue
-        if value in FUNC_MACROS:
-            log.write("rhs is a function: #define %s %s\n" % (name, value))
+
+        if wordpat.match(name) and wordpat.match(value):
+            # XXX aliases should be handled later, when (and if!) the rhs is known
+            log.write("alias: #define %s %s\n" % (name, value))
             continue
+
         result[name] = value
     return result
 
@@ -143,7 +168,7 @@ def c_type_name(tp):
 def create_file():
     ofi = open("glut.cpp", "w")
 ##    ofi.write('#include <gl/glut.h>\n')
-    ofi.write("#define WIN32_LEAN_AND_MEAN\n")
+#    ofi.write("#define WIN32_LEAN_AND_MEAN\n")
     ofi.write('#include <windows.h>\n')
     return ofi
     
