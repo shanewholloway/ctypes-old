@@ -586,7 +586,7 @@ b_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-b_get(void *ptr, unsigned size, ...)
+b_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	char val = *(char *)ptr;
 	GET_BITFIELD(val, size);
@@ -606,7 +606,7 @@ B_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-B_get(void *ptr, unsigned size, ...)
+B_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	unsigned char val = *(unsigned char *)ptr;
 	GET_BITFIELD(val, size);
@@ -625,7 +625,7 @@ h_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-h_get(void *ptr, unsigned size, ...)
+h_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	short val = *(short *)ptr;
 	GET_BITFIELD(val, size);
@@ -645,7 +645,7 @@ H_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-H_get(void *ptr, unsigned size, ...)
+H_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	unsigned short val = *(short *)ptr;
 	GET_BITFIELD(val, size);
@@ -667,7 +667,7 @@ i_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-i_get(void *ptr, unsigned size, ...)
+i_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	int val = *(int *)ptr;
 	GET_BITFIELD(val, size);
@@ -693,7 +693,7 @@ vBOOL_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-vBOOL_get(void *ptr, unsigned size, ...)
+vBOOL_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	return PyBool_FromLong((long)*(short int *)ptr);
 }
@@ -715,7 +715,7 @@ I_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-I_get(void *ptr, unsigned size, ...)
+I_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	unsigned int val = *(unsigned int *)ptr;
 	GET_BITFIELD(val, size);
@@ -735,7 +735,7 @@ l_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-l_get(void *ptr, unsigned size, ...)
+l_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	long val = *(long *)ptr;
 	GET_BITFIELD(val, size);
@@ -754,7 +754,7 @@ L_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-L_get(void *ptr, unsigned size, ...)
+L_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	unsigned long val = *(unsigned long *)ptr;
 	GET_BITFIELD(val, size);
@@ -773,7 +773,7 @@ q_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-q_get(void *ptr, unsigned size, ...)
+q_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	PY_LONG_LONG val = *(PY_LONG_LONG *)ptr;
 	GET_BITFIELD(val, size);
@@ -791,7 +791,7 @@ Q_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-Q_get(void *ptr, unsigned size, ...)
+Q_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	unsigned PY_LONG_LONG val = *(unsigned PY_LONG_LONG *)ptr;
 	GET_BITFIELD(val, size);
@@ -822,7 +822,7 @@ d_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-d_get(void *ptr, unsigned size, ...)
+d_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	return PyFloat_FromDouble(*(double *)ptr);
 }
@@ -844,13 +844,13 @@ f_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-f_get(void *ptr, unsigned size, ...)
+f_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	return PyFloat_FromDouble(*(float *)ptr);
 }
 
 static PyObject *
-O_get(void *ptr, unsigned size, ...)
+O_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	PyObject *ob = *(PyObject **)ptr;
 	if (ob == NULL) {
@@ -886,7 +886,7 @@ c_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-c_get(void *ptr, unsigned size, ...)
+c_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	return PyString_FromStringAndSize((char *)ptr, 1);
 }
@@ -928,14 +928,14 @@ u_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-u_get(void *ptr, unsigned size, ...)
+u_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	return PyUnicode_FromWideChar((wchar_t *)ptr, 1);
 }
 
 /* U - a unicode string */
 static PyObject *
-U_get(void *ptr, unsigned size, ...)
+U_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	PyObject *result;
 	unsigned int len;
@@ -1003,7 +1003,7 @@ U_set(void *ptr, PyObject *value, unsigned length, ...)
 #endif
 
 static PyObject *
-s_get(void *ptr, unsigned size, ...)
+s_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	PyObject *result;
 
@@ -1081,7 +1081,7 @@ z_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-z_get(void *ptr, unsigned size, ...)
+z_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	/* XXX What about invalid pointers ??? */
 	if (*(void **)ptr)
@@ -1157,7 +1157,7 @@ Z_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-Z_get(void *ptr, unsigned size, ...)
+Z_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	wchar_t *p;
 	p = *(wchar_t **)ptr;
@@ -1215,7 +1215,7 @@ BSTR_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-BSTR_get(void *ptr, unsigned size, ...)
+BSTR_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	BSTR p;
 	p = *(BSTR *)ptr;
@@ -1254,7 +1254,7 @@ P_set(void *ptr, PyObject *value, unsigned size, ...)
 }
 
 static PyObject *
-P_get(void *ptr, unsigned size, ...)
+P_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
 	if (*(void **)ptr == NULL) {
 		Py_INCREF(Py_None);
