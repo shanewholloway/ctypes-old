@@ -1328,11 +1328,6 @@ call_cdeclfunction(PyObject *self, PyObject *args)
 	return result;
 }
 
-#ifdef _DEBUG
-extern PyObject *
-my_debug(PyObject *, PyObject *);
-#endif
-
 PyMethodDef module_methods[] = {
 #ifdef MS_WIN32
 	{"FormatError", format_error, METH_VARARGS, format_error_doc},
@@ -1351,9 +1346,6 @@ PyMethodDef module_methods[] = {
 	{"addressof", addressof, METH_O},
 	{"call_function", call_function, METH_VARARGS },
 	{"call_cdeclfunction", call_cdeclfunction, METH_VARARGS },
-#ifdef _DEBUG
-	{"my_debug", my_debug, METH_O},
-#endif
 	{NULL,      NULL}        /* Sentinel */
 };
 
