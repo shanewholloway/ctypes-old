@@ -445,6 +445,20 @@ EXPORT(int) PointInRect(RECT *prc, POINT pt)
 	return 1;
 }
 
+typedef struct {
+	short x;
+	short y;
+} S2H;
+
+EXPORT(S2H) ret_2h_func(void)
+{
+	S2H s2h;
+	s2h.x = 42;
+	s2h.y = 24;
+
+	return s2h;
+}
+
 DL_EXPORT(void)
 init_ctypes_test(void)
 {

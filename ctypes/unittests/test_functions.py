@@ -328,5 +328,13 @@ class FunctionTestCase(unittest.TestCase):
         expected = 203, 101, 102
         self.failUnlessEqual(got, expected)
 
+    def test_struct_return(self):
+        class S2H(Structure):
+            _fields_ = [("x", c_short),
+                        ("y", c_short)]
+        dll.ret_2h_func.restype = S2H
+        s2h = dll.ret_2h_func()
+        self.failUnlessEqual((s2h.x, s2h.y), (42, 24))
+
 if __name__ == '__main__':
     unittest.main()
