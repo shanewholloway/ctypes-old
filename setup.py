@@ -17,6 +17,40 @@ LIBFFI_SOURCES='source/gcc/libffi'
 
 import os, sys
 
+try:
+    walk = os.walk
+except NameError:
+    def walk(top):
+        # Python 2.3's os.walk generator, without the large docstring ;-)
+        # And without the topdown and onerror arguments.
+        from os.path import join, isdir, islink
+
+        # We may not have read permission for top, in which case we can't
+        # get a list of the files the directory contains.  os.path.walk
+        # always suppressed the exception then, rather than blow up for a
+        # minor reason when (say) a thousand readable directories are still
+        # left to visit.  That logic is copied here.
+        try:
+            # Note that listdir and error are globals in this module due
+            # to earlier import-*.
+            names = listdir(top)
+        except OSError, err:
+            return
+
+        dirs, nondirs = [], []
+        for name in names:
+            if isdir(join(top, name)):
+                dirs.append(name)
+            else:
+                nondirs.append(name)
+
+        yield top, dirs, nondirs
+        for name in dirs:
+            path = join(top, name)
+            if not islink(path):
+                for x in walk(path):
+                    yield x
+
 
 from distutils.core import setup, Extension, Command
 import distutils.core
@@ -288,7 +322,7 @@ class my_build_py(build_py.build_py):
 def find_file_in_subdir(dirname, filename):
     # if <filename> is in <dirname> or any subdirectory thereof,
     # return the directory name, else None
-    for d, _, names in os.walk(dirname):
+    for d, _, names in walk(dirname):
         if filename in names:
             return d
     return None
