@@ -322,7 +322,9 @@ if _os.name == "nt":
 
     GetLastError = windll.kernel32.GetLastError
 
-    def WinError(code=None):
+    def WinError(code=None, descr=None):
         if code is None:
             code = GetLastError()
-        return WindowsError(code, FormatError(code).strip())
+        if descr is None:
+            descr = FormatError(code).strip()
+        return WindowsError(code, descr)
