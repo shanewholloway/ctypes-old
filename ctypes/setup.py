@@ -39,25 +39,25 @@ if os.name == "nt":
 ##        "source/libffi_msvc/prep_cif.c",
 ##        "source/libffi_msvc/win32.c",
         ])
+    extensions = [Extension("_ctypes",
+                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
+                            export_symbols=["DllGetClassObject,PRIVATE",
+                                            "DllCanUnloadNow,PRIVATE",
+                                            "CopyComPointer"],
+                            libraries=["ole32", "user32", "oleaut32"],
+                            include_dirs=["source/libffi_msvc"],
+                            **kw),
+                  Extension("_ctypes_test",
+                            libraries=["oleaut32"],
+                            sources=["source/_ctypes_test.c"],
+                            include_dirs=["source/libffi_msvc"],
+                            )
+                  ]
     if kw.has_key("depends"):
         kw["depends"].extend(["source/libffi_msvc/ffi.h",
                               "source/libffi_msvc/fficonfig.h",
                               "source/libffi_msvc/ffitarget.h",
                               "source/libffi_msvc/ffi_common.h"])
-        extensions = [Extension("_ctypes",
-                                define_macros=[("CAN_PASS_BY_VALUE", "1")],
-                                export_symbols=["DllGetClassObject,PRIVATE",
-                                                "DllCanUnloadNow,PRIVATE",
-                                                "CopyComPointer"],
-                                libraries=["ole32", "user32", "oleaut32"],
-                                include_dirs=["source/libffi_msvc"],
-                                **kw),
-                      Extension("_ctypes_test",
-                                libraries=["oleaut32"],
-                                sources=["source/_ctypes_test.c"],
-                                include_dirs=["source/libffi_msvc"],
-                                )
-                      ]
 else:
     include_dirs = []
     library_dirs = []
