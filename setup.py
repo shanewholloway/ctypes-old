@@ -424,8 +424,13 @@ options = {}
 
 if sys.platform == 'win32':
     options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
+    data_files = [("ctypes/com/samples/server/control",
+                   ["win32/com/samples/server/control/test.html"])
+                  ],
+
 else:
     options["sdist"] = {"template": "MANIFEST.other.in", "force_manifest": 1}
+    data_files = []
 
 class my_install_data(install_data.install_data):
      """A custom install_data command, which will install it's files
@@ -443,6 +448,7 @@ if __name__ == '__main__':
           ext_modules = extensions,
           package_dir = package_dir,
           packages = packages,
+          data_files = data_files,
 
           version="0.9.0",
           description="create and manipulate C data types in Python",
@@ -451,12 +457,8 @@ if __name__ == '__main__':
           author_email="theller@python.net",
           license="MIT License",
           url="http://starship.python.net/crew/theller/ctypes.html",
-          platforms=["windows", "Linux", "MacOS X", "Solaris"],
-
-          data_files = [("ctypes/com/samples/server/control",
-                         ["win32/com/samples/server/control/test.html"])
-                        ],
-
+          platforms=["windows", "Linux", "MacOS X", "Solaris", "FreeBSD"],
+          
           cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext,
                       'clean': my_clean, 'install_data': my_install_data},
           options = options
