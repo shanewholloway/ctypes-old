@@ -66,7 +66,7 @@ EXPORT(char *) my_strdup(char *src)
 	return dst;
 }
 
-#ifdef HAVE_WCHAR_h
+#ifdef HAVE_WCHAR_H
 EXPORT(wchar_t *) my_wcsdup(wchar_t *src)
 {
 	return _wcsdup(src);
