@@ -780,10 +780,10 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 	return NULL; /* to silence the compiler */
 }
 
-void Extend_Error_Info(char *fmt, ...)
+void Extend_Error_Info(PyObject *exc_class, char *fmt, ...)
 {
 	va_list vargs;
-	PyObject *tp, *v, *tb, *s, *msg;
+	PyObject *tp, *v, *tb, *s, *cls_str, *msg_str;
 
 	va_start(vargs, fmt);
 	s = PyString_FromFormatV(fmt, vargs);
@@ -793,15 +793,19 @@ void Extend_Error_Info(char *fmt, ...)
 
 	PyErr_Fetch(&tp, &v, &tb);
 	PyErr_NormalizeException(&tp, &v, &tb);
-	msg = PyObject_Str(v);
-	if (msg) {
-		PyString_ConcatAndDel(&s, msg);
-		Py_DECREF(v);
-		PyErr_Restore(tp, s, tb);
-	} else {
-		PyErr_Clear();
-		PyErr_Restore(tp, v, tb);
+	cls_str = PyObject_Str(tp);
+	msg_str = PyObject_Str(v);
+	if (cls_str) { 
+		PyString_ConcatAndDel(&s, cls_str);
+		PyString_ConcatAndDel(&s, PyString_FromString(": "));
 	}
+	if (msg_str)
+		PyString_ConcatAndDel(&s, msg_str);
+	PyErr_SetObject(exc_class, s);
+	Py_XDECREF(tp);
+	Py_XDECREF(v);
+	Py_XDECREF(tb);
+	Py_DECREF(s);
 }
 
 #ifdef MS_WIN32
@@ -864,20 +868,20 @@ PyObject *_CallProc(PPROC pProc,
 							   arg,
 							   NULL);
 			if (v == NULL) {
-				Extend_Error_Info("while constructing argument %d:\n", i+1);
+				Extend_Error_Info(PyExc_ArgError, "argument %d: ", i+1);
 				goto cleanup;
 			}
 
 			err = ConvParam(v, i+1, pa);
 			Py_DECREF(v);
 			if (-1 == err) {
-				Extend_Error_Info("while constructing argument %d:\n", i+1);
+				Extend_Error_Info(PyExc_ArgError, "argument %d: ", i+1);
 				goto cleanup;
 			}
 		} else {
 			err = ConvParam(arg, i+1, pa);
 			if (-1 == err) {
-				Extend_Error_Info("while constructing argument %d:\n", i+1);
+				Extend_Error_Info(PyExc_ArgError, "argument %d: ", i+1);
 				goto cleanup; /* leaking ? */
 			}
 		}
