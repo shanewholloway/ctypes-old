@@ -1,11 +1,13 @@
 Implementing a COM server with 'ctypes'
 
-  "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
+  "ctypes home":../ctypes.html :: "tutorial":../tutorial.html ::
+  "reference":reference.html :: "faq":faq.html ::
+  "COM":ctypes/com.html
 
   **Warning: work in progress**
 
   This walkthrough describes how to implement a simple COM object in
-  an exe-server, provided that you already have or will create a type
+  an exe-server, assuming that you already have or will create a type
   library.
 
   All the code for this article is available in the
@@ -65,12 +67,11 @@ Implementing a COM server with 'ctypes'
     automation interfaces. The 'dispid' of this method, which is
     required for interfaces derived from 'IDispatch', is 100.
     
-    The ISum interface is a dual interface which allows access through
-    dynamic dispatch (late binding) as well as through direct vtable
-    calls (early binding).
+    The 'ISum' interface is a dual interface which allows access
+    through dynamic dispatch as well as through direct vtable calls.
 
-    Running the midl compiler with like this 'midl sum.idl /tlb
-    sum.tlb' produces the type library 'sum.tlb'.
+    Running the 'midl' compiler 'midl sum.idl /tlb sum.tlb' produces
+    the type library 'sum.tlb'.
 
   Creating the Python COM interface description
 
@@ -82,8 +83,8 @@ Implementing a COM server with 'ctypes'
     'readtlb.py' is run with the filename of a type library on the
     command line, and currently writes Python source code to standard
     output. So you should run it with the output redirected to a file.
-    Per convention the generate code uses a _gen.py suffix, so a
-    command line would be::
+    Per convention the generated code uses a '_gen.py' suffix, so the
+    command line should be::
 
       python ctypes\com\tools\readtlb.py sum.tlb > sum_gen.py
 
@@ -134,6 +135,9 @@ Implementing a COM server with 'ctypes'
     the interface 'IDualSum' will be instantiated when the CSum COM
     object is used.
 
+    XXX Explain '_methods_'
+
+    XXX Where are the dispids?
 
   Implementing the COM object
 
@@ -154,6 +158,8 @@ Implementing a COM server with 'ctypes'
 	  _reg_clsid_ = CSum._reg_clsid_
 
 	  ...
+
+    XXX Why not use 'CSum' as a mixin class?
 
     The '_com_interfaces_' attribute is a sequence of COM interfaces
     our object implements, the first one being the default
@@ -186,51 +192,51 @@ Implementing a COM server with 'ctypes'
 	      return 0
 
     The name of the method must match the template
-    '<interface_name>_<method_name>' where *interface_name* must be
-    the name of the interface this method belongs to, and
-    *method_name* must be the name of the method as it is in the
-    wrapper module. Currently it is possible to also use only the
-    method_name 'Add', but this is probably not recommended for user
-    defined interfaces. It is, however, used in base interfaces like
-    'IUnknown' or 'IDispatch'. YMMV.
+    '<interface_name>_<method_name>' where *interface_name* is the
+    name of the interface this method belongs to, and *method_name* is
+    the name of the method as it is in the wrapper module. Currently
+    it is possible to also use only the *method_name* 'Add', but this
+    is probably not recommended for user defined interfaces. It is,
+    however, used in base interfaces like 'IUnknown' or
+    'IDispatch'. YMMV.
 
     What about the parameters? 'self' does not require any comment.
     'a', 'b', and 'presult' are the parameters used in our interface
     method, 'a' and 'b' are Python floats, automatically converted
     from 'c_double' by ctypes, and 'presult' is a *pointer* to a
     'c_double'. We add the two numbers together and store the result
-    in 'presult', remember that the expression 'presult[0] = a + b'
-    stores the sum in the location pointed at by 'presult'. The
-    corresponding C code would be this::
+    in 'presult', remember that the expression '"presult[0] = a + b"'
+    stores the sum in the location pointed at by 'presult'. Similar C
+    code would be::
 
       /* double a, b, *presult */
       *presult = a + b;
 
-    and is could also be written in this way::
+    and it could also be written in this way::
 
       /* double a, b, *presult */
       presult[0] = a + b;
 
-    The mystical second 'this' parameter is the COM 'this' pointer as
-    an integer, it it passed to *all* ctypes COM method
-    implementations. Sometimes it can be used, but most of the time it
-    should simply be ignored.
+    The 'this' parameter is an integer representing the COM 'this'
+    pointer, it it passed to *all* ctypes COM method
+    implementations. Sometimes it can be useful, but most of the time
+    it should simply be ignored.
 
-  Implementing a main program
+  The main program
 
-    Our COM object is complete, there's only the main program missing.
-    Very similar to Mark Hammond's win32all, there's a 'UseCommandLine'
-    method doing all the work for us::
+    Our COM object is complete, only the main program missing.  Very
+    similar to Mark Hammond's 'win32com.server', there's a
+    'UseCommandLine' method doing all the work for us::
 
       if __name__ == '__main__':
           from ctypes.com.server import UseCommandLine
 	  UseCommandLine(SumObject)
 
     'UseCommandLine' responds to the command line switches
-    '/regserver', '/unregserver', and '/automation', the latter will
-    be automatically provided for an exe server if it is started by
-    COM. All switches are case insensitive and can also start with '-'
-    instead of '/'.
+    '/regserver', '/unregserver', and '/embedding, the latter will be
+    automatically provided for an exe server if it is started by
+    COM. All switches are case insensitive and can also start with "-"
+    instead of "/".
 
     '/regserver' and '/unregserver' will register or unregister our
     COM object *and the type library* in the Windows registry.
@@ -267,7 +273,7 @@ Implementing a COM server with 'ctypes'
     Using 'oleview' you can also create an instance of the COM
     object. Make sure that the menu entry *Object ->
     CoCreateInstanceFlags -> CLSCTX_LOCAL_SERVER* is checked, and
-    double lick on the "Sum Object" entry.
+    double click on the '"Sum Object"' entry.
 
     An empty dos box pops up (since python.exe is registered as local
     server, not pythonw.exe), and after a short moment in which
@@ -284,9 +290,9 @@ Implementing a COM server with 'ctypes'
 
   Using the COM object
 
-    Using it from win32all works for both dynamic dispatch, and also
-    after running makepy (IIUC, this call the dispatch interface, or
-    does it call the vtable methods directly?)::
+    Using the Sum object with win32com works for dynamic dispatch, and
+    also after running makepy (IIUC, this call the dispatch interface,
+    or does it call the vtable methods directly?)::
 
       from win32com.client import Dispatch
       d = Dispatch("ctypes.SumObject")
@@ -308,27 +314,31 @@ Implementing a COM server with 'ctypes'
       sum.Add(3.14, 3.14, byref(result))
       print result
 
-    Note that the 'this' parameter is never used or required on the
-    client side.
+    Note that the 'this' parameter is never used or required in client
+    code.
 
     The 'CreateInstance' function creates the COM object and retrieves
     a pointer to the *default* COM interface, you could also pass a
     COM interface as the second parameter to retrive another interface
-    pointer. 
+    pointer.
+
+    XXX More on 'CreateInstance' ?
 
   Deploying the COM object
 
     "py2exe":http://starship.python.net/crew/theller/py2exe/ is able
     to convert the Python script into an exe-file, which only needs
-    'python22.dll', '_ctypes.pyd', _'sre.pyd', and '_winreg.pyd'. It
+    'python22.dll', '_ctypes.pyd', '_sre.pyd', and '_winreg.pyd'. It
     must be run with the '--typelib sum.tlb' command line option to
     embed the type library as resource into the created exe file.
 
     You can build the exe-file with the '--windows' flag to get rid of
     the DOS box, but you should redirect 'sys.stdout' and 'sys.stderr'
-    somewhere else to see tracebacks. This piece of code could be used
-    to call Windows 'OutputDebugString' function, the output of this
-    can be read by debuggers or
+    somewhere else to see tracebacks.
+
+    You can redirect output to a log file, or you can use this snippet
+    to call Windows 'OutputDebugString' function, the output of which
+    can be displayed by debuggers or
     "Sysinternals":http://www.sysinternals.com/ DebugView utility, for
     example::
 
