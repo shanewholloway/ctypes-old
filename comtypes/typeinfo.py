@@ -318,7 +318,13 @@ class ITypeInfo(IUnknown):
                                     byref(helpcontext), byref(helpfile))
         return name.value, docstring.value, helpcontext.value, helpfile.value
 
-##    STDMETHOD(HRESULT, 'GetDllEntry', [MEMBERID, INVOKEKIND, POINTER(BSTR), POINTER(BSTR), POINTER(WORD)]),
+    def GetDllEntry(self, memid, invkind):
+        "Return the dll name, function name, and ordinal for a function and invkind."
+        dllname = BSTR()
+        name = BSTR()
+        ordinal = c_ushort()
+        self.__com_GetDllEntry(memid, invkind, byref(dllname), byref(name), byref(ordinal))
+        return dllname.value, name.value, ordinal.value
 
     def GetRefTypeInfo(self, href):
         "Get type info for reftype"
