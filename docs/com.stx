@@ -99,7 +99,7 @@ The ctypes COM framework
 	  # assuming iunk is a valid pointer to an IUnknown interface...
 	  # create an empty pointer to a dispatch interface instance
 	  from ctypes.com.automation import IDispatch
-	  idisp = pointer(IDispatch())
+	  idisp = POINTER(IDispatch)() # XXX explain
 	  # ask the object for a dispatch interface
 	  iunk.QueryInterface(byref(IDispatch._iid_), byref(idisp))
 	  
