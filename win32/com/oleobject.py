@@ -1,9 +1,10 @@
 from ctypes import *
-from ctypes.wintypes import BYTE, WORD, DWORD, MSG, HWND, RECT
+from ctypes.wintypes import BYTE, WORD, DWORD, MSG, HWND, RECT, BOOL, SIZEL, \
+     LPOLESTR, LPCOLESTR, LONG
 from ctypes.com import IUnknown, STDMETHOD, HRESULT, GUID, ole32
-from ctypes.com.ole import IAdviseSink, SIZEL, LOGPALETTE
+from ctypes.com.ole import IAdviseSink, LOGPALETTE
 
-# fake
+# fake defines
 IMoniker = IUnknown
 IDataObject = IUnknown
 IEnumOleVerb = IUnknown
@@ -11,10 +12,7 @@ IOleContainer = IUnknown
 
 IEnumSTATDATA = IUnknown
 
-LPCOLESTR = c_wchar_p
-LPOLESTR = c_wchar_p
-BOOL = c_int
-LONG = c_long
+# shortcuts
 LPMSG = POINTER(MSG)
 LPRECT = POINTER(RECT)
 
@@ -68,8 +66,8 @@ def CreateOleAdviseHolder():
     ole32.CreateOleAdviseHolder(byref(p))
     return p
 
-if __name__ == "__main__":
-    holder = CreateOleAdviseHolder()
-    print holder
-    holder.SendOnSave()
-    holder.SendOnClose()
+##if __name__ == "__main__":
+##    holder = CreateOleAdviseHolder()
+##    print holder
+##    holder.SendOnSave()
+##    holder.SendOnClose()
