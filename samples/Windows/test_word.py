@@ -2,7 +2,13 @@ from COM import Dispatch
 ##from win32com.client.dynamic import Dispatch
 
 def test_word():
-    word = Dispatch("Word.Application")
+    try:
+        word = Dispatch("Word.Application")
+    except WindowsError, details:
+        if details.errno == 0x800401F3: # Invalid Class String
+            print "It seems Word is not installed..."
+            return
+        raise
     word.Visible = 1
 
     doc = word.Documents.Add()
