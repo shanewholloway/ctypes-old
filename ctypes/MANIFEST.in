@@ -6,4 +6,5 @@ include unittests/*.py
 include docs/*.html docs/*.css docs/*.stx
 include samples/rt samples/rt.bat
 recursive-include samples *.py
+recursive-include win32/com/samples/server *.html *.cpp
 prune samples/Windows/wtl
