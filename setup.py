@@ -94,6 +94,80 @@ if sys.platform == 'darwin':
         print "Fixing Apple strangeness in Python configuration"
         distutils.sysconfig._config_vars['LDSHARED'] = y
 
+LIBFFI_SOURCES='libffi-src'
+if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h'):
+    # A system with a pre-existing libffi.
+    LIBFFI_SOURCES=None
+
+def subprocess(taskName, cmd, validRes=None):
+    print "Performing task: %s" % (taskName,)
+    fd = os.popen(cmd, 'r')
+    for ln in fd.xreadlines():
+        sys.stdout.write(ln)
+
+    res = fd.close()
+    if res is not validRes:
+        sys.stderr.write("Task '%s' failed [%d]\n"%(taskName, res))
+        sys.exit(1)
+
+# We need at least Python 2.2
+req_ver = (2, 2)
+
+if sys.version_info < req_ver:
+    sys.stderr.write('ctypes: Need at least Python %s\n'%('.'.join(req_ver)))
+    sys.exit(1)
+
+if LIBFFI_SOURCES is not None:
+
+    def task_build_libffi():
+        if not os.path.isdir(LIBFFI_SOURCES):
+            sys.stderr.write(
+                'LIBFFI_SOURCES is not a directory: %s\n'%LIBFFI_SOURCES)
+            sys.stderr.write('\tSee Install.txt or Install.html for more information.\n')
+            sys.exit(1)
+
+        if not os.path.exists('build'):
+            os.mkdir('build')
+
+        if not os.path.exists('build/libffi'):
+            os.mkdir('build/libffi')
+
+        if not os.path.exists('build/libffi/BLD'):
+            os.mkdir('build/libffi/BLD')
+
+        if not os.path.exists('build/libffi/lib/libffi.a'):
+            # No pre-build version available, build it now.
+            # Do not use a relative path for the build-tree, libtool on
+            # MacOS X doesn't like that.
+            inst_dir = os.path.join(os.getcwd(), 'build/libffi')
+            src_path = os.path.abspath(LIBFFI_SOURCES)
+
+            if ' ' in src_path+inst_dir:
+                print >>sys.stderr, "LIBFFI can not build correctly in a path that contains spaces."
+                print >>sys.stderr, "This limitation includes the entire path (all parents, etc.)"
+                print >>sys.stderr, "Move the ctypes and libffi source to a path without spaces and build again."
+                sys.exit(1)
+
+            inst_dir = inst_dir.replace("'", "'\"'\"'")
+            src_path = src_path.replace("'", "'\"'\"'")
+
+            subprocess('Building FFI', "cd build/libffi/BLD && '%s/configure' --prefix='%s' --disable-shared --enable-static && make install"%(src_path, inst_dir), None)
+
+    LIBFFI_BASE='build/libffi'
+    LIBFFI_CFLAGS=[
+        "-isystem", "%s/include"%LIBFFI_BASE,
+    ]
+    LIBFFI_LDFLAGS=[
+        '-L%s/lib'%LIBFFI_BASE, '-lffi',
+    ]
+
+else:
+    def task_build_libffi():
+        pass
+    LIBFFI_CFLAGS=[]
+    LIBFFI_LDFLAGS=['-lffi']
+
+
 ################################################################
 
 packages = ["ctypes"]
@@ -231,6 +305,13 @@ class my_build_py(build_py.build_py):
                 result.append(('ctypes', modname, pathname))
         return result
 
+from distutils.command import build_ext
+
+class my_build_ext(build_ext.build_ext):
+    def run(self):
+        task_build_libffi()
+        build_ext.run(self)
+
 if __name__ == '__main__':
     setup(name="ctypes",
           ext_modules = extensions,
@@ -246,7 +327,7 @@ if __name__ == '__main__':
           url="http://starship.python.net/crew/theller/ctypes.html",
           platforms=["windows", "Linux", "MacOS X", "Solaris"],
 
-          cmdclass = {'test': test, 'build_py': my_build_py},
+          cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext},
           **options
           )
 
