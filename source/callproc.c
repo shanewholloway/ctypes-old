@@ -397,101 +397,11 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 			Py_DECREF(parm);
 			PyErr_Format(PyExc_TypeError,
 				     "Don't know how to convert parameter %d", index);
-#ifdef _DEBUG
-			_asm int 3;
-#endif
 			return NULL;
 		}
 		Py_DECREF(parm);
 		return (PyCArgObject *)arg;
 	}
-
-#ifdef NO_NO
-	/* If it isn't a tuple, retrieve the _as_parameter_ property.
-	   This must either be an integer or a 'magic' 3-tuple, containing
-	   a single letter string, the value to be passed, and a Python object
-	   to keep alive. */
-	if (!PyTuple_Check(obj)) {
-		PyObject *arg;
-		arg = PyObject_GetAttrString(obj, "_as_parameter_");
-		if (!arg) {
-			PyErr_Format(PyExc_TypeError,
-				     "Don't know how to convert parameter %d", index);
-			return -1;
-		}
-		if (PyInt_Check(arg)) {
-			parm->val.i = PyInt_AS_LONG(arg);
-			parm->format = 'i';
-			Py_DECREF(arg);
-			return 0;
-		}
-
-		/* If we have a PyCArgObject, we are done */
-		if (PyCArg_CheckExact(arg)) {
-			PyCArgObject *p = (PyCArgObject *)arg;
-			memcpy(&parm->val, &p->value, sizeof(parm->val));
-			Py_INCREF(p->obj);
-			parm->keepref = p->obj;
-			parm->format = p->tag;
-			Py_DECREF(arg);
-			return 0;
-		}
-
-		/* This takes the ownership of the refcount we got
-		   by PyObject_GetAttrString above */
-		parm->keepref = arg;
-		obj = arg;
-	}
-
-	/* Now it must be a 3-tuple. */
-	if (PyArg_Parse(obj, "(sOO)", &format, &value, &keepref)) {
-		PyObject *x = parm->keepref;
-		Py_INCREF(value);
-		needs_decref = 1;
-		obj = value; /* The actual parameter value */
-
-		Py_INCREF(keepref);
-		parm->keepref = keepref;
-
-		Py_XDECREF(x);
-	} else {
-		Py_XDECREF(parm->keepref);
-		parm->keepref = NULL;
-		return -1;
-	}
-
-	/* XXX Check for string of length 1 */
-	parm->format = format[0];
-
-	ASSERT_FORMAT(parm->format);
-
-	switch (format[0]) {
- 	case 'c':
- 		parm->val.c = (char)PyInt_AsLong(obj);
- 		break;
-	case 'i':
-		parm->val.i = PyInt_AsLong(obj);
-		break;
-	case 'q':
-		parm->val.l = PyLong_AsLongLong(obj);
-		break;
-	case 'f':
-		parm->val.f = (float)PyFloat_AsDouble(obj);
-		break;
-	case 'd':
-		parm->val.d = PyFloat_AsDouble(obj);
-		break;
-	default:
-		PyErr_Format(PyExc_ValueError,
-		     "unknown format specifier '%c' while converting parameter %d",
-			     format[0], index);
-		return -1;
-	}
-	if (needs_decref) {
-		Py_DECREF(obj);
-	}
-	return 0;
-#endif
 }
 
 
