@@ -4514,7 +4514,7 @@ EXPORT double _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double
 	return (double)(b + h + i + l + f + d);
 }
 
-EXPORT char * _testfunc_s_s(char *s)
+EXPORT char * _testfunc_p_p(void *s)
 {
 	return s;
 }
@@ -4529,6 +4529,16 @@ EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
 EXPORT LONG_LONG _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 	return (LONG_LONG)(b + h + i + l + f + d);
+}
+
+EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
+{
+	int initial = value;
+	while (value != 0) {
+		func(value);
+		value /= 2;
+	}
+	return initial;
 }
 
 #endif

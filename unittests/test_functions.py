@@ -57,13 +57,34 @@ def test1():
 
 def test2():
     """
-    >>> f = dll._testfunc_s_s
+    >>> f = dll._testfunc_p_p
     >>> f.restype = "z"
     >>> f("123")
     '123'
     
     >>> print f(None)
     None
+    
+    """
+
+def test_callbacks():
+    """
+    >>> f = dll._testfunc_callback_i_if
+    >>> class MyCallback(CFunction):
+    ...     _stdcall_ = 0
+    ...     _types_ = "i"
+
+    >>>
+    >>> def callback(value):
+    ...     print "called back with", value
+    
+    >>> cb = MyCallback(callback)
+    >>> f(-10, cb)
+    called back with -10
+    called back with -5
+    called back with -2
+    called back with -1
+    -10
     
     """
 
