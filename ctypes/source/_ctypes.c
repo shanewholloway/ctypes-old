@@ -170,7 +170,7 @@ char *conversion_mode_errors = NULL;
 static PyObject *CData_AtAddress(PyObject *type, void *buf);
 
 /* Some simple types */
-static PyObject *CTYPE_c_char, *CTYPE_c_wchar, *CTYPE_c_void_p, *CTYPE_BSTR;
+PyObject *CTYPE_c_char_p, *CTYPE_c_char, *CTYPE_c_wchar, *CTYPE_c_wchar_p, *CTYPE_c_void_p, *CTYPE_BSTR;
 
 static PyObject *
 generic_getfunc(void *ptr, unsigned size,
@@ -1216,6 +1216,7 @@ static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *typedict = PyType_stgdict(type);
+	PyCArgObject *parg;
 
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		/* c_char array instance or pointer(c_char(...)) */
@@ -1233,29 +1234,15 @@ string_ptr_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
-	if (PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
+	/* Call setfunc */
+	parg = new_CArgObject();
+	parg->pffi_type = &ffi_type_pointer;
+	parg->obj = typedict->setfunc(&parg->value, value, 0, type);
+	if (parg->obj == NULL) {
+		Py_DECREF(parg);
+		return NULL;
 	}
-	/* z_set and Z_set accept integers as well. Until that is fixed, we
-	 have to typecheck here. */
-	if (value == Py_None || PyString_Check(value) || PyUnicode_Check(value)) {
-		/* Call setfunc */
-		PyCArgObject *parg;
-
-		parg = new_CArgObject();
-		parg->pffi_type = &ffi_type_pointer;
-		parg->obj = typedict->setfunc(&parg->value, value, 0, type);
-		if (parg->obj == NULL) {
-			Py_DECREF(parg);
-			return NULL;
-		}
-		return (PyObject *)parg;
-	}
-	/* XXX better message */
-	PyErr_SetString(PyExc_TypeError,
-			"wrong type");
-	return NULL;
+	return (PyObject *)parg;
 }
 
 static PyObject *
@@ -1417,6 +1404,8 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			Py_XDECREF(stgdict->itemtype);
 			Py_INCREF(CTYPE_c_char);
 			stgdict->itemtype = CTYPE_c_char;
+			assert(CTYPE_c_char_p == NULL);
+			CTYPE_c_char_p = (PyObject *)result;
 			break;
 		case 'Z': /* c_wchar_p */
 			ml = &c_wchar_p_method;
@@ -1428,6 +1417,8 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			Py_XDECREF(stgdict->itemtype);
 			Py_INCREF(CTYPE_c_wchar);
 			stgdict->itemtype = CTYPE_c_wchar;
+			assert(CTYPE_c_wchar_p == NULL);
+			CTYPE_c_wchar_p = (PyObject *)result;
 			break;
 		case 'P': /* c_void_p */
 			ml = &c_void_p_method;
