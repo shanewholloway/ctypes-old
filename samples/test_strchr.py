@@ -11,11 +11,11 @@ elif os.name == "posix":
 
 strchr.restype = c_char_p # "z"
 
-strchr.argtypes = [c_string, c_int]
+strchr.argtypes = [c_char_p, c_int]
 
 assert "def" ==  strchr("abcdef", ord("d"))
 assert None == strchr("abcdef", ord("x"))
 
-strchr.argtypes = [c_string, c_char]
+strchr.argtypes = [c_char_p, c_char]
 assert None == strchr("abcdef", "x")
 assert "def" == strchr("abcdef", "d")

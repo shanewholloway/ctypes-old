@@ -216,6 +216,9 @@ static char from_param_doc[] =
 static PyObject *
 CDataType_from_param(PyObject *type, PyObject *value)
 {
+#ifdef _DEBUG
+	_asm int 3;
+#endif
 	if (1 == PyObject_IsInstance(value, type)) {
 		Py_INCREF(value);
 		return value;
@@ -1517,13 +1520,35 @@ CFuncPtr_set_argtypes(CFuncPtrObject *self, PyObject *ob)
 		return -1;
 	Py_XDECREF(self->converters);
 	self->converters = converters;
+	Py_XDECREF(self->argtypes);
+	Py_INCREF(ob);
+	self->argtypes = ob;
 	return 0;
+}
+
+static PyObject *
+CFuncPtr_get_argtypes(CFuncPtrObject *self)
+{
+	StgDictObject *dict;
+	if (self->argtypes) {
+		Py_INCREF(self->argtypes);
+		return self->argtypes;
+	}
+	dict = PyObject_stgdict((PyObject *)self);
+	assert(dict);
+	if (dict->argtypes) {
+		Py_INCREF(dict->argtypes);
+		return dict->argtypes;
+	} else {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
 }
 
 static PyGetSetDef CFuncPtr_getsets[] = {
 	{ "restype", NULL, CFuncPtr_set_restype,
 	  "specify the result type", NULL },
-	{ "argtypes", NULL, CFuncPtr_set_argtypes,
+	{ "argtypes", CFuncPtr_get_argtypes, CFuncPtr_set_argtypes,
 	  "specify the argument types", NULL },
 	{ "_as_parameter_", (getter)CFuncPtr_as_parameter, NULL,
 	  "return a magic value so that this can be converted to a C parameter (readonly)",
@@ -1682,8 +1707,11 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	assert(dict); /* if not, it's a bug */
-	if (dict->argtypes) {
-		int required = PyTuple_GET_SIZE(dict->argtypes);
+	restype = self->restype ? self->restype : dict->restype;
+	converters = self->converters ? self->converters : dict->converters;
+
+	if (converters) {
+		int required = PyTuple_GET_SIZE(converters);
 		int actual = PyTuple_GET_SIZE(args);
 		if (required != actual) {
 			PyErr_Format(PyExc_TypeError,
@@ -1694,8 +1722,6 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 	}
-	restype = self->restype ? self->restype : dict->restype;
-	converters = self->converters ? self->converters : dict->converters;
 	return _CallProc(*(void **)self->b_ptr,
 			 args,
 			 NULL,
@@ -1713,6 +1739,7 @@ CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 
 	TRAVERSE(self->callable)
 	TRAVERSE(self->restype)
+	TRAVERSE(self->argtypes)
 	TRAVERSE(self->converters)
 	TRAVERSE(self->b_objects)
 
@@ -1730,6 +1757,9 @@ CFuncPtr_clear(CFuncPtrObject *self)
 
 	Py_XDECREF(self->restype);
 	self->restype = NULL;
+
+	Py_XDECREF(self->argtypes);
+	self->argtypes = NULL;
 
 	Py_XDECREF(self->converters);
 	self->converters = NULL;
@@ -2750,7 +2780,7 @@ static PyTypeObject CString_Type = {
 	0,					/* tp_str */
 	0,					/* tp_getattro */
 	0,					/* tp_setattro */
-	0,					/* tp_as_buffer */
+	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"a mutable string",			/* tp_doc */
 	0,					/* tp_traverse */
