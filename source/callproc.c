@@ -726,11 +726,32 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 	}
 
 	dict = PyType_stgdict(restype);
-	if (dict && dict->getfunc)
-		/* We don't do size-checking, we assume PrepareResult
-		   has already done it. */
+	if (dict && dict->getfunc) {
+		/* This hack is needed for big endian machines.
+		   Is there another way?
+		 */
+		char c;
+		short s;
+		int i;
+		long l;
+		switch (dict->size) {
+		case 1:
+			c = (char)result->value.l;
+			return dict->getfunc(&c, dict->size);
+		case SIZEOF_SHORT:
+			s = (short)result->value.l;
+			return dict->getfunc(&s, dict->size);
+		case SIZEOF_INT:
+			i = (int)result->value.l;
+			return dict->getfunc(&i, dict->size);
+#if (SIZEOF_LONG != SIZEOF_INT)
+		case SIZEOF_LONG:
+			l = (long)result->value.l;
+			return dict->getfunc(&l, dict->size);
+#endif
+		}
 		return dict->getfunc(&result->value, dict->size);
-
+	}
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
 					     result->value.i);
