@@ -199,6 +199,7 @@ static void _CallPythonObject(void *mem,
 				goto Done;
 			}
 #ifdef MS_WIN32
+			/* HA! That should be done by the getfunc, of course. */
 			TryAddRef(dict, v);
 #endif
 			PyTuple_SET_ITEM(arglist, i, v);
