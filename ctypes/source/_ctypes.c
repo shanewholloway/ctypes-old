@@ -2088,6 +2088,11 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 		piunk = *(IUnknown **)this->b_ptr;
+		if (NULL == piunk->lpVtbl) {
+			PyErr_SetString(PyExc_ValueError,
+					"COM method call without VTable");
+			return NULL;
+		}
 		pProc = ((void **)piunk->lpVtbl)[self->index - 0x1000];
 	}
 #endif
