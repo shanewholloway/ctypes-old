@@ -17,7 +17,7 @@ download page
 http://sourceforge.net/project/showfiles.php?group_id=71702.
 
 To install ctypes from source, unpack the distribution,
-enter the ctypes-0.4.0 directory, and enter
+enter the ctypes-0.6.0 directory, and enter
 
   python setup.py install --help
 
@@ -33,10 +33,10 @@ To install from the binary windows installer, make sure you download
 the correct version depending on the Python version you use.
 
 For Python 2.2, you need
-    ctypes-0.4.0.win32-py2.2.exe
+    ctypes-0.6.0.win32-py2.2.exe
 
 For Python 2.3, you need
-    ctypes-0.4.0.win32-py2.3.exe 
+    ctypes-0.6.0.win32-py2.3.exe 
 
 
 ----
@@ -64,7 +64,7 @@ is used to drive MS word as an example.
 
 ----
 
-Current version: 0.4.0
+Current version: 0.6.0
 
 Homepage: http://starship.python.net/crew/theller/ctypes.html
 
