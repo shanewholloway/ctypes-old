@@ -1211,6 +1211,13 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 static PyObject *
 c_char_p_from_param(PyObject *type, PyObject *value)
 {
+	/* This should use setfunc in the same way as SimpleType_from_param does it.
+	   setfunc (which is z_set) handles None, String, and Unicode,
+	   but not Array, Pointer, c_char_p, and CArgObject.
+	   Instead (!) it accepts integers as well, which seems wrong.
+
+	   And fixing this would be a severe api change.
+	*/
 	if (value == Py_None) {
 		Py_INCREF(Py_None);
 		return Py_None;
@@ -2045,37 +2052,6 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		assert(dict);
 		assert(dict->setfunc);
 		return dict->setfunc(ptr, value, size, type);
-/* Seems this code is unused */
-#if 0
-		/*
-		   If value is a tuple, we try to call the type with the tuple
-		   and use the result!
-		*/
-		assert(PyType_Check(type));
-		if (PyTuple_Check(value)) {
-			PyObject *ob;
-			PyObject *result;
-			ob = PyObject_CallObject(type, value);
-			if (ob == NULL) {
-				Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
-						  ((PyTypeObject *)type)->tp_name);
-				return NULL;
-			}
-			result = _CData_set(ptr, ob, size, type);
-			Py_DECREF(ob);
-			return result;
-		} else if (value == Py_None && PointerTypeObject_Check(type)) {
-			*(void **)ptr = NULL;
-			Py_INCREF(Py_None);
-			return Py_None;
-		} else {
-			PyErr_Format(PyExc_TypeError,
-				     "expected %s instance, got %s",
-				     ((PyTypeObject *)type)->tp_name,
-				     value->ob_type->tp_name);
-			return NULL;
-		}
-#endif
 	}
 	src = (CDataObject *)value;
 
@@ -2089,31 +2065,6 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		Py_INCREF(value);
 		return value;
 	}
-
-/* Seems this code is unused */
-#if 0
-	if (PointerTypeObject_Check(type)
-	    && ArrayObject_Check(value)) {
-		StgDictObject *p1, *p2;
-		p1 = PyObject_stgdict(value);
-		p2 = PyType_stgdict(type);
-
-		/* Should probably use issubclass instead of == ... */
-		if (p1->proto != p2->proto) {
-			PyErr_Format(PyExc_TypeError,
-				     "incompatible types, %s instance instead of %s instance",
-				     value->ob_type->tp_name,
-				     ((PyTypeObject *)type)->tp_name);
-			return NULL;
-		}
-		*(void **)ptr = src->b_ptr;
-		/* We are assigning an array object to a field representing a
-		   pointer.  We need to keep the array object alive, not only
-		   its b_objects.
-		*/
-		return (PyObject *)src;
-	}
-#endif
 	PyErr_Format(PyExc_TypeError,
 		     "incompatible types, %s instance instead of %s instance",
 		     value->ob_type->tp_name,
