@@ -52,6 +52,28 @@ class StructureTestCase(unittest.TestCase):
         self.failUnless(alignment(XX) == alignment(X))
         self.failUnless(sizeof(XX) == calcsize("3s 3s 0s"))
 
+    def test_emtpy(self):
+        # I had problems with these
+        #
+        # Although these are patological cases: Empty Structures!
+        class X(Structure):
+            _fields_ = []
+
+        class Y(Union):
+            _fields_ = []
+
+        # Is this really the correct alignment, or should it be 0?
+        self.failUnless(alignment(X) == alignment(Y) == 1)
+        self.failUnless(sizeof(X) == sizeof(Y) == 0)
+
+        class XX(Structure):
+            _fields_ = [("a", X),
+                        ("b", X)]
+
+        self.failUnless(alignment(XX) == 1)
+        self.failUnless(sizeof(XX) == 0)
+
+
 def get_suite():
     return unittest.makeSuite(StructureTestCase, 'test')
 
