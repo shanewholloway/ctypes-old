@@ -118,17 +118,10 @@ class ClassFactory(COMObject):
 ################################################################
 
 def pump_messages():
-    class MSG(Structure):
-        _fields_ = [("hwnd", c_int),
-                    ("message", c_int),
-                    ("wParam", c_int),
-                    ("lParam", c_int),
-                    ("time", c_int),
-                    ("x", c_int),
-                    ("y", c_int)]
-
+    from ctypes.wintypes import MSG
     msg = MSG()
     while user32.GetMessageA(byref(msg), 0, 0, 0):
+        user32.TranslateMessage(byref(msg))
         user32.DispatchMessageA(byref(msg))
 
 def localserver(objclass):
