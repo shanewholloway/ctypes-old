@@ -1825,6 +1825,8 @@ Pointer_item(CDataObject *self, int index)
 	}
 
 	result = (CDataObject *)CData_AtAddress((PyObject *)stgdict->proto, adr);
+	if (!result)
+		return NULL;
 	/* Hm. Should we have an 'owner' parameter in the above call? */
 	/* self owns the buffer, so result must keep a reference to it */
 	Py_INCREF(self);
