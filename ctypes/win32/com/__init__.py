@@ -125,7 +125,7 @@ class _interface_meta(type(Structure)):
 
     def __make_methods(self):
         """This method attaches methods to the interface POINTER class"""
-##        print "# making client methods for interface", self.__name__
+        dprint("# making client methods for interface", self.__name__)
         import new
         index = 0
         ptrclass = POINTER(self)
@@ -202,15 +202,19 @@ class COMObject(object):
         # Take an interface class like 'IUnknown' and create
         # an pointer to it, implementing this interface.
         itf = itfclass()
-        itfname = itfclass.__name__
         vtbltype = itfclass._fields_[0][1]._type_
         methods = []
         for name, proto in vtbltype._fields_:
-            callable = getattr(self, "%s_%s" % (itfname, name), None)
-            if callable is None:
+            # Search for methods named <interface>_<methodname> in the
+            # interface, including base interfaces
+            for i in itfclass.mro()[:-3]:
+                callable = getattr(self, "%s_%s" % (i.__name__, name), None)
+                if callable is not None:
+                    break
+            else:
                 callable = getattr(self, name, self._notimpl)
             if callable == self._notimpl:
-                print "# unimplemented %s for interface %s" % (name, itfname)
+                print "# unimplemented %s for interface %s" % (name, itfclass.__name__)
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
         itf.lpVtbl = pointer(vtbl)
@@ -221,7 +225,7 @@ class COMObject(object):
         return byref(itf)
 
     def _notimpl(self, *args):
-        print "notimpl", args
+##        print "notimpl", args
         return E_NOTIMPL
 
     def QueryInterface(self, this, refiid, ppiunk):
