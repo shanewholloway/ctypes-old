@@ -51,11 +51,11 @@ ffi_call_SYSV(void (* prepfunc)(char *, extended_cif *), /* 8 */
 
 		push esi // NEW: this register must be preserved across function calls
 // XXX SAVE ESP NOW!
-		mov esi, esp
+		mov esi, esp		// save stack pointer before the call
 
 // Make room for all of the new args.
 		mov ecx, [ebp+16]
-		sub esp, ecx
+		sub esp, ecx		// sub esp, bytes
 		
 		mov eax, esp
 
@@ -80,7 +80,11 @@ ffi_call_SYSV(void (* prepfunc)(char *, extended_cif *), /* 8 */
 		mov ecx, [ebp + 20]
 
 // If the return value pointer is NULL, assume no return value.
-		cmp [ebp + 24], 0
+/*
+  Intel asm is weird. We have to explicitely specify 'DWORD PTR' in the nexr instruction,
+  otherwise only one BYTE will be compared (instead of a DWORD)!
+ */
+		cmp DWORD PTR [ebp + 24], 0
 		jne sc_retint
 
 // Even if there is no space for the return value, we are
@@ -190,7 +194,11 @@ ffi_call_STDCALL(void (* prepfunc)(char *, extended_cif *), /* 8 */
 		mov ecx, [ebp + 20]
 
 // If the return value pointer is NULL, assume no return value.
-		cmp [ebp + 24], 0
+/*
+  Intel asm is weird. We have to explicitely specify 'DWORD PTR' in the nexr instruction,
+  otherwise only one BYTE will be compared (instead of a DWORD)!
+ */
+		cmp DWORD PTR [ebp + 24], 0
 		jne sc_retint
 
 // Even if there is no space for the return value, we are
