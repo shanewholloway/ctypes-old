@@ -1057,7 +1057,7 @@ call_commethod(PyObject *self, PyObject *args)
 	if (argtypes && (PyTuple_GET_SIZE(arguments) != PyTuple_GET_SIZE(argtypes))) {
 		PyErr_Format(PyExc_TypeError,
 			     "Method takes %d arguments (%d given)",
-			     PyTuple_GET_SIZE(argtypes), PyTuple_GET_SIZE(argtypes));
+			     PyTuple_GET_SIZE(argtypes), PyTuple_GET_SIZE(arguments));
 		return NULL;
 	}
 
