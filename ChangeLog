@@ -1,3 +1,11 @@
+2005-03-14  Thomas Heller  <theller@python.net>
+
+	* _ctypes.c: Fixed refcount leak in functions with 'out'
+	parameters.
+
+	* _ctypes.c: Keyword arguments to Structures/Unions were ignored.
+	Thanks to Jimmy Retzlaff for finding this.
+
 2005-03-11  Thomas Heller  <theller@python.net>
 
 	* ctypes-0.9.5 released.
