@@ -125,6 +125,7 @@ TypeToVT = {
     3: (3, "iVal"),
     5: (5, "dblVal"),
     8: (8, "strVal"),
+    11: (3, "iVal"),
     }
 
 
@@ -156,7 +157,9 @@ class VARIANT(Structure):
         var = VARIANT()
         if type is None:
             type = self.vt
-        vt, field = TypeToVT[type]
+        vt, field = TypeToVT.get(type, (None, None))
+        if vt is None:
+            return "(%d)" % type
         oleaut32.VariantChangeType(byref(var), byref(self),
                                    0, vt)
         return getattr(var._, field)
@@ -388,7 +391,11 @@ def LoadTypeLibEx(fnm, regkind=REGKIND_NONE):
     p = pointer(ITypeLib())
     oleaut32.LoadTypeLibEx(unicode(fnm), regkind, byref(p))
     return p
-    
+
+def LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid):
+    p = pointer(ITypeLib())
+    oleaut32.LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid, byref(p))
+    return p
 
 if __name__ == '__main__':
     def GetComRefcount(p):
