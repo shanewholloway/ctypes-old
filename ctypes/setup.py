@@ -112,10 +112,14 @@ class test(Command):
             # will be called to run the test, or a get_suite() function
             # which returns a TestSuite.
             try:
-                test_suites.append(TEST.get_suite())
+                suite = TEST.get_suite()
             except AttributeError:
                 self.announce("\t%s" % (self.test_prefix+case))
                 TEST.test(verbose=self.verbose)
+            else:
+                if suite:
+                    test_suites.append(suite)
+
 
         if test_suites:
             import unittest
