@@ -18,7 +18,7 @@ class ValuesTestCase(unittest.TestCase):
         if not given, it is 0 and __debug__ is 1.
         If -O is given, the flag is 1, for -OO it is 2.
         docstrings are also removed in the latter case."""
-        opt = c_int.in_dll("Py_OptimizeFlag", pydll).value
+        opt = c_int.in_dll(pydll, "Py_OptimizeFlag").value
         if __debug__:
             self.failUnlessEqual(opt, 0)
         elif ValuesTestCase.__doc__ is not None:
@@ -41,7 +41,7 @@ class ValuesTestCase(unittest.TestCase):
 
         FrozenTable = POINTER(struct_frozen)
 
-        ft = FrozenTable.in_dll("PyImport_FrozenModules", pydll)
+        ft = FrozenTable.in_dll(pydll, "PyImport_FrozenModules")
         # ft is a pointer to the struct_frozen entries:
         items = []
         for entry in ft:
@@ -53,6 +53,9 @@ class ValuesTestCase(unittest.TestCase):
             items.append((entry.name, entry.size))
         expected = [("__hello__", 100), ("__phello__", -100), ("__phello__.spam", 100)]
         self.failUnlessEqual(items, expected)
+
+    def test_function_pointer(self):
+        hook_ptr = c_int.in_dll
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
