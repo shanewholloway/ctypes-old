@@ -920,6 +920,40 @@ WCharArray_set_value(CDataObject *self, PyObject *value)
 	return result;
 }
 
+/* merge code with WCharArray_set_value */
+static PyObject *
+WCharArray_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
+{
+	if (PyString_Check(value)) {
+		value = PyUnicode_FromEncodedObject(value,
+						    conversion_mode_encoding,
+						    conversion_mode_errors);
+		if (value == NULL)
+			return NULL;
+	} else
+		Py_INCREF(value);
+	if (PyUnicode_Check(value)) {
+		unsigned len = (unsigned)PyUnicode_GET_SIZE(value);
+		if (len > size/sizeof(wchar_t)) {
+			PyErr_SetString(PyExc_ValueError,
+					"string too long");
+			Py_DECREF(value);
+			return NULL;
+		}
+		len = PyUnicode_AsWideChar((PyUnicodeObject *)value,
+					   (wchar_t *)ptr,
+					   size/sizeof(wchar_t));
+		Py_DECREF(value);
+		if (len < 0)
+			return NULL;
+		if (len < size/sizeof(wchar_t))
+			((wchar_t *)ptr)[len] = (wchar_t)0;
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	return StructUnion_setfunc(ptr, value, size, type);
+}
+
 static PyGetSetDef WCharArray_getsets[] = {
 	{ "value", (getter)WCharArray_get_value, (setter)WCharArray_set_value,
 	  "string value"},
@@ -1096,7 +1130,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		if (-1 == add_getset(result, WCharArray_getsets))
 			return NULL;
 		stgdict->getfunc = WCharArray_getfunc;
-//		stgdict->setfunc = WCharArray_setfunc;
+		stgdict->setfunc = WCharArray_setfunc;
 #endif
 	}
 
