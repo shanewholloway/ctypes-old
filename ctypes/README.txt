@@ -9,6 +9,13 @@ modules. ctypes is not based on Sam's work, it has different roots.
 It requires Python 2.2 or higher, since it makes intensive use of the
 new type system.
 
+For all platforms except Windows you'll need a recent version of
+libffi which supports your processor.  Ronald Oussoren has kindly
+assembled a snapshot of libffi taken from the GCC CVS repository which
+works with this release, it is availabale for download from the ctypes
+download page
+http://sourceforge.net/project/showfiles.php?group_id=71702.
+
 ----
 
 It provides classes which can be used to create complicated C data
