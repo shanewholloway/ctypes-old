@@ -549,11 +549,11 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 #if (SIZEOF_LONG_LONG == 8 && SIZEOF_LONG == 4)
 #undef ffi_type_ulong
 #define ffi_type_ulong ffi_type_uint32
-#define ffi_type_ulonglong ffi_type_uint64
 #undef ffi_type_slong
 #define ffi_type_slong ffi_type_sint32
-#define ffi_type_slonglong ffi_type_sint64
 #endif
+#define ffi_type_ulonglong ffi_type_uint64
+#define ffi_type_slonglong ffi_type_sint64
 
 ffi_type *tag2ffitype(char tag)
 {
