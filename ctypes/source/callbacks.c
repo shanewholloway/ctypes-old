@@ -500,6 +500,8 @@ static void closure_fcn(ffi_cif *cif,
 			  pArgs);
 }
 
+extern ffi_type *tag2ffitype(char tag);
+
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
@@ -512,22 +514,25 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	PyCArgObject cResult;
 
 	nArgs = PySequence_Size(converters);
-	p = PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
+	p = (ffi_info *)PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
 
 	/* Check for NULL */
 	for (i = 0; i < nArgs; ++i) {
-		p->atypes[i] = &ffi_type_sint;
+		PyObject *cnv = PySequence_GetItem(converters, i);
+		PrepareResult(restype, &cResult);
+		p->atypes[i] = tag2ffitype(cResult.tag);
+		Py_DECREF(cnv);
 	}
 
+	PrepareResult(restype, &cResult);
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_cif(&p->cif, FFI_DEFAULT_ABI, nArgs,
-			      &ffi_type_sint,
+			      tag2ffitype(cResult.tag),
 			      &p->atypes[0]);
 
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
 
-	PrepareResult(restype, &cResult);
 	switch (cResult.tag) {
 		/* "bBhHiIlLqQdfP" */
 	case 'b':
@@ -552,6 +557,12 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		break;
 	case 'f':
 		p->format = "f";
+		break;
+	case 'z':
+		p->format = "z";
+		break;
+	case 'c':
+		p->format = "c";
 		break;
 	default:
 		PyErr_Format(PyExc_TypeError, "invalid restype %c", cResult.tag);
