@@ -948,8 +948,15 @@ static struct fielddesc formattable[] = {
 	{ 'I', I_set, I_get, &ffi_type_uint},
 /* XXX Hm, sizeof(int) == sizeof(long) doesn't hold on every platform */
 /* As soon as we can get rid of the type codes, this is no longer a problem */
+#if SIZEOF_LONG == 4
 	{ 'l', l_set, l_get, &ffi_type_sint},
 	{ 'L', L_set, L_get, &ffi_type_uint},
+#elif SIZEOF_LONG == 8
+	{ 'l', l_set, l_get, &ffi_type_slong},
+	{ 'L', L_set, L_get, &ffi_type_ulong},
+#else
+# error
+#endif
 #ifdef HAVE_LONG_LONG
 	{ 'q', q_set, q_get, &ffi_type_slong},
 	{ 'Q', Q_set, Q_get, &ffi_type_ulong},
