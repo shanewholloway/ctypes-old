@@ -43,7 +43,7 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 if os.name == "nt":
     kw["sources"].extend([
-        "source/libffi_msvc/types.c",
+        # types.c is no longer needed, ffi_type defs are in cfield.c
         "source/libffi_msvc/ffi.c",
         "source/libffi_msvc/prep_cif.c",
         "source/libffi_msvc/win32.c",
