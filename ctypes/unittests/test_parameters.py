@@ -65,6 +65,29 @@ class SimpleTypesTestCase(unittest.TestCase):
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_uint(42)))
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_short(42)))
 
+    def test_byref_pointer(self):
+        # The from_param class method of POINTER(typ) classes accepts what is
+        # returned by byref(obj), it type(obj) == typ
+        from ctypes import c_short, c_uint, c_int, c_long, pointer, POINTER, byref
+        LPINT = POINTER(c_int)
+
+        LPINT.from_param(byref(c_int(42)))
+
+        self.assertRaises(TypeError, LPINT.from_param, byref(c_short(22)))
+        self.assertRaises(TypeError, LPINT.from_param, byref(c_long(22)))
+        self.assertRaises(TypeError, LPINT.from_param, byref(c_uint(22)))
+
+    def test_byref_pointerpointer(self):
+        # See above
+        from ctypes import c_short, c_uint, c_int, c_long, pointer, POINTER, byref
+
+        LPLPINT = POINTER(POINTER(c_int))
+        LPLPINT.from_param(byref(pointer(c_int(42))))
+
+        self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_short(22))))
+        self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_long(22))))
+        self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_uint(22))))
+
     def test_array_pointers(self):
         from ctypes import c_short, c_uint, c_int, c_long, POINTER
         INTARRAY = c_int * 3
@@ -79,7 +102,6 @@ class SimpleTypesTestCase(unittest.TestCase):
         self.assertRaises(TypeError, LPINT.from_param, c_short*3)
         self.assertRaises(TypeError, LPINT.from_param, c_long*3)
         self.assertRaises(TypeError, LPINT.from_param, c_uint*3)
-        print "OK"
 
 ##    def test_performance(self):
 ##        check_perf()

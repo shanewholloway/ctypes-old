@@ -150,6 +150,8 @@ class FunctionTestCase(unittest.TestCase):
         self.failUnless(type(result) == POINTER(c_int))
         self.failUnless(result.contents.value == 42)
 
+        self.assertRaises(TypeError, f, byref(c_short(22)))
+
         # It is dangerous, however, because you don't control the lifetime
         # of the pointer:
         result = f(byref(c_int(99)))
