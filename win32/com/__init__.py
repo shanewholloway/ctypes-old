@@ -224,17 +224,42 @@ IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnk
 
 DEBUG = __debug__
 
+import _winreg
+def interface_name(iid):
+    # A handy function which returns the name of an interface from
+    # it's iid.  If the interface is not registered, returns str(iid).
+    try:
+        return _winreg.QueryValue(_winreg.HKEY_CLASSES_ROOT, "Interface\\%s" % iid)
+    except WindowsError:
+        return str(iid)
+
+
 def _wrap(func, name, itfclass):
+    # This function is called, if DEBUG is True, to wrap a COM
+    # interface method implementation.  For now, it prints method
+    # calls via Windows' OutputDebugString mechanism, and for the
+    # QueryInterface and CreateInstance method calls additionally the
+    # interface requested.  This can be very handy in debugging.
     from ctypes.com.server import dprint
-    def wrapped(self, *args):
-##        dprint("XXX", [hasattr(a, "AddRef") for a in args])
-        result = func(self, *args)
-        dprint("<method call> %s.%s -> %s" % \
-               (itfclass.__name__, name, result))
-        return result
+    if name == "QueryInterface":
+        def wrapped(this, *args):
+            result = func(this, *args)
+            dprint("<method call> %s.%s(%s) -> %s" % \
+                   (itfclass.__name__, name, interface_name(args[0][0]), result))
+            return result
+    elif name == "CreateInstance":
+        def wrapped(this, *args):
+            result = func(this, *args)
+            dprint("<method call> %s.%s(%s) -> %s" % \
+                   (itfclass.__name__, name, _itf_name(args[1][0]), result))
+            return result
+    else:
+        def wrapped(this, *args):
+            result = func(this, *args)
+            dprint("<method call> %s.%s -> %s" % \
+                   (itfclass.__name__, name, result))
+            return result
     return wrapped
-
-
 
 class COMObject(object):
     _refcnt = 0
