@@ -428,6 +428,7 @@ static void closure_fcn(ffi_cif *cif,
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
+			    PyObject *restype,
 			    int is_cdecl)
 {
 	int result;
