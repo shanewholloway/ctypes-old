@@ -417,3 +417,20 @@ class DualObjImpl(COMObject):
         c_voidp.from_address(addr).value = addressof(self.typeinfo.contents)
         self.typeinfo.AddRef()
         return S_OK
+
+################################################################
+# The following two are used by the readtlb tool
+
+class dispinterface(IDispatch):
+    class __metaclass__(type(IDispatch)):
+        def __setattr__(self, name, value):
+            if name == '_dispmethods_':
+                dispmap = {}
+                for dispid, mthname, proto in value:
+                    dispmap[dispid] = mthname
+                setattr(self, '_methods_', IDispatch._methods_)
+                type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
+            type(IDispatch).__setattr__(self, name, value)
+
+def DISPMETHOD(dispid, restype, name, *argtypes):
+    return dispid, name, STDMETHOD(HRESULT, name, *argtypes)
