@@ -71,13 +71,33 @@ class _compointer_base(c_void_p):
     __metaclass__ = _compointer_meta
     def __del__(self):
         "Release the COM refcount we own."
-        if self.value:
+        if self: # calls __nonzero__
             self.Release()
+
+    # Hm, shouldn't this be in c_void_p ?
+    def __nonzero__(self):
+        # get the value property of the baseclass, this is the pointer value
+        # both variants below do the same, and both are equally unreadable ;-)
+        return bool(super(_compointer_base, self).value)
+##        return bool(c_void_p.value.__get__(self))
+
     def __eq__(self, other):
+        # COM identity rule
         if not isinstance(other, _compointer_base):
             return False
-        return self.value == other.value
+        # get the value property of the c_void_p baseclass, this is the pointer value
+        return super(_compointer_base, self).value == super(_compointer_base, other).value
 
+    # override the .value property of c_void_p
+    #
+    # for symmetry with other ctypes types
+    # XXX explain
+    def __get_value(self):
+        return self
+    value = property(__get_value)
+
+    def __repr__(self):
+        return "<%s instance at %x>" % (self.__class__.__name__, id(self))
 ################################################################
 
 from comtypes.BSTR import BSTR
@@ -117,7 +137,7 @@ __all__ = "IUnknown GUID HRESULT BSTR STDMETHOD".split()
 
 if __name__ == "__main__":
 
-    help(POINTER(IUnknown))
+##    help(POINTER(IUnknown))
 
     class IMyInterface(IUnknown):
         pass
@@ -133,6 +153,9 @@ if __name__ == "__main__":
 ##    assert bool(p) is False
 
     windll.oleaut32.CreateTypeLib(1, u"blabla", byref(p))
+
+    print p
+
     assert (2, 1) == (p.AddRef(), p.Release())
 
     p1 = p.QueryInterface(IUnknown)
