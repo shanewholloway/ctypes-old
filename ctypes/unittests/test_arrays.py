@@ -74,22 +74,20 @@ class ArrayTestCase(unittest.TestCase):
             _length_ = alen
 
         na = numarray()
-        values = [na[i].value for i in range(alen)]
+        values = [na[i] for i in range(alen)]
         self.failUnless(values == [0] * alen)
 
         na = numarray(*[c_int()] * alen)
-        values = [na[i].value for i in range(alen)]
+        values = [na[i] for i in range(alen)]
         self.failUnless(values == [0]*alen)
 
-        # Should this work or not? Currently it doesn't,
-        # but's the same with Structure fields for example.
-        #
-        # Type c_int is incompatible with Python's int:
-        self.assertRaises(TypeError, numarray, 1, 2, 3, 4, 5)
+        na = numarray(1, 2, 3, 4, 5)
+        values = [i for i in na]
+        self.failUnless(values == [1, 2, 3, 4, 5])
 
-        from operator import setitem
-        self.assertRaises(TypeError, setitem, na, 0, 5)
-        
+        na = numarray(*map(c_int, (1, 2, 3, 4, 5)))
+        values = [i for i in na]
+        self.failUnless(values == [1, 2, 3, 4, 5])
 
 def get_suite():
     return unittest.makeSuite(ArrayTestCase)

@@ -1305,11 +1305,21 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs)
 	PyObject *mem;
 	PyObject *args, *kw;
 
+	StgDictObject *dict;
+
 	if (base && !CDataObject_Check(base)) {
 		PyErr_SetString(PyExc_TypeError,
 				"expected CDataObject");
 		return NULL;
 	}
+
+	/* Return native Python type instead of c_int or such */
+	dict = PyType_stgdict(type);
+	if (base && dict && dict->getfunc) {
+		CDataObject *cbase = (CDataObject *)base;
+		return dict->getfunc(cbase->b_ptr + baseofs, dict->size);
+	}
+
 	spec.base = (CDataObject *)base;
 	spec.offset = baseofs;
 	spec.index = index;
@@ -2054,24 +2064,29 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	offset = index * size;
 
 	if (stgdict->proto) {
-		/* typecheck */
-		if (!PyObject_IsInstance(value, stgdict->proto)) {
+		/* Hm. Do we need this? Isn't the above check sufficient? */
+		if (!CDataObject_Check(value)) {
+			StgDictObject *dict;
+			dict = PyType_stgdict(stgdict->proto);
+			if (dict && dict->setfunc) {
+				value = dict->setfunc(self->b_ptr + offset,
+						      value, size);
+			} else {
+				PyErr_SetString(PyExc_TypeError,
+						"CData object expected");
+				return -1;
+			}
+		} else if (PyObject_IsInstance(value, stgdict->proto)) {
+			/* copy into buffer */
+			mem = (CDataObject *)value; /* checked above */
+			memcpy(self->b_ptr + offset, mem->b_ptr, size);
+			Py_INCREF(value); /* keep this ref */
+		} else {
 			PyErr_SetString(PyExc_TypeError,
 					"wrong type");
 			return -1;
 		}
-
-		/* Hm. Do we need this? Isn't the above check sufficient? */
-		if (!CDataObject_Check(value)) {
-			PyErr_SetString(PyExc_TypeError,
-					"CData object expected");
-			return -1;
-		}
-
-		/* copy into buffer */
-		mem = (CDataObject *)value; /* checked above */
-		memcpy(self->b_ptr + offset, mem->b_ptr, size);
-		Py_INCREF(value); /* keep this ref */
+		/* now 'value' is to keep */
 	} else {
 		value = stgdict->setfunc(self->b_ptr + offset, value, size);
 		if (!value)
