@@ -375,3 +375,7 @@ if _os.name == "nt":
         return WindowsError(code, descr)
 
 _pointer_type_cache[None] = c_void_p
+
+# functions
+
+from _ctypes import memmove, get_string
