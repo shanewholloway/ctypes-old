@@ -390,7 +390,7 @@ class my_build_ext(build_ext.build_ext):
             print "Failed"
             sys.exit(res)
 
-        self.fix_extension(inst_dir)
+        assert self.fix_extension(inst_dir), "Could not find libffi after building it"
 
 # Since we mangle the build_temp dir, we must also do this in the clean command.
 class my_clean(clean.clean):
