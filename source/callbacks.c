@@ -7,6 +7,7 @@
 #define alloca _alloca
 #endif
 
+#define USE_LIBFFI
 
 /* For 2.3, use the PyGILState_ calls, see PEP 311 */
 #if (PY_VERSION_HEX >= 0x02030000)
@@ -53,7 +54,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 			    int is_cdecl);
 
 
-#ifdef MS_WIN32
+#ifndef USE_LIBFFI
 staticforward THUNK AllocCallback(PyObject *callable,
 				  int nArgBytes,
 				  PyObject *converters,
@@ -126,7 +127,11 @@ static void _CallPythonObject(void *mem,
 		}
 
 		if (dict && dict->getfunc) {
+#ifdef USE_LIBFFI
+			PyObject *v = dict->getfunc(*pArgs, dict->size);
+#else
 			PyObject *v = dict->getfunc(pArgs, dict->size);
+#endif
 			if (!v) {
 				PrintError("create argument %d:\n", i);
 				goto Done;
@@ -137,11 +142,10 @@ static void _CallPythonObject(void *mem,
 			   1 resp. 4, but these parameters are pushed as sizeof(int) bytes.
 			   BTW, the same problem occurrs when they are pushed as parameters
 			*/
+#ifndef USE_LIBFFI
 			pArgs += (dict->size + sizeof(int) - 1) / sizeof(int);
-			continue;
-		}
-
-		if (dict) {
+#endif
+		} else if (dict) {
 			/* Hm, shouldn't we use CData_AtAddress() or something like that instead? */
 			CDataObject *obj = (CDataObject *)PyObject_CallFunctionObjArgs(cnv, NULL);
 			if (!obj) {
@@ -153,9 +157,12 @@ static void _CallPythonObject(void *mem,
 				PrintError("unexpected result of create argument %d:\n", i);
 				goto Done;
 			}
+#ifdef USE_LIBFFI
+			memcpy(obj->b_ptr, *pArgs, dict->size);
+#else
 			memcpy(obj->b_ptr, pArgs, dict->size);
-			/* XXX See above */
 			pArgs += (dict->size + sizeof(int) - 1) / sizeof(int);
+#endif
 			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
 		} else {
 			PyErr_SetString(PyExc_TypeError,
@@ -164,6 +171,9 @@ static void _CallPythonObject(void *mem,
 			goto Done;
 		}
 		/* XXX error handling! */
+#ifdef USE_LIBFFI
+		pArgs++;
+#endif
 	}
 	result = PyObject_CallObject(callable, arglist);
 	if (!result) {
@@ -186,7 +196,7 @@ static void _CallPythonObject(void *mem,
 #endif
 }
 
-#ifdef MS_WIN32
+#ifndef USE_LIBFFI
 static int __stdcall z_CallPythonObject(PyObject *callable,
 					PyObject *converters,
 					void **pArgs)
@@ -465,7 +475,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 			     func,
 			     is_cdecl);
 }
-#else /* ! MS_WIN32 */
+#else /* USE_LIBFFI */
 
 typedef struct {
 	ffi_closure cl; /* the C callable */
@@ -482,22 +492,12 @@ static void closure_fcn(ffi_cif *cif,
 			void *userdata)
 {
 	ffi_info *p = userdata;
-	int nArgs = PySequence_Length(p->converters);
-	void **pArgs = alloca(sizeof(void *) * nArgs);
-	int i;
-
-	/* args is an array containing pointers to pointers to arguments, but
-	   CallPythonObject expects an array containing pointers to arguments.
-	*/
-	for (i = 0; i < nArgs; ++i) {
-		pArgs[i] = *(void ***)args[i];
-	}
 
 	_CallPythonObject(resp,
 			  p->format,
 			  p->callable,
 			  p->converters,
-			  pArgs);
+			  args);
 }
 
 THUNK AllocFunctionCallback(PyObject *callable,
@@ -599,7 +599,7 @@ void FreeCallback(THUNK thunk)
 
 void init_callbacks_in_module(PyObject *m)
 {
-#ifdef MS_WIN32
+#ifndef USE_LIBFFI
 	CALLBACKINFO (__stdcall *pFunc)(DWORD);
 	pFunc = (CALLBACKINFO (__stdcall *)(DWORD)) CallbackTemplate;
 	ti = pFunc(0);
