@@ -182,6 +182,9 @@ UnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return CDataType_new(type, args, kwds, 0);
 }
 
+static char from_address_doc[] =
+"C.from_address(integer) -> C instance\naccess a C instance at the specified address";
+
 static PyObject *
 CDataType_from_address(PyObject *type, PyObject *value)
 {
@@ -194,6 +197,9 @@ CDataType_from_address(PyObject *type, PyObject *value)
 	buf = (void *)PyInt_AS_LONG(value);
 	return CData_AtAddress(type, buf);
 }
+
+static char in_dll_doc[] =
+"C.in_dll(dll, name) -> C instance\naccess a C instance in a dll";
 
 static PyObject *
 CDataType_in_dll(PyObject *type, PyObject *args)
@@ -288,12 +294,9 @@ CDataType_from_param(PyObject *type, PyObject *value)
 }
 
 static PyMethodDef CDataType_methods[] = {
-	{ "from_param", CDataType_from_param, METH_O,
-	  from_param_doc },
-	{ "from_address", CDataType_from_address, METH_O,
-	  "create an instance from an address"},
-	{ "in_dll", CDataType_in_dll, METH_VARARGS,
-	  "access an instance in a dll"},
+	{ "from_param", CDataType_from_param, METH_O, from_param_doc },
+	{ "from_address", CDataType_from_address, METH_O, from_address_doc },
+	{ "in_dll", CDataType_in_dll, METH_VARARGS, in_dll_doc },
 	{ NULL, NULL },
 };
 
@@ -536,12 +539,9 @@ PointerType_from_param(PyObject *type, PyObject *value)
 }
 
 static PyMethodDef PointerType_methods[] = {
-	{ "from_address", CDataType_from_address, METH_O,
-	  "create an instance from an address"},
-	{ "in_dll", CDataType_in_dll, METH_VARARGS,
-	  "access an instance in a dll"},
-	{ "from_param", (PyCFunction)PointerType_from_param, METH_O,
-	  from_param_doc},
+	{ "from_address", CDataType_from_address, METH_O, from_address_doc },
+	{ "in_dll", CDataType_in_dll, METH_VARARGS, in_dll_doc},
+	{ "from_param", (PyCFunction)PointerType_from_param, METH_O, from_param_doc},
 	{ "set_type", (PyCFunction)PointerType_set_type, METH_O },
 	{ NULL, NULL },
 };
@@ -1289,12 +1289,9 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 }
 
 static PyMethodDef SimpleType_methods[] = {
-	{ "from_param", SimpleType_from_param, METH_O,
-	  from_param_doc },
-	{ "from_address", CDataType_from_address, METH_O,
-	  "create an instance from an address"},
-	{ "in_dll", CDataType_in_dll, METH_VARARGS,
-	  "access an instance in a dll"},
+	{ "from_param", SimpleType_from_param, METH_O, from_param_doc },
+	{ "from_address", CDataType_from_address, METH_O, from_address_doc },
+	{ "in_dll", CDataType_in_dll, METH_VARARGS, in_dll_doc},
 	{ NULL, NULL },
 };
 
@@ -2823,10 +2820,11 @@ Array_item(CDataObject *self, int index)
 			 index, size, self->b_ptr + offset);
 }
 
-#ifdef CAN_SLICE
-static PyListObject *
+static PyObject *
 Array_slice(CDataObject *self, int ilow, int ihigh)
 {
+	StgDictObject *stgdict, *itemdict;
+	PyObject *proto;
 	PyListObject *np;
 	int i, len;
 
@@ -2840,6 +2838,19 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 		ihigh = self->b_length;
 	len = ihigh - ilow;
 
+	stgdict = PyObject_stgdict((PyObject *)self);
+	proto = stgdict->proto;
+	itemdict = PyType_stgdict(proto);
+	if (itemdict->getfunc == getentry("c")->getfunc) {
+		char *ptr = (char *)self->b_ptr;
+		return PyString_FromStringAndSize(ptr + ilow, len);
+#ifdef HAVE_USABLE_WCHAR_T
+	} else if (itemdict->getfunc == getentry("u")->getfunc) {
+		wchar_t *ptr = (wchar_t *)self->b_ptr;
+		return PyUnicode_FromWideChar(ptr + ilow, len);
+#endif
+	}
+
 	np = (PyListObject *) PyList_New(len);
 	if (np == NULL)
 		return NULL;
@@ -2848,9 +2859,8 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 		PyObject *v = Array_item(self, i+ilow);
 		PyList_SET_ITEM(np, i, v);
 	}
-	return np;
+	return (PyObject *)np;
 }
-#endif
 
 static int
 Array_ass_item(CDataObject *self, int index, PyObject *value)
@@ -2879,12 +2889,10 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 			 index, size, ptr);
 }
 
-#ifdef CAN_SLICE
 static int
 Array_ass_slice(CDataObject *self, int ilow, int ihigh, PyObject *value)
 {
 	int i, len;
-	PyObject *item;
 
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
@@ -2921,7 +2929,6 @@ Array_ass_slice(CDataObject *self, int ilow, int ihigh, PyObject *value)
 	}
 	return 0;
 }
-#endif
 
 static int
 Array_length(CDataObject *self)
@@ -2934,17 +2941,9 @@ static PySequenceMethods Array_as_sequence = {
 	0,					/* sq_concat; */
 	0,					/* sq_repeat; */
 	(intargfunc)Array_item,			/* sq_item; */
-#ifdef CAN_SLICE
 	(intintargfunc)Array_slice,		/* sq_slice; */
-#else
-	0,					/* sq_slice; */
-#endif
 	(intobjargproc)Array_ass_item,		/* sq_ass_item; */
-#ifdef CAN_SLICE
 	(intintobjargproc)Array_ass_slice,	/* sq_ass_slice; */
-#else
-	0,					/* sq_ass_slice; */
-#endif
 	0,					/* sq_contains; */
 	
 	0,					/* sq_inplace_concat; */
@@ -3352,12 +3351,50 @@ Pointer_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 	return GenericCData_new(type, args, kw);
 }
 
+static PyObject *
+Pointer_slice(CDataObject *self, int ilow, int ihigh)
+{
+	PyListObject *np;
+	StgDictObject *stgdict, *itemdict;
+	PyObject *proto;
+	int i, len;
+
+	if (ilow < 0)
+		ilow = 0;
+	if (ihigh < ilow)
+		ihigh = ilow;
+	len = ihigh - ilow;
+
+	stgdict = PyObject_stgdict((PyObject *)self);
+	proto = stgdict->proto;
+	itemdict = PyType_stgdict(proto);
+	if (itemdict->getfunc == getentry("c")->getfunc) {
+		char *ptr = *(char **)self->b_ptr;
+		return PyString_FromStringAndSize(ptr + ilow, len);
+#ifdef HAVE_USABLE_WCHAR_T
+	} else if (itemdict->getfunc == getentry("u")->getfunc) {
+		wchar_t *ptr = *(wchar_t **)self->b_ptr;
+		return PyUnicode_FromWideChar(ptr + ilow, len);
+#endif
+	}
+
+	np = (PyListObject *) PyList_New(len);
+	if (np == NULL)
+		return NULL;
+
+	for (i = 0; i < len; i++) {
+		PyObject *v = Pointer_item(self, i+ilow);
+		PyList_SET_ITEM(np, i, v);
+	}
+	return (PyObject *)np;
+}
+
 static PySequenceMethods Pointer_as_sequence = {
 	0,					/* inquiry sq_length; */
 	0,					/* binaryfunc sq_concat; */
 	0,					/* intargfunc sq_repeat; */
 	(intargfunc)Pointer_item,		/* intargfunc sq_item; */
-	0,					/* intintargfunc sq_slice; */
+	(intintargfunc)Pointer_slice,		/* intintargfunc sq_slice; */
 	(intobjargproc)Pointer_ass_item,	/* intobjargproc sq_ass_item; */
 	0,					/* intintobjargproc sq_ass_slice; */
 	0,					/* objobjproc sq_contains; */
