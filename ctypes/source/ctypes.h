@@ -31,7 +31,6 @@ struct tagCDataObject {
 	int b_length;		/* number of references we need */
 	int b_index;		/* index of this object into base's
 				   b_object list */
-
 	PyObject *b_objects;	/* list of references we need to keep */
 };
 
@@ -45,7 +44,6 @@ typedef struct {
 	int b_length;		/* number of references we need */
 	int b_index;		/* index of this object into base's
 				   b_object list */
-
 	PyObject *b_objects;	/* list of references we need to keep */
 	/* end of tagCDataObject, additional fields follow */
 
@@ -189,6 +187,8 @@ PyObject *_CallProc(PPROC pProc,
 #define FUNCFLAG_CDECL   0x1
 #define FUNCFLAG_HRESULT 0x2
 #define FUNCFLAG_PYTHONAPI 0x4
+
+#define DICTFLAG_FINAL 0x1000
 
 typedef struct {
 	PyObject_HEAD

@@ -165,6 +165,8 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 			Py_DECREF(result);
 			return NULL;
 		}
+		dict->flags &= ~DICTFLAG_FINAL; /* clear the 'final' flag in the subclass dict */
+		basedict->flags |= DICTFLAG_FINAL; /* set the 'final' flag in the baseclass dict */
 		return (PyObject *)result;
 	}
 
@@ -2029,6 +2031,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 				"abstract class");
 		return NULL;
 	}
+	dict->flags |= DICTFLAG_FINAL;
 	size = dict->size;
 	align = dict->align;
 	length = dict->length;
@@ -2697,8 +2700,10 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 		return -1;
 	}
 	fields = PyObject_GetAttrString(self, "_fields_");
-	if (!fields)
-		return IBUG("no _fields_");
+	if (!fields) {
+		PyErr_Clear();
+		fields = PyTuple_New(0);
+	}
 
 	if (PyTuple_GET_SIZE(args) > PySequence_Length(fields)) {
 		Py_DECREF(fields);
