@@ -208,7 +208,7 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 			case FFI_TYPE_SINT8:
 			case FFI_TYPE_SINT16:
 				if (dict->getfunc != getentry("c")->getfunc
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 				    && dict->getfunc != getentry("u")->getfunc
 #endif
 					)
