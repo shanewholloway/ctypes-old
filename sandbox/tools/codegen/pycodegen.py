@@ -103,7 +103,7 @@ def make_struct_body(name, struct):
             args = [type_name(a) for a in m.arguments]
             text = "    STDMETHOD(%s, '%s'" % (type_name(m.returns), m.name)
             if args:
-                print "%s,%s)," % (text, ", ".join(args))
+                print "%s, %s)," % (text, ", ".join(args))
             else:
                 print "%s)," % text
         print "]"
@@ -189,12 +189,10 @@ def gen_typedefs(done, items):
         if isinstance(i, nodes.FundamentalType):
             done.add(i)
     for i in items - done:
-##        if isinstance(i, nodes.Typedef) and isinstance(i.typ, nodes.FundamentalType):
-##            print "%s = %s" % (i.name, type_name(i.typ))
-##            done.add(i)
-##        else:
         if isinstance(i, nodes.Typedef):
-            print "%s = %s" % (i.name, type_name(i.typ))
+            tp_name = type_name(i.typ)
+            if tp_name != i.name:
+                print "%s = %s" % (i.name, type_name(i.typ))
             done.add(i)
 
     for i in items - done:
@@ -205,6 +203,12 @@ def gen_typedefs(done, items):
             done.add(i)
         elif isinstance(i.typ, nodes.PointerType) and get_pointed_to(i.typ) in done:
             print "%s = %s ##" % (i.name, type_name(i.typ))
+            done.add(i)
+    return done, items - done
+
+def gen_arrays(done, items):
+    for i in items:
+        if isinstance(i, nodes.ArrayType):
             done.add(i)
     return done, items - done
 
@@ -276,6 +280,7 @@ def generate(item):
     items = set([item])
     done, items = gen_enums(done, items)
     done, items = gen_typedefs(done, items)
+    done, items = gen_arrays(done, items)
     done, items = gen_structs(done, items)
     done, items = gen_functions(done, items)
     return done
@@ -328,6 +333,7 @@ def main():
     for howoften in range(50):
         for i in todo.copy():
             needs = set(i.depends())
+            assert i not in needs
             if needs.issubset(done): # can generate this one now
 ##                print "# generate", i
 ##                print "#depends", i.depends()
@@ -341,22 +347,31 @@ def main():
 ##        print "#%d:" % howoften, len(done), len(todo)
         if not todo:
             print "# done after %d iterations" % howoften
-            return
+            return list(todo), list(done)
     todo = list(todo)
     print "# left %d items after %d iterations" % (len(todo), howoften+1)
     print "#", todo
+    return todo, list(done)
 
-    return todo
+def explain(t, done):
+    needs = t.depends()
+    unresolved = set(done) - set(needs)
+    print "for type", t
+    print "unresolved", unresolved
     
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 1:
         sys.argv.append("IDispatch")
-    todo = main()
+    todo, done = main()
+    if todo:
+        print explain(todo[0], done)
 
 # TODO-List:
 #
 # separate dependencies between structure body and structure fields,
 # so that the various IType... interfaces can be generated.
+#
 # calculate/guess Structure alignment
-# read IID's from the registry
+#
+# read IID's from the registry (?)
