@@ -584,7 +584,7 @@ static int _call_function_pointer(int flags,
 				  struct argument *res,
 				  int argcount)
 {
-	PyThreadState *_save;
+	PyThreadState *_save; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
 	ffi_cif cif;
 	int cc;
 #ifdef MS_WIN32
@@ -1056,7 +1056,7 @@ static PyObject *py_dl_open(PyObject *self, PyObject *args)
 	/* cygwin doesn't define RTLD_LOCAL */
 	int mode = RTLD_NOW;
 #endif
-	if (!PyArg_ParseTuple(args, "s:dlopen", &name))
+	if (!PyArg_ParseTuple(args, "z:dlopen", &name))
 		return NULL;
 	handle = dlopen(name, mode);
 	if (!handle) {
