@@ -93,6 +93,31 @@ PyObject_stgdict(PyObject *self)
 	return PyType_stgdict((PyObject *)self->ob_type);
 }
 
+#if 0
+/* work in progress: anonymous structure fields */
+int
+GetFields(PyObject *desc, int *pindex, int *psize, int *poffset, int *palign, int pack);
+
+{
+	int i;
+	PyObject *tuples = PyObject_GetAttrString(desc, "_fields_");
+	if (tuples == NULL)
+		return -1;
+	if (!PyTuple_Check(tuples))
+		return -1; /* leak */
+	for (i = 0; i < PyTuple_GET_SIZE(tuples); ++i) {
+		char *fname;
+		PyObject *dummy;
+		CFieldObject *field;
+		PyObject *pair = PyTuple_GET_ITEM(tuples, i);
+		if (!PyArg_ParseTuple(pair, "sO", &fname, &dummy))
+			return -1; /* leak */
+		field = PyObject_GetAttrString(desc, fname);
+		Py_DECREF(field);
+	}
+}
+#endif
+
 /*
   This is a helper function for the StructType_Type object.
   Hm, actually only for Structure types, since it requires the
