@@ -298,6 +298,29 @@ def test_ulonglong():
     ValueError: Value out of range
     """
 
+def test_defaults():
+    # All types (except c_string and c_wstring) can be created with an empty
+    # constructor, and are then initialized to sensible default values
+    """
+    >>> from ctypes import c_byte, c_ubyte, c_short, c_ushort, c_ulonglong
+    >>> from ctypes import c_int, c_uint, c_long, c_ulong, c_longlong
+    >>> from ctypes import c_double, c_float, c_char
+    >>> signed_types = [c_byte, c_short, c_int, c_long]
+    >>> unsigned_types = [c_ubyte, c_ushort, c_uint, c_ulong]
+    >>> other_types = [c_double, c_float, c_char]
+
+    >>> [t() for t in signed_types]
+    [c_byte(0), c_short(0), c_int(0), c_long(0)]
+
+    >>> [t() for t in unsigned_types]
+    [c_ubyte(0), c_ushort(0), c_uint(0), c_ulong(0)]
+
+    >>> # for doctest, we have to escape the escape sign:
+    >>> [t() for t in other_types]
+    [c_double(0.000000), c_float(0.000000), c_char('\\x00')]
+
+    """
+
 def test(*args, **kw):
     import doctest, test_integers
     doctest.testmod(test_integers, *args, **kw)
