@@ -91,11 +91,6 @@ bytes(cdata)
 #include <dlfcn.h>
 #endif
 
-#ifndef METH_CLASS
-#define METH_CLASS 0x0010 /* from Python 2.3 */
-#define NO_METH_CLASS
-#endif
-
 PyObject *PyExc_ArgError;
 
 char *conversion_mode_encoding = NULL;
@@ -1608,9 +1603,9 @@ unique_key(CDataObject *target, int index)
 	char string[256]; /* XXX is that enough? */
 	char *cp = string;
 	int len;
-	*cp++ = index + '1';
+	*cp++ = index + '0';
 	while (target->b_base) {
-		*cp++ = target->b_index + '1';
+		*cp++ = target->b_index + '0';
 		target = target->b_base;
 	}
 	len = cp - string;
@@ -3558,36 +3553,6 @@ addressof(PyObject *self, PyObject *obj)
 			"invalid type");
 	return NULL;
 }
-
-/*
- * XXX What about errors ???
- */
-#ifdef NO_METH_CLASS
-void DoClassMethods(PyTypeObject *type)
-{
-	PyObject *func;
-	PyObject *meth;
-	PyMethodDef *ml = type->tp_methods;
-
-	for (; ml->ml_name; ++ml) {
-		if ((ml->ml_flags & METH_CLASS) == 0)
-			continue;
-		ml->ml_flags &= ~METH_CLASS;
-		func = PyCFunction_New(ml, NULL);
-		if (!func)
-			return;
-		meth = PyObject_CallFunctionObjArgs(
-			(PyObject *)&PyClassMethod_Type,
-			func, NULL);
-		if (!meth)
-			return;
-		if (-1 == PyDict_SetItemString(type->tp_dict,
-					       ml->ml_name,
-					       meth))
-			return;
-	}
-}
-#endif
 
 static char *module_docs =
 "Create and manipulate C compatible data types in Python.";

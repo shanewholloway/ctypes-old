@@ -294,18 +294,15 @@ class PointerMemberTestCase(unittest.TestCase):
         #
         # This fails with SystemError: bad arg to internal function
         # or with IndexError (with a patch I have)
-        try:
-            s.array[0] = 42
-        except (SystemError, IndexError):
-            pass
-        items = [s.array[i] for i in range(3)]
-        self.failUnlessEqual(items, [1, 2, 3])
 
-        # and this one with IndexError: invalid index
-        try:
-            s.array[1] = 42
-        except IndexError:
-            pass
+        s.array[0] = 42
+
+        items = [s.array[i] for i in range(3)]
+        self.failUnlessEqual(items, [42, 2, 3])
+
+        s.array[0] = 1
+
+##        s.array[1] = 42
 
         items = [s.array[i] for i in range(3)]
         self.failUnlessEqual(items, [1, 2, 3])
