@@ -11,26 +11,38 @@
  *   related.
  */
 
-
 /*
   How are functions called, and how are parameters converted to C ?
 
    1. (in CFuncPtr_call) restype and converters are got from self or stgdict.
+       converters may be NULL, when argtypes ave not been set.
+
    2. If it's a COM method, the COM pointer is retrieved from the argument list.
+
    3. If converters are there, the number of arguments is checked.
+
    4. CallProc is called, for a COM method with a slice [1:-1] of the arg list.
 
-   5. An array of PyCArgObject pointers is allocated to hold all the converted arguments.
-   6. If converters are present, each argument is replaced by the result of passing the argument
-      to the converter.
+   5. An array of PyCArgObject *pointers* is created on the stack to hold all
+   the converted arguments.
+
+   6. If converters are present, each argument is replaced by the result of
+   passing the argument to the converter.
+
    7. Each argument is passed to ConvParam, which creates a PyCArgObject.
-   8. Another PyCArgObject is allocated to hold the result of the function call.
-   9. PrepareResult() is called with the restype to fill out the tag field of the PyCArgObject.
+   The PyCArgObject contains the actual C value of the argument.
+
+   8. Another PyCArgObject is created to hold the result of the function
+   call.
+
+   9. PrepareResult() is called with the restype to fill out the tag field of
+   the PyCArgObject.
 
   10. _call_function_pointer is called.
 
   11. GetResult() is called with the 'result' PyCArgObject' to convert the C data
       into a Python object.
+
   12. All the PyCArgObjects are DECREF'd.
 
   What does PrepareResult and GetResult do?
@@ -43,22 +55,16 @@
     - if it is a ctypes Pointer type, set it to 'P'
     - if it is callable, set it to 'i' (and later call it with the integer result)
     - otherwise assume integer, and set it to 'i'
-  
-  _call_function_pointer iterates over the PyCArgObject array, and pushed their values
-  onto the stack, C type depending on the 'tag'.
-  Depending if the result PyCArgObject's 'tag', the function is called and the result
-  stored into the result's space.
 
-  The libffi version of _call_function_pointer creates an array of ffi_type pointers,
-  and fills it with ffi_type_xxx depending on the PyCArgObject's tag value.
-  Same for the PyCArgObject's result tag, then calls the ffi_call function.
+  _call_function_pointer creates an array of ffi_type pointers, and fills it
+  with ffi_type_xxx depending on the PyCArgObject's tag value.  Same for the
+  PyCArgObject's result tag, then calls the ffi_call function.
 
-  ffi_call needs an array of ffi_type pointers, and an array of void* pointers
-  pointing to the argument values (the value field of the PyCArgObject instances).
+  Another array is created holding the pointers to the actual C argument values.
 
   GetResult doesn't use the 'tag' field, it examines restype again:
 
-    - If it is a ctypes pointer: create an empty instance, and memcpy() thze result into it.
+    - If it is a ctypes pointer: create an empty instance, and memcpy() the result into it.
     - If the restype's stgdict has a getfunc, call it.
     - If the restype is callable, call it with the integer result
   
@@ -83,6 +89,207 @@
 #ifdef _DEBUG
 #define DEBUG_EXCEPTIONS /* */
 #endif
+
+struct argument {
+	ffi_type *tp;
+	PyObject *temp;
+	union {
+		int i;
+		void *p;
+		char *str;
+	} value;
+};
+
+static int
+BuildParam(PyObject *arg, PyObject *converter, struct argument *a, int index)
+{
+	if (converter) {
+		PyObject *temp;
+		temp = PyObject_CallFunctionObjArgs(converter,
+						    arg,
+						    NULL);
+		if (temp == NULL) {
+			Extend_Error_Info("while constructing argument %d:\n", index);
+			return -1;
+		}
+		a->temp = temp;
+		arg = temp;
+	}
+	if (arg == Py_None) {
+		a->value.p = NULL;
+		a->tp = &ffi_type_pointer;
+		return 0;
+	}
+	if (PyInt_CheckExact(arg)) {
+		a->value.i = (int)PyInt_AS_LONG(arg);
+		a->tp = &ffi_type_sint;
+		return 0;
+	}
+	if (PyString_CheckExact(arg)) {
+		a->value.p = PyString_AS_STRING(arg);
+		a->tp = &ffi_type_pointer;
+		return 0;
+	}
+	if (PyUnicode_CheckExact(arg)) {
+		a->value.p = PyString_AS_STRING(arg);
+		a->tp = &ffi_type_pointer;
+		return 0;
+	}
+/*
+	if (PyObject_CheckReadBuffer(arg)) {
+		int size;
+		PyObject_AsReadBuffer(arg, &a->value.p, &size);
+		a->tp = &ffi_type_pointer;
+		return 0;
+	}
+*/
+	if (PyCArg_CheckExact(arg)) {
+		PyCArgObject *ob = (PyCArgObject *)arg;
+#ifdef _DEBUG
+		_asm int 3;
+#endif
+	}
+
+	/* What will byref(something) return? */
+	/* _as_parameter_ ... */
+	PyErr_Format(PyExc_TypeError, "blahblah %s",
+		     arg->ob_type->tp_name);
+	return -1;
+}
+
+PyObject *
+_CallProc(PPROC pProc,
+	  PyObject *argtuple,
+	  void *pIunk,
+	  int flags,
+	  PyObject *argtypes, /* misleading name: This is a method,
+				 not a type (the .from_param class
+				 nethod) */
+	  PyObject *restype)
+{
+	int i, argcount;
+	void **ppargs;
+	struct argument *arguments;
+
+	int abi;
+	ffi_cif cif;
+	ffi_type **atypes;
+	ffi_type *rtype = &ffi_type_sint;
+
+	int delta;
+	void *presult;
+
+	StgDictObject *stgdict;
+	PyObject *result = NULL;
+#if defined(_MSC_VER) && !defined(DEBUG_EXCEPTIONS)
+	DWORD dwExceptionCode = 0;
+#endif
+
+	stgdict = PyType_stgdict(restype);
+	if (stgdict == NULL || stgdict->getfunc == NULL) {
+		PyErr_SetString(PyExc_TypeError,
+				"nyi: cannot (yet) construct return value");
+		return NULL;
+	}
+
+	argcount = PyTuple_GET_SIZE(argtuple);
+
+	/* a COM object this pointer */
+	if (pIunk) {
+		PyErr_SetString(PyExc_RuntimeError, "COM calls not yet implemented");
+		return NULL;
+	}
+
+	arguments = (struct argument *)alloca(sizeof(struct argument) * argcount);
+	memset(arguments, 0, sizeof(struct argument) * argcount);
+
+	ppargs = (void **)alloca(sizeof(void *) * argcount);
+	atypes = alloca(sizeof(ffi_type *) * argcount);
+
+	for (i = 0; i < argcount; ++i) {
+		PyObject *converter = argtypes ? PyTuple_GET_ITEM(argtypes, i) : NULL;
+		PyObject *arg = PyTuple_GET_ITEM(argtuple, i);
+		if (-1 == BuildParam(arg, converter, &arguments[i], i)) {
+			Extend_Error_Info("while constructing argument %d:\n", i+1);
+			goto error;
+		}
+		atypes[i] = arguments[i].tp;
+		ppargs[i] = &arguments[i].value;
+	}
+
+	if (flags & FUNCFLAG_CDECL)
+		abi = FFI_SYSV;
+	else
+		abi = FFI_STDCALL;
+
+	if (FFI_OK != ffi_prep_cif(&cif,
+				   abi,
+				   argcount,
+				   rtype,
+				   atypes)) {
+		PyErr_SetString(PyExc_RuntimeError,
+				"ffi_prep_cif failed");
+		goto error;
+	}
+
+	presult = alloca(stgdict->size);
+
+	Py_BEGIN_ALLOW_THREADS
+#ifdef _MSC_VER
+# ifndef DEBUG_EXCEPTIONS
+		__try {
+# endif
+		delta = ffi_call(&cif, (void *)pProc, presult, ppargs);
+# ifndef DEBUG_EXCEPTIONS
+	} _except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
+		;
+	}
+# endif
+#else
+	ffi_call(&cif, (void *)pProc, presult, values);
+#endif
+	Py_END_ALLOW_THREADS
+
+#ifdef _MSC_VER
+#ifndef DEBUG_EXCEPTIONS
+		if (dwExceptionCode) {
+			SetException(dwExceptionCode);
+			return NULL;
+		}
+#endif
+	if (delta < 0) {
+		if (flags & FUNCFLAG_CDECL)
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure called with not enough "
+				     "arguments (%d bytes missing) "
+				     "or wrong calling convention",
+				     -delta);
+		else
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure probably called with not enough "
+				     "arguments (%d bytes missing)",
+				     -delta);
+		return NULL;
+	}
+	if (delta > 0) {
+		PyErr_Format(PyExc_ValueError,
+			     "Procedure probably called with too many "
+			     "arguments (%d bytes in excess)",
+			     delta);
+		return NULL;
+	}
+#endif
+
+	result = stgdict->getfunc(presult, stgdict->size);
+  error:
+	for (i = 0; i < argcount; ++i) {
+		Py_XDECREF(arguments[i].temp);
+	}
+	return result;
+}
+
+/*****************************************************************/
+
 
 #ifdef MS_WIN32
 static char *FormatError(DWORD code)
@@ -236,7 +443,7 @@ void SetException(DWORD code)
 		default:
 			printf("error %d\n", code);
 			PyErr_Format(PyExc_WindowsError,
-				     "exception code 0x%08X",
+				     "exception code 0x%08x",
 				     code);
 			break;
 		}
@@ -858,7 +1065,7 @@ void Extend_Error_Info(char *fmt, ...)
  *
  * - XXX various requirements for restype, not yet collected
  */
-PyObject *_CallProc(PPROC pProc,
+PyObject *_X__CallProc(PPROC pProc,
 		    PyObject *argtuple,
 		    void *pIunk,
 		    int flags,
