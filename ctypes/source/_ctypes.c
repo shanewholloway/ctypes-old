@@ -2269,7 +2269,6 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	if (PyString_Check(init)) {
 		PyString_AsStringAndSize(init, &data, &size);
-		size += 1;
 	} else if (init == Py_None) {
 		size = 0;
 	} else {
@@ -2286,12 +2285,15 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_length = 0;
 
 	if (size) {
-		obj->b_ptr = PyMem_Malloc(size);
-		obj->b_size = size;
+		obj->b_ptr = PyMem_Malloc(size+1);
+		obj->b_size = size+1;
 		obj->b_needsfree = 1;
-		/* size is length of Python string + 1,
-		   so the terminating NUL character is also copied. */
 		memcpy(obj->b_ptr, data, size);
+		obj->b_ptr[size] = '\0';
+	} else {
+		obj->b_ptr = NULL;
+		obj->b_size = 0;
+		obj->b_needsfree = 0;
 	}
 	return (PyObject *)obj;
 }
@@ -2539,7 +2541,6 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (PyUnicode_Check(init)) {
 		data = PyUnicode_AS_UNICODE(init);
 		size = PyUnicode_GET_SIZE(init);
-		size += 1;
 	} else if (init == Py_None) {
 		size = 0;
 	} else {
@@ -2556,15 +2557,16 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_length = 0;
 
 	if (size) {
-		obj->b_ptr = PyMem_Malloc(size * sizeof(wchar_t));
-		obj->b_size = size * sizeof(wchar_t);
+		obj->b_ptr = PyMem_Malloc((size+1) * sizeof(wchar_t));
+		obj->b_size = (size+1) * sizeof(wchar_t);
 		obj->b_needsfree = 1;
-	}
-	if (data)
 		memcpy(obj->b_ptr, data, size * sizeof(wchar_t));
-	else
-		memset(obj->b_ptr, 0, size * sizeof(wchar_t));
-
+		obj->b_ptr[size] = (wchar_t)0;
+	} else {
+		obj->b_ptr = NULL;
+		obj->b_size = 0;
+		obj->b_needsfree = 0;
+	}
 	return (PyObject *)obj;
 }
 
