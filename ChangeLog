@@ -1,3 +1,15 @@
+2003-05-16  Thomas Heller  <theller@python.net>
+
+	* ctypes\__init__.py: Fix the name of the void pointer type, it's
+	c_void_p not c_voidp (but leave the old name intact)
+
+	* source\cfield.c: The c_wchar_p.from_param method did not accept
+	None (NULL pointer as parameter). Unittests updated.
+
+	* source\_ctypes.c: ctypes' types now have a in_dll() class method.
+	It allows to access values exported from dlls. Also added a unittest.
+	Often requested feature.
+
 2003-05-14  Thomas Heller  <theller@python.net>
 
 	* win32\com\register.py: Register the script with the absolute
