@@ -963,11 +963,6 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 		return;
 	}
 
-	if (CFuncPtrTypeObject_Check(restype)) {
-		result->tag = 'P';
-		return;
-	}
-
 #if 0
 	if (SimpleTypeObject_Check(restype)) {
 		/* Simple data types as return value don't make too much sense
@@ -1004,52 +999,8 @@ static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 {
 	StgDictObject *dict;
 
-	/* obsolete, remove the commented out code */
-	if (restype == NULL/* || PyString_Check(restype)*/)
+	if (restype == NULL)
 		return ToPython(&result->value, result->tag);
-
-	if (CFuncPtrTypeObject_Check(restype)) {
-		/* Horrible hack, to be able to receive CFuncPtr objects
-		   as resulttype of functions.
-
-		   We create an empty basespec structure, pass it to the
-		   type's constructor. In this way we are able to create an
-		   empty CFuncPtr object.
-		*/
-		struct basespec spec;
-		PyObject *kw, *args, *cobj;
-		CDataObject *pd;
-
-		spec.base = NULL;
-		spec.adr = 0;
-		spec.index = 0;
-		
-		cobj = PyCObject_FromVoidPtrAndDesc(&spec, basespec_string, NULL);
-		kw = Py_BuildValue("{s:O}", "_basespec_", cobj);
-		args = PyTuple_New(0);
-
-		pd = (CDataObject *)PyObject_Call(restype, args, kw);
-		Py_DECREF(kw);
-		Py_DECREF(args);
-		/* XXX cobj will be invalid once we leave this function! */
-		assert(cobj->ob_refcnt == 1);
-		Py_DECREF(cobj);
-
-		if (!pd)
-			return NULL;
-		if (!CDataObject_Check(pd)) {
-			Py_DECREF(pd);
-			PyErr_SetString(PyExc_TypeError,
-					"BUG: restype call did not return a CDataObject");
-			return NULL;
-		}
-		/* Since the basespec was empty, we have to allocate memory afterwards */
-		pd->b_ptr = PyMem_Malloc(pd->b_size);
-		pd->b_needsfree = 1;
-		/* Even better would be to use the buffer interface */
-		memcpy(pd->b_ptr, &result->value, pd->b_size);
-		return (PyObject *)pd;
-	}
 
 	if (PointerTypeObject_Check(restype)) {
 		CDataObject *pd;

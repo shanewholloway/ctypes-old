@@ -1905,10 +1905,12 @@ static PyGetSetDef CFuncPtr_getsets[] = {
 };
 
 /*
-  CFuncPtr_new accepts 3 different argument types in addition to the standard
+  CFuncPtr_new accepts different argument lists in addition to the standard
   _basespec_ keyword arg:
+
+  "i" - function address
   "sO" - function name, dll object (with an integer handle)
-  "i" - vtable index, creates COM method pointers
+  "is" - vtable index, method name, creates COM method pointers
   "O" - must be a callable, creates a C callable function
 */
 
@@ -1930,7 +1932,8 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!obj)
 		return NULL;
 	if (!PyInt_Check(obj)) {
-		/* XXX Error message */
+		PyErr_SetString(PyExc_TypeError,
+				"the _handle attribute of the second argument must be an integer");
 		Py_DECREF(obj);
 		return NULL;
 	}
@@ -1982,8 +1985,9 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	CFuncPtrObject *self;
 	int index;
+	char *name = NULL;
 
-	if (!PyArg_ParseTuple(args, "i", &index))
+	if (!PyArg_ParseTuple(args, "is", &index, &name))
 		return NULL;
 	
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
@@ -2006,19 +2010,26 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return GenericCData_new(type, args, kwds);
 	}
 
-	if (2 == PyTuple_GET_SIZE(args))
-		return CFuncPtr_FromDll(type, args, kwds);
-
+	if (2 == PyTuple_GET_SIZE(args)) {
 #ifdef MS_WIN32
-	if (1 == PyTuple_GET_SIZE(args) && PyInt_Check(PyTuple_GET_ITEM(args, 0)))
-		return CFuncPtr_FromVtblIndex(type, args, kwds);
+		if (PyInt_Check(PyTuple_GET_ITEM(args, 0)))
+			return CFuncPtr_FromVtblIndex(type, args, kwds);
 #endif
+		return CFuncPtr_FromDll(type, args, kwds);
+	}
+
+	if (1 == PyTuple_GET_SIZE(args) && PyInt_Check(PyTuple_GET_ITEM(args, 0))) {
+		CDataObject *ob;
+		ob = GenericCData_new(type, args, kwds);
+		*(void **)ob->b_ptr = PyInt_AsLong(PyTuple_GET_ITEM(args, 0));
+		return ob;
+	}
 
 	if (!PyArg_ParseTuple(args, "O", &callable))
 		return NULL;
 	if (!PyCallable_Check(callable)) {
 		PyErr_SetString(PyExc_TypeError,
-				"argument must be callable");
+				"argument must be callable or integer function address");
 		return NULL;
 	}
 
