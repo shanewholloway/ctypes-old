@@ -12,27 +12,27 @@ except NameError:
 
 # XXX Should this be in ctypes itself?
 ctypes_names = {
-    "unsigned char": "C.c_ubyte",
-    "signed char": "C.c_byte",
-    "char": "C.c_char",
+    "unsigned char": "c_ubyte",
+    "signed char": "c_byte",
+    "char": "c_char",
 
-    "wchar_t": "C.c_wchar",
+    "wchar_t": "c_wchar",
 
-    "short unsigned int": "C.c_ushort",
-    "short int": "C.c_short",
+    "short unsigned int": "c_ushort",
+    "short int": "c_short",
 
-    "long unsigned int": "C.c_ulong",
-    "long int": "C.c_long",
-    "long signed int": "C.c_long",
+    "long unsigned int": "c_ulong",
+    "long int": "c_long",
+    "long signed int": "c_long",
 
-    "unsigned int": "C.c_uint",
-    "int": "C.c_int",
+    "unsigned int": "c_uint",
+    "int": "c_int",
 
-    "long long unsigned int": "C.c_ulonglong",
-    "long long int": "C.c_longlong",
+    "long long unsigned int": "c_ulonglong",
+    "long long int": "c_longlong",
 
-    "double": "C.c_double",
-    "float": "C.c_float",
+    "double": "c_double",
+    "float": "c_float",
 
     # Hm...
     "void": "None",
@@ -117,8 +117,8 @@ def decode_value(init):
 
 def get_real_type(tp):
     # why was this?
-    if type(tp) is typedesc.Typedef:
-        return get_real_type(tp.typ)
+##    if type(tp) is typedesc.Typedef:
+##        return get_real_type(tp.typ)
     return tp
 
 # XXX These should be filtered out in gccxmlparser.
@@ -138,19 +138,19 @@ class Generator(object):
 
     def init_value(self, t, init):
         tn = self.type_name(t, False)
-        if tn in ["C.c_ulonglong", "C.c_ulong", "C.c_uint", "C.c_ushort", "C.c_ubyte"]:
+        if tn in ["c_ulonglong", "c_ulong", "c_uint", "c_ushort", "c_ubyte"]:
             return decode_value(init)
-        elif tn in ["C.c_longlong", "C.c_long", "C.c_int", "C.c_short", "C.c_byte"]:
+        elif tn in ["c_longlong", "c_long", "c_int", "c_short", "c_byte"]:
             return decode_value(init)
-        elif tn in ["C.c_float", "C.c_double"]:
+        elif tn in ["c_float", "c_double"]:
             return float(init)
-        elif tn == "C.POINTER(C.c_char)":
+        elif tn == "POINTER(c_char)":
             if init[0] == '"':
                 value = eval(init)
             else:
                 value = int(init, 16)
             return value
-        elif tn == "C.POINTER(C.c_wchar)":
+        elif tn == "POINTER(c_wchar)":
             if init[0] == '"':
                 value = eval(init)
             else:
@@ -159,21 +159,21 @@ class Generator(object):
                 value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
                 value = value.decode("utf-16") # XXX Is this correct?
             return value
-        elif tn == "C.c_void_p":
+        elif tn == "c_void_p":
             if init[0] == "0":
                 value = int(init, 16)
             else:
                 value = int(init) # hm..
             # Hm, ctypes represents them as SIGNED int
             return value
-        elif tn == "C.c_char":
+        elif tn == "c_char":
             return decode_value(init)
-        elif tn == "C.c_wchar":
+        elif tn == "c_wchar":
             value = decode_value(init)
             if isinstance(value, int):
                 return unichr(value)
             return value
-        elif tn.startswith("C.POINTER("):
+        elif tn.startswith("POINTER("):
             # Hm, POINTER(HBITMAP__) for example
             return decode_value(init)
         else:
@@ -181,25 +181,25 @@ class Generator(object):
 
     def type_name(self, t, generate=True):
         # Return a string, containing an expression which can be used to
-        # refer to the type. Assumes the C.* namespace is available.
+        # refer to the type. Assumes the * namespace is available.
         if isinstance(t, typedesc.PointerType):
-            result = "C.POINTER(%s)" % self.type_name(t.typ, generate)
+            result = "POINTER(%s)" % self.type_name(t.typ, generate)
             # XXX Better to inspect t.typ!
-            if result.startswith("C.POINTER(C.WINFUNCTYPE"):
-                return result[len("C.POINTER("):-1]
-            if result.startswith("C.POINTER(C.CFUNCTYPE"):
-                return result[len("C.POINTER("):-1]
-            elif result == "C.POINTER(None)":
-                return "C.c_void_p"
+            if result.startswith("POINTER(WINFUNCTYPE"):
+                return result[len("POINTER("):-1]
+            if result.startswith("POINTER(CFUNCTYPE"):
+                return result[len("POINTER("):-1]
+            elif result == "POINTER(None)":
+                return "c_void_p"
             return result
         elif isinstance(t, typedesc.ArrayType):
             return "%s * %s" % (self.type_name(t.typ, generate), int(t.max)+1)
         elif isinstance(t, typedesc.FunctionType):
             args = [self.type_name(x, generate) for x in [t.returns] + t.arguments]
             if "__stdcall__" in t.attributes:
-                return "C.WINFUNCTYPE(%s)" % ", ".join(args)
+                return "WINFUNCTYPE(%s)" % ", ".join(args)
             else:
-                return "C.CFUNCTYPE(%s)" % ", ".join(args)
+                return "CFUNCTYPE(%s)" % ", ".join(args)
         elif isinstance(t, typedesc.CvQualifiedType):
             # const and volatile are ignored
             return "%s" % self.type_name(t.typ, generate)
@@ -210,7 +210,7 @@ class Generator(object):
         elif isinstance(t, typedesc.Enumeration):
             if t.name:
                 return t.name
-            return "C.c_int" # enums are integers
+            return "c_int" # enums are integers
         elif isinstance(t, typedesc.Typedef):
             return t.name
         return t.name
@@ -256,9 +256,9 @@ class Generator(object):
                 self.need_cominterface()
                 print >> self.stream, "class %s(_com_interface):" % head.struct.name
             elif type(head.struct) == typedesc.Structure:
-                print >> self.stream, "class %s(C.Structure):" % head.struct.name
+                print >> self.stream, "class %s(Structure):" % head.struct.name
             elif type(head.struct) == typedesc.Union:
-                print >> self.stream, "class %s(C.Union):" % head.struct.name
+                print >> self.stream, "class %s(Union):" % head.struct.name
         if head.struct.location:
             print >> self.stream, "    # %s %s" % head.struct.location
         print >> self.stream, "    pass"
@@ -347,7 +347,7 @@ class Generator(object):
         self._enumtypes += 1
         if tp.name:
             print >> self.stream
-            print >> self.stream, "%s = C.c_int # enum" % tp.name
+            print >> self.stream, "%s = c_int # enum" % tp.name
         for item in tp.values:
             self.generate(item)
 
@@ -409,10 +409,10 @@ class Generator(object):
             # generate assert statements for size and alignment
             if body.struct.size and body.struct.name not in dont_assert_size:
                 size = body.struct.size // 8
-                print >> self.stream, "assert C.sizeof(%s) == %s, C.sizeof(%s)" % \
+                print >> self.stream, "assert sizeof(%s) == %s, sizeof(%s)" % \
                       (body.struct.name, size, body.struct.name)
                 align = body.struct.align // 8
-                print >> self.stream, "assert C.alignment(%s) == %s, C.alignment(%s)" % \
+                print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
                       (body.struct.name, align, body.struct.name)
 
         if methods:
@@ -428,7 +428,7 @@ class Generator(object):
                 print >> self.stream, "# %s %s" % body.struct.location
             for m in methods:
                 args = [self.type_name(a) for a in m.arguments]
-                print >> self.stream, "    C.STDMETHOD(%s, '%s', [%s])," % (
+                print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
                     self.type_name(m.returns),
                     m.name,
                     ", ".join(args))
@@ -462,7 +462,7 @@ class Generator(object):
         basename = os.path.basename(dllname)
         name, ext = os.path.splitext(basename)
         self._loadedlibs[dllname] = name
-        print >> self.stream, "%s = C.CDLL(%r)" % (name, dllname)
+        print >> self.stream, "%s = CDLL(%r)" % (name, dllname)
         return name
 
     _cominterface_defined = False
@@ -539,7 +539,7 @@ class Generator(object):
             self.generate(item)
 
     def generate_code(self, items, known_symbols, searched_dlls):
-        print >> self.stream, "import ctypes as C"
+        print >> self.stream, "from ctypes import *"
         items = set(items)
         if known_symbols:
             self.known_symbols = known_symbols
