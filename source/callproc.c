@@ -503,9 +503,13 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 #ifdef Py_USING_UNICODE
 	if (PyUnicode_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
+#ifdef HAVE_USABLE_WCHAR_T
 		pa->value.p = PyUnicode_AS_UNICODE(obj);
 		Py_INCREF(obj);
 		pa->keep = obj;
+#else
+#error FIXME - create a 'wchar_t *'
+#endif
 		return 0;
 	}
 #endif

@@ -636,7 +636,7 @@ c_get(void *ptr, unsigned size)
 }
 
 #ifdef Py_USING_UNICODE
-/* u - a single unicode character */
+/* u - a single wchar_t character */
 static PyObject *
 u_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -697,10 +697,14 @@ U_get(void *ptr, unsigned size)
 		return NULL;
 	/* We need 'result' to be able to count the characters with wcslen,
 	   since ptr may not be NUL terminated.  If the length is smaller (if
-	   it was actually NUL terminated, we construct a new one and thorw
+	   it was actually NUL terminated, we construct a new one and throw
 	   away the result.
 	*/
 	/* chop off at the first NUL character, if any. */
+	/* XXX FIXME: But it seems wcslen would access forbidden memory locations
+	   if the original pointer was not zero terminated */
+
+	/* Anyway, this is very strange code */
 	len = wcslen(PyUnicode_AS_UNICODE(result));
 	if (len < size) {
 		PyObject *ob = PyUnicode_FromWideChar((wchar_t *)ptr, len);
@@ -738,7 +742,11 @@ U_set(void *ptr, PyObject *value, unsigned length)
 	} else if (size < length-sizeof(wchar_t))
 		/* copy terminating NUL character */
 		size += sizeof(wchar_t);
+#ifdef HAVE_USABLE_WCHAR_T
 	memcpy((wchar_t *)ptr, PyUnicode_AS_UNICODE(value), size);
+#else
+#error FIXME: use PyUnicode_FromWideChar()
+#endif
 	return value;
 }
 
@@ -861,7 +869,11 @@ Z_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	} else
 		Py_INCREF(value);
+#ifdef HAVE_USABLE_WCHAR_T
 	*(wchar_t **)ptr = PyUnicode_AS_UNICODE(value);
+#else
+#error FIXME
+#endif
 	return value;
 }
 
