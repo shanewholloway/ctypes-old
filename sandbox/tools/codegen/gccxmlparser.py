@@ -1,6 +1,6 @@
 """gccxmlparser - parse a gccxml created XML file into a sequence type descriptions"""
 import xml.sax
-import nodes
+import typedesc
 try:
     set
 except NameError:
@@ -63,7 +63,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def Typedef(self, attrs):
         name = attrs["name"]
         typ = attrs["type"]
-        return nodes.Typedef(name, typ)
+        return typedesc.Typedef(name, typ)
 
     def _fixup_Typedef(self, t):
         t.typ = self.all[t.typ]
@@ -75,7 +75,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         else:
             size = attrs["size"]
         align = attrs["align"]
-        return nodes.FundamentalType(name, size, align)
+        return typedesc.FundamentalType(name, size, align)
 
     def _fixup_FundamentalType(self, t): pass
 
@@ -83,7 +83,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         typ = attrs["type"]
         size = attrs["size"]
         align = attrs["align"]
-        return nodes.PointerType(typ, size, align)
+        return typedesc.PointerType(typ, size, align)
 
     def _fixup_PointerType(self, p):
         p.typ = self.all[p.typ]
@@ -98,7 +98,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         max = attrs["max"]
         if max == "ffffffffffffffff":
             max = "-1"
-        return nodes.ArrayType(typ, min, max)
+        return typedesc.ArrayType(typ, min, max)
 
     def _fixup_ArrayType(self, a):
         a.typ = self.all[a.typ]
@@ -108,7 +108,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         typ = attrs["type"]
 ##        const = attrs["const"]
 ##        volatile = attrs["volatile"]
-        return nodes.CvQualifiedType(typ, "xxx")
+        return typedesc.CvQualifiedType(typ, "xxx")
 
     def _fixup_CvQualifiedType(self, c):
         c.typ = self.all[c.typ]
@@ -121,7 +121,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         returns = attrs["returns"]
         attributes = attrs.get("attributes", "").split()
         extern = attrs.get("extern")
-        return nodes.Function(name, returns, attributes, extern)
+        return typedesc.Function(name, returns, attributes, extern)
 
     def _fixup_Function(self, func):
         func.returns = self.all[func.returns]
@@ -130,7 +130,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def FunctionType(self, attrs):
         # id, returns, attributes
         returns = attrs["returns"]
-        return nodes.FunctionType(returns)
+        return typedesc.FunctionType(returns)
     
     def _fixup_FunctionType(self, func):
         func.returns = self.all[func.returns]
@@ -140,14 +140,14 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         # name, returns, extern, attributes
         name = attrs["name"]
         returns = attrs["returns"]
-        return nodes.OperatorFunction(name, returns)
+        return typedesc.OperatorFunction(name, returns)
 
     def _fixup_OperatorFunction(self, func):
         func.returns = self.all[func.returns]
 
     def Constructor(self, attrs):
         name = attrs["name"]
-        return nodes.Constructor(name)
+        return typedesc.Constructor(name)
 
     def _fixup_Constructor(self, const): pass
 
@@ -155,7 +155,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         # name, virtual, pure_virtual, returns
         name = attrs["name"]
         returns = attrs["returns"]
-        return nodes.Method(name, returns)
+        return typedesc.Method(name, returns)
 
     def _fixup_Method(self, m):
         m.returns = self.all[m.returns]
@@ -176,11 +176,11 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         align = attrs["align"]
         if attrs.get("artificial"):
             # enum {} ENUM_NAME;
-            return nodes.Enumeration(name, size, align)
+            return typedesc.Enumeration(name, size, align)
         else:
             # enum tagENUM {};
-            enum = nodes.Enumeration(None, size, align)
-            self.artificial.append(nodes.Typedef(name, enum))
+            enum = typedesc.Enumeration(None, size, align)
+            self.artificial.append(typedesc.Typedef(name, enum))
             return enum
 
     def _fixup_Enumeration(self, e): pass
@@ -206,14 +206,14 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         if name is None:
             name = self.demangle(attrs["mangled"]) # for debug only
 ##        if abstract:
-##            return nodes.Class(name, members, bases)
+##            return typedesc.Class(name, members, bases)
 ##        else:
         if artificial:
-            return nodes.Structure(name, align, members, bases, size)
+            return typedesc.Structure(name, align, members, bases, size)
         else:
-##            struct = nodes.Structure(name, align, members, bases, size)
-            struct = nodes.Structure(name, align, members, bases, size)
-            self.artificial.append(nodes.Typedef(name, struct))
+##            struct = typedesc.Structure(name, align, members, bases, size)
+            struct = typedesc.Structure(name, align, members, bases, size)
+            self.artificial.append(typedesc.Typedef(name, struct))
             return struct
 
     def _fixup_Structure(self, s):
@@ -231,7 +231,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         artificial = attrs.get("artificial")
         if name is None:
             name = self.demangle(attrs["mangled"]) # for debug only
-        return nodes.Union(name, align, members, bases, size)
+        return typedesc.Union(name, align, members, bases, size)
 
     def Field(self, attrs):
         # name, type
@@ -239,7 +239,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         typ = attrs["type"]
         bits = attrs.get("bits", None)
         offset = attrs.get("offset")
-        return nodes.Field(name, typ, bits, offset)
+        return typedesc.Field(name, typ, bits, offset)
 
     def _fixup_Field(self, f):
         f.typ = self.all[f.typ]
@@ -247,8 +247,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     ################
 
     def get_result(self):
-        interesting = (
-            nodes.Typedef, nodes.Enumeration, nodes.Function, nodes.Structure, nodes.Union)
+        interesting = (typedesc.Typedef, typedesc.Enumeration,
+                       typedesc.Function, typedesc.Structure, typedesc.Union)
         result = []
         remove = []
         for n, i in self.all.items():

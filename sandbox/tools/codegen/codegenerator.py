@@ -1,4 +1,4 @@
-import nodes
+import typedesc, sys
 
 try:
     set
@@ -39,9 +39,9 @@ ctypes_names = {
 
 def storage(t):
     # return the size and alignment of a type
-    if isinstance(t, nodes.Typedef):
+    if isinstance(t, typedesc.Typedef):
         return storage(t.typ)
-    elif isinstance(t, nodes.ArrayType):
+    elif isinstance(t, typedesc.ArrayType):
         s, a = storage(t.typ)
         return s * (int(t.max) - int(t.min) + 1), a
     return int(t.size), int(t.align)
@@ -90,7 +90,7 @@ def _calc_packing(struct, fields, pack, isStruct):
 
 def calc_packing(struct, fields):
     # try several packings, starting with unspecified packing
-    isStruct = isinstance(struct, nodes.Structure)
+    isStruct = isinstance(struct, typedesc.Structure)
     for pack in [None, 16*8, 8*8, 4*8, 2*8, 1*8]:
         try:
             _calc_packing(struct, fields, pack, isStruct)
@@ -105,7 +105,7 @@ def calc_packing(struct, fields):
 def _type_name(t):
     # Return a string, containing an expression which can be used to
     # refer to the type. Assumes the ctypes.* namespace is available.
-    if isinstance(t, nodes.PointerType):
+    if isinstance(t, typedesc.PointerType):
         result = "POINTER(%s)" % type_name(t.typ)
         # XXX Better to inspect t.typ!
         if result.startswith("POINTER(WINFUNCTYPE"):
@@ -116,23 +116,23 @@ def _type_name(t):
         elif result == "POINTER(None)":
             return "c_void_p"
         return result
-    elif isinstance(t, nodes.ArrayType):
+    elif isinstance(t, typedesc.ArrayType):
         return "%s * %s" % (type_name(t.typ), int(t.max)+1)
-    elif isinstance(t, nodes.FunctionType):
+    elif isinstance(t, typedesc.FunctionType):
         args = map(type_name, [t.returns] + t.arguments)
         # WINFUNCTYPE already *is* a pointer to a function!
         return "CFUNCTYPE(%s)" % ", ".join(args)
-    elif isinstance(t, nodes.CvQualifiedType):
+    elif isinstance(t, typedesc.CvQualifiedType):
         return "const(%s)" % type_name(t.typ)
-    elif isinstance(t, nodes.FundamentalType):
+    elif isinstance(t, typedesc.FundamentalType):
         return ctypes_names[t.name]
-    elif isinstance(t, nodes.Structure):
+    elif isinstance(t, typedesc.Structure):
         return t.name
-    elif isinstance(t, nodes.Enumeration):
+    elif isinstance(t, typedesc.Enumeration):
         if t.name:
             return t.name
         return "c_int" # enums are integers
-    elif isinstance(t, nodes.Typedef):
+    elif isinstance(t, typedesc.Typedef):
         return t.name
     return t.name
 
@@ -148,7 +148,7 @@ def _type_name(t):
 type_name = _type_name
 
 def get_real_type(tp):
-    if type(tp) is nodes.Typedef:
+    if type(tp) is typedesc.Typedef:
         return get_real_type(tp.typ)
     return tp
 
@@ -183,6 +183,7 @@ opengl32
 mswsock
 msvcrt
 msimg32
+netapi32
 rpcrt4""".split()
 
 ##rpcndr
@@ -207,12 +208,12 @@ class Generator(object):
         if basenames:
             print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
         else:
-            methods = [m for m in head.struct.members if type(m) is nodes.Method]
+            methods = [m for m in head.struct.members if type(m) is typedesc.Method]
             if methods:
                 print >> self.stream, "class %s(_com_interface):" % head.struct.name
-            elif type(head.struct) == nodes.Structure:
+            elif type(head.struct) == typedesc.Structure:
                 print >> self.stream, "class %s(Structure):" % head.struct.name
-            elif type(head.struct) == nodes.Union:
+            elif type(head.struct) == typedesc.Union:
                 print >> self.stream, "class %s(Union):" % head.struct.name
         print >> self.stream, "    pass"
         self.done.add(head)
@@ -233,7 +234,7 @@ class Generator(object):
         if tp in self.done:
             return
         self._typedefs += 1
-        if type(tp.typ) in (nodes.Structure, nodes.Union):
+        if type(tp.typ) in (typedesc.Structure, typedesc.Union):
             self.StructureHead(tp.typ.get_head())
             self.more.add(tp.typ)
         else:
@@ -265,12 +266,12 @@ class Generator(object):
         if tp in self.done:
             return
         self._pointertypes += 1
-        if type(tp.typ) is nodes.PointerType:
+        if type(tp.typ) is typedesc.PointerType:
             self.PointerType(tp.typ)
-        elif type(tp.typ) in (nodes.Union, nodes.Structure):
+        elif type(tp.typ) in (typedesc.Union, typedesc.Structure):
             self.StructureHead(tp.typ.get_head())
             self.more.add(tp.typ)
-        elif type(tp.typ) is nodes.Typedef:
+        elif type(tp.typ) is typedesc.Typedef:
             self.generate(tp.typ)
         else:
             self.generate(tp.typ)
@@ -303,23 +304,23 @@ class Generator(object):
         fields = []
         methods = []
         for m in body.struct.members:
-            if type(m) is nodes.Field:
+            if type(m) is typedesc.Field:
                 fields.append(m)
-                if type(m.typ) is nodes.Typedef:
+                if type(m.typ) is typedesc.Typedef:
                     self.generate(get_real_type(m.typ))
                 self.generate(m.typ)
-            elif type(m) is nodes.Method:
+            elif type(m) is typedesc.Method:
                 methods.append(m)
                 self.generate(m.returns)
                 self.generate_all(m.arguments)
-            elif type(m) is nodes.Constructor:
+            elif type(m) is typedesc.Constructor:
                 pass
 
         # we don't need _pack_ on Unions (I hope, at least), and
         # not on COM interfaces:
         #
         # Hm, how to detect a COM interface with no methods? IXMLDOMCDATASection is such a beast...
-##        if not isinstance(body.struct, nodes.Union) and not methods:
+##        if not isinstance(body.struct, typedesc.Union) and not methods:
         if not methods:
             pack = calc_packing(body.struct, fields)
             if pack is not None:
@@ -366,15 +367,16 @@ class Generator(object):
                 pass
             else:
                 return dll._name
-        return "?"
+##        print >> sys.stderr, "warning: dll not found for function %s" % name
+        return None
 
     _functiontypes = 0
+    _notfound_functiontypes = 0
     def Function(self, func):
         if func in self.done:
             return
-        self._functiontypes += 1
         dllname = self.find_dllname(func.name)
-        if dllname and func.extern:
+        if dllname:
             self.generate(func.returns)
             self.generate_all(func.arguments)
             args = [type_name(a) for a in func.arguments]
@@ -384,6 +386,9 @@ class Generator(object):
             else:
                 print >> self.stream, "%s = CDECL('%s', %s, '%s', [%s])" % \
                       (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
+            self._functiontypes += 1
+        else:
+            self._notfound_functiontypes += 1
         self.done.add(func)
 
     Union = Structure
@@ -423,6 +428,7 @@ class Generator(object):
         print >> stream, "# Typedefs:      %5d" % self._typedefs
         print >> stream, "# Pointertypes:  %5d" % self._pointertypes
         print >> stream, "# Arraytypes:    %5d" % self._arraytypes
+        print >> stream, "# Functions not located:    %5d" % self._notfound_functiontypes
         print >> stream, "#"
         total = self._structures + self._functiontypes + self._enumtypes + self._typedefs +\
                 self._pointertypes + self._arraytypes
@@ -433,7 +439,6 @@ class Generator(object):
 
 def generate_code(xmlfile, outfile, symbols=None):
     from gccxmlparser import parse
-    import sys
     items = parse(xmlfile)
 
     todo = []
