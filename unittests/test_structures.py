@@ -212,8 +212,10 @@ class StructureTestCase(unittest.TestCase):
                         ("age", c_int)]
 
         cls, msg = self.get_except(Person, "Someone", (1, 2))
-        self.failUnlessEqual(cls, TypeError)
-        self.failUnlessEqual(msg, "(Phone) expected string or Unicode object, int found")
+        self.failUnlessEqual(cls, RuntimeError)
+        self.failUnlessEqual(msg,
+                             "(Phone) exceptions.TypeError: "
+                             "expected string or Unicode object, int found")
 
         cls, msg = self.get_except(Person, "Someone", ("a", "b", "c"))
         self.failUnlessEqual(cls, ValueError)
