@@ -21,6 +21,7 @@ from distutils.core import setup, Extension, Command
 import distutils.core
 from distutils.errors import DistutilsOptionError
 from distutils.command import build_py, build_ext, clean
+from distutils.command import install_data
 from distutils.dir_util import mkpath
 from distutils.util import get_platform
 
@@ -245,6 +246,8 @@ class test(Command):
         # Collect the results in the ok, fail, error, testcases and
         # tracebacks instance vars.
         # A sequence of testcase names together with their outcome is returned.
+        if self.verbosity > 1:
+            print "Running '%s run_remote_test.py %s'" % (sys.executable, path)
         os.system("%s run_remote_test.py %s" % (sys.executable, path))
         cases = []
         o = open("test.output")
@@ -424,6 +427,17 @@ if sys.platform == 'win32':
 else:
     options["sdist"] = {"template": "MANIFEST.other.in", "force_manifest": 1}
 
+class my_install_data(install_data.install_data):
+     """A custom install_data command, which will install it's files
+     into the standard directories (normally lib/site-packages).
+     """
+     def finalize_options(self):
+         if self.install_dir is None:
+             installobj = self.distribution.get_command_obj('install')
+             self.install_dir = installobj.install_lib
+         print 'Installing data files to %s' % self.install_dir
+         install_data.install_data.finalize_options(self)
+
 if __name__ == '__main__':
     setup(name="ctypes",
           ext_modules = extensions,
@@ -439,7 +453,12 @@ if __name__ == '__main__':
           url="http://starship.python.net/crew/theller/ctypes.html",
           platforms=["windows", "Linux", "MacOS X", "Solaris"],
 
-          cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext, 'clean': my_clean},
+          data_files = [("ctypes/com/samples/server/control",
+                         ["win32/com/samples/server/control/test.html"])
+                        ],
+
+          cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext,
+                      'clean': my_clean, 'install_data': my_install_data},
           options = options
           )
 
