@@ -31,10 +31,12 @@ class CompleteCoverage(unittest.TestCase):
         X().U = "abc"
 ##        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "U", "ä"))
 
-        X().z = 42
+        self.failUnlessRaises(TypeError, lambda: setattr(X(), "z", 42))
+        X().z = cast(42, c_char_p)
 
-        X().Z = 42
+        self.failUnlessRaises(TypeError, lambda: setattr(X(), "Z", 42))
         self.failUnlessRaises(TypeError, lambda: setattr(X(), "Z", 3.14))
+        X().Z = cast(42, c_wchar_p)
 
         x = X()
         x.P = None
@@ -79,6 +81,9 @@ class CompleteCoverage(unittest.TestCase):
 
         # from_param
         print c_int.from_param(c_int(42))
+##        print c_int.from_param(c_longlong(42L))
+##        c = c_char("x")
+##        print c_int.from_param(c)
 
     def test_pointer(self):
         class POINT(Structure):

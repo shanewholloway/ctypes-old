@@ -1218,14 +1218,6 @@ string_ptr_from_param(PyObject *type, PyObject *value)
 	StgDictObject *typedict = PyType_stgdict(type);
 	PyCArgObject *parg;
 
-	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
-		/* c_char array instance or pointer(c_char(...)) */
-		PyObject *valueitemtype = PyObject_stgdict(value)->itemtype;
-		if (PyObject_IsSubclass(valueitemtype, typedict->itemtype)) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
 	if (PyCArg_CheckExact(value)) {
 		/* byref(c_char(...)) */
   		PyCArgObject *a = (PyCArgObject *)value;
@@ -3720,7 +3712,7 @@ static PyNumberMethods Pointer_as_number = {
 	(inquiry)Pointer_nonzero, /* nb_nonzero */
 };
 
-static PyTypeObject Pointer_Type = {
+PyTypeObject Pointer_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
 	"_ctypes._Pointer",
