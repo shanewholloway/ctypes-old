@@ -2182,17 +2182,24 @@ static PyGetSetDef CFuncPtr_getsets[] = {
 */
 
 #ifdef MS_WIN32
-static PPROC FindAddress(void *handle, char *name, int flags)
+static PPROC FindAddress(void *handle, char *name, PyObject *type)
 {
 	PPROC address;
 	char *mangled_name;
 	int i;
+	StgDictObject *dict = PyType_stgdict((PyObject *)type);
+
 	address = (PPROC)GetProcAddress(handle, name);
 	if (address)
 		return address;
-	if (flags & FUNCFLAG_CDECL)
+	/* It should not happen that dict is NULL, but better be safe */
+	if (dict==NULL || dict->flags & FUNCFLAG_CDECL)
 		return address;
-	/* for stdcall, try mangled names */
+
+	/* for stdcall, try mangled names:
+	   funcname -> _funcname@<n>
+	   where n is 0, 4, 8, 12, ..., 128
+	 */
 	mangled_name = _alloca(strlen(name) + 1 + 1 + 1 + 3); /* \0 _ @ %d */
 	for (i = 0; i < 32; ++i) {
 		sprintf(mangled_name, "_%s@%d", name, i*4);
@@ -2214,7 +2221,6 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	CFuncPtrObject *self;
 	void *handle;
 	PyObject *objects;
-	StgDictObject *dict = PyType_stgdict((PyObject *)type);
 
 	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
 		return NULL;
@@ -2232,7 +2238,7 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(obj);
 
 #ifdef MS_WIN32
-	address = FindAddress(handle, name, dict->flags);
+	address = FindAddress(handle, name, (PyObject *)type);
 	if (!address) {
 		PyErr_Format(PyExc_AttributeError,
 			     "function '%s' not found",
