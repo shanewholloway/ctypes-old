@@ -1,3 +1,9 @@
+2003-01-31  Thomas Heller  <theller@python.net>
+
+	* Item deletion on Array or Pointer instances did crash with a
+	NULL pointer access.  Added unittest for this, and also for
+	Arrays.
+
 2003-01-28  Thomas Heller  <theller@python.net>
 
 	* source\_ctypes.c: Dangerous code checked in.  Pointer instances
