@@ -1425,12 +1425,11 @@ PyTypeObject SimpleType_Type = {
  */
 
 static PyObject *
-converters_from_argtypes(PyObject *ob, int *psize)
+converters_from_argtypes(PyObject *ob)
 {
 	PyObject *converters;
 	int i;
 	int nArgs;
-	int nArgBytes;
 
 	ob = PySequence_Tuple(ob); /* new reference */
 	if (!ob) {
@@ -1449,20 +1448,15 @@ converters_from_argtypes(PyObject *ob, int *psize)
 	   Aren't these promoted to integers by the C compiler and pushed as 4 bytes?
 	*/
 
-	nArgBytes = 0;
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *tp = PyTuple_GET_ITEM(ob, i);
 		StgDictObject *dict = PyType_stgdict(tp);
 		PyObject *cnv = PyObject_GetAttrString(tp, "from_param");
 		if (!dict || !cnv)
 			goto argtypes_error_1;
-		/* round to full DWORDs */
-		nArgBytes += (dict->size + sizeof(int) - 1) / sizeof(int) * sizeof(int);
 		PyTuple_SET_ITEM(converters, i, cnv);
 	}
 	Py_DECREF(ob);
-	if (psize)
-		*psize = nArgBytes;
 	return converters;
 
   argtypes_error_1:
@@ -1495,10 +1489,9 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	stgdict->flags = PyInt_AS_LONG(ob);
 
 	/* _argtypes_ is optional... */
-	stgdict->nArgBytes = 0;
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_argtypes_");
 	if (ob) {
-		converters = converters_from_argtypes(ob, &stgdict->nArgBytes);
+		converters = converters_from_argtypes(ob);
 		if (!converters)
 			goto error;
 		Py_INCREF(ob);
@@ -2207,7 +2200,7 @@ CFuncPtr_set_argtypes(CFuncPtrObject *self, PyObject *ob)
 		Py_XDECREF(self->argtypes);
 		self->argtypes = NULL;
 	} else {
-		converters = converters_from_argtypes(ob, NULL);
+		converters = converters_from_argtypes(ob);
 		if (!converters)
 			return -1;
 		Py_XDECREF(self->converters);
@@ -2517,7 +2510,6 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	   dict->argtypes is in the type's stgdict.
 	*/
 	thunk = AllocFunctionCallback(callable,
-				      dict->nArgBytes,
 				      dict->argtypes,
 				      dict->restype,
 				      dict->flags & FUNCFLAG_CDECL);

@@ -318,7 +318,6 @@ void FreeCallback(THUNK thunk)
 }
 
 THUNK AllocFunctionCallback(PyObject *callable,
-			    int nArgBytes,
 			    PyObject *converters,
 			    PyObject *restype,
 			    int is_cdecl)
