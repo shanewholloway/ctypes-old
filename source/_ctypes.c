@@ -2412,12 +2412,6 @@ static PyGetSetDef CString_getsets[] = {
 	{ NULL },
 };
 
-static int
-CString_length(CDataObject *self)
-{
-	return self->b_size;
-}
-
 static PyObject *
 CString_repr(CDataObject *self)
 {
@@ -2472,20 +2466,6 @@ static PyMethodDef CString_methods[] = {
 	{ NULL, NULL },
 };
 
-static PySequenceMethods CString_as_sequence = {
-	(inquiry)CString_length,		/* inquiry sq_length; */
-	0,			/* binaryfunc sq_concat; */
-	0,			/* intargfunc sq_repeat; */
-	0,			/* intargfunc sq_item; */
-	0,			/* intintargfunc sq_slice; */
-	0,			/* intobjargproc sq_ass_item; */
-	0,			/* intintobjargproc sq_ass_slice; */
-	0,			/* objobjproc sq_contains; */
-	
-	0,			/* binaryfunc sq_inplace_concat; */
-	0,			/* intargfunc sq_inplace_repeat; */
-};
-
 static PyTypeObject CString_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -2499,7 +2479,7 @@ static PyTypeObject CString_Type = {
 	0,					/* tp_compare */
 	(reprfunc)CString_repr,			/* tp_repr */
 	0,					/* tp_as_number */
-	&CString_as_sequence,			/* tp_as_sequence */
+	0,					/* tp_as_sequence */
 	0,					/* tp_as_mapping */
 	0,					/* tp_hash */
 	0,					/* tp_call */
@@ -2672,12 +2652,6 @@ static PyGetSetDef CWString_getsets[] = {
 	{ NULL },
 };
 
-static int
-CWString_length(CDataObject *self)
-{
-	return self->b_size;
-}
-
 static PyObject *
 CWString_from_param(PyObject *cls, PyObject *args)
 {
@@ -2729,20 +2703,6 @@ CWString_repr(CDataObject *self)
 	return PyUnicode_FromWideChar(buffer, size);
 }
 
-static PySequenceMethods CWString_as_sequence = {
-	(inquiry)CWString_length,		/* inquiry sq_length; */
-	0,			/* binaryfunc sq_concat; */
-	0,			/* intargfunc sq_repeat; */
-	0,			/* intargfunc sq_item; */
-	0,			/* intintargfunc sq_slice; */
-	0,			/* intobjargproc sq_ass_item; */
-	0,			/* intintobjargproc sq_ass_slice; */
-	0,			/* objobjproc sq_contains; */
-	
-	0,			/* binaryfunc sq_inplace_concat; */
-	0,			/* intargfunc sq_inplace_repeat; */
-};
-
 static PyTypeObject CWString_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -2756,7 +2716,7 @@ static PyTypeObject CWString_Type = {
 	0,					/* tp_compare */
 	(reprfunc)CWString_repr,		/* tp_repr */
 	0,					/* tp_as_number */
-	&CWString_as_sequence,			/* tp_as_sequence */
+	0,					/* tp_as_sequence */
 	0,					/* tp_as_mapping */
 	0,					/* tp_hash */
 	0,					/* tp_call */

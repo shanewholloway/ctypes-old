@@ -3,7 +3,10 @@
 	* source\_ctypes.c: c_string() signature changed. If the first
 	parameter is a string, an optional positive integer can be used as
 	second parameter to specify the size of the internal buffer.  This
-	size does NOT include the terminating NUL byte.
+	size does NOT include the terminating NUL byte.  Since sizeof()
+	does now support c_string and c_wstring, len() is no longer
+	supported (c_string and c_wstring have never really been
+	sequences).
 
 	* source\_ctypes.c: Made sizeof() and addressof() work with
 	c_string and c_wstring objects.
