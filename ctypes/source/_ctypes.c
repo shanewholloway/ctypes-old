@@ -145,15 +145,15 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 
 	dict = (StgDictObject *)PyObject_CallObject((PyObject *)&StgDict_Type, NULL);
 	if (!dict) {
-		Py_DECREF(result);
-		return NULL;
+		Py_DECREF(result); /*COV*/
+		return NULL; /*COV*/
 	}
 	/* replace the class dict by our updated stgdict, which holds info
 	   about storage requirements of the instances */
 	if (-1 == PyDict_Update((PyObject *)dict, result->tp_dict)) {
-		Py_DECREF(result);
-		Py_DECREF((PyObject *)dict);
-		return NULL;
+		Py_DECREF(result); /*COV*/
+		Py_DECREF((PyObject *)dict); /*COV*/
+		return NULL; /*COV*/
 	}
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)dict;
@@ -166,8 +166,8 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 			return (PyObject *)result;
 		/* copy base dict */
 		if (-1 == StgDict_clone(dict, basedict)) {
-			Py_DECREF(result);
-			return NULL;
+			Py_DECREF(result); /*COV*/
+			return NULL; /*COV*/
 		}
 		dict->flags &= ~DICTFLAG_FINAL; /* clear the 'final' flag in the subclass dict */
 		basedict->flags |= DICTFLAG_FINAL; /* set the 'final' flag in the baseclass dict */
@@ -228,7 +228,8 @@ CDataType_in_dll(PyObject *type, PyObject *args)
 	if (!obj)
 		return NULL;
 	if (!PyInt_Check(obj)) {
-		/* XXX Error */
+		PyErr_SetString(PyExc_TypeError,
+				"the _handle attribute must be an integer");
 		Py_DECREF(obj);
 		return NULL;
 	}
