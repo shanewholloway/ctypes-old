@@ -2,28 +2,12 @@ from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
      c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring
 from ctypes import oledll, byref, sizeof
 ole32 = oledll.ole32
+
 ##from ctypes.windows import *
 
 DWORD = c_ulong
-WORD = c_uint
+WORD = c_ushort
 BYTE = c_byte
-
-################################################################
-
-##class POINT(Structure):
-##    _fields_ = [("x", c_uint),
-##                ("y", c_uint)]
-
-##    def __str__(self):
-##        return "POINT {x: %d, y: %d}" % (self.x, self.y)
-
-##class MSG(Structure):
-##    _fields_ = [("hWnd", c_uint),
-##                ("message", c_uint),
-##                ("wParam", c_uint),
-##                ("lParam", c_uint),
-##                ("time", c_uint),
-##                ("pt", POINT)]
 
 ################################################################
 # COM data types
@@ -57,7 +41,7 @@ class GUID(Structure):
         return isinstance(other, GUID) and \
                IsEqualGUID(byref(self), byref(other))               
 
-assert(sizeof(GUID) == 16, sizeof(GUID))
+assert(sizeof(GUID) == 16), sizeof(GUID)
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
 
@@ -74,6 +58,9 @@ def STDMETHOD(restype, name, *argtypes):
     return name, X
 
 HRESULT = c_int # for now
+
+
+################################################################
 
 class _COMInterfaceMeta(type(Structure)):
     def __new__(self, name, bases, dict):
@@ -110,7 +97,8 @@ class COMInterface(Structure):
         return result
     _get_methods = classmethod(_get_methods)
 
-################
+
+################################################################
 
 class _COMPointerMeta(type(Structure)):
     # This metaclass sets the required _fields_ attribute, which is
@@ -121,15 +109,6 @@ class _COMPointerMeta(type(Structure)):
         dict["_fields_"] = [("this", c_voidp)]
         dict["_has_methods_"] = 0
         return type(Structure).__new__(cls, name, bases, dict)
-
-if 0:
-    def _make_commethod(index, proto, name):
-        # XXX move this to C code (subclass of CFuncPtr ?)
-        from _ctypes import call_commethod
-        argtypes = tuple([a.from_param for a in proto._argtypes_])
-        def func(self, *args):
-            return call_commethod(self, index, args, argtypes)
-        return func
 
 ################
 
@@ -146,23 +125,22 @@ class COMPointer(Structure):
     __metaclass__ = _COMPointerMeta
 
     def __new__(cls, *args, **kw):
+        import new
+        print "# __new__", cls
         if cls._has_methods_:
             return Structure.__new__(cls, *args, **kw)
-##        print "# creating methods for", cls
+        print "# creating methods for", cls
         index = 0
         for name, proto in cls._interface_._get_methods():
-            if 0:
-                mth = _make_commethod(index, proto, name)
-            else:
-                import new
-                callable = proto(index)
-                mth = new.instancemethod(callable, None, cls)
+            callable = proto(index)
+            mth = new.instancemethod(callable, None, cls)
 
             setattr(cls, name, mth)
             index += 1
         cls._has_methods_ = 1
         return Structure.__new__(cls, *args, **kw)
 
+
 ################################################################
 # This is not exported by ctypes:
 _PyCArgType = type(byref(c_int()))
@@ -203,14 +181,6 @@ class PUNK(_Pointer):
 #
 class IUnknown(COMInterface):
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
-
-##    _methods_ = [("QueryInterface", [REFIID, PPUNK]),
-##                 ("AddRef", []),
-##                 ("Release", [])]
-
-##    _methods_ = [("QueryInterface", STDMETHOD(REFIID, PPUNK)),
-##                 ("AddRef", STDMETHOD()),
-##                 ("Release", STDMETHOD())]
 
     # IMO this one looks better than the second:
     _methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, PPUNK),
