@@ -7,6 +7,63 @@ IID = GUID
 DWORD = c_ulong
 
 ################################################################
+CLSCTX_INPROC_SERVER = 1
+CLSCTX_INPROC_HANDLER = 2
+CLSCTX_LOCAL_SERVER = 4
+
+CLSCTX_INPROC = 3 # Variable c_int
+CLSCTX_SERVER = 5 # Variable c_int
+CLSCTX_ALL = 7 # Variable c_int
+
+CLSCTX_INPROC_SERVER16 = 8
+CLSCTX_REMOTE_SERVER = 16
+CLSCTX_INPROC_HANDLER16 = 32
+CLSCTX_RESERVED1 = 64
+CLSCTX_RESERVED2 = 128
+CLSCTX_RESERVED3 = 256
+CLSCTX_RESERVED4 = 512
+CLSCTX_NO_CODE_DOWNLOAD = 1024
+CLSCTX_RESERVED5 = 2048
+CLSCTX_NO_CUSTOM_MARSHAL = 4096
+CLSCTX_ENABLE_CODE_DOWNLOAD = 8192
+CLSCTX_NO_FAILURE_LOG = 16384
+CLSCTX_DISABLE_AAA = 32768
+CLSCTX_ENABLE_AAA = 65536
+CLSCTX_FROM_DEFAULT_CONTEXT = 131072
+
+tagCLSCTX = c_int # enum
+CLSCTX = tagCLSCTX
+
+################################################################
+ole32 = oledll.ole32
+# Still experimenting with COM shutdown without crashes...
+
+ole32.CoInitialize(None)
+
+class _Cleaner(object):
+    def __del__(self, func=ole32.CoUninitialize):
+        # Sometimes, CoUnititialize, running at Python shutdown, raises an exception.
+        # We suppress this when __debug__ is False.
+        if __debug__:
+            func()
+        else:
+            try: func()
+            except WindowsError: pass
+
+__cleaner = _Cleaner()
+del _Cleaner
+
+def _clean_exc_info():
+    # the purpose of this function is to ensure that no com object
+    # pointers are in sys.exc_info()
+    try: 1//0
+    except: pass
+
+import atexit
+atexit.register(_clean_exc_info)
+
+
+################################################################
 # The metaclasses...
 
 class _cominterface_meta(type):
@@ -141,19 +198,34 @@ class IUnknown(object):
         "Decrease the internal refcount by one"
         return self.__com_Release()
 
-################
-class CoClass(object):
-    # creation, and so on
+################################################################
 
-    def create_instance(self):
-        oledll.ole32.CoInitialize(None)
-        p = POINTER(self._com_interfaces_[0])()
-        oledll.ole32.CoCreateInstance(byref(self._clsid_),
-                                      None,
-                                      7, # CLSCTX
-                                      byref(p._iid_),
-                                      byref(p))
-        return p
+##@stdcall(HRESULT, 'ole32',
+##         [POINTER(IID), POINTER(IUnknown), c_ulong,
+##          POINTER(IID), POINTER(c_void_p)])
+def CoCreateInstance(clsid, interface=IUnknown, clsctx=CLSCTX_ALL, punkouter=None):
+    p = POINTER(interface)()
+    iid = interface._iid_
+    CoCreateInstance._api_(byref(clsid), punkouter, clsctx, byref(iid), byref(p))
+    return p
+CoCreateInstance = stdcall(HRESULT, 'ole32',
+                           [POINTER(IID), POINTER(IUnknown), c_ulong,
+                            POINTER(IID), POINTER(c_void_p)]) (CoCreateInstance)
+
+################################################################
+
+################
+##class CoClass(object):
+##    # creation, and so on
+
+##    def create_instance(self):
+##        p = POINTER(self._com_interfaces_[0])()
+##        oledll.ole32.CoCreateInstance(byref(self._clsid_),
+##                                      None,
+##                                      7, # CLSCTX
+##                                      byref(p._iid_),
+##                                      byref(p))
+##        return p
 
 ################
 ##class IErrorInfo(IUnknown):
@@ -176,40 +248,3 @@ class CoClass(object):
 ##    ]
 
 __all__ = ["CoClass", "IUnknown", "GUID", "HRESULT", "BSTR", "STDMETHOD"]
-
-if __name__ == "__main__":
-
-##    help(POINTER(IUnknown))
-
-    class IMyInterface(IUnknown):
-        pass
-
-    assert issubclass(IMyInterface, IUnknown)
-    assert issubclass(POINTER(IMyInterface), POINTER(IUnknown))
-
-    POINTER(IUnknown)()
-
-    p = POINTER(IUnknown)()
-
-##    assert bool(p) is True
-##    assert bool(p) is False
-
-    windll.oleaut32.CreateTypeLib(1, u"blabla", byref(p))
-
-    print p
-
-    assert (2, 1) == (p.AddRef(), p.Release())
-
-    p1 = p.QueryInterface(IUnknown)
-    assert (3, 2) == (p1.AddRef(), p1.Release())
-    p2 = p1.QueryInterface(IUnknown)
-
-    assert p1 == p2
-
-    del p2
-    del p
-    assert (2, 1) == (p1.AddRef(), p1.Release())
-
-##    help(POINTER(IUnknown))
-
-    del p1
