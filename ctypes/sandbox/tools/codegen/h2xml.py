@@ -28,7 +28,7 @@ def main():
     def add_option(option, opt, value, parser):
         parser.values.gccxml_options.extend((opt, value))
 
-    parser = OptionParser()
+    parser = OptionParser("usage: %prog includefile ... [options]")
 ##    parser.add_option("-h", action="help")
     parser.add_option("-q", "--quiet",
                       dest="quiet",
@@ -75,7 +75,7 @@ def main():
 
     try:
         parser = cparser.IncludeParser()
-        parser.parse(files[0], options)
+        parser.parse(files, options)
     except cparser.CompilerError, detail:
         import traceback
         traceback.print_exc()
