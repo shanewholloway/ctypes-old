@@ -691,6 +691,7 @@ static int _call_function_pointer(int flags,
 		case 'z':
 		case 'Z':
 		case 'P':
+		case 'X': /* BSTR */
 			push(parms[i]->value.p);
 			argbytes += sizeof(void *);
 			break;

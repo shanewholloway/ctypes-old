@@ -2,7 +2,9 @@
 #include "structmember.h"
 
 #include "ctypes.h"
-
+#ifdef MS_WIN32
+#include <windows.h>
+#endif
 /******************************************************************/
 /*
   CField_Type
@@ -712,6 +714,54 @@ Z_get(void *ptr, unsigned size)
 }
 #endif
 
+#ifdef MS_WIN32
+static void
+_FreeBstr(void *ptr)
+{
+	SysFreeString((BSTR)ptr);
+}
+
+static PyObject *
+BSTR_set(void *ptr, PyObject *value, unsigned size)
+{
+	BSTR bstr;
+	wchar_t *s;
+	int len;
+
+	if (PyString_Check(value)) {
+		value = PyUnicode_FromObject(value);
+		if (!value)
+			return NULL;
+	} else if (!PyUnicode_Check(value)) {
+		PyErr_Format(PyExc_TypeError,
+				"unicode string expected instead of %s instance",
+				value->ob_type->tp_name);
+		return NULL;
+	} else
+		Py_INCREF(value);
+	s = PyUnicode_AS_UNICODE(value);
+	len = PyUnicode_GET_SIZE(value);
+	bstr = SysAllocStringLen(s, len);
+	*(BSTR *)ptr = bstr;
+	Py_DECREF(value);
+	return PyCObject_FromVoidPtr(bstr, _FreeBstr);
+}
+
+
+static PyObject *
+BSTR_get(void *ptr, unsigned size)
+{
+	BSTR p;
+	p = *(BSTR *)ptr;
+	if (p)
+		return PyUnicode_FromWideChar(p, SysStringLen(p));
+	else {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+}
+#endif
+
 static PyObject *
 P_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -801,6 +851,9 @@ static struct fielddesc formattable[] = {
 #ifdef HAVE_USABLE_WCHAR_T
 /*	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get}, */
 	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
+#endif
+#ifdef MS_WIN32
+	{ 'X', sizeof(wchar_t *),	WCHAR_P_ALIGN,		BSTR_set, BSTR_get},
 #endif
 	{ 0,   0,			0,			NULL,  NULL},
 };

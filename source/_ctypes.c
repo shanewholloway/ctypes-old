@@ -716,7 +716,7 @@ _type_ attribute.
 
 */
 
-static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfzZqQP";
+static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfzZqQPX";
 
 static PyObject *
 SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
