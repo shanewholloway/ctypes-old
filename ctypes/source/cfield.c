@@ -1012,14 +1012,14 @@ ffi_type ffi_type_sint16 = { 2, 2, FFI_TYPE_SINT16 };
 ffi_type ffi_type_uint32 = { 4, 4, FFI_TYPE_UINT32 };
 ffi_type ffi_type_sint32 = { 4, 4, FFI_TYPE_SINT32 };
 
-ffi_type ffi_type_uint64 = { LONG_LONG_ALIGN, 8, FFI_TYPE_UINT64 };
-ffi_type ffi_type_sint64 = { LONG_LONG_ALIGN, 8, FFI_TYPE_SINT64 };
+ffi_type ffi_type_uint64 = { 8, LONG_LONG_ALIGN, FFI_TYPE_UINT64 };
+ffi_type ffi_type_sint64 = { 8, LONG_LONG_ALIGN, FFI_TYPE_SINT64 };
 
-ffi_type ffi_type_float = { FLOAT_ALIGN, sizeof(float), FFI_TYPE_FLOAT };
-ffi_type ffi_type_double = { DOUBLE_ALIGN, sizeof(double), FFI_TYPE_DOUBLE };
+ffi_type ffi_type_float = { sizeof(float), FLOAT_ALIGN, FFI_TYPE_FLOAT };
+ffi_type ffi_type_double = { sizeof(double), DOUBLE_ALIGN, FFI_TYPE_DOUBLE };
 
 /* ffi_type ffi_type_longdouble */
 
-ffi_type ffi_type_pointer = { VOID_P_ALIGN, sizeof(void *), FFI_TYPE_POINTER };
+ffi_type ffi_type_pointer = { sizeof(void *), VOID_P_ALIGN, FFI_TYPE_POINTER };
 
 /*---------------- EOF ----------------*/
