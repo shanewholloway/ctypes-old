@@ -64,6 +64,12 @@ if sys.platform == "win32":
     packages.append("ctypes.com.tools")
     package_dir["ctypes.com.tools"] = "win32/com/tools"
 
+    packages.append("ctypes.com.samples.server")
+    package_dir["ctypes.com.samples.server"] = "win32/com/samples/server"
+
+    packages.append("ctypes.com.samples.server.control")
+    package_dir["ctypes.com.samples.server.control"] = "win32/com/samples/server/control"
+
 ################################################################
 
 class test(Command):
