@@ -5,11 +5,6 @@ from ctypes import *
 
 user32 = windll.user32
 kernel32 = windll.kernel32
-ole32.CoInitialize(None)
-
-# We need to call this when we're done:
-import atexit
-atexit.register(ole32.CoUninitialize)
 
 S_OK = 0
 E_NOTIMPL = 0x80004001
