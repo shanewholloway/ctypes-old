@@ -9,14 +9,18 @@ class CFunctions(unittest.TestCase):
 
     def test_byte(self):
         self.dll.tf_b.restype = c_byte
+        self.dll.tf_b.argtypes = (c_byte,)
         self.failUnlessEqual(self.dll.tf_b(-42), -42)
         self.dll.tf_bb.restype = c_byte
+        self.dll.tf_bb.argtypes = (c_byte, c_byte)
         self.failUnlessEqual(self.dll.tf_bb(0, -42), -42)
 
     def test_ubyte(self):
         self.dll.tf_B.restype = c_ubyte
+        self.dll.tf_B.argtypes = (c_ubyte,)
         self.failUnlessEqual(self.dll.tf_B(42), 42)
         self.dll.tf_bB.restype = c_ubyte
+        self.dll.tf_bB.argtypes = (c_byte, c_ubyte)
         self.failUnlessEqual(self.dll.tf_bB(0, 42), 42)
 
     def test_short(self):
