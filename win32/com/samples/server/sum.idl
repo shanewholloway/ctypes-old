@@ -8,6 +8,7 @@
 library SumLib
 {
 	importlib("stdole2.tlb");
+	coclass CSum;
 	/* a dual interface, derived from IDispatch */
 	[
 		object,
