@@ -1,3 +1,17 @@
+2005-03-11  Thomas Heller  <theller@python.net>
+
+	* ctypes-0.9.5 released.
+
+	* The prototypes that WINFUNCTYPE or CFUNCTYPE return can now be
+	called with an optional third parameter: paramflags.  This must be
+	a tuple specifying the parameter direction (in, out), the
+	parameter name (optional), and the default parameter value (also
+	optional).  This creates a somewhat higher level function, and
+	also allows to call functions with named parameters.
+
+	The change made on 2005-01-15 has been reverted again - it is
+	better to create instancemethods, if needed, in the calling code.
+
 2005-02-10  Thomas Heller  <theller@python.net>
 
 	* Clean up the_ semantics on Structure/Union types. The _fields_
