@@ -127,6 +127,18 @@ char *conversion_mode_errors = NULL;
 */
 
 static PyObject *
+StructUnion_getfunc(void *ptr, unsigned size,
+		    PyObject *type, CDataObject *src, ...)
+{
+	if (type == NULL) {
+		PyErr_SetString(PyExc_SystemError,
+				"ctypes bug: StructUnion_getfunc called with NULL type");
+		return NULL;
+	}
+	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
+}
+
+static PyObject *
 StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 {
 	PyTypeObject *result;
@@ -178,6 +190,10 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 		Py_DECREF(result);
 		return NULL;
 	}
+
+	/* XXX Allow overriding. __c_to_python__? */
+	dict->getfunc = StructUnion_getfunc;
+
 	return (PyObject *)result;
 }
 
@@ -3658,7 +3674,7 @@ Pointer_item(CDataObject *self, int index)
 {
 	int size, offset;
 	StgDictObject *stgdict, *itemdict;
-	PyObject *base;
+	CDataObject *base;
 	PyObject *proto;
 
 	if (*(void **)self->b_ptr == NULL) {
@@ -3681,7 +3697,7 @@ Pointer_item(CDataObject *self, int index)
 	if (index != 0)
 		base = NULL;
 	else
-		base = (PyObject *)self;
+		base = self;
 	return CData_get(stgdict->proto, stgdict->getfunc, base,
 			 index, size, (*(char **)self->b_ptr) + offset);
 }
