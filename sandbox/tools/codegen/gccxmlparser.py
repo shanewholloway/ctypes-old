@@ -1,6 +1,7 @@
 """gccxmlparser - parse a gccxml created XML file into a sequence type descriptions"""
 import xml.sax
 import typedesc
+import sys
 try:
     set
 except NameError:
@@ -33,6 +34,9 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         mth = getattr(self, name)
         result = mth(attrs)
         if result is not None:
+            location = attrs.get("location", None)
+            if location is not None:
+                result.location = location
             # record the result
             _id = attrs.get("id", None)
             # The '_id' attribute is used to link together all the
@@ -63,12 +67,23 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def Base(self, attrs): pass
     def Ellipsis(self, attrs): pass
-    def File(self, attrs): pass
     def OperatorMethod(self, attrs): pass
 
     ################################
     # real element handlers
 
+    def File(self, attrs):
+        name = attrs["name"]
+        return typedesc.File(name)
+
+    def _fixup_File(self, f):
+        if sys.platform == "win32" and " " in f.name:
+            # On windows, convert to short filename if it contains blanks
+            from ctypes import windll, create_unicode_buffer, sizeof
+            buf = create_unicode_buffer(256)
+            if windll.kernel32.GetShortPathNameW(f.name, buf, sizeof(buf)):
+                f.name = buf.value
+    
     # simple types and modifiers
 
     def Variable(self, attrs):
@@ -285,6 +300,11 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
                 mth(i)
             except KeyError: # XXX better exception catching
                 remove.append(n)
+            else:
+                location = getattr(i, "location", None)
+                if location:
+                    fil, line = location.split(":")
+                    i.location = self.all[fil].name, line
         for n in remove:
             del self.all[n]
         for i in self.artificial + self.all.values():
