@@ -737,14 +737,28 @@ class TypeLibReader:
             print >> ofi
             print >> ofi, "#" * 78
             interfaces = self.interfaces.values()
-            # We *try* to sort the interfaces so that dependencies are
-            # satisfied.  If this fails, the generated file must be
-            # fixed manually (although I'm not sure this is always
-            # possible).
-            interfaces.sort(self.depends)
-            for itf in interfaces:
-                print >> ofi
-                print >> ofi, itf.declaration()
+
+            if 1:
+                done = ["IUnknown", "IDispatch", "dispinterface"]
+                while interfaces:
+                    interfaces = [i for i in interfaces if i.name not in done]
+                    for itf in interfaces:
+                        for b in itf._uses:
+                            if b not in done:
+                                break
+                        else:
+                            print >> ofi
+                            print >> ofi, itf.declaration()
+                            done.append(itf.name)
+            else:
+                # We *try* to sort the interfaces so that dependencies are
+                # satisfied.  If this fails, the generated file must be
+                # fixed manually (although I'm not sure this is always
+                # possible).
+                interfaces.sort(self.depends)
+                for itf in interfaces:
+                    print >> ofi
+                    print >> ofi, itf.declaration()
 
         if self.records:
             # We *try* to sort the records (structures and unions) so that dependencies
@@ -760,7 +774,7 @@ class TypeLibReader:
 
         # The definition of the interfaces contains method lists.
         if self.interfaces:
-            for itf in interfaces:
+            for itf in self.interfaces.values():
                 print >> ofi
                 print >> ofi, itf.definition()
 
@@ -784,7 +798,7 @@ def main():
 ##        path = r"..\samples\server\sum.tlb"
         path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
-        path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
+##        path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
 ##        path = r"c:\windows\system32\msi.dll"
 
 ## XXX Does definitely *not* work with the Excel type library
@@ -797,7 +811,7 @@ def main():
 ##        path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 ##        path = r"c:\windows\system32\hnetcfg.dll"
 ##        path = r"C:\WINDOWS\System32\MSHFLXGD.OCX"
-        path = r"c:\windows\system32\scrrun.dll"
+##        path = r"c:\windows\system32\scrrun.dll"
     import time
     start = time.clock()
     reader = TypeLibReader(unicode(path))
