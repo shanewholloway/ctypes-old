@@ -48,10 +48,7 @@ class Registrar(object):
 
         # rootkey, subkey, valuename, value
         table = [(HKCR, "CLSID\\%s" % self._reg_clsid_, "", self._reg_desc_),
-                 
                  (HKCR, "CLSID\\%s\\ProgID" % self._reg_clsid_, "", self._reg_progid_),
-                 
-                 
                  (HKCR, "AppID\\%s" % self._reg_clsid_, "", self._reg_progid_),
                  (HKCR, "%s\\CLSID" % self._reg_progid_, "", self._reg_clsid_),
                  (HKCR, self._reg_progid_, "", self._reg_desc_),
