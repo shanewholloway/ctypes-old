@@ -167,6 +167,10 @@ static int __stdcall CallPythonObject(PyObject *callable,
 		result = PyObject_CallObject(callable, arglist);
 #ifdef MS_WIN32
 	}
+	/* This may leak arbitrary python references, but
+	   we have no choice except aborting with a fatal error.
+	   See http://mail.python.org/pipermail/python-dev/2003-April/034574.html
+	*/
 	__except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
 		SetException(dwExceptionCode);
 	}
