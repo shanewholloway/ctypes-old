@@ -3,7 +3,7 @@ import ctypes
 
 class MyCallback(ctypes.CFunction):
     _stdcall_ = 0
-    _types_ = "i"
+    _types_ = ctypes.c_int,
 
 
 class RefcountTestCase(unittest.TestCase):

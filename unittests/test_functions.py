@@ -24,7 +24,7 @@ class FunctionTestCase(unittest.TestCase):
         # Found by Greg Chapman.
         try:
             class X(object, CFunction):
-                _types_ = "ii"
+                _types_ = c_int, c_int
                 _stdcall_ = 1
         except TypeError:
             pass
@@ -180,7 +180,7 @@ class FunctionTestCase(unittest.TestCase):
 
         class CallBack(CFunction):
             _stdcall_ = 0
-            _types_ = "i"
+            _types_ = c_int,
 
         cb = CallBack(callback)
         f(2**18, cb)
@@ -195,7 +195,7 @@ class FunctionTestCase(unittest.TestCase):
 
         class MyCallback(CFunction):
             _stdcall_ = 0
-            _types_ = "i"
+            _types_ = c_int,
 
         def callback(value):
             #print "called back with", value
@@ -213,7 +213,7 @@ class FunctionTestCase(unittest.TestCase):
                 
         class AnotherCallback(CFunction):
             _stdcall_ = 1
-            _types_ = "iiii"
+            _types_ = c_int, c_int, c_int, c_int
 
         # check that the prototype works: we call f with wrong
         # argument types
