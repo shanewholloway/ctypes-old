@@ -392,6 +392,18 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 	{
 		PyObject *arg;
 		arg = PyObject_GetAttrString(obj, "_as_parameter_");
+		/* Which types should we exactly allow here?
+		   integers are required for using Python classes
+		   as parameters (they have to expose the '_as_parameter_'
+		   attribute)
+		*/
+		if (PyInt_Check(arg)) {
+			parm->tag = 'i';
+			parm->value.i = PyInt_AS_LONG(arg);
+			Py_INCREF(obj);
+			parm->obj = obj;
+			return parm;
+		}
 		if (!arg || !PyCArg_CheckExact(arg)) {
 			Py_XDECREF(arg);
 			Py_DECREF(parm);
