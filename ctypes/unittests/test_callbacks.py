@@ -1,7 +1,82 @@
 import unittest
 from ctypes import *
 
-class CallbacksTestCase(unittest.TestCase):
+class CallbacksBase(unittest.TestCase):
+    def callback(self, *args):
+        return args[-1]
+
+    def check_type(self, typ, arg):
+        PROTO = CFUNCTYPE(typ, typ)
+        return PROTO(self.callback)(arg)
+
+    def check_type_1(self, typ, arg):
+        PROTO = CFUNCTYPE(typ, c_byte, typ)
+        return PROTO(self.callback)(0, arg)
+
+    ################
+
+
+class IntegerCallbacks(CallbacksBase):
+    def test_byte(self):
+        self.failUnlessEqual(self.check_type(c_byte, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_byte, 42), 42)
+
+    def test_ubyte(self):
+        self.failUnlessEqual(self.check_type(c_ubyte, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_ubyte, 42), 42)
+
+    def test_short(self):
+        self.failUnlessEqual(self.check_type(c_short, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_short, 42), 42)
+
+    def test_ushort(self):
+        self.failUnlessEqual(self.check_type(c_ushort, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_ushort, 42), 42)
+
+    def test_int(self):
+        self.failUnlessEqual(self.check_type(c_int, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_int, 42), 42)
+
+    def test_uint(self):
+        self.failUnlessEqual(self.check_type(c_uint, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_uint, 42), 42)
+
+    def test_long(self):
+        self.failUnlessEqual(self.check_type(c_long, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_long, 42), 42)
+
+    def test_ulong(self):
+        self.failUnlessEqual(self.check_type(c_ulong, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_ulong, 42), 42)
+
+    def test_longlong(self):
+        self.failUnlessEqual(self.check_type(c_longlong, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_longlong, 42), 42)
+
+    def test_ulonglong(self):
+        self.failUnlessEqual(self.check_type(c_ulonglong, 42), 42)
+        self.failUnlessEqual(self.check_type_1(c_ulonglong, 42), 42)
+
+    def test_float(self):
+        # because of rounding errors double -> float -> double,
+        # this test doesn't work with every float value
+        self.failUnlessEqual(self.check_type(c_float, 2.5), 2.5)
+        self.failUnlessEqual(self.check_type_1(c_float, 2.5), 2.5)
+
+    def test_double(self):
+        self.failUnlessEqual(self.check_type(c_double, 3.14), 3.14)
+        self.failUnlessEqual(self.check_type_1(c_double, 3.14), 3.14)
+
+class CharCallbacks(CallbacksBase):
+    def test_char(self):
+        self.failUnlessEqual(self.check_type(c_char, "x"), "x")
+        self.failUnlessEqual(self.check_type_1(c_char, "x"), "x")
+
+    def test_char_p(self):
+        self.failUnlessEqual(self.check_type(c_char_p, "abc"), "abc")
+        self.failUnlessEqual(self.check_type_1(c_char_p, "abc"), "abc")
+
+class SampleCallbacksTestCase(unittest.TestCase):
 
     def test_integrate(self):
         # Derived from some then non-working code, posted by David Foster
