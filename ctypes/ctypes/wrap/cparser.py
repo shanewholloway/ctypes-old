@@ -5,6 +5,10 @@ try:
     import subprocess
 except ImportError:
     subprocess = None
+try:
+    set
+except NameError:
+    from sets import Set as set
 
 if sys.platform == "win32":
 
@@ -28,7 +32,27 @@ class CompilerError(Exception):
     pass
 
 class IncludeParser(object):
+    def __init__(self, options):
+        """
+        options must be an object having these attributes:
+          verbose - integer
+          flags - sequence of strings
+          keep_temporary_files - true if temporary files should not be deleted
+          cpp_symbols - whether to include preprocessor symbols in the XML file
+          excluded_symbols - collection of names for additional preprocessor symbols to exclude
+          excluded_symbols_re - collection of regular expressions for names to exclude
+          xml_file - pathname of output file (may be None)
+        """
+        self.options = options
+        self.excluded = set()
+        self.excluded.update(EXCLUDED)
+        self.excluded.update(self.options.excluded_symbols)
 
+        self.excluded_re = set()
+        self.excluded_re.update(EXCLUDED_RE)
+        self.excluded_re.update(self.options.excluded_symbols_re)
+        
+        
     def create_source_file(self, lines, ext=".cpp"):
         "Create a temporary file, write lines to it, and return the filename"
         fd, fname = tempfile.mkstemp(ext, text=True)
@@ -62,7 +86,7 @@ class IncludeParser(object):
             if not self.options.keep_temporary_files:
                 os.remove(fname)
             else:
-                print >> sys.stderr, "file '%s' not removed" % fname
+                print >> sys.stderr, "Info: file '%s' not removed" % fname
         return [line[len("#define "):]
                 for line in data.splitlines()
                 if line.startswith("#define ")]
@@ -86,7 +110,6 @@ class IncludeParser(object):
                 retcode = proc.wait()
                 if retcode:
                     self.display_compiler_errors(err.splitlines())
-                    raise SystemExit(1)
             else:
                 retcode = os.system(" ".join(args))
             if retcode:
@@ -95,10 +118,10 @@ class IncludeParser(object):
             if not self.options.keep_temporary_files:
                 os.remove(fname)
             else:
-                print >> sys.stderr, "file '%s' not removed" % fname
+                print >> sys.stderr, "Info: file '%s' not removed" % fname
 
     def display_compiler_errors(self, lines):
-        print "Compiler errors on these source lines:"
+        print >> sys.stderr, "Compiler errors on these source lines:"
         import re, linecache
         pat = re.compile(r"(.*\.cpp):(\d+):(.*)")
         output = []
@@ -113,7 +136,7 @@ class IncludeParser(object):
             if line.startswith(" ") and output:
                 output[-1] = output[-1] + line.strip()
         for line in output:
-            print line
+            print >> sys.stderr, line
 
     def get_defines(self, include_files):
         """'Compile' an include file with gccxml, and return a
@@ -142,9 +165,9 @@ class IncludeParser(object):
             return "IS_FUNCTION"
         if value in C_KEYWORDS:
             return "value is keyword"
-        if name in EXCLUDED:
+        if name in self.excluded:
             return "excluded"
-        for pat in EXCLUDED_RE:
+        for pat in self.excluded_re:
             if pat.match(name):
                 return "excluded (regex)"
         if value[0] in INVALID_CHARS or value[-1] in INVALID_CHARS:
@@ -201,7 +224,7 @@ class IncludeParser(object):
             if not self.options.keep_temporary_files:
                 os.remove(fname)
             else:
-                print >> sys.stderr, "file '%s' not removed" % fname
+                print >> sys.stderr, "Info: file '%s' not removed" % fname
 
         types = {}
         for i in items:
@@ -252,15 +275,10 @@ class IncludeParser(object):
 
     ################################################################
 
-    def parse(self, include_files, options):
-        """Main method.
-
-        The options object must have these attribuites:
-          verbose - integer
-          flags - sequence of strings
-        """
-        self.options = options
-
+    def parse(self, include_files):
+        """Parse include files."""
+        options = self.options
+        
         if options.cpp_symbols:
             if options.verbose:
                 print >> sys.stderr, "finding definitions ..."
