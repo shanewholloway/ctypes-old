@@ -1,5 +1,6 @@
 include MANIFEST MANIFEST.in LICENSE.txt NEWS.txt README*
 include source/*.c source/*.h
+include source/darwin/*.c source/darwin/*.h
 
 include unittests/*.py
 include docs/*.html docs/*.css docs/*.stx
