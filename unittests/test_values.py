@@ -36,7 +36,7 @@ class ValuesTestCase(unittest.TestCase):
         and a __phello__ package containing a spam module."""
         class struct_frozen(Structure):
             _fields_ = [("name", c_char_p),
-                        ("code", c_ubyte),
+                        ("code", POINTER(c_ubyte)),
                         ("size", c_int)]
 
         FrozenTable = POINTER(struct_frozen)
