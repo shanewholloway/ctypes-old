@@ -140,7 +140,7 @@ CField_FromDesc(PyObject *desc, int index,
 			align = min(pack, dict->align);
 		else
 			align = dict->align;
-		if (*poffset % align) {
+		if (align && *poffset % align) {
 			int delta = align - (*poffset % align);
 			*psize += delta;
 			*poffset += delta;
