@@ -547,14 +547,8 @@ PyTypeObject PointerType_Type = {
   ArrayType_Type
 */
 /*
-
-ArrayType_new ensures that the new Array subclass created has a _length_
-attribute, and a _type_ attribute.
-
-class IntArray10(Array):
-    _type_ = "i"
-    _size_ = 10
-
+  ArrayType_new ensures that the new Array subclass created has a _length_
+  attribute, and a _type_ attribute.
 */
 
 static PyObject *
@@ -562,6 +556,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	PyTypeObject *result;
 	StgDictObject *stgdict;
+	StgDictObject *itemdict;
 	PyObject *proto;
 	PyObject *typedict;
 	int length;
@@ -593,47 +588,23 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!stgdict)
 		return NULL;
 
-	if (PyType_Check(proto)) {
-		StgDictObject *dict;
-		dict = PyType_stgdict(proto);
-		if (!dict) {
-			PyErr_SetString(PyExc_TypeError,
-					"invalid type ???");
-			Py_DECREF((PyObject *)stgdict);
-			return NULL;
-		}
-		itemsize = dict->size;
-		itemalign = dict->align;
-		itemlen = dict->length;
-
-		stgdict->size = itemsize * length;
-		stgdict->align = itemalign;
-		stgdict->length = length;
-		Py_INCREF(proto);
-		stgdict->proto = proto;
-	} else if (PyString_Check(proto)) {
-		int offset = 0;
-		int align = 0;
-		CFieldObject *field;
-
-		itemsize = 0;
-		field = (CFieldObject *)CField_FromDesc(proto, 0,
-							&itemsize, &offset, &align, 0);
-		if (!field) {
-			Py_DECREF((PyObject *)stgdict);
-			return NULL;
-		}
-		stgdict->size = itemsize * length;
-		stgdict->align = align;
-		stgdict->length = length;
-		stgdict->setfunc = field->setfunc;
-		stgdict->getfunc = field->getfunc;
-		stgdict->proto = NULL;
-	} else {
+	itemdict = PyType_stgdict(proto);
+	if (!itemdict) {
 		PyErr_SetString(PyExc_TypeError,
-				"_type_ does not define storage info");
+				"_type_ must have storage info");
+		Py_DECREF((PyObject *)stgdict);
 		return NULL;
 	}
+	itemsize = itemdict->size;
+	itemalign = itemdict->align;
+	itemlen = itemdict->length;
+
+	stgdict->size = itemsize * length;
+	stgdict->align = itemalign;
+	stgdict->length = length;
+	Py_INCREF(proto);
+	stgdict->proto = proto;
+
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
@@ -2164,6 +2135,9 @@ Array_item(CDataObject *self, int index)
 
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
+	/* Would it be clearer if we got the item size from
+	   stgdict->proto's stgdict?
+	*/
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
 
