@@ -17,7 +17,7 @@ class RemoteTestRunner(unittest.TextTestRunner):
     # - separate report() method
     # - run_file method
     def _makeResult(self, options=None):
-        result = super(RemoteTestRunner, self)._makeResult()
+        result = unittest.TextTestRunner._makeResult(self)
         if options is not None:
             result.__dict__.update(options)
         return result
@@ -110,7 +110,7 @@ def client(verbose, args):
     runner = RemoteTestRunner(sys.stderr, 1, verbosity=verbose)
     d = {"errors": [], "failures": [], "testsRun": 0}
 
-    starttime = time.clock()
+    starttime = time.time()
     for a in args:
         p = os.path.dirname(a)
         if p not in sys.path:
@@ -125,7 +125,7 @@ def client(verbose, args):
         d = cPickle.load(open(".result.pck", "r"))
         result = runner._makeResult(d)
         os.unlink(".result.pck")
-    runner.report(result, duration = time.clock() - starttime)
+    runner.report(result, duration = time.time() - starttime)
 
 ################################################################
 
