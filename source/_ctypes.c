@@ -215,7 +215,7 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)dict;
 
-//	dict->setfunc = StructUnion_setfunc;
+	dict->setfunc = StructUnion_setfunc;
 	dict->getfunc = generic_getfunc;
 
 	fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
