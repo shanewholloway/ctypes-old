@@ -11,7 +11,7 @@ dlls. It allows wrapping these libraries in pure Python.
 
 # XXX explain LIBFFI_SOURCES
 ##LIBFFI_SOURCES='libffi-src'
-LIBFFI_SOURCES='../libffi'
+LIBFFI_SOURCES='source/gcc/libffi'
 
 ################################################################
 
@@ -192,6 +192,8 @@ class test(Command):
                         sys.stderr.write("F")
                     elif case.endswith("ERROR"):
                         sys.stderr.write("E")
+                    else:
+                        sys.stderr.write("?")
         stop_time = time.time()
 
         print >> sys.stderr
@@ -235,6 +237,8 @@ class test(Command):
                 elif line.endswith("FAIL"):
                     self.fail += 1
                 elif line.endswith("ERROR"):
+                    self.errors += 1
+                else: #?
                     self.errors += 1
             elif line == "=" * 70:
                 # failure or error
