@@ -227,6 +227,12 @@ def find_file_in_subdir(dirname, filename):
     return None
 
 class my_build_ext(build_ext.build_ext):
+    def finalize_options(self):
+        if self.debug is None:
+            import imp
+            self.debug = ('_d.pyd', 'rb', imp.C_EXTENSION) in imp.get_suffixes()
+        build_ext.build_ext.finalize_options(self)
+
     # First build a static libffi library, then build the _ctypes extension.
     def run(self):
         self.build_libffi_static()
