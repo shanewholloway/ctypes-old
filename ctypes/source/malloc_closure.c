@@ -1,25 +1,3 @@
-/*
- * Memory blocks with executable permission are allocated of size BLOCKSIZE.
- * They are chained together, and the start of the chain is the global 'start'
- * pointer.
- *
- * Each block has an array of ffi_closure in it.  The ffi_closure.cif field is
- * used to mark an entry used or free, and the block has a 'used' field which
- * counts the used entries.
- *
- * MallocClosure() returns a pointer to an ffi_closure entry, allocating a new
- * block when needed.
- *
- * FreeClosure(ffi_closure*) marks the ffi_closure entry unused again.
- * If a memory block has only unused entries, it is freed again - unless it is
- * the last one in use.
- */
-
-/*
- * The functions would probably be much faster if we would maintain a linked
- * list of free and used entries - this would avoid the linear searches.
- */
-
 #include <Python.h>
 #include <ffi.h>
 #include "ctypes.h"
