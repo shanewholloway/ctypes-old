@@ -137,7 +137,7 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	fields = PyObject_GetAttrString((PyObject *)result, "_fields_");
 	if (fields == NULL) {
 		PyErr_Clear();
-		return result;
+		return (PyObject *)result;
 	}
 	dict = StgDict_FromDict(fields, cls_dict, isStruct);
 	Py_DECREF(fields);
