@@ -1,7 +1,10 @@
 from ctypes import *
 from ctypes.wintypes import DWORD, WORD, LPOLESTR, LPCOLESTR, LCID
-from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, COMObject
+from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, \
+     COMObject, CopyComPointer
 from ctypes.com.hresult import *
+
+from _ctypes import _Pointer
 
 oleaut32 = oledll.oleaut32
 
@@ -96,8 +99,10 @@ assert(sizeof(BSTR) == 4)
 # Interfaces declarations
 #
 
-# fake
-ITypeComp = IUnknown
+DESCKIND = c_int
+
+class ITypeComp(IUnknown):
+    _iid_ = GUID("{00020403-0000-0000-C000-000000000046}")
 
 class ITypeInfo(IUnknown):
     _iid_ = GUID("{00020401-0000-0000-C000-000000000046}")
@@ -270,11 +275,13 @@ VT_TYPEMASK = 0xfff
  */
 """
 
+VARIANT_BOOL = c_short
+
+PVARIANT = POINTER("VARIANT")
+
 class VARIANT(Structure):
     class U(Union):
         _fields_ = [("VT_BOOL", c_short),
-                    ("VT_BSTR", BSTR),
-                    ("VT_DISPATCH", POINTER(IDispatch)),
                     ("VT_I1", c_char),
                     ("VT_I2", c_short),
                     ("VT_I4", c_long),
@@ -286,7 +293,19 @@ class VARIANT(Structure):
                     ("VT_UI2", c_ushort),
                     ("VT_UI4", c_ulong),
                     ("VT_UINT", c_uint),
-                    ("VT_UNKNOWN", POINTER(IUnknown)),
+
+                    ("pvarVal", PVARIANT),
+
+                    # These fields are not defined or used, accessing
+                    # them is too dangerous.  We simply copy COM
+                    # pointers out and in with the CopyComPointer
+                    # function, and for BSTR we use the faked
+                    # c_wchar_p field, and call SysAllocString
+                    # outselves.
+                    #("VT_DISPATCH", POINTER(IDispatch)),
+                    #("VT_UNKNOWN", POINTER(IUnknown)),
+                    ##("VT_BSTR", BSTR),
+
                     # faked fields, only for our convenience:
                     ("wstrVal", c_wchar_p),
                     ("voidp", c_void_p),
@@ -306,56 +325,35 @@ class VARIANT(Structure):
             self.value = args[0]
 
     def _set_value(self, value):
+        oleaut32.VariantClear(byref(self))
         typ = type(value)
         if typ is int:
-            oleaut32.VariantClear(byref(self))
             self.vt = VT_INT
             self._.VT_INT = value
         elif typ is float:
             self.vt = VT_R8
             self._.VT_R8 = value
         elif typ is str:
-            oleaut32.VariantClear(byref(self))
             self.vt = VT_BSTR
             self._.voidp = oleaut32.SysAllocString(unicode(value))
         elif typ is unicode:
-            oleaut32.VariantClear(byref(self))
             self.vt = VT_BSTR
             self._.voidp = oleaut32.SysAllocString(value)
         elif value is None:
-            oleaut32.VariantClear(byref(self))
+            return
         elif typ is bool:
-            oleaut32.VariantClear(byref(self))
             self.vt = VT_BOOL
             self._.VT_BOOL = value and -1 or 0
-        elif typ is POINTER(IUnknown):
-            oleaut32.VariantClear(byref(self))
-            self.vt = VT_UNKNOWN
-            self._.VT_UNKNOWN = value
-            if value:
-                value.AddRef()
-        elif typ is POINTER(IDispatch):
-            oleaut32.VariantClear(byref(self))
+        elif typ is POINTER(IDispatch) \
+                 or isinstance(value, _Pointer) and issubclass(typ._type_, IDispatch):
+            # It is a POINTER(IDispatch or IDispatch subclass)
+            CopyComPointer(value, byref(self._))
             self.vt = VT_DISPATCH
-            self._.VT_DISPATCH = value
-            if value:
-                value.AddRef()
-        elif hasattr(value, "QueryInterface") and issubclass(typ._type_, IDispatch):
-            p = POINTER(IDispatch)()
-            if value:
-                value.QueryInterface(byref(IDispatch._iid_), byref(p))
-                p.AddRef()
-            oleaut32.VariantClear(byref(self))
-            self.vt = VT_DISPATCH
-            self._.VT_DISPATCH = p
-        elif hasattr(value, "QueryInterface") and issubclass(typ._type_, IUnknown):
-            p = POINTER(IUnknown)()
-            if value:
-                value.QueryInterface(byref(IUnknown._iid_), byref(p))
-                p.AddRef()
-            oleaut32.VariantClear(byref(self))
+        elif typ is POINTER(IUnknown) \
+                 or isinstance(value, _Pointer) and issubclass(typ._type_, IUnknown):
+            # It is a POINTER(IUnknown or IUnknown subclass)
+            CopyComPointer(value, byref(self._))
             self.vt = VT_UNKNOWN
-            self._.VT_UNKNOWN = p
         else:
             raise TypeError, "don't know how to store %r in a VARIANT" % value
 
@@ -383,22 +381,38 @@ class VARIANT(Structure):
         elif self.vt == VT_R8:
             return self._.VT_R8
         elif self.vt == VT_BSTR:
-            return self._.wstrVal
+            # NULL BSTR count as empty strings, not None!
+            return self._.wstrVal or u''
+        # The following code can be enabled again when all the POINTER(ISomeInterface)
+        # classes have a constructor that calls AddRef() if not-null.
+##        elif self.vt == VT_UNKNOWN:
+##            return self._.VT_UNKNOWN
+##        elif self.vt == VT_DISPATCH:
+##            return self._.VT_DISPATCH
         elif self.vt == VT_UNKNOWN:
-            result = self._.VT_UNKNOWN
-            if result:
-                result.AddRef()
-            return result
+            p = POINTER(IUnknown)()
+            CopyComPointer(self._.voidp, byref(p))
+            return p
         elif self.vt == VT_DISPATCH:
-            result = self._.VT_DISPATCH
-            if result:
-                result.AddRef()
-            return result
+            p = POINTER(IDispatch)()
+            CopyComPointer(self._.voidp, byref(p))
+            return p
+
         elif self.vt == VT_BOOL:
             return bool(self._.VT_BOOL)
+
+        # see also c:/sf/pywin32/com/win32com/src/oleargs.cpp
+        elif self.vt == VT_BYREF|VT_VARIANT:
+            return self._.pvarVal[0].value
+            # same as the line above, faster, but less readable?
+            # v = self
+            # while v.vt == VT_BYREF|VT_VARIANT:
+            #    v = v._.pvarVal[0]
+            # return v.value
         elif self.vt & VT_BYREF:
-            var = VARIANT.from_address(self._.voidp)
-            return var
+            v = VARIANT()
+            oleaut32.VariantCopyInd(byref(v), byref(self))
+            return v.value
         elif self.vt == VT_ERROR:
             return ("Error", self._.VT_SCODE)
         elif self.vt == VT_NULL:
@@ -413,8 +427,9 @@ class VARIANT(Structure):
     value = property(_get_value, _set_value)
 
     def __repr__(self):
-        return "<VARIANT 0x%X at %x>" % (self.vt, id(self))
+        return "<VARIANT 0x%X at %x>" % (self.vt, addressof(self))
 
+    # We must do this manually, BUT ONLY if we own the VARIANT
 ##    def __del__(self, _clear = oleaut32.VariantClear):
 ##        _clear(byref(self))
 
@@ -424,6 +439,8 @@ class VARIANT(Structure):
         var._.VT_SCODE = 0x80020004L
         return var
     optional = classmethod(optional)
+
+SetPointerType(PVARIANT, VARIANT)
 
 assert(sizeof(VARIANT) == 16)
 
@@ -560,6 +577,11 @@ class FUNCDESC(Structure):
 LPFUNCDESC = POINTER(FUNCDESC)
 assert(sizeof(FUNCDESC) == 52), sizeof(FUNCDESC)
 
+class BINDPTR(Union):
+    _fields_ = [("lpfuncdesc", POINTER(FUNCDESC)),
+                ("lpvardesc", POINTER(VARDESC)),
+                ("lptcomp", POINTER(ITypeComp))]
+
 # For CreateDispTypeInfo
 
 ##from ctypes import c_ushort, c_int, c_uint, c_long, c_wchar_p, Structure
@@ -589,6 +611,12 @@ assert(sizeof(FUNCDESC) == 52), sizeof(FUNCDESC)
 
 ################################################################
 # The interfaces COM methods
+
+ITypeComp._methods_ = IUnknown._methods_ + [
+    STDMETHOD(HRESULT, "Bind", c_wchar_p, c_ulong, c_short,
+              POINTER(POINTER(ITypeInfo)), POINTER(DESCKIND), POINTER(BINDPTR)),
+    STDMETHOD(HRESULT, "BindType", c_wchar_p, c_ulong,
+              POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp)))]
 
 ITypeInfo._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "GetTypeAttr", POINTER(LPTYPEATTR)),
@@ -620,7 +648,7 @@ ITypeLib._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "GetTypeInfoType", c_int, POINTER(TYPEKIND)),
     STDMETHOD(HRESULT, "GetTypeInfoOfGuid", REFGUID, POINTER(POINTER(ITypeInfo))),
     STDMETHOD(HRESULT, "GetLibAttr", POINTER(POINTER(TLIBATTR))),
-    STDMETHOD(HRESULT, "GetTypeComp", POINTER(ITypeComp)),
+    STDMETHOD(HRESULT, "GetTypeComp", POINTER(POINTER(ITypeComp))),
     STDMETHOD(HRESULT, "GetDocumentation", c_int, POINTER(BSTR), POINTER(BSTR),
               POINTER(c_ulong), POINTER(BSTR)),
     STDMETHOD(HRESULT, "IsName", c_wchar_p, c_ulong, c_int),
@@ -660,9 +688,9 @@ def LoadTypeLibEx(fnm, regkind=REGKIND_NONE):
     oleaut32.LoadTypeLibEx(unicode(fnm), regkind, byref(p))
     return p
 
-def LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid):
+def LoadRegTypeLib(guid, wVerMajor, wVerMinor, lcid=0):
     p = POINTER(ITypeLib)()
-    oleaut32.LoadRegTypeLib(byref(rguid), wVerMajor, wVerMinor, lcid, byref(p))
+    oleaut32.LoadRegTypeLib(byref(guid), wVerMajor, wVerMinor, lcid, byref(p))
     return p
 
 ################################################################
@@ -682,12 +710,9 @@ class DualObjImpl(COMObject):
 
     def LoadTypeInfo(self):
         interface = self._com_interfaces_[0]
-        tlib = POINTER(ITypeLib)()
-        oleaut32.LoadRegTypeLib(byref(self._typelib_.guid),
-                                self._typelib_.version[0],
-                                self._typelib_.version[1],
-                                0,
-                                byref(tlib))
+        tlib = LoadRegTypeLib(self._typelib_.guid,
+                              self._typelib_.version[0],
+                              self._typelib_.version[1])
         typeinfo = POINTER(ITypeInfo)()
         tlib.GetTypeInfoOfGuid(byref(interface._iid_), byref(typeinfo))
         self.typeinfo = typeinfo
@@ -721,28 +746,7 @@ class DualObjImpl(COMObject):
         if self.typeinfo is None:
             return E_NOTIMPL
         # *ppTInfo = self.typeinfo
-##        addr = c_void_p.from_address(addressof(ppTInfo)).value
-##        c_void_p.from_address(addr).value = addressof(self.typeinfo.contents)
-##        print "GetTypeInfo, refcount", self.typeinfo.AddRef()
-        return addref_and_copy(self.typeinfo, ppTInfo)
-
-# Several issues with this function (but it is much better than the
-# previous code we have commented out above, in the GetTypeInfo()
-# method:
-#
-# 1 - it uses msvcrt, better would be to have a memcpy function in
-#     _ctypes, or even the whole addref_and_copy
-# 2 - the name is not good
-# 3 - should it be a method of all POINTER(Ixxx) classes?
-# 4 - of course, it must be in ctypes\__init__.py, and used whereever needed
-
-def addref_and_copy(src, pdst):
-    if not pdst:
-        return E_POINTER
-    if src:
-        src.AddRef()
-    cdll.msvcrt.memcpy(pdst, byref(src), 4)
-    return S_OK
+        return CopyComPointer(self.typeinfo, ppTInfo)
 
 ################################################################
 # The following two are used by the readtlb tool
