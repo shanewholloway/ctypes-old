@@ -33,10 +33,10 @@
 
   5. If 'converters' are present (converters is a sequence of argtypes'
   from_param methods), for each item in 'callargs' converter is called and the
-  result passed to ConvParam.  If 'converters' are not present, each argument
+  result passed to PyObject_asparam.  If 'converters' are not present, each argument
   is directly passed to ConvParm.
 
-  6. For each arg, ConvParam stores the contained C data (or a pointer to it,
+  6. For each arg, PyObject_asparam stores the contained C data (or a pointer to it,
   for structures) into the 'struct argument' array.
 
   7. Finally, a loop fills the 'void *' array so that each item points to the
@@ -384,41 +384,16 @@ PyTypeObject PyCArg_Type = {
 };
 
 /****************************************************************/
-/*
- * Convert a PyObject * into a parameter suitable to pass to an
- * C function call.
- *
- * 1. Python integers are converted to C int and passed by value.
- *
- * 2. 3-tuples are expected to have a format character in the first
- *    item, which must be 'i', 'f', 'd', 'q', or 'P'.
- *    The second item will have to be an integer, float, double, long long
- *    or integer (denoting an address void *), will be converted to the
- *    corresponding C data type and passed by value.
- *
- * 3. Other Python objects are tested for an '_as_parameter_' attribute.
- *    The value of this attribute must be an integer which will be passed
- *    by value, or a 2-tuple or 3-tuple which will be used according
- *    to point 2 above. The third item (if any), is ignored. It is normally
- *    used to keep the object alive where this parameter refers to.
- *    XXX This convention is dangerous - you can construct arbitrary tuples
- *    in Python and pass them. Would it be safer to use a custom container
- *    datatype instead of a tuple?
- *
- * 4. Other Python objects cannot be passed as parameters - an exception is raised.
- *
- * 5. ConvParam will store the converted result in a struct containing format
- *    and value.
- */
-
-/*
- * Convert a single Python object into a PyCArgObject and return it.
- */
-static int ConvParam(PyObject *obj, int index, struct argument *pa)
+static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 {
-	StgDictObject *stgdict;
+	StgDictObject *stgdict = PyObject_stgdict(obj);
+	PyObject *arg;
 
 	pa->keep = NULL; /* so we cannot forget it later */
+
+	if (stgdict)
+		return stgdict->asparam((CDataObject *)obj, pa);
+
 	if (PyCArg_CheckExact(obj)) {
 		PyCArgObject *carg = (PyCArgObject *)obj;
 		pa->ffi_type = carg->pffi_type;
@@ -428,105 +403,64 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 		return 0;
 	}
 
-	/* check for None, integer, string or unicode and use directly if successful */
-	if (obj == Py_None) {
-		pa->ffi_type = &ffi_type_pointer;
-		pa->value.p = NULL;
-		return 0;
-	}
-
-	if (PyInt_Check(obj)) {
+	/* Pass as integer by calling i_set */
+	if (PyInt_Check(obj) || PyLong_Check(obj)) {
 		pa->ffi_type = &ffi_type_sint;
-		pa->value.l = PyInt_AS_LONG(obj);
+		pa->keep = getentry("i")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_int? */
+		if (pa->keep == NULL)
+			return -1;
 		return 0;
 	}
 
-	if (PyLong_Check(obj)) {
-		pa->ffi_type = &ffi_type_sint;
-		pa->value.l = (long)PyLong_AsUnsignedLong(obj);
-		if (pa->value.l == -1 && PyErr_Occurred()) {
-			PyErr_Clear();
-			pa->value.l = PyLong_AsLong(obj);
-			if (pa->value.l == -1 && PyErr_Occurred()) {
-				PyErr_SetString(PyExc_OverflowError,
-						"long int too long to convert");
-				return -1;
-			}
-		}
-		return 0;
-	}
-
-	if (PyString_Check(obj)) {
+	/* Pass as pointer by calling z_set */
+	if (obj == Py_None || PyString_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
-		pa->value.p = PyString_AS_STRING(obj);
-		Py_INCREF(obj);
-		pa->keep = obj;
+		pa->keep = getentry("z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_char_p? */
+		if (pa->keep == NULL)
+			return -1;
 		return 0;
 	}
-
 #ifdef CTYPES_UNICODE
+	/* Pass as pointer by calling Z_set */
 	if (PyUnicode_Check(obj)) {
-#ifdef HAVE_USABLE_WCHAR_T
 		pa->ffi_type = &ffi_type_pointer;
-		pa->value.p = PyUnicode_AS_UNICODE(obj);
-		Py_INCREF(obj);
-		pa->keep = obj;
-		return 0;
-#else
-		int size = PyUnicode_GET_SIZE(obj);
-		size += 1; /* terminating NUL */
-		size *= sizeof(wchar_t);
-		pa->value.p = PyMem_Malloc(size);
-		if (!pa->value.p)
-			return -1;
-		memset(pa->value.p, 0, size);
-		pa->keep = PyCObject_FromVoidPtr(pa->value.p, PyMem_Free);
-		if (!pa->keep) {
-			PyMem_Free(pa->value.p);
-			return -1;
-		}
-		if (-1 == PyUnicode_AsWideChar((PyUnicodeObject *)obj,
-					       pa->value.p, PyUnicode_GET_SIZE(obj)))
+		pa->keep = getentry("Z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_char_p? */
+		if (pa->keep == NULL)
 			return -1;
 		return 0;
-#endif
 	}
 #endif
-	stgdict = PyObject_stgdict(obj);
-	if (stgdict && stgdict->asparam) {
-		/* If it has an stgdict, it must be a CDataObject */
-		return stgdict->asparam((CDataObject *)obj, pa);
-	} else {
-		PyObject *arg;
-		arg = PyObject_GetAttrString(obj, "_as_parameter_");
-		/* Which types should we exactly allow here?
-		   integers are required for using Python classes
-		   as parameters (they have to expose the '_as_parameter_'
-		   attribute)
-		*/
-		if (arg == 0) {
-			PyErr_Format(PyExc_TypeError,
-				     "Don't know how to convert parameter %d", index);
-			return -1;
-		}
-		if (PyCArg_CheckExact(arg)) {
-			PyCArgObject *carg = (PyCArgObject *)arg;
-			pa->ffi_type = carg->pffi_type;
-			memcpy(&pa->value, &carg->value, sizeof(pa->value));
-			pa->keep = arg;
-			return 0;
-		}
-		if (PyInt_Check(arg)) {
-			pa->ffi_type = &ffi_type_sint;
-			pa->value.l = PyInt_AS_LONG(arg);
-			pa->keep = arg;
-			return 0;
-		}
-		Py_DECREF(arg);
+
+	arg = PyObject_GetAttrString(obj, "_as_parameter_");
+	/* Which types should we exactly allow here?
+	   integers are required for using Python classes
+	   as parameters (they have to expose the '_as_parameter_'
+	   attribute)
+	*/
+	if (arg == 0) {
 		PyErr_Format(PyExc_TypeError,
 			     "Don't know how to convert parameter %d", index);
 		return -1;
 	}
+	if (PyCArg_CheckExact(arg)) {
+		PyCArgObject *carg = (PyCArgObject *)arg;
+		pa->ffi_type = carg->pffi_type;
+		memcpy(&pa->value, &carg->value, sizeof(pa->value));
+		/* consumes the refcount: */
+		pa->keep = arg;
+		return 0;
+	}
+	if (PyInt_Check(arg)) {
+		pa->ffi_type = &ffi_type_sint;
+		pa->value.l = PyInt_AS_LONG(arg);
+		/* consumes the refcount: */
+		pa->keep = arg;
+		return 0;
+	}
+	Py_DECREF(arg);
+	PyErr_Format(PyExc_TypeError,
+		     "Don't know how to convert parameter %d", index);
+	return -1;
 }
 
 
@@ -815,14 +749,14 @@ PyObject *_CallProc(PPROC pProc,
 				goto cleanup;
 			}
 
-			err = ConvParam(v, i+1, pa);
+			err = PyObject_asparam(v, pa, i+1);
 			Py_DECREF(v);
 			if (-1 == err) {
 				Extend_Error_Info(PyExc_ArgError, "argument %d: ", i+1);
 				goto cleanup;
 			}
 		} else {
-			err = ConvParam(arg, i+1, pa);
+			err = PyObject_asparam(arg, pa, i+1);
 			if (-1 == err) {
 				Extend_Error_Info(PyExc_ArgError, "argument %d: ", i+1);
 				goto cleanup; /* leaking ? */
@@ -988,7 +922,7 @@ copy_com_pointer(PyObject *self, PyObject *args)
 		return NULL;
 	a.keep = b.keep = NULL;
 
-	if (-1 == ConvParam(p1, 0, &a) || -1 == ConvParam(p2, 1, &b))
+	if (-1 == PyObject_asparam(p1, &a, 0) || -1 == PyObject_asparam(p2, &b, 1))
 		goto done;
 	src = (IUnknown *)a.value.p;
 	pdst = (IUnknown **)b.value.p;
@@ -1285,7 +1219,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "OO", &obj, &ctype))
 		return NULL;
 	memset(&a, 0, sizeof(struct argument));
-	if (-1 == ConvParam(obj, 1, &a))
+	if (-1 == PyObject_asparam(obj, &a, 1))
 		return NULL;
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
 	if (result == NULL) {
@@ -1318,9 +1252,9 @@ c_memmove(PyObject *self, PyObject *args)
 	memset(&a_src, 0, sizeof(struct argument));
 	if (!PyArg_ParseTuple(args, "OOi", &dst, &src, &size))
 		return NULL;
-	if (-1 == ConvParam(dst, 1, &a_dst))
+	if (-1 == PyObject_asparam(dst, &a_dst, 1))
 		goto done;
-	if (-1 == ConvParam(src, 2, &a_src))
+	if (-1 == PyObject_asparam(src, &a_src, 2))
 		goto done;
 	c_result = memmove(a_dst.value.p, a_src.value.p, size);
 	result = PyLong_FromVoidPtr(c_result);
@@ -1345,7 +1279,7 @@ c_memset(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "Oii", &dst, &c, &count))
 		return NULL;
 	memset(&a_dst, 0, sizeof(struct argument));
-	if (-1 == ConvParam(dst, 1, &a_dst))
+	if (-1 == PyObject_asparam(dst, &a_dst, 1))
 		return NULL;
 	c_result = memset(a_dst.value.p, c, count);
 	result = PyLong_FromVoidPtr(c_result);
@@ -1369,7 +1303,7 @@ string_at(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "O|i", &src, &size))
 		return NULL;
 	memset(&a_arg, 0, sizeof(struct argument));
-	if (-1 == ConvParam(src, 1, &a_arg))
+	if (-1 == PyObject_asparam(src, &a_arg, 1))
 		return NULL;
 	if (PyTuple_GET_SIZE(args) == 1)
 		result = PyString_FromString(a_arg.value.p);
@@ -1396,7 +1330,7 @@ wstring_at(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "O|i", &src, &size))
 		return NULL;
 	memset(&a_arg, 0, sizeof(struct argument));
-	if (-1 == ConvParam(src, 1, &a_arg))
+	if (-1 == PyObject_asparam(src, &a_arg, 1))
 		return NULL;
 	if (PyTuple_GET_SIZE(args) == 1)
 		result = PyUnicode_FromWideChar(a_arg.value.p, wcslen(a_arg.value.p));
