@@ -9,28 +9,28 @@ elif os.name == "posix":
     else:
         strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
 
-strchr.restype = c_char_p #"z"
-strchr.argtypes = [c_string, c_int]
+strchr.restype = c_char_p
+strchr.argtypes = [c_char_p, c_int]
 
 try:
-    strchr(1, 2, 3)
-except ValueError:
+    strchr("abc", 2, 3)
+except TypeError:
     pass
 else:
     raise Exception("didn't catch wrong number of args")
 
 try:
     strchr()
-except ValueError:
+except TypeError:
     pass
 else:
-    raise Error("didn't catch wrong number of args")
+    raise ("didn't catch wrong number of args")
 
-strchr.restype = c_char_p #"z"
-strchr.argtypes = [c_string, c_int]
+strchr.restype = c_char_p
+strchr.argtypes = [c_char_p, c_int]
 assert "def" ==  strchr("abcdef", ord("d"))
 assert None == strchr("abcdef", ord("x"))
 
-strchr.argtypes = [c_string, c_char]
+strchr.argtypes = [c_char_p, c_char]
 assert None == strchr("abcdef", "x")
 assert "def" == strchr("abcdef", "d")

@@ -45,6 +45,7 @@ typedef struct {
 	/* These two fields will override the ones in the type's stgdict if
 	   they are set */
 	PyObject *converters;
+	PyObject *argtypes;
 	PyObject *restype;
 } CFuncPtrObject;
 
