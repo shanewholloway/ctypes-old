@@ -130,7 +130,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def FunctionType(self, attrs):
         # id, returns, attributes
         returns = attrs["returns"]
-        return typedesc.FunctionType(returns)
+        attributes = attrs.get("attributes", "").split()
+        return typedesc.FunctionType(returns, attributes)
     
     def _fixup_FunctionType(self, func):
         func.returns = self.all[func.returns]
