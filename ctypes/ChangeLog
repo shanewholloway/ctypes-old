@@ -1,3 +1,8 @@
+2005-01-26  Thomas Heller  <theller@python.net>
+
+	*  source\_ctypes.c: Prevent a crash when .restype or .argtypes
+	attribute of a function is deleted.
+
 2005-01-20  Thomas Heller  <theller@python.net>
 
 	* source\callproc.c: Print a real traceback when an exception is
