@@ -169,7 +169,7 @@ class TypeInfoReader:
 class EnumReader(TypeInfoReader):
     def declaration(self):
         l = []
-        l.append("class %s(enum):" % self.name)
+        l.append("class %s(c_int):" % self.name)
         if self.docstring:
             l.append('    """%s"""' % self.docstring)
         if self.guid != '{00000000-0000-0000-0000-000000000000}':
@@ -480,27 +480,9 @@ HEADER = r"""
 
 from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
-from ctypes.com.automation import IDispatch, BSTR, VARIANT
+from ctypes.com.automation import IDispatch, BSTR, VARIANT, \
+                                  dispinterface, DISPMETHOD
 
-class enum(c_int):
-    pass
-
-OLECMDID = enum
-OLECMDEXECOPT = enum
-
-class dispinterface(IDispatch):
-    class __metaclass__(type(IDispatch)):
-        def __setattr__(self, name, value):
-            if name == '_dispmethods_':
-                dispmap = {}
-                for dispid, mthname, proto in value:
-                    dispmap[dispid] = mthname
-                setattr(self, '_methods_', IDispatch._methods_)
-                type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
-            type(IDispatch).__setattr__(self, name, value)
-
-def DISPMETHOD(dispid, restype, name, *argtypes):
-    return dispid, name, STDMETHOD(HRESULT, name, *argtypes)
 """
 
 class TypeLibReader:
