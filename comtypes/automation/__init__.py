@@ -29,6 +29,11 @@ SCODE = LONG
 
 VARTYPE = c_ushort
 
+DISPATCH_METHOD = 1
+DISPATCH_PROPERTYGET = 2
+DISPATCH_PROPERTYPUT = 4
+DISPATCH_PROPERTYPUTREF = 8
+
 ################################
 # helper constants
 IID_NULL = GUID()
@@ -305,7 +310,8 @@ class IDispatch(IUnknown):
         return r.value
 
     def GetTypeInfo(self, index, lcid=0):
-        p = POINTER(IUnknown)()
+        from typeinfo import ITypeInfo
+        p = POINTER(ITypeInfo)()
         self.__com_GetTypeInfo(index, lcid, byref(p))
         return p
 
@@ -375,7 +381,7 @@ DISP_E_UNKNOWNINTERFACE = -2147352575
 
 ################################################################
 
-if __name__ == "__main__":
+if 0 and __name__ == "__main__":
     oledll.ole32.CoInitialize(None)
     p = POINTER(IDispatch)()
 
@@ -387,7 +393,7 @@ if __name__ == "__main__":
                                   byref(p._iid_),
                                   byref(p))
     for i in range(p.GetTypeInfoCount()):
-        result = p.GetTypeInfo(i)
+        print p.GetTypeInfo(i)
 
     id_quit = p.GetIDsOfNames("Quit")[0]
     id_visible = p.GetIDsOfNames("Visible")[0]
@@ -395,11 +401,11 @@ if __name__ == "__main__":
     print p.GetIDsOfNames("Navigate2", "URL", "Flags", "TargetFrameName", "PostData", "Headers")
 
     try:
-        p.Invoke(id_visible, True, wFlags = 4)
-        p.Invoke(id_navigate, "http://www.python.org/", 1)
+##        p.Invoke(id_visible, True, wFlags = 4)
+##        p.Invoke(id_navigate, "http://www.python.org/", 1)
         import time
-        time.sleep(3)
-        p.Invoke(id_quit, wFlags = 1)
+##        time.sleep(3)
+        print p.Invoke(id_quit)
 ##        p.Invoke(id_quit, True, wFlags = 1)
     finally:
         oledll.ole32.CoUninitialize()
