@@ -10,6 +10,9 @@
 	check for failure in it's _check_retval_ static method, and raise
 	a WindowsError.
 
+	The big advantage is that now HRESULT is also usable in the
+	argtypes list.
+	
 	Although HRESULT is defined in python code (since it is derived
 	from c_long), the _check_retval_ method is implemented in C - in
 	this way the traceback won't include the _check_retval_ method
