@@ -4495,21 +4495,21 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
 
 EXPORT int _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
 {
-//	printf("_testfunc_i_bhilfd got %d %d %d %d %f %f\n",
+//	printf("_testfunc_i_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (int)(b + h + i + l + f + d);
 }
 
 EXPORT float _testfunc_f_bhilfd(char b, short h, int i, long l, float f, double d)
 {
-//	printf("_testfunc_f_bhilfd got %d %d %d %d %f %f\n",
+//	printf("_testfunc_f_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (float)(b + h + i + l + f + d);
 }
 
 EXPORT double _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double d)
 {
-//	printf("_testfunc_d_bhilfd got %d %d %d %d %f %f\n",
+//	printf("_testfunc_d_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (double)(b + h + i + l + f + d);
 }
