@@ -1,5 +1,10 @@
 2004-10-08  Thomas Heller  <theller@python.net>
 
+	* source\callbacks.c: Added a cast function, which creates a new
+	ctypes type instance from an existing instance.  Does not yet work
+	correctly for integers of different sizes, but should work for
+	pointers - and that's where it is needed.
+
 	* ctypes\__init__.py: POINTER(None) will now return c_void_p.
 	This change was made to ease automatic code generation (and makes
 	sense, since None is used in other places for 'void' as well.
