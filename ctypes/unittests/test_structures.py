@@ -8,7 +8,7 @@ class SubclassesTest(unittest.TestCase):
             _fields_ = [("a", c_int)]
 
         class Y(X):
-            _fields_ = X._fields_ + [("b", c_int)]
+            _fields_ = [("b", c_int)]
 
         class Z(X):
             pass
@@ -17,14 +17,11 @@ class SubclassesTest(unittest.TestCase):
         self.failUnlessEqual(sizeof(Y), sizeof(c_int)*2)
         self.failUnlessEqual(sizeof(Z), sizeof(c_int))
 
-        self.failUnlessEqual(X._fields_,
-                             [("a", c_int)])
+        self.failUnlessEqual(X._fields_, [("a", c_int)])
 
-        self.failUnlessEqual(Y._fields_,
-                             [("a", c_int), ("b", c_int)])
+        self.failUnlessEqual(Y._fields_, [("b", c_int)])
 
-        self.failUnlessEqual(Z._fields_,
-                             [("a", c_int)])
+        self.failUnlessEqual(Z._fields_, [("a", c_int)])
 
 class StructureTestCase(unittest.TestCase):
     formats = {"c": c_char,

@@ -167,16 +167,33 @@ GetFields(PyObject *desc, int *pindex, int *psize, int *poffset, int *palign, in
 int
 StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 {
-	StgDictObject *stgdict;
+	StgDictObject *stgdict, *basedict;
 	int len, offset, size, align, i;
 	int union_size, total_align;
 	int field_size = 0;
 	int bitofs;
 	PyObject *isPacked;
 	int pack = 0;
+	int ffi_ofs;
+	/* HACK Alert: I cannot be bothered to fix ctypes.com, so there has to
+	   be a way to use the old, broken sematics: _fields_ are not extended
+	   but replaced in subclasses.
+	   
+	   XXX Remove this in ctypes 1.0!
+	*/
+	int use_broken_old_ctypes_semantics;
+	PyObject *py_use_broken_old_ctypes_semantics;
 
 	if (fields == NULL)
 		return 0;
+
+	py_use_broken_old_ctypes_semantics = \
+		PyObject_GetAttrString(type, "_use_broken_old_ctypes_structure_semantics_");
+	if (py_use_broken_old_ctypes_semantics) {
+		use_broken_old_ctypes_semantics = 1;
+		Py_DECREF(py_use_broken_old_ctypes_semantics);
+	} else
+		PyErr_Clear();
 
 	isPacked = PyObject_GetAttrString(type, "_pack_");
 	if (isPacked) {
@@ -204,16 +221,30 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 
 	if (stgdict->ffi_type.elements)
 		PyMem_Free(stgdict->ffi_type.elements);
-	
-	offset = 0;
-	size = 0;
-	align = 0;
-	union_size = 0;
-	total_align = 1;
 
-	stgdict->ffi_type.type = FFI_TYPE_STRUCT;
-	stgdict->ffi_type.elements = PyMem_Malloc(sizeof(ffi_type *) * (len + 1));
-	memset(stgdict->ffi_type.elements, 0, sizeof(ffi_type *) * (len + 1));
+	basedict = PyType_stgdict(((PyTypeObject *)type)->tp_base);
+	if (basedict && !use_broken_old_ctypes_semantics) {
+		size = offset = basedict->size;
+		align = basedict->align;
+		union_size = 0;
+		total_align = align ? align : 1;
+		stgdict->ffi_type.type = FFI_TYPE_STRUCT;
+		stgdict->ffi_type.elements = PyMem_Malloc(sizeof(ffi_type *) * (basedict->length + len + 1));
+		memset(stgdict->ffi_type.elements, 0, sizeof(ffi_type *) * (basedict->length + len + 1));
+		memcpy(stgdict->ffi_type.elements, basedict->ffi_type.elements,
+		       sizeof(ffi_type *) * (basedict->length));
+		ffi_ofs = basedict->length;
+	} else {
+		offset = 0;
+		size = 0;
+		align = 0;
+		union_size = 0;
+		total_align = 1;
+		stgdict->ffi_type.type = FFI_TYPE_STRUCT;
+		stgdict->ffi_type.elements = PyMem_Malloc(sizeof(ffi_type *) * (len + 1));
+		memset(stgdict->ffi_type.elements, 0, sizeof(ffi_type *) * (len + 1));
+		ffi_ofs = 0;
+	}
 
 #define realdict ((PyObject *)&stgdict->dict)
 	for (i = 0; i < len; ++i) {
@@ -231,7 +262,7 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 		}
 		dict = PyType_stgdict(desc);
 		if (dict)
-			stgdict->ffi_type.elements[i] = &dict->ffi_type;
+			stgdict->ffi_type.elements[ffi_ofs + i] = &dict->ffi_type;
 		if (PyTuple_Size(pair) == 3) { /* bits specified */
 			switch(dict->ffi_type.type) {
 			case FFI_TYPE_UINT8:
@@ -307,6 +338,6 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 
 	stgdict->size = size;
 	stgdict->align = total_align;
-	stgdict->length = len;
+	stgdict->length = len;	/* ADD ffi_ofs? */
 	return 0;
 }

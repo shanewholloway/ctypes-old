@@ -194,6 +194,7 @@ class _interface_meta(type(Structure)):
 # IUnknown, the root of all evil...
 
 class IUnknown(Structure):
+    _use_broken_old_ctypes_structure_semantics_ = None # hack, hack
     __metaclass__ = _interface_meta
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
 
