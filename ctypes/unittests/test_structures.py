@@ -186,7 +186,7 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(p.phone.number, "5678")
         self.failUnlessEqual(p.age, 5)
 
-    def XXX_test_structures_with_wchar(self):
+    def test_structures_with_wchar(self):
         try:
             c_wchar
         except NameError:
@@ -197,7 +197,7 @@ class StructureTestCase(unittest.TestCase):
                         ("age", c_int)]
 
         p = PersonW(u"Someone")
-        self.failUnlessEqual(p.name, "")
+        self.failUnlessEqual(p.name, "Someone")
         
 
     def test_init_errors(self):
