@@ -529,6 +529,18 @@ PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 }
 
 static PyObject *
+Pointer_getfunc(void *ptr, unsigned size,
+		PyObject *type, CDataObject *src, ...)
+{
+	if (type == NULL) {
+		PyErr_SetString(PyExc_SystemError,
+				"ctypes bug: Pointer_getfunc called with NULL type");
+		return NULL;
+	}
+	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
+}
+
+static PyObject *
 PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	PyTypeObject *result;
@@ -572,6 +584,8 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
+
+	stgdict->getfunc = Pointer_getfunc;
 
 	return (PyObject *)result;
 }
