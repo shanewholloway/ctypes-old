@@ -26,7 +26,7 @@ if sys.platform == "win32":
 def main():
 
     def add_option(option, opt, value, parser):
-        parser.values.gccxml_options.append("%s %s" % (opt, value))
+        parser.values.gccxml_options.extend((opt, value))
 
     parser = OptionParser()
 ##    parser.add_option("-h", action="help")
@@ -69,7 +69,7 @@ def main():
         print >> sys.stderr, __doc__
         return 1
 
-    options.flags = " ".join(options.gccxml_options)
+    options.flags = options.gccxml_options
 
     options.verbose = not options.quiet
 
