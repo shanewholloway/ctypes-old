@@ -63,8 +63,8 @@ def get_file_version(filename):
 
 if __name__ == '__main__':
     import os.path
-    path = c_string("\000" * 256)
-    windll.kernel32.GetSystemDirectoryA(path, len(path))
+    path = c_string(256)
+    windll.kernel32.GetSystemDirectoryA(path, sizeof(path))
     file = os.path.join(path.value, "notepad.exe")
 
     vsfileinfo = get_file_version(file)
