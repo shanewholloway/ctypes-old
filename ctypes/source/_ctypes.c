@@ -2003,12 +2003,12 @@ CData_AtAddress(PyObject *type, void *buf)
 }
 
 /*
- * Set a slice in object 'dst', which has the type 'type',
- * to the value 'value'.
+ * Set an item in object 'dst', which has the itemtype 'type', to 'value'.
+ * This function has the same signature as the SETFUNC has.
+ * XXX Explain differences between this function and the type's setfunc.
  */
 static PyObject *
-_CData_set(CDataObject *dst, PyObject *type, PyObject *value,
-	   int size, char *ptr)
+_CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	CDataObject *src;
 
@@ -2030,12 +2030,11 @@ _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
-			result = _CData_set(dst, type, ob,
-					    size, ptr);
+			result = _CData_set(ptr, ob, size, type);
 			Py_DECREF(ob);
 			return result;
 		} else if (value == Py_None && PointerTypeObject_Check(type)) {
-			*(void **)dst->b_ptr = NULL;
+			*(void **)ptr = NULL;
 			Py_INCREF(Py_None);
 			return Py_None;
 		} else {
@@ -3402,7 +3401,7 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	ptr = self->b_ptr + offset;
 	itemtype = stgdict->proto;
 
-	keep = _CData_set(self, itemtype, value, size, ptr);
+	keep = _CData_set(ptr, value, size, itemtype);
 	if (keep == NULL)
 		return -1;
 	return KeepRef(self, index, keep);
@@ -3764,8 +3763,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 	}
 	size = stgdict->size / stgdict->length;
 
-	keep = _CData_set(self, stgdict->proto, value,
-			  size, *(void **)self->b_ptr);
+	keep = _CData_set(*(void **)self->b_ptr, value, size, stgdict->proto);
 	if (keep == NULL)
 		return -1;
 	return KeepRef(self, index, keep);
