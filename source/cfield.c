@@ -136,6 +136,8 @@ CField_FromDesc(PyObject *desc, int index,
 	getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
 #endif
 
+	setfunc = dict->setfunc;
+
 	/* Currently, dict->getfunc is only != NULL for SimpleCData types.
 	   If we would set it for array types, we could get rid of the
 	   following code block.
@@ -260,14 +262,6 @@ _CField_set(CDataObject *dst, PyObject *type, PyObject *value,
 		}
 	} else {
 		/* Not a CDataObject instance */
-		StgDictObject *dict = PyType_stgdict(type);
-
-		/* This could be avoided if setfucn were set in the
-		   CFieldObject constructor.
-		*/
-		if (dict && dict->setfunc)
-			return dict->setfunc(ptr, value, size);
-
 		if (PyTuple_Check(value)) {
 			/* If value is a tuple, we call the type with the tuple
 			   and use the result */
