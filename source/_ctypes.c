@@ -343,8 +343,6 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 	if (!isStruct)
 		size = union_size;
 
-	assert(align > 0);
-
 	/* Adjust the size according to the alignment requirements */
 	size = ((size + total_align - 1) / total_align) * total_align;
 
