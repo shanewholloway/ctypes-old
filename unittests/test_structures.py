@@ -289,11 +289,26 @@ class PointerMemberTestCase(unittest.TestCase):
         items = [s.array[i] for i in range(3)]
         self.failUnlessEqual(items, [1, 2, 3])
 
-        # The following are bugs:
+        # The following are bugs, but are included here because the unittests
+        # also describe the current behaviour.
+        #
         # This fails with SystemError: bad arg to internal function
-        # s.array[0] = 42
+        # or with IndexError (with a patch I have)
+        try:
+            s.array[0] = 42
+        except (SystemError, IndexError):
+            pass
+        items = [s.array[i] for i in range(3)]
+        self.failUnlessEqual(items, [1, 2, 3])
+
         # and this one with IndexError: invalid index
-        # s.array[1] = 42
+        try:
+            s.array[1] = 42
+        except IndexError:
+            pass
+
+        items = [s.array[i] for i in range(3)]
+        self.failUnlessEqual(items, [1, 2, 3])
 
 if __name__ == '__main__':
     unittest.main()
