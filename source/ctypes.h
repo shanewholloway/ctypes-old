@@ -77,10 +77,6 @@ extern PyTypeObject CWString_Type;
 #define CWString_CheckExact(v)		((v)->ob_type == &CWString_Type)
 #define CWString_Check(v)		PyObject_TypeCheck(v, &CWString_Type)
 
-extern PyTypeObject CFunctionType_Type;
-extern PyTypeObject CFunction_Type;
-#define CFunction_Check(v)		PyObject_TypeCheck(v, &CFunction_Type)
-
 extern PyTypeObject CField_Type;
 extern struct fielddesc *getentry(char *fmt);
 
@@ -109,17 +105,6 @@ extern PyTypeObject Pointer_Type;
 
 extern PyObject *
 CreateArrayType(PyObject *itemtype, int length);
-
-typedef struct tagFunctionObject {
-	PyObject_HEAD
-	PyObject *callable;		/* python callable object */
-	PyObject *converters;		/* sequence of converters */
-	THUNK callback;			/* C function pointer */
-} CFunctionObject;
-
-extern PyTypeObject CFunction_Type;
-#define CFunctionObject_CheckExact(v)	    ((v)->ob_type == &CFunction_Type)
-#define CFunctionObject_Check(v)	    PyObject_TypeCheck(v, &CFunction_Type)
 
 extern void init_callbacks_in_module(PyObject *m);
 

@@ -13,8 +13,6 @@ PointerType_Type	__new__(), from_address(), __mul__(), from_param(), set_type()
 ArrayType_Type		__new__(), from_address(), __mul__(), from_param()
 SimpleType_Type		__new__(), from_address(), __mul__(), from_param()
 
-CFunctionType_Type	__new__(), from_param()
-
 CData_Type
   Struct_Type		__new__(), __init__()
   Pointer_Type		__new__(), __init__(), _as_parameter_, contents
@@ -25,8 +23,6 @@ CData_Type
   CString_Type		__new__(), __init__(), _as_parameter_, raw, value
   CWString_Type		_as_parameter_, raw, value
 
-CFunction_Type		__new__(), __init__(), _as_parameter_, callable
-
 CField_Type
 StgDict_Type
 
@@ -35,8 +31,6 @@ StgDict_Type
 class methods
 -------------
 
-XXX Should we get rid of this? Fast way to crash Python: 'print c_int.from_address(10)'
-It's not really needed any more, since we can use _types_ = (POINTER(c_int),) for CFunction
 It has some similarity to the byref() construct compared to pointer()
 from_address(addr)
 	- construct an instance from a given memory block (sharing this memory block)
@@ -82,7 +76,6 @@ bytes(cdata)
  * PointerType_Type
  * ArrayType_Type
  * SimpleType_Type
- * CFunctionType_Type
  *
  * CData_Type
  * Struct_Type
@@ -92,7 +85,6 @@ bytes(cdata)
  * Pointer_Type
  * CString_Type
  * CField_Type
- * CFunction_Type
  *
  */
 
@@ -3066,344 +3058,6 @@ ToPython(void *ptr, char tag)
 	}
 	return fd->getfunc(ptr, 0);
 }
-
-/******************************************************************/
-/*
-  CFunctionType_Type
-*/
-/*
- * What does CFunctionType_new do?
- *
- * A new CFunction subclass is defined.
- * - Check the class attributes
- * - Equip the type with a StgDict
- */
-static PyObject *
-CFunctionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-	PyTypeObject *result;
-	StgDictObject *stgdict;
-	PyObject *obj;
-	PyObject *typedict;
-
-	typedict = PyTuple_GetItem(args, 2);
-	if (!typedict)
-		return NULL;
-
-	if (!PyDict_GetItemString(typedict, "_abstract_")) {
-		int size, i;
-
-		obj = PyDict_GetItemString(typedict, "_stdcall_"); /* Borrowed ref */
-		if (!obj) {
-			PyErr_SetString(PyExc_AttributeError,
-					"class must define a '_stdcall_' attribute");
-			return NULL;
-		}
-		
-		obj = PyDict_GetItemString(typedict, "_types_"); /* Borrowed ref */
-		if (!obj) {
-			PyErr_SetString(PyExc_AttributeError,
-					"class must define a '_types_' attribute");
-			return NULL;
-		}
-		/* XXX Hm. This check should be improved... */
-		/* If string, check that the characters are valid formats for
-		   Py_BuildValue() */
-		size = PySequence_Length(obj);
-		for (i = 0; i < size; ++i) {
-			PyObject *ob = PySequence_GetItem(obj, i);
-			if (!PyString_Check(ob) && !PyCallable_Check(ob)) {
-				Py_DECREF(ob);
-				PyErr_SetString(PyExc_TypeError,
-						"_types_ must only contain strings or callables");
-				return NULL;
-			}
-		}
-	}
-
-	stgdict = (StgDictObject *)PyObject_CallObject(
-		(PyObject *)&StgDict_Type, NULL);
-	if (!stgdict)
-		return NULL;
-	stgdict->size = sizeof(void *);
-	stgdict->align = getentry("P")->align;
-	stgdict->length = 1;
-
-	/* create the new instance (which is a class,
-	   since we are a metatype!) */
-	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
-	if (result == NULL)
-		return NULL;
-
-	/* replace the class dict by our updated spam dict */
-	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
-		Py_DECREF(result);
-		Py_DECREF((PyObject *)stgdict);
-		return NULL;
-	}
-	Py_DECREF(result->tp_dict);
-	result->tp_dict = (PyObject *)stgdict;
-
-	return (PyObject *)result;
-}
-
-static PyObject *
-CFunctionType_from_param(PyObject *type, PyObject *value)
-{
-	if (!PyObject_IsInstance(value, type)) {
-		PyErr_Format(PyExc_TypeError,
-			     "expected %s instance",
-			     ((PyTypeObject *)type)->tp_name);
-		return NULL;
-	}
-	Py_INCREF(value);
-	return value;
-}
-
-static PyMethodDef CFunctionType_methods[] = {
-	{ "from_param", CFunctionType_from_param, METH_O,
-	  from_param_doc },
-	{ NULL }
-};
-
-PyTypeObject CFunctionType_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0,					/* ob_size */
-	"_ctypes.CFunctionType",		/* tp_name */
-	0,					/* tp_basicsize */
-	0,					/* tp_itemsize */
-	0,					/* tp_dealloc */
-	0,					/* tp_print */
-	0,					/* tp_getattr */
-	0,					/* tp_setattr */
-	0,					/* tp_compare */
-	0,			       		/* tp_repr */
-	0,					/* tp_as_number */
-	0,					/* tp_as_sequence */
-	0,					/* tp_as_mapping */
-	0,					/* tp_hash */
-	0,					/* tp_call */
-	0,					/* tp_str */
-	0,					/* tp_getattro */
-	0,					/* tp_setattro */
-	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-	"metatype for the Function Pointers",	/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
-	0,					/* tp_richcompare */
-	0,					/* tp_weaklistoffset */
-	0,					/* tp_iter */
-	0,					/* tp_iternext */
-	CFunctionType_methods,			/* tp_methods */
-	0,					/* tp_members */
-	0,					/* tp_getset */
-	0,					/* tp_base */
-	0,					/* tp_dict */
-	0,					/* tp_descr_get */
-	0,					/* tp_descr_set */
-	0,					/* tp_dictoffset */
-	0,					/* tp_init */
-	0,					/* tp_alloc */
-	CFunctionType_new,			/* tp_new */
-	0,					/* tp_free */
-};
-
-
-
-/******************************************************************/
-/*
- * CFunction_Type
- */
-static PyMemberDef CFunction_members[] = {
-	{ "callable", T_OBJECT,
-	  offsetof(CFunctionObject, callable), READONLY,
-	  "the callable object" },
-	{ NULL },
-};
-
-static PyObject *
-CFunction_as_parameter(CFunctionObject *self)
-{
-	PyCArgObject *p = new_CArgObject();
-	if (p == NULL)
-		return NULL;
-	p->tag = 'P';
-	p->value.p = (char *)self->callback;
-	Py_INCREF(self);
-	p->obj = (PyObject *)self;
-	return (PyObject *)p;
-}
-
-static PyGetSetDef CFunction_getsets[] = {
-	{ "_as_parameter_", (getter)CFunction_as_parameter,
-	  (setter)NULL, "convert to a parameter", NULL },
-	{ NULL },
-};
-
-
-static PyObject *
-CFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
-{
-	PyObject *dict;
-	PyObject *types, *stdcall;
-	CFunctionObject *self;
-	PyObject *callable;
-	int size, i;
-	int is_cdecl;
-	int nArgBytes; /* number of ints the function expects as parameters.
-		      May be larger than size */
-
-/* Hm. XXX Are _types_ and _stdcall_ not already checked in CFunctionType_new?
-   And should callable not be checked in CFunction_init?
-*/
-	dict = type->tp_dict;
-	types = PyDict_GetItemString(dict, "_types_");
-	stdcall = PyDict_GetItemString(dict, "_stdcall_");
-	if (!types || !stdcall) {
-		PyErr_SetString(PyExc_TypeError,
-				"abstract class");
-		return NULL;
-	}
-	is_cdecl = !PyObject_IsTrue(stdcall);
-
-	if (!PyArg_ParseTuple(args, "O", &callable))
-		return NULL;
-
-	if (!PyCallable_Check(callable)) {
-		PyErr_SetString(PyExc_TypeError,
-				"argument must be callable");
-		return NULL;
-	}
-
-	if (!PyTuple_Check(types)) {
-		PyErr_SetString(PyExc_TypeError,
-				"_types_ must be a tuple of types");
-		return NULL;
-	}
-	size = PySequence_Length(types);
-	nArgBytes = 0;
-	for (i = 0; i < size; ++i) {
-		PyObject *ob = PySequence_GetItem(types, i);
-		StgDictObject *dict = PyType_stgdict(ob);
-		if (!dict) {
-			PyErr_SetString(PyExc_TypeError,
-					"_types_ must be a tuple"
-					" of ctypes types");
-			return NULL;
-		}
-		dict = PyType_stgdict(ob);
-		if (dict)
-			nArgBytes += dict->size;
-		else
-			nArgBytes += sizeof(int);
-	}
-	self = (CFunctionObject *)type->tp_alloc(type, 0);
-	if (!self)
-		return NULL;
-
-	Py_INCREF(callable);
-	self->callable = callable;
-
-	Py_INCREF(types);
-	self->converters = types;
-
-	self->callback = AllocFunctionCallback(callable, nArgBytes,
-					       types, is_cdecl);
-	if (!self->callback) {
-		Py_DECREF(self);
-		return NULL;
-	}
-	return (PyObject *)self;
-}
-
-static int
-CFunction_traverse(CFunctionObject *self, visitproc visit, void *arg)
-{
-	int err;
-
-	err = visit(self->callable, arg);
-	if (err)
-		return err;
-
-	err = visit(self->converters, arg);
-	if (err)
-		return err;
-	return 0;
-}
-
-static int
-CFunction_clear(CFunctionObject *self)
-{
-	Py_XDECREF(self->callable);
-	self->callable = NULL;
-	Py_XDECREF(self->converters);
-	self->converters = NULL;
-	return 0;
-}
-
-
-static int
-CFunction_init(PyObject *self, PyObject *args, PyObject *kw)
-{
-	return 0;
-}
-
-void CFunction_dealloc(CFunctionObject *self)
-{
-	PyObject_GC_UnTrack((PyObject *)self);
-	Py_XDECREF(self->callable);
-	self->callable = NULL;
-	Py_XDECREF(self->converters);
-	self->converters = NULL;
-	FreeCallback(self->callback);
-	/* ob_type->tp_free *is* PyObject_GC_Del */
-	self->ob_type->tp_free((PyObject *)self);
-}
-
-PyTypeObject CFunction_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0,					/* ob_size */
-	"_ctypes.CFunction",			/* tp_name */
-	sizeof(CFunctionObject),		/* tp_basicsize */
-	0,					/* tp_itemsize */
-	(destructor)CFunction_dealloc,		/* tp_dealloc */
-	0,					/* tp_print */
-	0,					/* tp_getattr */
-	0,					/* tp_setattr */
-	0,					/* tp_compare */
-	0,			       		/* tp_repr */
-	0,					/* tp_as_number */
-	0,					/* tp_as_sequence */
-	0,					/* tp_as_mapping */
-	0,					/* tp_hash */
-	0,					/* tp_call */
-	0,					/* tp_str */
-	0,					/* tp_getattro */
-	0,					/* tp_setattro */
-	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC \
-	  | Py_TPFLAGS_BASETYPE, /* tp_flags */
-	"Function pointer",			/* tp_doc */
-	(traverseproc)CFunction_traverse,	/* tp_traverse */
-	(inquiry)CFunction_clear,		/* tp_clear */
-	0,					/* tp_richcompare */
-	0,					/* tp_weaklistoffset */
-	0,					/* tp_iter */
-	0,					/* tp_iternext */
-	0,					/* tp_methods */
-	CFunction_members,			/* tp_members */
-	CFunction_getsets,			/* tp_getset */
-	0,					/* tp_base */
-	0,					/* tp_dict */
-	0,					/* tp_descr_get */
-	0,					/* tp_descr_set */
-	0,					/* tp_dictoffset */
-	CFunction_init,				/* tp_init */
-	0,					/* tp_alloc */
-	CFunction_new,				/* tp_new */
-	0,					/* tp_free */
-};
 
 /******************************************************************/
 /*
@@ -3488,8 +3142,6 @@ addressof(PyObject *self, PyObject *obj)
 #endif
 		)
 		return PyInt_FromLong((long)((CDataObject *)obj)->b_ptr);
-	if (CFunction_Check(obj))
-		return PyInt_FromLong((long)((CFunctionObject *)obj)->callback);
 	PyErr_SetString(PyExc_TypeError,
 			"expected CData instance");
 	return NULL;
@@ -3599,10 +3251,6 @@ init_ctypes(void)
 	if (PyType_Ready(&SimpleType_Type) < 0)
 		return;
 
-	CFunctionType_Type.tp_base = &PyType_Type;
-	if (PyType_Ready(&CFunctionType_Type) < 0)
-		return;
-
 	CFuncPtrType_Type.tp_base = &PyType_Type;
 	if (PyType_Ready(&CFuncPtrType_Type) < 0)
 		return;
@@ -3652,15 +3300,6 @@ init_ctypes(void)
 		return;
 	PyModule_AddObject(m, "CFuncPtr", (PyObject *)&CFuncPtr_Type);
 
-// No: CFunction_Type is NOT a subclass of CData_Type!
-// Why? Currently it cannot, because it does not contain
-// a struct CDataObject. Hm.
-//	CFunction_Type.tp_base = &CData_Type;
-	CFunction_Type.ob_type = &CFunctionType_Type;
-	if (PyType_Ready(&CFunction_Type) < 0)
-		return;
-	PyModule_AddObject(m, "CFunction", (PyObject *)&CFunction_Type);
-	
 	/*************************************************
 	 *
 	 * Simple classes
