@@ -472,13 +472,13 @@ long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 				       "iii", rclsid, riid, ppv);
 	Py_DECREF(func);
 	if (!result) {
-		MyPyErr_Print(NULL);
+		MyPyErr_Print("Called DllGetClassObject");
 		return E_FAIL;
 	}
 
 	retval = PyInt_AsLong(result);
 	if (PyErr_Occurred())
-		MyPyErr_Print(NULL);
+		MyPyErr_Print("Convert result of DllGetClassObject to int");
 	Py_DECREF(result);
 	return retval;
 }
@@ -513,7 +513,7 @@ long Call_CanUnloadNow(void)
 
 	mod = PyImport_ImportModule("ctypes.com.server");
 	if (!mod) {
-		MyPyErr_Print(NULL);
+		MyPyErr_Print("Importing ctypes.com.server in Call_CanUnloadNow");
 		return E_FAIL;
 	}
 
