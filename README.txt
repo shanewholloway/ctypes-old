@@ -1,7 +1,9 @@
-ctypes is a ffi (Foreign Function Interface) package for Python.  It
-allows to call functions exposed from dlls/shared libraries. ctypes
-has extensive facilities to create, access and manipulate C data types
-transparently from Python.
+ctypes is a ffi (Foreign Function Interface) package for Python.
+
+It allows to call functions exposed from dlls/shared libraries and has
+extensive facilities to create, access and manipulate simpole and
+complicated C data types transparently from Python - in other words:
+wrap libraries in pure Python.
 
 ctypes runs on Windows, MacOS X, Linux, Solaris.
 
