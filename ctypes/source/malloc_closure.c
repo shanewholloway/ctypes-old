@@ -18,22 +18,22 @@
 # endif
 #endif
 
-typedef struct _tagpage {
-	struct _tagpage *next;
-	struct _tagpage *prev;
+typedef struct _tagblock {
+	struct _tagblock *next;
+	struct _tagblock *prev;
 	int count;
 	int used;
 	ffi_closure closure[0];
-} PAGE;
+} BLOCK;
 
-PAGE *start;
+BLOCK *start;
 unsigned int _pagesize;
 
 #define BLOCKSIZE _pagesize * 4
 
-static PAGE *get_page()
+static BLOCK *get_block(void)
 {
-	PAGE *page;
+	BLOCK *block;
 #ifdef MS_WIN32
 	if (!_pagesize) {
 		SYSTEM_INFO systeminfo;
@@ -41,45 +41,45 @@ static PAGE *get_page()
 		_pagesize = systeminfo.dwPageSize;
 	}
 
-	page = (PAGE *)VirtualAlloc(NULL,
+	block = (BLOCK *)VirtualAlloc(NULL,
 				    BLOCKSIZE,
 				    MEM_COMMIT,
 				    PAGE_EXECUTE_READWRITE);
-	if (page == NULL)
+	if (block == NULL)
 		return NULL;
 #else
 	if (!_pagesize) {
 		_pagesize = sysconf(_SC_PAGESIZE);
 	}
-	page = (PAGE *)mmap(NULL,
+	block = (BLOCK *)mmap(NULL,
 			    BLOCKSIZE,
 			    PROT_READ | PROT_WRITE | PROT_EXEC,
 			    MAP_PRIVATE | MAP_ANONYMOUS,
 			    -1,
 			    0);
-	if (page == (void *)MAP_FAILED)
+	if (block == (void *)MAP_FAILED)
 		return NULL;
-	memset(page, 0, BLOCKSIZE);
+	memset(block, 0, BLOCKSIZE);
 #endif
-	page->count = (BLOCKSIZE - sizeof(page)) / sizeof(ffi_closure);
+	block->count = (BLOCKSIZE - sizeof(block)) / sizeof(ffi_closure);
 
 #ifdef MALLOC_CLOSURE_DEBUG
-	printf("One BLOCK has %d closures\n", page->count);
+	printf("One BLOCK has %d closures\n", block->count);
 
-	page->count = 1;
+	block->count = 1;
 
-	printf("ALLOCATED page %p\n", page);
+	printf("ALLOCATED block %p\n", block);
 #endif
-	return page;
+	return block;
 }
 
-static void free_page(PAGE *page)
+static void free_block(BLOCK *block)
 {
 #ifdef MS_WIN32
-	if (0 == VirtualFree(page, 0, MEM_RELEASE))
+	if (0 == VirtualFree(block, 0, MEM_RELEASE))
 		Py_FatalError("ctypes: executable memory head corrupted");
 #else
-	if (-1 == munmap((void *)page, BLOCKSIZE))
+	if (-1 == munmap((void *)block, BLOCKSIZE))
 		Py_FatalError("ctypes: executable memory head corrupted");
 #endif
 }
@@ -88,85 +88,85 @@ static void free_page(PAGE *page)
 
 void FreeClosure(void *p)
 {
-	PAGE *page = start;
+	BLOCK *block = start;
 	ffi_closure *pcl = (ffi_closure *)p;
 	int i;
 
-	while (page) {
-		for (i = 0; i < page->count; ++i) {
-			if (&page->closure[i] == pcl) {
-				page->closure[i].cif = NULL;
-				--page->used;
+	while (block) {
+		for (i = 0; i < block->count; ++i) {
+			if (&block->closure[i] == pcl) {
+				block->closure[i].cif = NULL;
+				--block->used;
 				goto done;
 			}
 		}
-		page = page->next;
+		block = block->next;
 	}
 	Py_FatalError("ctypes: closure not found in heap");
 
   done:
-	if (page->used == 0) {
-		if (page == start && page->next == NULL) {
-			/* don't free the last page */
+	if (block->used == 0) {
+		if (block == start && block->next == NULL) {
+			/* don't free the last block */
 #ifdef MALLOC_CLOSURE_DEBUG
-			printf("Don't free the very last page %p\n", page);
+			printf("Don't free the very last block %p\n", block);
 #endif
 			return;
 		}
-		/* unlink the current page from the chain */
-		if (page->next)
-			page->next->prev = page->prev;
-		if (page->prev) {
-			page->prev->next = page->next;
+		/* unlink the current block from the chain */
+		if (block->next)
+			block->next->prev = block->prev;
+		if (block->prev) {
+			block->prev->next = block->next;
 		} else {
-			start = page->next;
+			start = block->next;
 			if (start)
 				start->prev = NULL;
 			else
-				Py_FatalError("ctypes: no free page left\n");
+				Py_FatalError("ctypes: no free block left\n");
 		}
 
-		/* now, page can be freed */
-		free_page(page);
+		/* now, block can be freed */
+		free_block(block);
 #ifdef MALLOC_CLOSURE_DEBUG
-		printf("FREEING page %p\n", page);
+		printf("FREEING block %p\n", block);
 #endif
 	}
 }
 
 void *MallocClosure(void)
 {
-	PAGE *page = start;
+	BLOCK *block = start;
 	int i;
 
 	if (start == NULL)
-		page = start = get_page();
+		block = start = get_block();
 
-	while(page) {
-		if (page->used < page->count) {
-			/* This page has a free entry */
-			for (i = 0; i < page->count; ++i) {
-				if (page->closure[i].cif == NULL) {
-					page->closure[i].cif = (ffi_cif *)-1;
-					++page->used;
-					return &page->closure[i];
+	while(block) {
+		if (block->used < block->count) {
+			/* This block has a free entry */
+			for (i = 0; i < block->count; ++i) {
+				if (block->closure[i].cif == NULL) {
+					block->closure[i].cif = (ffi_cif *)-1;
+					++block->used;
+					return &block->closure[i];
 				}
 			}
 			/* oops, where is it? */
-			Py_FatalError("ctypes: use count on page is wrong");
+			Py_FatalError("ctypes: use count on block is wrong");
 		}
-		if (page->next)
-			/* try the next page, if there is one */
-			page = page->next;
+		if (block->next)
+			/* try the next block, if there is one */
+			block = block->next;
 		else {
-			/* need a fresh page */
-			PAGE *new_page = get_page();
-			if (new_page == NULL)
+			/* need a fresh block */
+			BLOCK *new_block = get_block();
+			if (new_block == NULL)
 				return NULL;
 			/* insert into chain */
-			new_page->prev = page;
-			page->next = new_page;
-			page = new_page;
+			new_block->prev = block;
+			block->next = new_block;
+			block = new_block;
 		}
 	}
 	return NULL;
