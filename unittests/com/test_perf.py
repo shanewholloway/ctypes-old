@@ -107,22 +107,22 @@ if __name__ == "__main__":
 
 ##ctypes version: 0.9.3
 ##python version: 2.4 (#60, Nov 30 2004, 11:49:19) [MSC v.1310 32 bit (Intel)]
-##    0.41: Class()
-##    1.34: POINT()
-##    1.39: RECT()
-##    0.23: point.y
-##    2.36: rect.lr
-##    7.22: fd.lprgelemdescParam
-##   10.80: fd.lprgelemdescParam[0]
-##   10.90: fd.lprgelemdescParam[1]
-##   13.50: fd.lprgelemdescParam[1].tdesc
-##   14.40: fd.lprgelemdescParam[1].tdesc.vt
-##   21.70: fd.lprgelemdescParam[1].tdesc.u.lptdesc[0].vt
-##    1.13: c_int()
-##    1.32: c_int(42)
-##    2.34: VARIANT()                                   # ctypes.com
-##    5.49: variant.value                               # ctypes.com
-##   11.60: variant.value = 3.14                        # ctypes.com
-##    1.40: VARIANT()                                   # comtypes
-##    5.54: variant.value                               # comtypes
-##   12.10: variant.value = 3.14                        # comtypes
+##    0.37: Class()
+##    0.96: POINT()
+##    0.94: RECT()
+##    0.25: point.y
+##    1.94: rect.lr
+##    7.16: fd.lprgelemdescParam
+##   10.10: fd.lprgelemdescParam[0]
+##   10.00: fd.lprgelemdescParam[1]
+##   12.30: fd.lprgelemdescParam[1].tdesc
+##   13.70: fd.lprgelemdescParam[1].tdesc.vt
+##   19.30: fd.lprgelemdescParam[1].tdesc.u.lptdesc[0].vt
+##    1.16: c_int()
+##    1.34: c_int(42)
+##    2.40: VARIANT()                                   # ctypes.com
+##    5.25: variant.value                               # ctypes.com
+##   11.20: variant.value = 3.14                        # ctypes.com
+##    1.00: VARIANT()                                   # comtypes
+##    4.99: variant.value                               # comtypes
+##   11.40: variant.value = 3.14                        # comtypes
