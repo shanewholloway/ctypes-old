@@ -196,7 +196,6 @@ static void _CallPythonObject(void *mem,
 		if ((result != Py_None)
 		    && !PyArg_Parse(result, format, mem))
 			PyErr_Print();
-		printf("parse %s\n", format);
 	}
   Done:
 	Py_XDECREF(arglist);
