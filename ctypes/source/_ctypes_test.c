@@ -412,6 +412,35 @@ EXPORT(double) tf_bd(char x, double c)
 }
 
 /********/
+ 
+#ifndef MS_WIN32
+
+typedef struct {
+	long x;
+	long y;
+} POINT;
+
+typedef struct {
+	long left;
+	long top;
+	long right;
+	long bottom;
+} RECT;
+	
+#endif
+
+EXPORT(int) PointInRect(RECT *prc, POINT pt)
+{
+	if (pt.x < prc->left)
+		return 0;
+	if (pt.x > prc->right)
+		return 0;
+	if (pt.y < prc->top)
+		return 0;
+	if (pt.y > prc->bottom)
+		return 0;
+	return 1;
+}
 
 DL_EXPORT(void)
 init_ctypes_test(void)
