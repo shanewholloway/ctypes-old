@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 # COM success and error codes
 
 S_OK = 0
@@ -13,3 +15,6 @@ E_FAIL = 0x80004005
 CLASS_E_NOAGGREGATION = 0x80040110
 CLASS_E_CLASSNOTAVAILABLE = 0x80040111
 
+TYPE_E_ELEMENTNOTFOUND = 0x8002802B
+
+CO_E_CLASSSTRING = 0x800401F3
