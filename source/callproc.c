@@ -437,6 +437,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 
 	/* check for None, integer, string or unicode and use directly if successful */
 	if (obj == Py_None) {
+		parm->pffi_type = &ffi_type_pointer;
 		parm->tag = 'P';
 		parm->value.p = NULL;
 		Py_INCREF(Py_None);
@@ -445,6 +446,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 	}
 
 	if (PyInt_Check(obj)) {
+		parm->pffi_type = &ffi_type_sint;
 		parm->tag = 'i';
 		parm->value.i = PyInt_AS_LONG(obj);
 		Py_INCREF(obj);
@@ -453,6 +455,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 	}
 
 	if (PyLong_Check(obj)) {
+		parm->pffi_type = &ffi_type_sint;
 		parm->tag = 'i';
 		parm->value.i = (long)PyLong_AsUnsignedLong(obj);
 		if (parm->value.i == -1 && PyErr_Occurred()) {
@@ -470,6 +473,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 	}
 
 	if (PyString_Check(obj)) {
+		parm->pffi_type = &ffi_type_pointer;
 		parm->tag = 'P';
 		parm->value.p = PyString_AS_STRING(obj);
 		Py_INCREF(obj);
@@ -479,6 +483,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 
 #ifdef HAVE_USABLE_WCHAR_T
 	if (PyUnicode_Check(obj)) {
+		parm->ffi_type = &ffi_type_pointer;
 		parm->tag = 'P';
 		parm->value.p = PyUnicode_AS_UNICODE(obj);
 		Py_INCREF(obj);
@@ -505,6 +510,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 			return (PyCArgObject *)arg;
 		}
 		if (PyInt_Check(arg)) {
+			parm->pffi_type = &ffi_type_sint;
 			parm->tag = 'i';
 			parm->value.i = PyInt_AS_LONG(arg);
 			Py_DECREF(arg);
@@ -878,6 +884,7 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 	StgDictObject *dict;
 
 	if (restype == NULL) {
+		result->pffi_type = &ffi_type_sint;
 		result->tag = 'i';
 		return;
 	}
@@ -894,6 +901,7 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 		*/
 		if (strchr("zcbBhHiIlLqQdfP", fmt[0])) {
 			result->tag = fmt[0];
+			result->pffi_type = &dict->ffi_type;
 			return;
 		}
 	}
@@ -1054,6 +1062,7 @@ PyObject *_CallProc(PPROC pProc,
 		pargs[0] = new_CArgObject();
 		if (pargs[0] == NULL)
 			return NULL;
+		pargs[0]->pffi_type = &ffi_type_pointer;
 		pargs[0]->tag = 'P';
 		pargs[0]->value.p = pIunk;
 		pp = &pargs[1];
