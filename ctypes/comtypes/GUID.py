@@ -43,15 +43,24 @@ class GUID(Structure):
         return GUID(str(self))
 
     def from_progid(cls, progid):
+        "Get guid from progid"
         inst = cls()
         _ole32.CLSIDFromProgID(unicode(progid), byref(inst))
         return inst
     from_progid = classmethod(from_progid)
 
     def progid(self):
+        "Get progid from guid"
         progid = c_wchar_p()
         _ole32.ProgIDFromCLSID(byref(self), byref(progid))
         return progid.value
+
+    def create_new(self):
+        "Create a brand new guid"
+        guid = self()
+        _ole32.CoCreateGuid(byref(guid))
+        return guid
+    create_new = classmethod(create_new)
 
 assert(sizeof(GUID) == 16), sizeof(GUID)
 
