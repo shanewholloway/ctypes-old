@@ -8,158 +8,208 @@ except NameError:
 
 ################
 
-##renames = {}
+def type_name(t):
+    # Return a string, containing an expression which can be used to
+    # refer to the type. Assumes the ctypes.* namespace is available.
+    if isinstance(t, nodes.PointerType):
+        result = "POINTER(%s)" % type_name(t.typ)
+        # XXX Better to inspect t.typ!
+        if result.startswith("POINTER(WINFUNCTYPE"):
+            return result[8:-1]
+        # XXX See comment above...
+        elif result == "POINTER(None)":
+            return "c_void_p"
+        return result
+    elif isinstance(t, nodes.ArrayType):
+        return "%s * %s" % (type_name(t.typ), int(t.max)+1)
+    elif isinstance(t, nodes.FunctionType):
+        args = map(type_name, [t.returns] + t.arguments)
+        # what now?  WINFUNCTYPE already *is* a pointer to a function
+        return "WINFUNCTYPE(%s)" % ", ".join(args)
+    elif isinstance(t, nodes.CvQualifiedType):
+        return "c_const(%s)" % type_name(t.typ)
+    elif isinstance(t, nodes.FundamentalType):
+        return ctypes_names[t.name]
+    elif isinstance(t, nodes.Structure):
+        return t.name
+    elif isinstance(t, nodes.Enumeration):
+        if t.name:
+            return t.name
+        return "c_int" # enums are integers
+    elif isinstance(t, nodes.Typedef):
+        return type_name(get_real_type(t.typ))
+    return t.name
+
+def get_real_type(tp):
+    if type(tp) is nodes.Typedef:
+        return get_real_type(tp.typ)
+    return tp
+
 class Generator(object):
     def __init__(self):
         self.done = set()
+        self.more = set()
 
-    def type_name(self, t):
-        # Return a string, containing an expression which can be used to
-        # refer to the type. Assumes the ctypes.* namespace is available.
-        if isinstance(t, nodes.PointerType):
-            result = "POINTER(%s)" % self.type_name(t.typ)
-            # XXX Better to inspect t.typ!
-            if result.startswith("POINTER(WINFUNCTYPE"):
-                return result[8:-1]
-            # XXX See comment above...
-            elif result == "POINTER(None)":
-                return "c_void_p"
-            return result
-        elif isinstance(t, nodes.ArrayType):
-            return "%s * %s" % (self.type_name(t.typ), int(t.max)+1)
-        elif isinstance(t, nodes.FunctionType):
-            args = map(self.type_name, [t.returns] + t.arguments)
-            # what now?  WINFUNCTYPE already *is* a pointer to a function
-            return "WINFUNCTYPE(%s)" % ", ".join(args)
-        elif isinstance(t, nodes.CvQualifiedType):
-            return "c_const(%s)" % self.type_name(t.typ)
-        elif isinstance(t, nodes.FundamentalType):
-            return ctypes_names[t.name]
-        elif isinstance(t, nodes.Structure):
-##            try:
-##                return renames[t]
-##            except KeyError:
-                return t.name
-        elif isinstance(t, nodes.Enumeration):
-##            try:
-##                return renames[t]
-##            except KeyError:
-##                pass
-            if t.name:
-                return t.name
-            return "c_int" # enums are integers
-        return t.name
-    
-    def Enumeration(self, enum):
-        if enum.name is not None:
-            # enums are integers (AFAIK, but may depend on the compiler)
-            print "%s = c_int" % enum.name
-        for name, val in enum.values:
-            print "%s = %s" % (name, val)
-        print
-
-    def Typedef(self, t):
-        print "%s = %s" % (t.name, self.type_name(t.typ))
-
-    def StructureHead(self, t):
-        assert t.struct.name is not None
-        print "class %s(Structure):" % t.struct.name
-        print "    pass"
-
-    def StructureBody(self, t):
-        self.done.update(t.struct.members)
-        fields = [m for m in t.struct.members if type(m) is nodes.Field]
-        if fields:
-            print "%s._fields_ = [" % t.struct.name
-            for m in fields:
-                if m.bits:
-                    print "    ('%s', %s, %s)," % (m.name, self.type_name(m.typ), m.bits)
-                else:
-                    print "    ('%s', %s)," % (m.name, self.type_name(m.typ))
-            print "]"
-
-        methods = [m for m in t.struct.members if type(m) is nodes.Method]
-        if methods:
-            print "%s._methods_ = [" % t.struct.name
-            for m in methods:
-                args = [self.type_name(a) for a in m.arguments]
-                text = "    STDMETHOD(%s, '%s'" % (self.type_name(m.returns), m.name)
-                if args:
-                    print "%s, %s)," % (text, ", ".join(args))
-                else:
-                    print "%s)," % text
-            print "]"
-        
-    def Function(self, t):
-        if not t.extern:
+    def StructureHead(self, head):
+        if head in self.done:
             return
-        dllname = "<unknown>"
-        if "__stdcall__" in t.attributes:
-            print "%s = STDCALL(%r, %s, '%s', %s)" % \
-                  (t.name, dllname, self.type_name(t.returns),
-                   t.name, ", ".join(map(self.type_name, t.arguments)))
-        else: # __cdecl is default
-            print "%s = CDECL(%r, %s, '%s', %s)" % \
-                  (t.name, dllname, self.type_name(t.returns),
-                   t.name, ", ".join(map(self.type_name, t.arguments)))
-
-    def _generate(self, t):
-        # the dispatcher
-        typ = type(t)
-        if typ is nodes.Enumeration:
-            self.Enumeration(t)
-        elif typ is nodes.Typedef:
-            self.Typedef(t)
-        elif typ is nodes.StructureHead:
-            self.StructureHead(t)
-        elif typ is nodes.StructureBody:
-            self.StructureBody(t)
-        elif typ is nodes.Function:
-            self.Function(t)
-        elif typ in (nodes.Structure, nodes.Union,
-                     nodes.PointerType, nodes.FundamentalType,
-                     nodes.ArrayType, nodes.FunctionType):
-            self.done.add(t)
+        for struct in head.struct.bases:
+            self.StructureHead(struct.get_head())
+            self.more.add(struct)
+        basenames = [type_name(b) for b in head.struct.bases]
+        if basenames:
+            print "class %s(%s):" % (head.struct.name, ", ".join(basenames))
         else:
-            raise TypeError, "don't know how to generate code for %s" % t
-        self.done.add(t)
-    
+            if type(head.struct) == nodes.Structure:
+                print "class %s(Structure):" % head.struct.name
+            elif type(head.struct) == nodes.Union:
+                print "class %s(Union):" % head.struct.name
+        print "    pass"
+        self.done.add(head)
+
+    def Structure(self, struct):
+        head = struct.get_head()
+        self.StructureHead(head)
+        body = struct.get_body()
+        self.StructureBody(body)
+        self.done.add(struct)
+        
+    def Typedef(self, tp):
+        if tp in self.done:
+            return
+        if type(tp.typ) in (nodes.Structure, nodes.Union):
+            self.StructureHead(tp.typ.get_head())
+            self.more.add(tp.typ)
+        else:
+            self.generate([tp.typ])
+        print "%s = %s" % (tp.name, type_name(tp.typ))
+        self.done.add(tp)
+
+    def ArrayType(self, tp):
+        if tp in self.done:
+            return
+        if type(tp.typ) is nodes.Typedef:
+            self.more.add(tp.typ)
+        self.generate([get_real_type(tp.typ)])
+        self.done.add(tp)
+
+    def FunctionType(self, tp):
+        if tp in self.done:
+            return
+        self.generate([tp.returns])
+        self.generate(tp.arguments)
+        self.done.add(tp)
+        
+    def PointerType(self, tp):
+        if tp in self.done:
+            return
+        if type(tp.typ) is nodes.PointerType:
+            self.PointerType(tp.typ)
+        elif type(tp.typ) in (nodes.Union, nodes.Structure):
+            self.StructureHead(tp.typ.get_head())
+            self.more.add(tp.typ)
+        elif type(tp.typ) is nodes.Typedef:
+            self.generate([tp.typ])
+        else:
+            self.generate([tp.typ])
+        self.done.add(tp)
+
+    def CvQualifiedType(self, tp):
+        if tp in self.done:
+            return
+        self.generate([tp.typ])
+        self.done.add(tp)
+
+    def Enumeration(self, tp):
+        if tp in self.done:
+            return
+        if tp.name:
+            print "%s = c_int" % tp.name
+        for n, v in tp.values:
+            print "%s = %s" % (n, v)
+        self.done.add(tp)
+
+    def StructureBody(self, body):
+        if body in self.done:
+            return
+        fields = []
+        methods = []
+        for m in body.struct.members:
+            if type(m) is nodes.Field:
+                fields.append(m)
+                if type(m.typ) is nodes.Typedef:
+                    self.more.add(m.typ)
+                t = get_real_type(m.typ)
+                self.generate([get_real_type(m.typ)])
+                if getattr(t, "name", None) == "SIZE":
+                    import pdb
+                    pdb.set_trace()
+                if type(t) in (nodes.Structure, nodes.Union):
+                    assert t.get_body() in self.done
+                
+##                self.generate([m.typ])
+            elif type(m) is nodes.Method:
+                methods.append(m)
+                self.generate([m.returns])
+                self.generate(m.arguments)
+            elif type(m) is nodes.Constructor:
+                pass
+        if fields:
+            print "%s._fields_ = [" % body.struct.name
+            for f in fields:
+                print "    ('%s', %s)," % (f.name, type_name(f.typ))
+            print "]"
+        if methods:
+            print "%s._methods_ = [" % body.struct.name
+            for m in methods:
+                args = [type_name(a) for a in m.arguments]
+                print "    STDMETHOD(%s, '%s', %s)," % (
+                    type_name(m.returns),
+                    m.name,
+                    ", ".join(args))
+            print "]"
+        self.done.add(body)
+
+    def Function(self, func):
+        if func in self.done:
+            return
+        if func.extern:
+            self.generate([func.returns])
+            self.generate(func.arguments)
+            args = [type_name(a) for a in func.arguments]
+            if "__stdcall__" in func.attributes:
+                print "STDCALL(%s, '%s', %s)" % \
+                      (type_name(func.returns), func.name, ", ".join(args))
+            else:
+                print "CDECL(%s, '%s', %s)" % \
+                      (type_name(func.returns), func.name, ", ".join(args))
+        self.done.add(func)
+
     def generate(self, items):
-        todo = set(items)
-        # todo contains definitions we have to generate
-        # self.done contains definitions already done
-
-        for i in range(80):
-            for td in todo.copy():
-                if type(td) in (nodes.StructureBody, nodes.StructureHead):
-                    todo.add(td.struct)
-                if type(td) is nodes.PointerType \
-                       and type(td.typ) in (nodes.Structure, nodes.Union):
-                    # pointers to struct or union only depend on their head,
-                    # but we want the body as well.
-                    #
-                    # XXX Maybe it would be better to have this in the
-                    # code generator for the struct/union head.
-                    todo.add(td.typ)
-                needs = set(td.depends())
-                assert td not in needs
-                if needs.issubset(self.done):
-                    self._generate(td)
-                    assert td in self.done
-                else:
-                    todo.update(needs)
-            todo -= self.done
-            if not todo:
-                break
-
-        for i in self.done:
-            if type(i) in (nodes.StructureBody, nodes.StructureHead):
-                assert i.struct in self.done
-            if type(i) in (nodes.Structure,):
-                assert i.get_body() in self.done
-                assert i.get_head() in self.done
-        if todo:
-            raise "Not enough loops???", (len(todo), todo)
+        for item in items:
+            tp = type(item)
+            if tp in (nodes.Structure, nodes.Union):
+                self.Structure(item)
+            elif tp == nodes.Typedef:
+                self.Typedef(item)
+            elif tp == nodes.FundamentalType:
+                pass
+            elif tp == nodes.PointerType:
+                self.PointerType(item)
+            elif tp == nodes.CvQualifiedType:
+                self.CvQualifiedType(item)
+            elif tp == nodes.ArrayType:
+                self.ArrayType(item)
+            elif tp == nodes.Enumeration:
+                self.Enumeration(item)
+            elif tp == nodes.StructureHead:
+                self.StructureHead(item)
+            elif tp == nodes.FunctionType:
+                self.FunctionType(item)
+            elif tp == nodes.Function:
+                self.Function(item)
+            else:
+                raise "NYI", tp
 
 ################################################################
 
@@ -174,15 +224,29 @@ def find_names(names):
     return result
 
 def main():
+    from gccxmlparser import parse
+##    items = parse(files=["windows.h"], xmlfile="windows.xml")
     items = find_names(sys.argv[1:])
     gen = Generator()
     print "from ctypes import *"
     print "def STDMETHOD(*args): pass"
     print "def c_const(x): return x"
-    gen.generate(items)
+    print
+
+    for i in range(20):
+        gen.more = set()
+        gen.generate(items)
+        items = gen.more
+        if not items:
+            break
+    if items:
+        print "left after 20 loops", len(items)
+        import pdb
+        pdb.set_trace()
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 1:
         sys.argv.extend("IDispatch".split())
+##        sys.argv.extend("ITypeComp".split())
     main()
