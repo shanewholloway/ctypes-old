@@ -1262,19 +1262,13 @@ PyTypeObject CData_Type = {
 };
 
 /*
- * See comment above about _basespec_.
- *
  * Trick #17: Pass a PyCObject named _basespec_ to the tp_new constructor,
  * then let tp_new remove it from the keyword dict, so that tp_init doesn't
  * get confused by it.
  *
  */
+
 /*
- * This is a multipurpose function, which should probably be split
- * into separate functions.
- *
- * It creates a new instance of type.
- *
  * If base is NULL, index is ignored, and baseofs is cast to a pointer
  * and used as the buffer of the new instance.
  *
@@ -1283,11 +1277,7 @@ PyTypeObject CData_Type = {
  * It shares base's pointer at offset baseofs, and uses index
  * in the base's object list to keep its references.
  *
- * In all cases, the new instance shares the buffer.
- *
- * There should be a way to create a new instance of type which
- * allocates a new memory block, copying the data from a given
- * address.
+ * In the latter case, the new instance shares the buffer of base.
  *
  * Box a memory block into a CData instance:
  *	CData_AtAddress(PyObject *type, void *buf);
@@ -1297,39 +1287,22 @@ PyTypeObject CData_Type = {
  *
  */
 
-PyObject *
-CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs)
+static PyObject *
+CData_FromBaseObj(PyObject *type, CDataObject *base, int index, int baseofs)
 {
 	struct basespec spec;
 	PyObject *cobj;
 	PyObject *mem;
 	PyObject *args, *kw;
 
-	StgDictObject *dict;
-
-	if (base && !CDataObject_Check(base)) {
-		PyErr_SetString(PyExc_TypeError,
-				"expected CDataObject");
-		return NULL;
-	}
-
-	/* Return native Python type instead of c_int or such */
-	dict = PyType_stgdict(type);
-	if (base && dict && dict->getfunc) {
-		CDataObject *cbase = (CDataObject *)base;
-		return dict->getfunc(cbase->b_ptr + baseofs, dict->size);
-	}
-
 	spec.base = (CDataObject *)base;
 	spec.offset = baseofs;
 	spec.index = index;
-
 	cobj = PyCObject_FromVoidPtrAndDesc(&spec, basespec_string, NULL);
 	kw = Py_BuildValue("{s:O}", "_basespec_", cobj);
 	args = PyTuple_New(0);
-	/* PyObject_Call() does not allow NULL as second parameter */
-	mem = PyObject_Call(type, args, kw);
 
+	mem = PyObject_Call(type, args, kw);
 	Py_DECREF(kw);
 	Py_DECREF(args);
 			    
@@ -1341,10 +1314,17 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs)
 }
 
 PyObject *
+CData_AtAddress(PyObject *type, void *buf)
+{
+	return CData_FromBaseObj(type, NULL, 0, (int)buf);
+}
+
+PyObject *
 CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	  int index, int offset, int size)
 {
 	CDataObject *mem;
+	StgDictObject *dict;
 
 	if (!CDataObject_Check(src)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -1353,10 +1333,13 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	}
 	mem = (CDataObject *)src;
 
-	if (type)
-		return CData_FromBaseObj(type, src, index, offset);
-	else
-		return getfunc(mem->b_ptr + offset, size);
+	if (type) {
+		dict = PyType_stgdict(type);
+		if (dict && dict->getfunc)
+			return dict->getfunc(mem->b_ptr + offset, dict->size);
+		return CData_FromBaseObj(type, mem, index, offset);
+	}
+	return getfunc(mem->b_ptr + offset, size);
 }
 
 /*
@@ -1443,12 +1426,6 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		return -1;
 
 	return PyList_SetItem(objects, index, result);
-}
-
-PyObject *
-CData_AtAddress(PyObject *type, void *buf)
-{
-	return CData_FromBaseObj(type, NULL, 0, (int)buf);
 }
 
 
