@@ -2224,10 +2224,14 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		/* same ABSOLUTE time, but smaller percentage in Python 2.2 */
 		/* We could save this time if the buffer in this case
 		   would be part of the object already */
+
+		/* In python 2.4, and ctypes 0.9.6, the malloc call takes about
+		   33% of the creation time for c_int().
+		*/
 		obj->b_ptr = PyMem_Malloc(size);
-		obj->b_size = size;
 		obj->b_needsfree = 1;
 		memset(obj->b_ptr, 0, size);
+		obj->b_size = size;
 	}
 	return (PyObject *)obj;
 }
