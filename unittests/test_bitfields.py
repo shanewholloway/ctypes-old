@@ -58,12 +58,12 @@ class BitFieldTest(unittest.TestCase):
                         ("b", c_longlong, 62),
                         ("c", c_longlong, 1)]
 
-##        self.failUnlessEqual(sizeof(X), sizeof(c_longlong))
-##        x = X()
-##        x.a, x.b, x.c = -1, 7, -1
-##        self.failUnlessEqual((x.a, x.b, x.c), (-1, 7, -1))
+        self.failUnlessEqual(sizeof(X), sizeof(c_longlong))
+        x = X()
+        x.a, x.b, x.c = -1, 7, -1
+        self.failUnlessEqual((x.a, x.b, x.c), (-1, 7, -1))
         
-    def X_test_ulonglong(self):
+    def test_ulonglong(self):
         class X(Structure):
             _fields_ = [("a", c_ulonglong, 1),
                         ("b", c_ulonglong, 62),
