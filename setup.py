@@ -40,7 +40,7 @@ if get_platform() in ["solaris-2.9-sun4u", "linux-x86_64"]:
 class test(Command):
     # Original version of this class posted
     # by Berthold Hoellmann to distutils-sig@python.org
-    description = "test the distribution prior to install"
+    description = "run unittests each in a separate process"
 
     user_options = [
         ('test-dirs=', None,
@@ -197,6 +197,9 @@ class test(Command):
 # class test
 
 class test_local(test):
+    description = "run the unittests (includes doctests)"
+
+    # This also runs doctest testcases contained in the test modules
     def run(self):
         import glob, unittest, doctest, new
         self.run_command('build')
