@@ -494,13 +494,116 @@ void init_callbacks_in_module(PyObject *m)
 }
 
 #ifdef MS_WIN32
+/*
+   Modeled after a function from Mark Hammond.
+
+   Obtains a string from a Python traceback.  This is the exact same string as
+   "traceback.print_exception" would return.
+
+   Result is a string which must be free'd using PyMem_Free()
+*/
+#define TRACEBACK_FETCH_ERROR(what) {errMsg = what; goto done;}
+
+char *PyTraceback_AsString(void)
+{
+	char *errMsg = NULL; /* holds a local error message */
+	char *result = NULL; /* a valid, allocated result. */
+	PyObject *modStringIO = NULL;
+	PyObject *modTB = NULL;
+	PyObject *obStringIO = NULL;
+	PyObject *obResult = NULL;
+
+	PyObject *type, *value, *traceback;
+
+	PyErr_Fetch(&type, &value, &traceback);
+	PyErr_NormalizeException(&type, &value, &traceback);
+	
+	modStringIO = PyImport_ImportModule("cStringIO");
+	if (modStringIO==NULL)
+		TRACEBACK_FETCH_ERROR("cant import cStringIO\n");
+
+	obStringIO = PyObject_CallMethod(modStringIO, "StringIO", NULL);
+
+	/* Construct a cStringIO object */
+	if (obStringIO==NULL)
+		TRACEBACK_FETCH_ERROR("cStringIO.StringIO() failed\n");
+
+	modTB = PyImport_ImportModule("traceback");
+	if (modTB==NULL)
+		TRACEBACK_FETCH_ERROR("cant import traceback\n");
+
+	obResult = PyObject_CallMethod(modTB, "print_exception",
+				       "OOOOO",
+				       type, value ? value : Py_None,
+				       traceback ? traceback : Py_None,
+				       Py_None,
+				       obStringIO);
+				    
+	if (obResult==NULL) 
+		TRACEBACK_FETCH_ERROR("traceback.print_exception() failed\n");
+	Py_DECREF(obResult);
+
+	obResult = PyObject_CallMethod(obStringIO, "getvalue", NULL);
+	if (obResult==NULL) 
+		TRACEBACK_FETCH_ERROR("getvalue() failed.\n");
+
+	/* And it should be a string all ready to go - duplicate it. */
+	if (!PyString_Check(obResult))
+			TRACEBACK_FETCH_ERROR("getvalue() did not return a string\n");
+
+	{ // a temp scope so I can use temp locals.
+		char *tempResult = PyString_AsString(obResult);
+		result = (char *)PyMem_Malloc(strlen(tempResult)+1);
+		if (result==NULL)
+			TRACEBACK_FETCH_ERROR("memory error duplicating the traceback string\n");
+		strcpy(result, tempResult);
+	} // end of temp scope.
+done:
+	/* All finished - first see if we encountered an error */
+	if (result==NULL && errMsg != NULL) {
+		result = (char *)PyMem_Malloc(strlen(errMsg)+1);
+		if (result != NULL)
+			/* if it does, not much we can do! */
+			strcpy(result, errMsg);
+	}
+	Py_XDECREF(modStringIO);
+	Py_XDECREF(modTB);
+	Py_XDECREF(obStringIO);
+	Py_XDECREF(obResult);
+	Py_XDECREF(value);
+	Py_XDECREF(traceback);
+	Py_XDECREF(type);
+	return result;
+}
+
+void MyPyErr_Print(char *msg)
+{
+	char *text;
+
+	text = PyTraceback_AsString();
+	MessageBox(NULL,
+		   text,
+		   msg,
+		   MB_OK | MB_ICONSTOP);
+	PyMem_Free(text);
+}
+
 static void LoadPython(void)
 {
 	PyObject *mod;
 	PyEval_InitThreads();
 	Py_Initialize();
 	mod = PyImport_ImportModule("ctcom.server");
-	Py_XDECREF(mod);
+	if (mod == NULL) {
+		MyPyErr_Print("Could not import ctcom.server");
+		return;
+	}
+	if (g_interp == NULL) {
+		MessageBox(NULL, "ctypes COM initialization failed",
+			   NULL, MB_OK | MB_ICONSTOP);
+		return;
+	}
+	Py_DECREF(mod);
 }
 
 long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
@@ -509,15 +612,14 @@ long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 	long retval;
 
 	mod = PyImport_ImportModule("ctcom.server");
-	if (!mod) {
-		PyErr_Print();
+	if (!mod)
+		/* There has been a warning before about this already */
 		return E_FAIL;
-	}
 
 	func = PyObject_GetAttrString(mod, "DllGetClassObject");
 	Py_DECREF(mod);
 	if (!func) {
-		PyErr_Print();
+		MyPyErr_Print("DllGetClassObject");
 		return E_FAIL;
 	}
 
@@ -525,13 +627,13 @@ long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 				       "iii", rclsid, riid, ppv);
 	Py_DECREF(func);
 	if (!result) {
-		PyErr_Print();
+		MyPyErr_Print(NULL);
 		return E_FAIL;
 	}
 
 	retval = PyInt_AsLong(result);
 	if (PyErr_Occurred())
-		PyErr_Print();
+		MyPyErr_Print(NULL);
 	Py_DECREF(result);
 	return retval;
 }
@@ -559,27 +661,27 @@ long Call_CanUnloadNow(void)
 
 	mod = PyImport_ImportModule("ctcom.server");
 	if (!mod) {
-		PyErr_Print();
+		MyPyErr_Print(NULL);
 		return E_FAIL;
 	}
 
 	func = PyObject_GetAttrString(mod, "DllCanUnloadNow");
 	Py_DECREF(mod);
 	if (!func) {
-		PyErr_Print();
+		PyErr_Clear();
 		return E_FAIL;
 	}
 
 	result = PyObject_CallFunction(func, NULL);
 	Py_DECREF(func);
 	if (!result) {
-		PyErr_Print();
+		PyErr_Clear();
 		return E_FAIL;
 	}
 
 	retval = PyInt_AsLong(result);
 	if (PyErr_Occurred())
-		PyErr_Print();
+		PyErr_Clear();
 	Py_DECREF(result);
 	{
 		char buffer[64];
