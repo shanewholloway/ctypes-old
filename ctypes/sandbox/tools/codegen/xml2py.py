@@ -142,7 +142,8 @@ def main(args=None):
         mod = __import__(name)
         for submodule in name.split(".")[1:]:
             mod = getattr(mod, submodule)
-        known_symbols.update(mod.__dict__)
+        for name in mod.__dict__:
+            known_symbols[name] = mod.__name__
 
     if options.kind:
         types = []
