@@ -1,11 +1,11 @@
 ctypes reference
 
-  "overview":overview.html :: "tutorial":tutorial.html ::
+  "overview":index.html :: "tutorial":tutorial.html ::
   reference :: "faq":faq.html
 
   ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
 
-  Common operations on CType instances
+  Common operations on ctypes instances
 
     'sizeof(obj) -> integer'
 
@@ -13,87 +13,50 @@ ctypes reference
         block.  This corresponds to the C code 'sizeof(obj)'.  Does
         also work for types.
 
-    'byref(obj) -> magic'
+    'byref(obj) -> cparam-object'
 
-        Similar to '&obj' in C code, but only usable while passing the
-        object as a parameter to a C function call.  Internally this
-        calls 'obj._as_ref_', see below.
+        Similar to '&obj' in C code, but only usable for passing the
+        object as a parameter to a C function call.
 
-    'pointer(obj) -> CType instance'
+    'pointer(obj) -> ctypes instance'
 
         Same as '&obj' in C.  Different from 'byref(obj)', this
-        creates a new CType object, acting as a pointer to 'obj'.  It
+        creates a new ctypes object, acting as a pointer to 'obj'.  It
         will be an instance of a pointer class pointing to 'type(obj)'
         instances.  The pointer class is created on the fly, if it
         does not yet exist.
 
-  Common operation on CType types
+  Common operation on ctypes types
 
-    CType types/classes extensively use the new Python type system, so
+    ctypes types/classes extensively use the new Python type system, so
     the following may first look unusual to the Pyhon programmer.
 
-    'POINTER(type) -> class'
+    'POINTER(ctype) -> class'
 
-        Return a subclass of 'CType', which is a pointer to 'type'.
-        The subclass will be created if it does not yet exist,
-        otherwise it is returned from a buildin cache.
+        Return a subclass of 'ctype'. Instances of this class are
+        pointers to 'ctype'.  The subclass will be created if it does
+        not yet exist, otherwise it is returned from a builtin cache.
 
-    'type * num -> array class'
+    'ctype * num -> array class'
 
-        Multiplying a CType class with a positive integer creates a
-        subclass of 'CType', which is an array type holding 'num'
-        instances of 'type'.
+        Multiplying a 'ctype' class with a positive integer creates a
+        subclass of 'Array'. Instances are arrays holding 'num'
+        instances of 'ctype'.
 
-    'type.from_address(address) -> CType instance'
+    'ctype.from_address(address) -> ctypes instance'
 
-        Create a new instance of 'type' from the memory block at the
-        integer 'address'.
+        Create a new instance of 'ctype' from the memory block at the
+        integer 'address'. It must no longer be accessed of the memory
+        block becomes invalid, the programmer must ensure this.
 
-<!--
-  Internal CType class methods/properties
 
-    'type._from_python_(value) -> magic'
-
-        Convert a python object 'value' into something that can be
-        used as a parameter in a C function call.  This may be a 'type'
-        instance, or something else.  Automatically called when you
-        have specified 'type' in the function call prototype.  If
-        'value' is not compatible with 'type', a 'TypeError' will be
-        raised.
-
-    'type._from_c_(xxx) -> Python object'
-
-        Convert a C data object into a Python object. Called
-        internally when a callback function is called, and you have
-        specified 'type' as an argument.  The result may or may not be
-        an instance of 'type'.
--->
-
-  Internal CType methods/properties
+  ctypes instance methods/properties
 
     'obj._as_parameter_ -> magic'
 
-        Automatically called when a CType object is used as a
+        Automatically called when a ctype object is used as a
         parameter in a C function call *by value*.  Must *return*
         something that can be understood by the C function call
         parameter converter.  Currently, it either returns an integer,
-        a string or a unicode string, or a 2-tuple or 3-tuple of the
-        form '(typecode, value[, ref])'.
-
-	If an integer, a string, or a unicode string is returned, they
-	are passed directly to the API call as 'int' or 'char *' or 'wchar_t *'.
-
-	If a tuple 'typecode' is a single letter string containing a
-	format code like the standard 'array' module uses.  'value' is
-	a Python character, integer, long, or float.  'ref' can be used
-	to keep the original object alive until the C function call
-	returns, it is optional.
-
-<!--
-    'obj._as_ref_ -> magic'
-
-    	Convert the object to something that can be used as a
-	parameter to a C function call *by reference*.  The same
-	conventions as in '_as_parameter_' are used, except that the
-	meaning of the result is the address, not the value.
--->
+        a string or a unicode string. These are passed as the
+        corresponding C data type to the function call.

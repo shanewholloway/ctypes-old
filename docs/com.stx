@@ -1,6 +1,6 @@
 The ctypes COM framework
 
-  "overview":overview.html :: "tutorial":tutorial.html ::
+  "overview":index.html :: "tutorial":tutorial.html ::
   "reference":reference.html :: "faq":faq.html
 
   ( Work in progress: COM :: "COM sample":sum_sample.html )
