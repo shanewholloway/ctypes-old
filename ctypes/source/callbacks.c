@@ -20,19 +20,21 @@ static PyInterpreterState *g_interp;	/* need this to create new thread states */
 static void EnterPython(void)
 {
 	PyThreadState *pts;
+	if (!g_interp)
+		Py_FatalError("_ctypes: no interpreter state");
 	PyEval_AcquireLock();
 	pts = PyThreadState_New(g_interp);
 	if (!pts)
-		Py_FatalError("wincall: Could not allocate ThreadState");
+		Py_FatalError("_ctypes: Could not allocate ThreadState");
 	if (NULL != PyThreadState_Swap(pts))
-		Py_FatalError("wincall (EnterPython): thread state not == NULL?");
+		Py_FatalError("_ctypes (EnterPython): thread state not == NULL?");
 }
 
 static void LeavePython(void)
 {
 	PyThreadState *pts = PyThreadState_Get();
 	if (!pts)
-		Py_FatalError("wincall (LeavePython): ThreadState is NULL?");
+		Py_FatalError("_ctypes (LeavePython): ThreadState is NULL?");
 	PyThreadState_Clear(pts);
 	pts = PyThreadState_Swap(NULL);
 	PyThreadState_Delete(pts);
@@ -574,22 +576,23 @@ void MyPyErr_Print(char *msg)
 
 static void LoadPython(void)
 {
-	PyObject *mod;
-	PyEval_InitThreads();
-	Py_Initialize();
-	mod = PyImport_ImportModule("ctypes.com.server");
-	if (mod == NULL) {
-		MyPyErr_Print("Could not import ctypes.com.server");
-		return;
-	}
+	if (!Py_IsInitialized()) {
+		PyEval_InitThreads();
+		Py_Initialize();
+	} else {
 #ifndef CTYPES_USE_GILSTATE
-	if (g_interp == NULL) {
-		MessageBox(NULL, "ctypes COM initialization failed",
-			   NULL, MB_OK | MB_ICONSTOP);
+		/* Python is already initialized.
+		   We assume we don't have the lock.
+		*/
+		if (!g_interp) {
+			g_interp = PyInterpreterState_Head();
+			if(PyInterpreterState_Next(g_interp))
+				Py_FatalError("_ctypes: more than one interpreter state");
+		}
+		EnterPython();
+#endif
 		return;
 	}
-#endif
-	Py_DECREF(mod);
 }
 
 long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
@@ -630,13 +633,20 @@ STDAPI DllGetClassObject(REFCLSID rclsid,
 {
 	long result;
 
-	if (!Py_IsInitialized()) {
-		LoadPython();
-		LeavePython();
-	}
-	EnterPython();
+#ifdef CTYPES_USE_GILSTATE
+	PyGILState_STATE state;
+	LoadPython();
+	state = PyGILState_Ensure();
+#else
+	LoadPython(); /* calls EnterPython itself */
+#endif
 	result = Call_GetClassObject(rclsid, riid, ppv);
+
+#ifdef CTYPES_USE_GILSTATE
+	PyGILState_Release(state);
+#else
 	LeavePython();
+#endif
 	return result;
 }
 
@@ -669,25 +679,31 @@ long Call_CanUnloadNow(void)
 	if (PyErr_Occurred())
 		PyErr_Clear();
 	Py_DECREF(result);
-	{
-		char buffer[64];
-		sprintf(buffer, "_ctypes: DLLCANUNLOADNOW returns %d\n", retval);
-		OutputDebugString(buffer);
-	}
 	return retval;
 }
+
+/*
+  DllRegisterServer and DllUnregisterServer still missing
+*/
 
 STDAPI DllCanUnloadNow(void)
 {
 	long result;
-
+#ifdef CTYPES_USE_GILSTATE
+	PyGILState_STATE state = PyGILState_Ensure();
+#else
 	if (!Py_IsInitialized()) {
 		LoadPython();
 		LeavePython();
 	}
 	EnterPython();
+#endif
 	result = Call_CanUnloadNow();
+#ifdef CTYPES_USE_GILSTATE
+	PyGILState_Release(state);
+#else
 	LeavePython();
+#endif
 	return result;
 }
 
