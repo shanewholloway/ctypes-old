@@ -102,7 +102,7 @@ def calc_packing(struct, fields):
             return pack/8
     raise PackingError, "PACKING FAILED: %s" % details
 
-def _type_name(t):
+def type_name(t):
     # Return a string, containing an expression which can be used to
     # refer to the type. Assumes the ctypes.* namespace is available.
     if isinstance(t, typedesc.PointerType):
