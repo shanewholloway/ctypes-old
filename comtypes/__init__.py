@@ -182,7 +182,7 @@ class _cominterface_meta(type):
                 # returns a bound object having __getitem__ and
                 # __setitem__ methods.
 ##                prop = named_property(getters.get(item), setters.get(item), doc=doc)
-                raise "Not Yet Implemented"
+                raise "Named Properties not yet implemented"
             setattr(self, name, prop)
             
 # metaclass for COM interface pointer classes
@@ -337,7 +337,7 @@ def COMMETHOD(idlflags, restype, methodname, *argspec):
     if "propget" in idlflags:
         methodname = "_get_%s" % methodname
     elif "propput" in idlflags:
-        methodname = "_put_%s" % methodname
+        methodname = "_set_%s" % methodname
     return restype, methodname, tuple(argtypes), tuple(paramflags), tuple(idlflags), helptext
 
 def STDMETHOD(restype, name, argtypes=()):
