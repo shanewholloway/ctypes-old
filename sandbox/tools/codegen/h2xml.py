@@ -30,7 +30,7 @@ def main():
 
     parser = OptionParser()
 ##    parser.add_option("-h", action="help")
-    parser.add_option("-q", "--quite",
+    parser.add_option("-q", "--quiet",
                       dest="quiet",
                       action="store_true",
                       default=False)
