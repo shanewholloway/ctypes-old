@@ -767,7 +767,7 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 		/* This hack is needed for big endian machines.
 		   Is there another way?
 		 */
-		PyObject *retval;
+		PyObject *retval, *checker;
 		char c;
 		short s;
 		int i;
@@ -797,7 +797,17 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 			retval = dict->getfunc(&result->value, dict->size);
 			break;
 		}
-		return retval;
+		if (retval == NULL)
+			return NULL;
+		checker = PyObject_GetAttrString(restype, "_check_retval_");
+		if (checker == NULL) {
+			PyErr_Clear();
+			return retval;
+		} else {
+			PyObject *v = PyObject_CallFunctionObjArgs(checker, retval, NULL);
+			Py_DECREF(retval);
+			return v;
+		}
 	}
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
@@ -1417,6 +1427,7 @@ wstring_at(PyObject *self, PyObject *args)
 }
 #endif
 
+
 PyMethodDef module_methods[] = {
 	{"string_at", string_at, METH_VARARGS, string_at_doc},
 	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
@@ -1432,7 +1443,7 @@ PyMethodDef module_methods[] = {
 	{"LoadLibrary", load_library, METH_VARARGS, load_library_doc},
 	{"FreeLibrary", free_library, METH_VARARGS, free_library_doc},
 	{"call_commethod", call_commethod, METH_VARARGS },
-	{"HRESULT", check_hresult, METH_VARARGS},
+	{"_check_HRESULT", check_hresult, METH_VARARGS},
 #else
 	{"dlopen", py_dl_open, METH_VARARGS, "dlopen a library"},
 	{"dlclose", py_dl_close, METH_VARARGS, "dlclose a library"},
