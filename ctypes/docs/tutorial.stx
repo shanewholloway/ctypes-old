@@ -20,21 +20,35 @@ ctypes tutorial
     automatically raise 'WindowsError' Python exceptions when the
     function call fails.
 
-    Here are some examples::
+    Here are some examples for Windows, note that 'msvcrt' is the MS
+    standard C library containing most standard C functions, and uses
+    the cdecl calling convention::
 
-      >>> from ctypes import windll, cdll
+      >>> from ctypes import *
       >>> print windll.kernel32
       <WinDLL 'kernel32', handle 77e80000 at 7ecfe8>
       >>> print cdll.msvcrt
       <CDLL 'msvcrt', handle 78000000 at 80b010>
 
-    XXX Libs not on default search path, libc.so.1 on Linux?
+    In principle the same way should work on Linux, but most of the
+    time it seems required to specify the search path in this way. So
+    this example shows also how to load libraries by specifying their
+    filename::
+
+       >>> from ctypes import *
+       >>> libc = cdll.LoadLibrary("/lib/libc.so.6")
+       <CDLL '/lib/libc.so.6', handle 40018c28 at 4019978c>
+       >>>
+
+    This tutorial uses windows in its examples, however, functions
+    from the standard C library such as strchr, printf, and so on
+    should also work on Linux and other systems.
 
   Accessing functions from loaded dlls
 
     Functions are accessed as attributes of dll objects::
 
-      >>> from ctypes import windll, cdll
+      >>> from ctypes import *
       >>> print cdll.msvcrt.printf
       <ctypes._CdeclFuncPtr object ar 0x00905F68>
       >>> print windll.kernel32.GetModuleHandleA
@@ -84,7 +98,7 @@ ctypes tutorial
     This example calls both functions with a NULL pointer ('None'
     should be used as the NULL pointer)::
 
-      >>> from ctypes import cdll, windll
+      >>> from ctypes import *
       >>> print cdll.msvcrt.time(None)
       1048777320
       >>> print hex(windll.kernel32.GetModuleHandleA(None))
@@ -116,7 +130,7 @@ ctypes tutorial
       >>>
 
     There are, however, enough ways to crash Python with 'ctypes',
-    so you should be careful aywany.
+    so you should be careful anyway.
 
     Python integers, strings and unicode strings are the only objects
     that can directly be used as parameters in these function calls.
@@ -188,7 +202,7 @@ ctypes tutorial
       -99
 
     Assigning a new value to instances of the pointer types
-    'c_char_p', 'c_wchar_p', and 'c_void_p' change the *memory
+    'c_char_p', 'c_wchar_p', and 'c_void_p' changes the *memory
     location* they point to, *not the contents* of the memory block
     (of course not, because Python strings are immutable)::
 
@@ -209,7 +223,7 @@ ctypes tutorial
     (or changed) with the 'raw' property, if you want to access it as
     NUL terminated string, use the 'string' property::
 
-      >>> from ctypes import c_buffer, sizeof
+      >>> from ctypes import *
       >>> p = c_buffer(3)      # create a 3 byte buffer, initialized to NUL bytes
       >>> print sizeof(p), repr(p.raw)
       3 '\x00\x00\x00'
@@ -232,7 +246,7 @@ ctypes tutorial
     to 'sys.stdout', so these examples will only work at the console
     prompt, not from within *IDLE* or *PythonWin*::
 
-      >>> from ctypes import cdll; printf = cdll.msvcrt.printf
+      >>> from ctypes import *; printf = cdll.msvcrt.printf
       >>> printf("Hello, %s\n", "World!")
       Hello, World!
       14
@@ -253,7 +267,7 @@ ctypes tutorial
     corresponding 'ctypes' type, so that they can be converted to the
     required C data type::
 
-      >>> from ctypes import cdll, c_double
+      >>> from ctypes import *
       >>> printf = cdll.msvcrt.printf
       >>> printf("An int %d, a double %f\n", 1234, c_double(3.14))
       Integer 1234, double 3.1400001049
@@ -273,7 +287,7 @@ ctypes tutorial
       ...         self._as_parameter_ = number
       ...
       >>> bottles = Bottles(42)
-      >>> from ctypes import cdll
+      >>> from ctypes import *
       >>> printf = cdll.msvcrt.printf
       >>> printf("%d bottles of beer\n", bottles)
       42 bottles of beer
@@ -295,7 +309,7 @@ ctypes tutorial
     format string, on the other hand this is quite handy to experiment
     with this feature)::
 
-      >>> from ctypes import cdll, c_int, c_char_p, c_double
+      >>> from ctypes import *
       >>> printf = cdll.msvcrt.printf
       >>> printf.argtypes = [c_char_p, c_char_p, c_int, c_double]
       >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2)
@@ -321,7 +335,7 @@ ctypes tutorial
     make sure this object is acceptable, and then return the object
     itself, it's '_as_parameter_' attribute, or whatever you want to
     pass as the C function argument in this case. Again, the result
-    should be an integer, string, or unicode, a 'ctypes' instance, or
+    should be an integer, string, unicode, a 'ctypes' instance, or
     something having the '_as_parameter_' attribute.
 
 
@@ -336,9 +350,10 @@ ctypes tutorial
     types. Functions returning structures are not yet supported.
     
     Here is a more advanced example, it uses the strchr function,
-    which expects a 'char *' and a 'char', and returns a 'char *' ::
+    which expects a string pointer and a char, and returns a pointer
+    to a string::
 
-      >>> from ctypes import c_char_p, byref, cdll
+      >>> from ctypes import *
       >>> strchr = cdll.msvcrt.strchr
       >>> strchr("abcdef", ord("d"))
       8059983
@@ -351,9 +366,9 @@ ctypes tutorial
 
     If you want to avoid the 'ord("x")' calls above, you can set the
     'argtypes' attribute, and the second argument will be converted
-    from a one character Python string into a C char::
+    from a single character Python string into a C char::
 
-      >>> from ctypes import c_char, c_char_p, byref, cdll
+      >>> from ctypes import *
       >>> msvcrt = cdll.msvcrt
       >>> msvcrt.strchr.restype = "s"
       >>> msvcrt.strchr.argtypes = [c_char_p, c_char]
@@ -365,7 +380,10 @@ ctypes tutorial
       TypeError: one character string expected
       >>> print msvcrt.strchr("abcdef", "x")
       None
+      >>> print msvcrt.strchr("abcdef", "d")
+      "def"
       >>>
+      
 
     You can also use a callable Python object (a function or a class
     for example) as the 'restype' attribute.  It will be called with
@@ -374,7 +392,7 @@ ctypes tutorial
     to check for error return values and automatically raise an
     exception::
 
-      >>> from ctypes import windll, WinError
+      >>> from ctypes import *
       >>> GetModuleHandle = windll.kernel32.GetModuleHandleA
       >>> def ValidHandle(value):
       ...     if value == 0:
@@ -392,26 +410,26 @@ ctypes tutorial
       WindowsError: [Errno 126] The specified module could not be found.
       >>>
 
-    'WinError' is a function which will call Windows' 'FormatMessage'
+    'WinError' is a function which will call Windows 'FormatMessage()'
     api to get the string representation of an error code, and
     *returns* an exception.  'WinError' takes an optional error code
     parameter, if no one is used, it calls 'GetLastError()' to
     retrieve it.
 
-  Passing pointers (or: parameters by reference)
+  Passing pointers (or: passing parameters by reference)
 
-    Sometimes a C api function expects a *pointer* to simple data type
-    as parameter, and maybe the C function writes into the
-    corresponding location. This is also known as *passing parameters
-    by reference*.
+    Sometimes a C api function expects a *pointer* to a data type as
+    parameter, probably to write into the corresponding location, or
+    if the data is too large to be passed by value. This is also known
+    as *passing parameters by reference*.
 
     'ctypes' exports the 'byref' function which is used to pass
     parameters by reference.  The same effect can be achieved with the
     'pointer' function, although 'pointer' does a lot more work since
-    it constructs a real pointer object, so it is probably better to
-    use 'byref' if you don't need the pointer object itself::
+    it constructs a real pointer object, so it is faster to use
+    'byref' if you don't need the pointer object in Python itself::
 
-      >>> from ctypes import c_int, c_float, c_string, byref, cdll
+      >>> from ctypes import *
       >>> msvcrt = cdll.msvcrt
       >>> i = c_int()
       >>> f = c_float()
@@ -429,7 +447,7 @@ ctypes tutorial
       It seems to be a difficult issue, the mailing list gets quite
       some questions about how to call functions expecting pointers.
       If you have suggestions for improvements for the preceeding
-      section, please let me know at
+      section, please post to
       "ctypes-users":mailto:ctypes-users@lists.sourceforge.net.
 
   Structures and Unions
@@ -443,9 +461,10 @@ ctypes tutorial
     derived 'ctypes' type: structure, union, array, pointer.
 
     Here is a simple example of a POINT structure, which contains two
-    integers named 'x' and 'y' ::
+    integers named 'x' and 'y', and also shows how to initialize a
+    structure in the constructor::
 
-      >>> from ctypes import Structure
+      >>> from ctypes import *
       >>> class POINT(Structure):
       ...     _fields_ = [("x", c_int),
       ...                 ("y", c_int)]
@@ -453,6 +472,13 @@ ctypes tutorial
       >>> point = POINT(10, 20)
       >>> print point.x, point.y
       10 20
+      >>> point = POINT(y=5)
+      >>> print point.x, point.y
+      0 5
+      >>> POINT(1, 2, 3)
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: too many initializers
       >>>
 
     You can, however, build much more complicated
@@ -473,10 +499,16 @@ ctypes tutorial
       0 0
       >>>
 
-    Fields descriptors can be retrieved from the class, they have
+    Nested structures can also be initialized in the constructor in
+    several ways::
+
+      >>> r = RECT(POINT(1, 2), POINT(3, 4))
+      >>> r = RECT((1, 2), (3, 4))
+
+    Fields descriptors can be retrieved from the *class*, they have
     readonly 'size' and 'offset' attributes describing the size in
     bytes and the offset of this field from the beginning of the
-    internal memory buffer:
+    internal memory buffer::
 
       >>> print POINT.x.size, POINT.x.offset
       0 4
@@ -504,7 +536,7 @@ ctypes tutorial
     Here is an example of an somewhat artifical data type, a structure
     containing 4 POINTs among other stuff::
 
-      >>> from ctypes import Structure
+      >>> from ctypes import *
       >>> class POINT(Structure):
       ...    _fields_ = ("x", c_int), ("y", c_int)
       ...
@@ -528,7 +560,7 @@ ctypes tutorial
 
     Initializers of the correct type can also be specified::
 
-      >>> from ctypes import c_int
+      >>> from ctypes import *
       >>> TenIntegers = c_int * 10
       >>> ii = TenIntegers(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
       <__main__.c_int_Array_10 object at 0x009119F0>
@@ -542,7 +574,7 @@ ctypes tutorial
     Pointer instances are created by calling the 'pointer' function
     on a 'ctypes' type::
 
-       >>> from ctypes import c_int, pointer
+       >>> from ctypes import *
        >>> i = c_int(42)
        >>> pi = pointer(i)
        >>>
@@ -593,7 +625,7 @@ ctypes tutorial
     This is done with the 'POINTER' function, which accepts any
     'ctypes' type, and returns a new type::
 
-       >>> from ctypes import c_int, POINTER
+       >>> from ctypes import *
        >>> PI = POINTER(c_int)
        >>> PI
        <class 'ctypes.LP_c_int>
@@ -651,11 +683,9 @@ ctypes tutorial
        ...                 ("next", lpcell)]
        ...
        >>> SetPointerType(lpcell, cell)
-       >>> c = cell()
-       >>> c.next = c
-       Traceback (most recent call last):
-         File "<stdin>", line 1, in ?
-       TypeError: incompatible types, cell instance instead of LP_cell instanc
+       >>> c1 = cell()
+       >>> c2 = cell()
+       >>> c.next = pointer(c2)
        >>>
 
 
@@ -685,7 +715,7 @@ ctypes tutorial
     'qsort' function, this is used to sort items with the help of a
     callback function. 'qsort' will be used to sort an array of integers::
     
-       >>> from ctypes import cdll, c_int
+       >>> from ctypes import *
        >>> IntArray10 = c_int * 10
        >>> ia = IntArray10(5, 4, 3, 1, 7, 9, 33, 2, 99, 0)
        >>> qsort = cdll.msvcrt.qsort
@@ -829,7 +859,7 @@ ctypes tutorial
 
     Consider the following example::
 
-      >>> from ctypes import Structure
+      >>> from ctypes import *
       >>> class POINT(Structure):
       ...     _fields_ = ("x", "i"), ("y", "i")
       ...
@@ -876,8 +906,6 @@ ctypes tutorial
 
     You cannot pass structures to functions as arguments, and you
     cannot set them as return type (only pointers).
-
-    Unnamed structures are not implemented.
 
 <!--
   Local Variables:
