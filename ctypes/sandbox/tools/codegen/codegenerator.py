@@ -459,6 +459,13 @@ class Generator(object):
                     print >> self.stream, "    ('%s', %s, %s)," % (fieldname, self.type_name(f.typ), f.bits)
             print >> self.stream, "]"
         if methods:
+            # method definitions normally span several lines.
+            # Before we generate them, we need to 'import' everything they need.
+            # So, call type_name for each field once,
+            for m in methods:
+                self.type_name(m.returns)
+                for a in m.arguments:
+                    self.type_name(a)
             print >> self.stream, "%s._methods_ = [" % body.struct.name
             if body.struct.location:
                 print >> self.stream, "# %s %s" % body.struct.location
