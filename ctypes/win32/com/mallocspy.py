@@ -1,3 +1,12 @@
+"""
+See also:
+
+http://support.microsoft.com/default.aspx?scid=http://support.microsoft.com:80/support/kb/articles/q139/0/71.asp
+
+http://www.microsoft.com/msj/1095/activex1095.aspx
+
+http://msdn.microsoft.com/msdnmag/issues/01/03/leaks/default.aspx
+"""
 from ctypes import *
 from ctypes.wintypes import BOOL
 from ctypes.com import CreateInstance, GUID, ole32, IUnknown, \
