@@ -20,5 +20,11 @@ class MemFunctionsTest(unittest.TestCase):
         self.failUnlessEqual(get_string(a), "xxxxxxxxxxxxxxxx")
         self.failUnlessEqual(a.value, "xxxxxxxxxxxxxxxx")
 
+    def test_cast(self):
+        a = (c_ubyte * 32)(*map(ord, "abcdef"))
+        self.failUnlessEqual(cast(a, c_char_p).value, "abcdef")
+        self.failUnlessEqual(cast(a, POINTER(c_byte))[:7],
+                             [97, 98, 99, 100, 101, 102, 0])
+
 if __name__ == "__main__":
     unittest.main()
