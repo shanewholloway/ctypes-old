@@ -244,7 +244,7 @@ void SetException(DWORD code, EXCEPTION_RECORD *pr)
 		default:
 			printf("error %d\n", code);
 			PyErr_Format(PyExc_WindowsError,
-				     "exception code 0x%08X",
+				     "exception code 0x%08x",
 				     code);
 			break;
 		}
