@@ -49,7 +49,8 @@ and `build GCC-XML from source`_.
 
 .. _the ctypes download page: http://sourceforge.net/project/showfiles.php?group_id=71702
 
-.. _GCC-XML windows installer: http://sourceforge.net/project/showfiles.php?group_id=71702&package_id=146740&release_id=311918
+XXX UPDATE LINK!
+.. _GCC-XML windows installer: http://sourceforge.net/project/showfiles.php?group_id=71702&package_id=71318&release_id=312072
 
 .. _GCC-XML: http://www.gccxml.org/
 
@@ -68,6 +69,9 @@ Changes in the ctypes 0.9.6 release
    files.
 
  - Better error output if the compilation fails.
+
+ - ``h2xml.py`` can load an optional local configuration file from the
+   current directory
 
 Usage examples
 ==============
@@ -301,6 +305,51 @@ GCC-XML.  The ``-D``, ``-E``, and ``-I`` flags may occur several times.
 
     Do not delete temporary files created - this may be useful to find
     compilation problems.
+
+The h2xml.cfg configuration file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you enable preprocessor definition processing with the ``-c`` flag,
+it is possible that you get compiler errors on certain symbols.  In
+this case, it is needed to exclude those symbols by writing in local
+configuration file named ``h2xml.cfg`` in the current directory.  The
+configuration file sections are named after ``sys.platform``, and it
+allows to specify the symbols to exclude by names or by regular
+expressions::
+
+ # h2xml.cfg
+ #
+ # config file for h2xml script
+ #
+ # sections should be named after 'sys.platform'
+ # options supported are:
+ # 'excluded' - names of preprocessor symbols to exclude,
+ #         separated by whitespace
+ # 'excluded_re' - regular expressions, separated by whitespace, matching
+ #         cpp symbols to exclude
+ # See the documentation of the standard Python ConfigParser module
+ # for maore information on the file format.
+
+ [win32]
+ excluded = foo bar
+ excluded_re = spam.* .*spam
+
+ [cygwin]
+ excluded =
+ excluded_re =
+
+ [linux2]
+ excluded =
+ excluded_re =
+
+ [darwin]
+ excluded =
+ excluded_re =
+
+ [freebsd5]
+ excluded =
+ excluded_re =
+
 
 The xml2py.py script
 ====================
