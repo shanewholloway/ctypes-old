@@ -104,6 +104,7 @@ width="88" height="31" border="0" alt="SourceForge.net Logo">
         footer = '''
 <hr>
 <!--PLACEHOLDER-->
+<br>
 <small>Page updated: %s</small>
 </body></html>
 '''

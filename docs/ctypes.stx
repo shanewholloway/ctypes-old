@@ -1,0 +1,94 @@
+The ctypes module
+
+    ctypes home :: "tutorial":ctypes/tutorial.html :: "reference":ctypes/reference.html :: "faq":ctypes/faq.html
+
+  Overview
+
+    'ctypes' is a Python module allowing to create and manipulate C
+    data types in Python. These can then be passed to C-functions
+    loaded from dynamic link libraries.
+
+  Status
+
+    The first public versions of 'ctypes' were marked *experimental*.
+    I'm currently rewriting the internals to do better checking, and
+    implementing unittests for it. It is amazing how many bugs these
+    tests find, although using 'ctypes' has been quite successful. The
+    tests seem to improve the code quality a lot.
+
+  Testimonials
+
+    *I am using it and much prefer it to the calldll/windll
+    ... easy to use, well documented ...*  - Ben C
+
+    *Your ctypes stuff is awesome! Thanks so much for making
+    it. Almost every time I write a C extension it's so I can call
+    some Windows function - I don't know if I'll need to do that much
+    anymore and that makes me very happy. :)* - Dave Brueck
+
+    <!--
+    *Naive questioners who just want to get at a DLL with Python
+    probably are in search of ctypes.* - Dr. Dobb's Python-URL!
+    -->
+
+    *ctypes! With stuff like Pysco and Pyrex maturing, the main reason
+    I was still writing C extensions was to access various Windows
+    APIs (especially those not covered in the Win32 Python
+    extensions), but no longer - I may never write another "wrapper"
+    extension again and that makes me very, very happy. :)* - Dave
+    Brueck
+
+    *I like the idea of using ctypes for creating highly native
+    windows applications. So far I have been using wxPython, but that
+    library is so big that it adds 3-4 seconds latency to the startup
+    of the python :-), Also memory footprint is kind of huge.* - Henk Punt
+
+    *... and I just started using ctypes tonight. Good old
+    calldll/windll won't be in my toolkit much longer. :) It's a very
+    exciting time for Python. Between Psyco and ctypes, writing code
+    in C is becoming quite rare for me!* - Jimmy Retzlaff
+
+    *ctypes is very cool! Great piece of work.* - Just van Rossum
+
+  News
+
+    **'ctypes' now works on Windows, Linux and MacOSX**. Thanks
+    to *Robin Becker* and *Just van Rossum* for their help.
+
+    There is now a mailing list which should be used to discuss the
+    usage and further development of 'ctypes'.  More info can be found
+    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
+
+    'ctypes' Development now takes place on sourceforge's "ctypes
+    project page":http://sourceforge.net/projects/ctypes.
+
+    I've started a "FAQ":ctypes/faq.html which should be consulted
+    in case of problems.
+
+  Documentation
+
+    An extensive tutorial, which is unfortunately a bit out of date,
+    is included in the source distribution, but also available
+    "online":ctypes/tutorial.html.  It will be corrected and rewritten
+    in a future release.  You should also read the sample files in the
+    source distribution.
+
+
+  Downloads
+
+    Recent releases can be downloaded in the "sourceforge files
+    section":http://sourceforge.net/project/showfiles.php?group_id=71702.
+
+    Windows users should still use version 0.2.0.  The source archive
+    contains all the sources, the documentation you are reading here,
+    and sample files in a 'test' subdirectory:
+    "ctypes-0.2.0.zip":ctypes-0.2.0.zip. It requires MSVC 6 to build
+    it.  The binary distribution only contains the 'ctypes' module as
+    well as the underlying '_ctypes' extension module, built for
+    Python 2.2:
+    "ctypes-0.2.0.win32-py2.2.exe":ctypes-0.2.0.win32-py2.2.exe.
+
+    These files are distibuted under the "MIT license":LICENSE.txt.
+
+
+<!-- Local Variables: compile-command: "make_html" End: -->
