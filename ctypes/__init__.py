@@ -437,3 +437,7 @@ _pointer_type_cache[None] = c_void_p
 # functions
 
 from _ctypes import memmove, memset, string_at, cast
+
+from decorators import cdecl
+if _os.name == "nt":
+    from decorators import stdcall
