@@ -11,11 +11,18 @@
 # Would it be better to fix the code generation, or to either enhance
 # the POINTER function to return an IUnknownPointer class, or what?
 #
+# The most important restriction of this code is that a COM method is
+# *always* assumed to return a HRESULT.  This is checked in the C code,
+# but also the whole framework so far has no way to specify a different
+# restype, and pass it to the C code.
 #
+# Fortunately, small integer or long values (smaller than 0x80000000)
+# are HRESULTS signalling success instead of errors, but sooner or later
+# there will be some problems.
+
 #
-# Minor things to do:
-#   move the VT_... constants into ctcom.typeinfo
-#   make it into a real tool with command line arguments
+# Minor things to do: move the VT_... constants into ctcom.typeinfo
+# make it into a real tool with command line arguments
 #
 from ctcom.typeinfo import LoadTypeLib, ITypeInfoPointer, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT
@@ -169,6 +176,7 @@ class EnumReader(TypeInfoReader):
 class Method:
     def __init__(self, name, restype, argtypes):
         self.name = name
+        self.restype = restype
         self.argtypes = argtypes
 
     def declaration(self):
@@ -191,6 +199,8 @@ class InterfaceReader(TypeInfoReader):
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
 ##            self.baseinterface = name.value
+            # XXX Sometimes this fails, because baseinterface is IDispatch
+            # in an InterfaceReader 
             assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
 
     def declaration(self):
@@ -226,18 +236,18 @@ class InterfaceReader(TypeInfoReader):
                 name = "_put_" + name.value
             elif fd.invkind == DISPATCH_METHOD:
                 name = name.value
+            elif fd.invkind == DISPATCH_PROPERTYPUTREF:
+                name = "_putREF_" + name.value
             else:
                 assert 0
             argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
 
             restype = fd.elemdescFunc.tdesc.vt
+            # cannot handle other things so far
+            # XXX Strange behaviour on some dispinterfaces
             assert restype in (VT_HRESULT, VT_VOID, VT_UI4, VT_I4), restype
             mth = Method(name, restype, argtypes)
-##            fd.oVft/4
             methods.append(mth)
-##            print "%s(%d)" % (name.value, fd.cParams)
-##            print fd.elemdescFunc.tdesc.vt
-##            assert fd.elemdescFunc.tdesc.vt in (24, 25), fd.elemdescFunc.tdesc.vt # HRESULT
             
             self.ti.ReleaseFuncDesc(pfd)
 
@@ -255,25 +265,43 @@ class InterfaceReader(TypeInfoReader):
         for i in range(n):
             e = pelemdesc[i]
             vt = e.tdesc.vt
-##            if vt == VT_PTR:
             result.append(self._get_type(e.tdesc))
         return result
 
     def _get_type(self, tdesc):
         if tdesc.vt == VT_PTR:
-            return "POINTER(%s)" % self._get_type(tdesc.u.lptdesc[0])
+            td = tdesc.u.lptdesc[0]
+            if td.vt == VT_USERDEFINED:
+                # Pointer to a user defined data type.
+                # If the data type is an Interface, we don't return
+                # POINTER(IUnknown) but IUnknownPointer instead.
+                hr = td.u.hreftype
+                ti = ITypeInfoPointer()
+                self.ti.GetRefTypeInfo(hr, byref(ti))
+
+                pta = LPTYPEATTR()
+                ti.GetTypeAttr(byref(pta))
+                ta = pta.contents
+
+                name = BSTR()
+                ti.GetDocumentation(-1, byref(name), None, None, None)
+
+                if ta.typekind == TKIND_INTERFACE:
+                    return name.value + "PTR"
+
+                return "POINTER(%s)" % name.value
+
+            return "POINTER(%s)" % self._get_type(td)
+
         if tdesc.vt == VT_USERDEFINED:
             # use hreftype
             hr = tdesc.u.hreftype
             ti = ITypeInfoPointer()
             self.ti.GetRefTypeInfo(hr, byref(ti))
-
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
-
             return name.value
 
-##        return TYPES.get(tdesc.vt, tdesc.vt)
         return TYPES[tdesc.vt]
 
 class DispatchInterfaceReader(InterfaceReader):
@@ -336,9 +364,10 @@ from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
      c_float, c_double
 
 class COMObject:
+    # later this class will be used to create COM objects.
     pass
 
-class enum:
+class enum(c_int):
     pass
 """
 
@@ -371,25 +400,11 @@ class TypeLibReader:
             elif kind.value == TKIND_ENUM:
                 rdr = EnumReader(self, ti)
                 self.enums[rdr.guid] = rdr
-##                print "# ??? Enum"
 
         for iid in self.types:
             ti = self.types[iid]
             rdr = InterfaceReader(self, ti)
             self.types[iid] = rdr
-
-        return
-
-        if p.contents.typekind == TKIND_INTERFACE:
-            rdr = InterfaceReader(hti)
-##            print "-"*22, rdr.name
-            return rdr.name+'Pointer'
-        elif p.contents.typekind == TKIND_ENUM:
-            rdr = EnumReader(hti)
-##            print "-"*22, rdr.name
-            return rdr.name
-        else:
-            print "TKIND?", p.contents.typekind
 
     def dump(self, ofi=None):
 
@@ -431,12 +446,15 @@ if __name__ == '__main__':
 ##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
 
+        # None of these will work yet..., only very simple type libs
+##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
+
+        # Microsoft PictureClip Control 6.0 (Ver 1.1)
+##        path = r"c:\Windows\System32\PICCLP32.OCX"
+
     import time
     start = time.clock()
     reader = TypeLibReader(unicode(path))
     stop = time.clock()
-##    print "It took %s seconds" % (stop -start)
+    print "# It took %s seconds" % (stop -start)
     reader.dump()
-## Hm, What about creating the CLASSes itself in TypeLibReader?
-
-    # c:/tss5/components/_Pythonlib/ctcom
