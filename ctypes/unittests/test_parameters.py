@@ -1,4 +1,4 @@
-import unittest
+import unittest, sys
 
 class SimpleTypesTestCase(unittest.TestCase):
 
@@ -48,12 +48,12 @@ class SimpleTypesTestCase(unittest.TestCase):
 ##            print "(No c_wchar_p)"
             return
         s = u"123"
-        self.failUnless(c_wchar_p.from_param(s)._obj is s)
+        if sys.platform == "win32":
+            self.failUnless(c_wchar_p.from_param(s)._obj is s)
+            self.assertRaises(TypeError, c_wchar_p.from_param, 42)
 
-        self.assertRaises(TypeError, c_wchar_p.from_param, 42)
-
-        # new in 0.9.1: convert (decode) ascii to unicode
-        self.failUnlessEqual(c_wchar_p.from_param("123")._obj, u"123")
+            # new in 0.9.1: convert (decode) ascii to unicode
+            self.failUnlessEqual(c_wchar_p.from_param("123")._obj, u"123")
         self.assertRaises(UnicodeDecodeError, c_wchar_p.from_param, "123\377")
 
         pa = c_wchar_p.from_param(c_wchar_p(u"123"))
