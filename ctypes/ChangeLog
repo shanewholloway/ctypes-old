@@ -1,3 +1,19 @@
+2003-01-21  Thomas Heller  <theller@python.net>
+
+	* source/: Merged in these changes from the C_FAST_CARGS branch:
+
+	ConvParam returns PyCArgObject instances now.  Fixed the
+	_as_parameter_ properties of Array, CString, and CFunction so that
+	they 'return' PyCArgObject instances instead of magic tuples.
+
+	Added a public 'P' fielddescriptor, which is mostly for internal
+	use.
+
+	The 's' rettype value for functions is probably useless, because
+	functions return *pointers* to strings (char *), not strings.
+
+	Adapted all the unittests to work, and also changed the samples.
+
 2003-01-20  Thomas Heller  <theller@python.net>
 
 	* source/*.[ch]: Introduced PyCArgObject objects, which contain a
