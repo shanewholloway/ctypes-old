@@ -324,6 +324,12 @@ kw["sources"] = ["source/_ctypes.c",
                  "source/cfield.c",
                  "source/malloc_closure.c"]
 
+import struct, binascii
+if "12345678" ==  binascii.hexlify(struct.pack("i", 0x12345678)):
+    kw["define_macros"] = [("ENDIAN", "BIG")]
+else:
+    kw["define_macros"] = [("ENDIAN", "LITTLE")]
+
 # common header file
 kw["depends"] = ["source/ctypes.h"]
 
