@@ -41,8 +41,9 @@ class IncludeParser(object):
         fname = self.create_source_file(lines)
         try:
             args = ["gccxml", "--preprocess", "-dM", fname]
-            if self.options.flags:
+            if lines and self.options.flags:
                 args.append(self.options.flags)
+            print "run", " ".join(args)
             i, o = os.popen4(" ".join(args))
             i.close()
             data = o.read()
@@ -232,10 +233,17 @@ class IncludeParser(object):
 
         if self.options.xmlfile:
             f = open(self.options.xmlfile, "r+")
-            f.seek(-11, 2)
+            f.seek(-12, 2)
             data = f.read()
-            assert data == "</GCC_XML>\n"
-            f.seek(-11, 2)
+            if len(data) == 11:
+                # text mode on windows is strange.  You read 12
+                # characters, but get 11.
+                assert data == "</GCC_XML>\n"
+                f.seek(-12, 2)
+            else:
+                # linux, ...
+                assert data == "\n</GCC_XML>\n"
+                f.seek(-11, 2)
             f.flush()
 
             self.dump_as_cdata(f, functions, "functions")
