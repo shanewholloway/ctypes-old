@@ -1,3 +1,6 @@
+# Create ctypes wrapper code for abstract type descriptions.
+# Type descriptions are collections of typedesc instances.
+
 import typedesc, sys
 
 try:
@@ -125,7 +128,8 @@ def type_name(t):
         else:
             return "CFUNCTYPE(%s)" % ", ".join(args)
     elif isinstance(t, typedesc.CvQualifiedType):
-        return "const(%s)" % type_name(t.typ)
+        # const and volatile are ignored
+        return "%s" % type_name(t.typ)
     elif isinstance(t, typedesc.FundamentalType):
         return ctypes_names[t.name]
     elif isinstance(t, typedesc.Structure):
@@ -523,8 +527,6 @@ def generate_code(xmlfile, outfile,
     gen = Generator(outfile, use_decorators=use_decorators)
     # output header
     print >> outfile, "from ctypes import *"
-    print >> outfile, "def const(x): return x"
-    print >> outfile, "def volatile(x): return x"
     print >> outfile
     loops = gen.generate_code(items)
     if verbose:
