@@ -660,7 +660,8 @@ class TypeLibReader:
                 rdr = ModuleReader(self, ti)
                 self.modules.append(rdr)
             elif kind.value == TKIND_ALIAS:
-                assert 0
+##                assert 0
+                pass
             else:
                 assert 0
                 
@@ -798,6 +799,7 @@ def main():
 ##        path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 ##        path = r"c:\windows\system32\hnetcfg.dll"
 ##        path = r"C:\WINDOWS\System32\MSHFLXGD.OCX"
+        path = r"c:\windows\system32\scrrun.dll"
     import time
     start = time.clock()
     reader = TypeLibReader(unicode(path))
