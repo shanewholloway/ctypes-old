@@ -16,6 +16,8 @@ except NameError:
 
 import _ctypes_test
 dll = CDLL(_ctypes_test.__file__)
+if sys.platform == "win32":
+    windll = WinDLL(_ctypes_test.__file__)
 
 class FunctionTestCase(unittest.TestCase):
 
@@ -336,6 +338,16 @@ class FunctionTestCase(unittest.TestCase):
         s2h = dll.ret_2h_func()
         self.failUnlessEqual((s2h.x, s2h.y), (42, 24))
 
+    if sys.platform == "win32":
+        def test_struct_return_2H_stdcall(self):
+            class S2H(Structure):
+                _fields_ = [("x", c_short),
+                            ("y", c_short)]
+
+            windll.s_ret_2h_func.restype = S2H
+            s2h = windll.s_ret_2h_func()
+            self.failUnlessEqual((s2h.x, s2h.y), (42, 24))
+
     def test_struct_return_8H(self):
         class S8I(Structure):
             _fields_ = [("a", c_int),
@@ -350,6 +362,22 @@ class FunctionTestCase(unittest.TestCase):
         s8i = dll.ret_8i_func()
         self.failUnlessEqual((s8i.a, s8i.b, s8i.c, s8i.d, s8i.e, s8i.f, s8i.g, s8i.h),
                              (1, 2, 3, 4, 5, 6, 7, 8))
+
+    if sys.platform == "win32":
+        def test_struct_return_8H_stdcall(self):
+            class S8I(Structure):
+                _fields_ = [("a", c_int),
+                            ("b", c_int),
+                            ("c", c_int),
+                            ("d", c_int),
+                            ("e", c_int),
+                            ("f", c_int),
+                            ("g", c_int),
+                            ("h", c_int)]
+            windll.s_ret_8i_func.restype = S8I
+            s8i = windll.s_ret_8i_func()
+            self.failUnlessEqual((s8i.a, s8i.b, s8i.c, s8i.d, s8i.e, s8i.f, s8i.g, s8i.h),
+                                 (1, 2, 3, 4, 5, 6, 7, 8))
 
 if __name__ == '__main__':
     unittest.main()
