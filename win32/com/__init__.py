@@ -3,6 +3,8 @@ from ctypes.com.hresult import *
 import _ctypes
 from ctypes.wintypes import DWORD, WORD, BYTE
 
+DEBUG = __debug__ # enable debugging output (via Windows' OutputDebugString)
+
 HRESULT = _ctypes.HRESULT
 CopyComPointer = windll[_ctypes.__file__].CopyComPointer
 
@@ -53,7 +55,7 @@ class GUID(Structure):
     def __repr__(self):
         s = (c_wchar * 39)()
         ole32.StringFromGUID2(byref(self), s, 39)
-        return "<guid:%s>" % s.value
+        return 'GUID("%s")' % s.value
 
     def __str__(self):
         s = (c_wchar * 39)()
@@ -191,12 +193,9 @@ class IUnknown(Structure):
     __metaclass__ = _interface_meta
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
 
-PIUnknown = POINTER(IUnknown)
-
 ################################################################
-# Custom argument checking function for POINTER(PIUnknown)
+# Custom argument checking function for POINTER(POINTER(IUnknown))
 _PyCArgType = type(byref(c_int()))
-from ctypes import _Pointer
 def from_param(self, obj):
     # We accept two types of arguments here:
     # - pointer to pointer to an instance of an IUnknown (sub)class
@@ -204,7 +203,7 @@ def from_param(self, obj):
     if type(obj) == _PyCArgType and \
            issubclass(obj._obj._type_, IUnknown):
         return obj
-    if isinstance(obj, _Pointer) and \
+    if isinstance(obj, _ctypes._Pointer) and \
            issubclass(obj._type_._type_, IUnknown):
         return obj
 ## Do we also accept integers? Currently not.
@@ -214,15 +213,13 @@ def from_param(self, obj):
 
 # This must be set before it is first used in an argument list
 # XXX explain reason
-POINTER(PIUnknown).from_param = classmethod(from_param)
+POINTER(POINTER(IUnknown)).from_param = classmethod(from_param)
 
-IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnknown)),
+IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(POINTER(IUnknown))),
                       STDMETHOD(c_ulong, "AddRef"),
                       STDMETHOD(c_ulong, "Release")]
 
 ################################################################
-
-DEBUG = __debug__
 
 import _winreg
 def interface_name(iid):
@@ -359,6 +356,7 @@ CLSCTX_LOCAL_SERVER = 0x4
 
 def CreateInstance(coclass, interface=None,
                    clsctx = CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER):
+    # Later: docs, docs
     if interface is None:
         interface = coclass._com_interfaces_[0]
     p = POINTER(interface)()
@@ -369,3 +367,14 @@ def CreateInstance(coclass, interface=None,
                            byref(interface._iid_),
                            byref(p))
     return p
+
+def CreateGuid():
+    # Create a new GUID
+    g = GUID()
+    ole32.CoCreateGuid(byref(g))
+    return g
+
+PIUnknown = POINTER(IUnknown) # deprecated
+
+##if __name__ == "__main__":
+##    print CreateGuid()
