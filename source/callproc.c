@@ -1274,6 +1274,14 @@ Set the encoding and error handling ctypes uses when converting\n\
 between unicode and strings.  Returns the previous values.\n";
 #endif
 
+static char cast_doc[] =
+"cast(cobject, ctype) -> ctype-instance\n\
+\n\
+Create an instance of ctype, and copy the internal memory buffer\n\
+of cobject to the new instance.  Should be used to cast one type\n\
+of pointer to another type of pointer.\n\
+Doesn't work correctly with ctypes integers.\n";
+
 static PyObject *cast(PyObject *self, PyObject *args)
 {
 	PyObject *obj, *ctype;
@@ -1295,7 +1303,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 }
 
 PyMethodDef module_methods[] = {
-	{"cast", cast, METH_VARARGS},
+	{"cast", cast, METH_VARARGS, cast_doc},
 #ifdef Py_USING_UNICODE
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
 #endif
