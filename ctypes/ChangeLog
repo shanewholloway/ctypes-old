@@ -1,3 +1,17 @@
+2004-08-20  Thomas Heller  <theller@python.net>
+
+	* (Message): Add the PyDLL class and pydll object to ctypes, they
+	will expose functions using FUNCFLAG_PYTHONAPI allowing to call
+	Python api functions.
+
+	* source/cfield.c: Add accessors for 'O' typecode (which converts
+	to/from python objects).
+
+	* (Message): Implement the FUNCFLAG_PYTHONAPI flag which allows to
+	call Python API functions with ctypes.  Somewhat tricky - we have
+	to keep the thread state during the call, and we have to make sure
+	to return failure if the Python error flag has been set.
+	
 2004-08-19  Thomas Heller  <theller@python.net>
 
 	* (Message): the alignment function was not exported by the ctypes
