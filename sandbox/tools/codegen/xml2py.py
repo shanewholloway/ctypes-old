@@ -1,6 +1,7 @@
 import sys, re
 from optparse import OptionParser
 from codegenerator import generate_code
+import typedesc
 
 ################################################################
 windows_dll_names = """\
@@ -42,10 +43,23 @@ def main(args=None):
         parser.values.dlls.extend(windows_dll_names)
 
     parser = OptionParser("usage: %prog [options] xmlfile")
-    parser.add_option("-w",
-                      action="callback",
-                      callback=windows_dlls,
-                      help="add all standard windows dlls to the searched dlls list")
+    parser.add_option("-d",
+                      action="store_true",
+                      dest="use_decorators",
+                      help="use Python 2.4 function decorators",
+                      default=False)
+
+    parser.add_option("-k",
+                      action="store",
+                      dest="kind",
+                      help="kind of type descriptions to include: "
+                      "d = #defines, "
+                      "e = enumerations, "
+                      "f = functions, "
+                      "s = structures, "
+                      "t = typedefs",
+                      metavar="TYPEKIND",
+                      default=None)
 
     parser.add_option("-l",
                       dest="dlls",
@@ -53,26 +67,28 @@ def main(args=None):
                       action="append",
                       default=[])
 
-    parser.add_option("-s",
-                      dest="symbols",
-                      metavar="SYMBOL",
-                      action="append",
-                      help="symbol to include "
-                      "(if neither symbols nor expressions are specified, everything will be included)",
-                      default=None)
+    parser.add_option("-o",
+                      dest="output",
+                      help="output filename (if not specified, standard output will be used)",
+                      default="-")
 
     parser.add_option("-r",
                       dest="expressions",
                       metavar="EXPRESSION",
                       action="append",
-                      help="regular expression for symbol to include "
-                      "(if neither symbols nor expressions are specified, everything will be included)",
+                      help="regular expression for symbols to include "
+                      "(if neither symbols nor expressions are specified,"
+                      "everything will be included)",
                       default=None)
 
-    parser.add_option("-o",
-                      dest="output",
-                      help="output filename (if not specified, standard output will be used)",
-                      default="-")
+    parser.add_option("-s",
+                      dest="symbols",
+                      metavar="SYMBOL",
+                      action="append",
+                      help="symbol to include "
+                      "(if neither symbols nor expressions are specified,"
+                      "everything will be included)",
+                      default=None)
 
     parser.add_option("-v",
                       action="store_true",
@@ -80,11 +96,10 @@ def main(args=None):
                       help="verbose output",
                       default=False)
 
-    parser.add_option("-d",
-                      action="store_true",
-                      dest="use_decorators",
-                      help="use Python 2.4 function decorators",
-                      default=False)
+    parser.add_option("-w",
+                      action="callback",
+                      callback=windows_dlls,
+                      help="add all standard windows dlls to the searched dlls list")
 
 ##    try:
 ##        import comtypes
@@ -97,7 +112,8 @@ def main(args=None):
     parser.add_option("-m",
                       dest="modules",
                       metavar="module",
-                      help="Python module(s) containing symbols which will be imported instead of generated",
+                      help="Python module(s) containing symbols which will "
+                      "be imported instead of generated",
                       action="append",
                       default=default_modules)
 
@@ -128,13 +144,26 @@ def main(args=None):
             mod = getattr(mod, submodule)
         known_symbols.update(mod.__dict__)
 
+    if options.kind:
+        types = []
+        for char in options.kind:
+            typ = {"d": [typedesc.Variable],
+                   "e": [typedesc.Enumeration, typedesc.EnumValue],
+                   "f": [typedesc.FunctionType],
+                   "s": [typedesc.Structure],
+                   "t": [typedesc.Typedef],
+                   }[char]
+            types.extend(typ)
+        options.kind = tuple(types)
+
     generate_code(files[0], stream,
                   symbols=options.symbols,
                   expressions=options.expressions,
                   verbose=options.verbose,
                   use_decorators=options.use_decorators,
                   known_symbols=known_symbols,
-                  searched_dlls=dlls)
+                  searched_dlls=dlls,
+                  types=options.kind)
 
 
 if __name__ == "__main__":
