@@ -9,6 +9,9 @@ converts declarations in C header files into executable Python code:
 enums, structs, unions, function declarations, com interfaces, and
 preprocessor definitions.
 
+**The code generator is brand new and still experimental, although
+hopefully better than in the 0.9.5 release.**
+
 .. contents::
 
 Overview

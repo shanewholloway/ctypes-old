@@ -12,6 +12,10 @@ Overview
     wrap libraries in pure Python.  It is even possible to implement C
     callback functions in pure Python.
 
+    ctypes now includes a code generator toolchain which allows
+    automatic creation of library wrappers from C header files.
+    This feature is still experimental and beta quality.
+
     ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD, OpenBSD.
     It may also run on other systems, provided that libffi supports
     this platform.
