@@ -6,6 +6,8 @@ Version 0.4.0, 2003-02-07:
 
     Changes:
 
+        ctypes works with Python 2.2 and Python 2.3 now.
+
 	Structure and Union fields have now readonly .size and .offset
 	properties, see the docs.
 
