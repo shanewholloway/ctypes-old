@@ -5,13 +5,13 @@ class CallbacksTestCase(unittest.TestCase):
 
     def test_integrate(self):
         # Derived from some then non-working code, posted by David Foster
-        import _ctypes
+        import _ctypes_test
 
         # The function prototype called by 'integrate': double func(double);
         CALLBACK = CFUNCTYPE(c_double, c_double)
 
-        # The integrate function itself, exposed from the _ctypes dll
-        integrate = CDLL(_ctypes.__file__).integrate
+        # The integrate function itself, exposed from the _ctypes_test dll
+        integrate = CDLL(_ctypes_test.__file__).integrate
         integrate.argtypes = (c_double, c_double, CALLBACK, c_long)
         integrate.restype = c_double
 

@@ -38,7 +38,10 @@ if os.name == "nt":
                             export_symbols=["DllGetClassObject,PRIVATE",
                                            "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
-                            **kw)
+                            **kw),
+                  Extension("_ctypes_test",
+                            libraries=["oleaut32"],
+                            sources=["source/_ctypes_test.c"])
                   ]
 else:
     include_dirs = []
@@ -52,6 +55,8 @@ else:
                             include_dirs=include_dirs,
                             extra_link_args=extra_link_args,
                             **kw),
+                  Extension("_ctypes_test",
+                            sources=["source/_ctypes_test.c"])
                   ]
 
 packages = ["ctypes"]
