@@ -2125,9 +2125,12 @@ CFuncPtr_as_parameter(CDataObject *self)
 static int
 CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
 {
+	PyObject *checker;
 	if (ob == NULL) {
 		Py_XDECREF(self->restype);
 		self->restype = NULL;
+		Py_XDECREF(self->checker);
+		self->checker = NULL;
 		return 0;
 	}
 	if (ob != Py_None && !PyType_stgdict(ob) && !PyCallable_Check(ob)) {
@@ -2138,6 +2141,12 @@ CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
 	Py_XDECREF(self->restype);
 	Py_INCREF(ob);
 	self->restype = ob;
+	checker = PyObject_GetAttrString(ob, "_check_retval_");
+	if (checker == NULL) {
+		PyErr_Clear();
+		return 0;
+	}
+	self->checker = checker;
 	return 0;
 }
 
@@ -2436,6 +2445,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *restype;
 	PyObject *converters;
+	PyObject *checker;
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 #ifdef MS_WIN32
 	IUnknown *piunk = NULL;
@@ -2445,6 +2455,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 	assert(dict); /* if not, it's a bug */
 	restype = self->restype ? self->restype : dict->restype;
 	converters = self->converters ? self->converters : dict->converters;
+	checker = self->checker;
 
 #ifdef MS_WIN32
 	if (self->index) {
@@ -2515,7 +2526,8 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 				   piunk,
 				   dict->flags,
 				   converters,
-				   restype);
+				   restype,
+				   checker);
 		Py_DECREF(a);
 		return result;
 	}
@@ -2525,7 +2537,8 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			 NULL,
 			 dict->flags,
 			 converters,
-			 restype);
+			 restype,
+			 checker);
 }
 
 static int
@@ -2533,6 +2546,7 @@ CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 {
 	Py_VISIT(self->callable);
 	Py_VISIT(self->restype);
+	Py_VISIT(self->checker);
 	Py_VISIT(self->argtypes);
 	Py_VISIT(self->converters);
 	Py_VISIT(self->b_objects);
@@ -2547,6 +2561,9 @@ CFuncPtr_clear(CFuncPtrObject *self)
 
 	Py_XDECREF(self->restype);
 	self->restype = NULL;
+
+	Py_XDECREF(self->checker);
+	self->checker = NULL;
 
 	Py_XDECREF(self->argtypes);
 	self->argtypes = NULL;
