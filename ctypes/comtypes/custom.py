@@ -1,9 +1,38 @@
 import ctypes
 import comtypes
 import comtypes.automation
-import comtypes.automation.typeinfo
+import comtypes.typeinfo
 
 ################################################################
+
+# -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+# XXX This section is unneeded and wrong - no need for a function prototype to
+# have paramflags as instance variable.  Should be removed as soon as
+# comtypes.custom is rewritten.
+from _ctypes import CFuncPtr as _CFuncPtr, FUNCFLAG_STDCALL as _FUNCFLAG_STDCALL
+from ctypes import _win_functype_cache
+
+# For backward compatibility, the signature of WINFUNCTYPE cannot be
+# changed, so we have to add this - which is basically the same, but
+# allows to specify parameter flags from the win32 PARAMFLAGS
+# enumeration.  Maybe later we have to add optional default parameter
+# values and parameter names as well.
+def COMMETHODTYPE(restype, argtypes, paramflags):
+    flags = paramflags
+    try:
+        return _win_functype_cache[(restype, argtypes, flags)]
+    except KeyError:
+        class WinFunctionType(_CFuncPtr):
+            _argtypes_ = argtypes
+            _restype_ = restype
+            _flags_ = _FUNCFLAG_STDCALL
+            parmflags = flags
+        _win_functype_cache[(restype, argtypes, flags)] = WinFunctionType
+        return WinFunctionType
+
+# -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
 
 def get_type(ti, tdesc):
     # Return a ctypes type for a typedesc
@@ -24,15 +53,15 @@ def param_info(ti, ed):
     # from an ELEMDESC instance.
     flags = ed._.paramdesc.wParamFlags
     typ = get_type(ti, ed.tdesc)
-    if flags & comtypes.automation.typeinfo.PARAMFLAG_FHASDEFAULT:
+    if flags & comtypes.typeinfo.PARAMFLAG_FHASDEFAULT:
         var = ed._.paramdesc.pparamdescex[0].varDefaultValue
         return flags, typ, var.value
     return flags, typ
 
 def method_proto(name, ti, fd):
     # return a function prototype with parmflags: an instance of COMMETHODTYPE
-    assert fd.funckind == comtypes.automation.typeinfo.FUNC_PUREVIRTUAL, fd.funckind # FUNC_PUREVIRTUAL
-    assert fd.callconv == comtypes.automation.typeinfo.CC_STDCALL, fd.callconv
+    assert fd.funckind == comtypes.typeinfo.FUNC_PUREVIRTUAL, fd.funckind # FUNC_PUREVIRTUAL
+    assert fd.callconv == comtypes.typeinfo.CC_STDCALL, fd.callconv
 ##    names = ti.GetNames(fd.memid, fd.cParams + 1)
     restype = param_info(ti, fd.elemdescFunc)[1] # result type of com method
     argtypes = [] # argument types of com method
@@ -42,7 +71,7 @@ def method_proto(name, ti, fd):
         flags, typ = param_info(ti, fd.lprgelemdescParam[i])[:2]
         argtypes.append(typ)
         parmflags.append(flags)
-    proto = comtypes.COMMETHODTYPE(restype, tuple(argtypes), tuple(parmflags))
+    proto = COMMETHODTYPE(restype, tuple(argtypes), tuple(parmflags))
     return proto
 
 def get_custom_interface(comobj, typeinfo=None):
@@ -54,15 +83,15 @@ def get_custom_interface(comobj, typeinfo=None):
         # whatever exception this raises.
         typeinfo = comobj.GetTypeInfo()
     ta = typeinfo.GetTypeAttr()
-    if ta.typekind == comtypes.automation.typeinfo.TKIND_INTERFACE:
+    if ta.typekind == comtypes.typeinfo.TKIND_INTERFACE:
         # correct typeinfo, still need to QI for this interface
         iid = ta.guid
-    elif ta.typekind == comtypes.automation.typeinfo.TKIND_DISPATCH:
+    elif ta.typekind == comtypes.typeinfo.TKIND_DISPATCH:
         # try to get the dual interface portion from a dispatch interface
         href = typeinfo.GetRefTypeOfImplType(-1)
         typeinfo = typeinfo.GetRefTypeInfo(href)
         ta = typeinfo.GetTypeAttr()
-        if ta.typekind != comtypes.automation.typeinfo.TKIND_INTERFACE:
+        if ta.typekind != comtypes.typeinfo.TKIND_INTERFACE:
             # it didn't work
             raise TypeError, "could not get custom interface"
         iid = ta.guid
@@ -207,3 +236,13 @@ def ActiveXObject(progid,
     clsid = comtypes.GUID.from_progid(progid)
     p = comtypes.CoCreateInstance(clsid, interface=interface, clsctx=clsctx)
     return _Dynamic(p)
+
+if __name__ == "__main__":
+    f = ActiveXObject("InternetExplorer.Application")
+    for n in "Name Visible Silent Offline ReadyState AddressBar Resizable".split():
+        print n, getattr(f, n)
+    f.Visible = True
+##    print f.ClientToWindow(1, 2)
+    import time
+##    time.sleep(0.5)
+    f.Quit()
