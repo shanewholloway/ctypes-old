@@ -93,4 +93,6 @@ def main():
             localserver(SumObject)
     
 if __name__ == '__main__':
-    main()
+##    main()
+    from ctypes.com.server import UseCommandLine
+    UseCommandLine(SumObject)
