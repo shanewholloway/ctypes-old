@@ -10,6 +10,10 @@ class _HasArgs(object):
 
 ################
 
+class File(object):
+    def __init__(self, name):
+        self.name = name
+
 class Function(_HasArgs):
     def __init__(self, name, returns, attributes, extern):
         self.name = name
