@@ -1,6 +1,7 @@
 import unittest
 from ctypes import *
 
+libc = None
 import os, sys
 if os.name == "nt":
     libc = cdll.msvcrt
@@ -13,7 +14,10 @@ elif os.name == "posix":
     elif sys.platform == "sunos5":
         libc = cdll.LoadLibrary("/lib/libc.so")
     else:
-        libc = cdll.LoadLibrary("/lib/libc.so.6")
+        try:
+            libc = cdll.LoadLibrary("/lib/libc.so.6")
+        except OSError:
+            libc = None
 
 class StringPtrTestCase(unittest.TestCase):
 
@@ -51,35 +55,36 @@ class StringPtrTestCase(unittest.TestCase):
         self.failUnlessRaises(TypeError, setattr, x, "str", b)
 
 
-    def test_functions(self):
-        strchr = libc.strchr
-        strchr.restype = c_char_p
+    if libc is not None:
+        def test_functions(self):
+            strchr = libc.strchr
+            strchr.restype = c_char_p
 
-        # c_char_p and Python string is compatible
-        # c_char_p and c_buffer are now compatible
-        strchr.argtypes = c_char_p, c_char
-        self.failUnlessEqual(strchr("abcdef", "c"), "cdef")
-        self.failUnlessEqual(strchr(c_buffer("abcdef"), "c"), "cdef")
+            # c_char_p and Python string is compatible
+            # c_char_p and c_buffer are now compatible
+            strchr.argtypes = c_char_p, c_char
+            self.failUnlessEqual(strchr("abcdef", "c"), "cdef")
+            self.failUnlessEqual(strchr(c_buffer("abcdef"), "c"), "cdef")
 
-        # POINTER(c_char) and Python string is NOT compatible
-        # POINTER(c_char) and c_buffer() is compatible
-        strchr.argtypes = POINTER(c_char), c_char
-        buf = c_buffer("abcdef")
-        self.failUnlessEqual(strchr(buf, "c"), "cdef")
-        self.failUnlessEqual(strchr("abcdef", "c"), "cdef")
+            # POINTER(c_char) and Python string is NOT compatible
+            # POINTER(c_char) and c_buffer() is compatible
+            strchr.argtypes = POINTER(c_char), c_char
+            buf = c_buffer("abcdef")
+            self.failUnlessEqual(strchr(buf, "c"), "cdef")
+            self.failUnlessEqual(strchr("abcdef", "c"), "cdef")
 
-        # XXX These calls are dangerous, because the first argument
-        # to strchr is no longer valid after the function returns!
-        # So we must keep a reference to buf separately
+            # XXX These calls are dangerous, because the first argument
+            # to strchr is no longer valid after the function returns!
+            # So we must keep a reference to buf separately
 
-        strchr.restype = POINTER(c_char)
-        buf = c_buffer("abcdef")
-        r = strchr(buf, "c")
-        x = r[0], r[1], r[2], r[3], r[4]
-        self.failUnlessEqual(x, ("c", "d", "e", "f", "\000"))
-        del buf
-        # x1 will NOT be the same as x, usually:
-        x1 = r[0], r[1], r[2], r[3], r[4]
+            strchr.restype = POINTER(c_char)
+            buf = c_buffer("abcdef")
+            r = strchr(buf, "c")
+            x = r[0], r[1], r[2], r[3], r[4]
+            self.failUnlessEqual(x, ("c", "d", "e", "f", "\000"))
+            del buf
+            # x1 will NOT be the same as x, usually:
+            x1 = r[0], r[1], r[2], r[3], r[4]
 
 if __name__ == '__main__':
     unittest.main()
