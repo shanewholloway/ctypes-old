@@ -32,6 +32,12 @@ class WindowsTestCase(unittest.TestCase):
         self.assertRaises(WindowsError, windll.kernel32.GetModuleHandleA, 32)
 
     # TODO: Add tests for passing structures (and unions?) by value.
+    def test_struct_by_value(self):
+        from ctypes.wintypes import POINT, RECT
+
+        pt = POINT(10, 10)
+        rect = RECT(0, 0, 20, 20)
+        self.failUnlessEqual(True, windll.user32.PtInRect(byref(rect), pt))
 
 def get_suite():
     import os
