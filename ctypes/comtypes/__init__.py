@@ -122,15 +122,26 @@ class _cominterface_meta(type):
         getters = {}
         setters = {}
 
-        # create low level, and maybe high level, COM method implementations.
+        # create private low level, and public high level methods
         for i, item in enumerate(methods):
             restype, name, argtypes, paramflags, idlflags, doc = item
             # the function prototype
             prototype = WINFUNCTYPE(restype, *argtypes)
-            # function calling the COM method slot
+
+            # a low level unbound method calling the com method.
+            # attach it with a private name (__com_AddRef, for example),
+            # so that custom method implementations can call it.
+            # XXX MORE INFO ABOUT THE SIGNATURE NEEDED!
+            raw_func = prototype(i + vtbl_offset, name)
+            setattr(self,
+                    "_%s__com_%s" % (self.__name__, name),
+                    new.instancemethod(raw_func, None, self))
+
+            # a high level function calling the COM method
             func = prototype(i + vtbl_offset, name, paramflags)
             func.__doc__ = doc
-            # and an unbound method, so we don't have to pass 'self'
+            # make it an unbound method, so we don't have to pass 'self'
+            # XXX MORE INFO ABOUT THE SIGNATURE NEEDED!
             mth = new.instancemethod(func, None, self)
 
             # is it a property set or property get?
@@ -154,12 +165,7 @@ class _cominterface_meta(type):
             if not is_prop and not hasattr(self, name):
                 setattr(self, name, mth)
 
-            # attach it with a private name (__com_AddRef, for example),
-            # so that custom method implementations can call it.
-            mthname = "_%s__com_%s" % (self.__name__, name)
-            setattr(self, mthname, mth)
-
-        # create properties
+        # create public properties / attribute accessors
         for item in set(getters.keys()) | set(getters.keys()):
             name, doc, nargs = item
             if nargs == 1:
@@ -264,9 +270,68 @@ def COMMETHOD2(idlflags, restype, methodname, *argspec):
     # join them together(does this make sense?) and replace by None if empty.
     helptext = "".join(helptext) or None
 
+    # XXX some thoughts:
+    #
+    # In _ctypes.c::_get_one(), it is difficult to decide what to do.
+    #
+    # The _get_one() function is called for each [out] parameter, with
+    # an instance of a ctypes type.  The argument 'type' we have in
+    # paramflags is actually a POINTER to this type.
+    #
+    # What are the possibilities, what are the problems?
+    #
+    # 1. Simple, intergral, non-pointer data type: call the type's
+    # stgdict->getfunc() to build the result.  stgdict->proto in this
+    # case is a one character Python string containing the type tag
+    # from the formattable.
+    # Sample:
+    #    def Get(self):
+    #        temp = c_int()
+    #        self.__com_Get(byref(temp))
+    #        return temp.value
+    #
+    # 1a. Same as before, but an instance that owns some resources,
+    # like BSTR.  We have to call SysFreeString() to free the resources.
+    # Sample:
+    #    def Get(self):
+    #        temp = BSTR()
+    #        self.__com_Get(byref(temp))
+    #        temp2 = temp.value
+    #        temp._free_resources_()
+    #        return temp2
+    #
+    # 1b. A structure, like VARIANT, that actually represents an
+    # integral data type. Again, we should return it's .value
+    # attribute, and, as in 1a, we have to call VariantClear() to free
+    # resources.  Sample code same as in 1a.
+    #
+    # 2. POINTER to cominterface: In this case we would like _get_one()
+    # to return the result itself.
+    # Sample:
+    #    def Get(self):
+    #        temp = POINTER(IUnknown)()
+    #        self.__com_Get(byref(temp))
+    #        return temp
+    #
+    # Exactly here in the code is at least ONE place where all this
+    # info is available, and we can execute arbitrary complicated
+    # Python code much easier than in C.
+    #
+    # We could pass simple info (in form of integer flags) to
+    # _ctypes.c in the paramflags tuple (there are a lots of bits
+    # unused in the PARAMFLAGS enum), but complicated stuff would also
+    # be possible.
+    #
+    # Another possibility would be to have this info in the types itself.
+    # Something like _from_outarg_.
+    #
     for item in argspec:
         idl, typ, argname = unpack(*item)
-        paramflags.append((encode_idl(idl), argname))
+        pflags = encode_idl(idl)
+        if 2 & pflags:
+            rettype = typ._type_
+            print "COM?", rettype, issubclass(rettype, POINTER(IUnknown))
+        paramflags.append((pflags, argname))
         argtypes.append(typ)
     if "propget" in idlflags:
         methodname = "_get_%s" % methodname
