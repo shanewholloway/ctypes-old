@@ -1,3 +1,6 @@
+/*COV*/
+/* Lines which END with the above text are excluded from the coverage report */
+
 #include "Python.h"
 #include "structmember.h"
 
@@ -165,13 +168,13 @@ CField_FromDesc(PyObject *desc, int index,
 	self = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type,
 						   NULL);
 	if (self == NULL)
-		return NULL;
+		return NULL; /*COV*/
 	dict = PyType_stgdict(desc);
 	if (!dict) {
-		PyErr_SetString(PyExc_TypeError,
+		PyErr_SetString(PyExc_TypeError, /*COV*/
 				"has no _stginfo_");
-		Py_DECREF(self);
-		return NULL;
+		Py_DECREF(self); /*COV*/
+		return NULL; /*COV*/
 	}
 #ifdef MS_WIN32
 	if (bitsize /* this is a bitfield request */
@@ -652,6 +655,10 @@ H_get(void *ptr, unsigned size, ...)
 	return PyInt_FromLong(val);
 }
 
+#if SIZEOF_INT == SIZEOF_LONG
+#define i_set l_set
+#define i_get l_get
+#else
 static PyObject *
 i_set(void *ptr, PyObject *value, unsigned size, ...)
 {
@@ -662,7 +669,6 @@ i_set(void *ptr, PyObject *value, unsigned size, ...)
 	_RET(value);
 }
 
-
 static PyObject *
 i_get(void *ptr, unsigned size, ...)
 {
@@ -670,6 +676,7 @@ i_get(void *ptr, unsigned size, ...)
 	GET_BITFIELD(val, size);
 	return PyInt_FromLong(val);
 }
+#endif
 
 #ifdef MS_WIN32
 /* short BOOL - VARIANT_BOOL */
@@ -695,6 +702,10 @@ vBOOL_get(void *ptr, unsigned size, ...)
 }
 #endif
 
+#if SIZEOF_INT == SIZEOF_LONG
+#define I_set L_set
+#define I_get L_get
+#else
 static PyObject *
 I_set(void *ptr, PyObject *value, unsigned size, ...)
 {
@@ -713,6 +724,7 @@ I_get(void *ptr, unsigned size, ...)
 	GET_BITFIELD(val, size);
 	return PyLong_FromUnsignedLong(val);
 }
+#endif
 
 static PyObject *
 l_set(void *ptr, PyObject *value, unsigned size, ...)
@@ -936,7 +948,7 @@ U_get(void *ptr, unsigned size, ...)
 
 	result = PyUnicode_FromWideChar((wchar_t *)ptr, size);
 	if (!result)
-		return NULL;
+		return NULL; /*COV*/
 	/* We need 'result' to be able to count the characters with wcslen,
 	   since ptr may not be NUL terminated.  If the length is smaller (if
 	   it was actually NUL terminated, we construct a new one and throw
@@ -1000,7 +1012,7 @@ s_get(void *ptr, unsigned size, ...)
 
 	result = PyString_FromString((char *)ptr);
 	if (!result)
-		return NULL;
+		return NULL; /*COV*/
 	/* chop off at the first NUL character, if any.
 	 * On error, result will be deallocated and set to NULL.
 	 */
@@ -1011,7 +1023,7 @@ s_get(void *ptr, unsigned size, ...)
 		return result;
 	} else
 		/* cannot shorten the result */
-		return PyString_FromStringAndSize(ptr, size);
+		return PyString_FromStringAndSize(ptr, size); /*COV*/
 }
 
 static PyObject *
@@ -1128,18 +1140,18 @@ Z_set(void *ptr, PyObject *value, unsigned size, ...)
 		size *= sizeof(wchar_t);
 		buffer = (wchar_t *)PyMem_Malloc(size);
 		if (!buffer)
-			return NULL;
+			return NULL; /*COV*/
 		memset(buffer, 0, size);
 		keep = PyCObject_FromVoidPtr(buffer, PyMem_Free);
 		if (!keep) {
-			PyMem_Free(buffer);
-			return NULL;
+			PyMem_Free(buffer); /*COV*/
+			return NULL; /*COV*/
 		}
 		*(wchar_t **)ptr = (wchar_t *)buffer;
 		if (-1 == PyUnicode_AsWideChar((PyUnicodeObject *)value,
 					       buffer, PyUnicode_GET_SIZE(value))) {
-			Py_DECREF(value);
-			return NULL;
+			Py_DECREF(value); /*COV*/
+			return NULL; /*COV*/
 		}
 		Py_DECREF(value);
 		return keep;
@@ -1322,7 +1334,7 @@ getentry(char *fmt)
 		if (table->code == fmt[0])
 			return table;
 	}
-	return NULL;
+	return NULL; /*COV*/
 }
 
 typedef struct { char c; char x; } s_char;
