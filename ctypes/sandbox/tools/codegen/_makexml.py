@@ -2,6 +2,8 @@ import os, re
 from gccxmlparser import parse
 import typedesc
 
+import time
+start = time.clock()
 
 # C keywords, according to MSDN, plus some additional
 # names like __forceinline, near, far.
@@ -233,11 +235,9 @@ defs = newdefs
 # and the function's return type is the symbols's type.
 ofi = create_file()
 MAGIC = """
-#define DECLARE(sym) \
-template <typename T> T symbol_##sym(T, T val = sym) {}
+#define DECLARE(sym) template <typename T> T symbol_##sym(T) {}
+#define DEFINE(sym) symbol_##sym(sym)
 
-#define DEFINE(sym) \
-symbol_##sym(sym, sym)
 """
 ofi.write(MAGIC)
 for name in defs:
@@ -283,3 +283,5 @@ ofi.close()
 # will be used to generate Python code
 print "... finding preprocessor symbol values"
 os.system("gccxml glut.cpp -fxml=glut.xml")
+
+print "took %.2f seconds" % (time.clock() - start)
