@@ -2181,6 +2181,29 @@ static PyGetSetDef CFuncPtr_getsets[] = {
   "O" - must be a callable, creates a C callable function
 */
 
+#ifdef MS_WIN32
+static PPROC FindAddress(void *handle, char *name, int flags)
+{
+	PPROC address;
+	char *mangled_name;
+	int i;
+	address = (PPROC)GetProcAddress(handle, name);
+	if (address)
+		return address;
+	if (flags & FUNCFLAG_CDECL)
+		return address;
+	/* for stdcall, try mangled names */
+	mangled_name = _alloca(strlen(name) + 1 + 1 + 1 + 3); /* \0 _ @ %d */
+	for (i = 0; i < 32; ++i) {
+		sprintf(mangled_name, "_%s@%d", name, i*4);
+		address = (PPROC)GetProcAddress(handle, mangled_name);
+		if (address)
+			return address;
+	}
+	return NULL;
+}
+#endif
+
 static PyObject *
 CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -2191,6 +2214,7 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	CFuncPtrObject *self;
 	void *handle;
 	PyObject *objects;
+	StgDictObject *dict = PyType_stgdict((PyObject *)type);
 
 	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
 		return NULL;
@@ -2208,7 +2232,7 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(obj);
 
 #ifdef MS_WIN32
-	address = (PPROC)GetProcAddress(handle, name);
+	address = FindAddress(handle, name, dict->flags);
 	if (!address) {
 		PyErr_Format(PyExc_AttributeError,
 			     "function '%s' not found",
