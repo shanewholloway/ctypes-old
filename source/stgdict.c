@@ -263,6 +263,12 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 			return -1;
 		}
 		dict = PyType_stgdict(desc);
+		if (dict == NULL) {
+			PyErr_Format(PyExc_TypeError,
+				     "second item in _fields_ tuple (index %d) must be a C type",
+				     i);
+			return -1;
+		}
 		stgdict->ffi_type.elements[ffi_ofs + i] = &dict->ffi_type;
 		dict->flags |= DICTFLAG_FINAL; /* mark field type final */
 		if (PyTuple_Size(pair) == 3) { /* bits specified */
