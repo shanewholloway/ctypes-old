@@ -490,7 +490,7 @@ EXPORT(int) my_GetWindowRect(HWND hwnd, RECT *prect)
 #ifdef MS_WIN32
 	return GetWindowRect(hwnd, prect);
 #else
-	return hwnd == 0;
+	return hwnd != 0;
 #endif
 }
 
