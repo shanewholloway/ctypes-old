@@ -55,9 +55,9 @@ class GUID(Structure):
         _ole32.ProgIDFromCLSID(byref(self), byref(progid))
         return progid.value
 
-    def create_new(self):
+    def create_new(cls):
         "Create a brand new guid"
-        guid = self()
+        guid = cls()
         _ole32.CoCreateGuid(byref(guid))
         return guid
     create_new = classmethod(create_new)
