@@ -1,6 +1,7 @@
-
 *.pyc
 *.pyo
+*.tlh
+*.tli
 build
 buildsum
 dist
