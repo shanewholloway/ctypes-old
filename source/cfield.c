@@ -42,7 +42,7 @@ _overloaded_field_setfunc(void *ptr, PyObject *value, unsigned size,
 #endif
 
 /* Default setfunc to be used as CFieldObject.setfunc when the field type
-   doesn't supply its own getfunc.
+   doesn't supply its own setfunc.
 
    Can eventually be removed when ALL ctypes types supply their own setfunc.
 */
@@ -104,18 +104,6 @@ _generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
 		     value->ob_type->tp_name,
 		     ((PyTypeObject *)type)->tp_name);
 	return NULL;
-}
-
-/* Default getfunc to be used in CFieldObject when the field type doesn't
-   supply its own getfunc.
-*/
-static PyObject *
-_generic_field_getfunc(void *ptr, unsigned size,
-		       PyObject *fieldtype, CDataObject *src,
-		       int index)
-{
-	return CData_FromBaseObj(fieldtype, (PyObject *)src,
-				 index, ptr);
 }
 
 #ifdef EXPERIMENTAL
@@ -212,13 +200,12 @@ CField_FromDesc(PyObject *desc, int index,
 	size = dict->size;
 	length = dict->length;
 
+	assert(dict->getfunc);
+	getfunc = dict->getfunc;
+
 #ifdef EXPERIMENTAL
 	if (PyObject_HasAttrString(desc, "__from_field__"))
 		getfunc = _overloaded_field_getfunc;
-	else
-		getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
-#else
-	getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
 #endif
 
 #ifdef EXPERIMENTAL
@@ -241,12 +228,12 @@ CField_FromDesc(PyObject *desc, int index,
 		StgDictObject *idict;
 		if (adict && adict->proto) {
 			idict = PyType_stgdict(adict->proto);
-			if (idict->getfunc == getentry("c")->getfunc) {
+			if (idict->setfunc == getentry("c")->setfunc) {
 				struct fielddesc *fd = getentry("s");
 				setfunc = fd->setfunc;
 			}
 #ifdef CTYPES_UNICODE
-			if (idict->getfunc == getentry("u")->getfunc) {
+			if (idict->setfunc == getentry("u")->setfunc) {
 				struct fielddesc *fd = getentry("U");
 				setfunc = fd->setfunc;
 			}
