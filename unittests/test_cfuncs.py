@@ -41,5 +41,37 @@ class CFunctions(unittest.TestCase):
         dll.tf_bL.restype = c_ulong
         self.failUnlessEqual(dll.tf_bL(0, 42), 42)
 
+    def test_longlong(self):
+        dll.tf_q.restype = c_longlong
+        dll.tf_q.argtypes = (c_longlong, )
+        self.failUnlessEqual(dll.tf_q(-42L), -42L)
+        dll.tf_bq.restype = c_longlong
+        dll.tf_bq.argtypes = (c_byte, c_longlong)
+        self.failUnlessEqual(dll.tf_bq(0, -42), -42)
+
+    def test_ulonglong(self):
+        dll.tf_Q.restype = c_ulonglong
+        dll.tf_Q.argtypes = (c_longlong, )
+        self.failUnlessEqual(dll.tf_Q(42), 42)
+        dll.tf_bQ.restype = c_ulonglong
+        dll.tf_bQ.argtypes = (c_byte, c_ulonglong)
+        self.failUnlessEqual(dll.tf_bQ(0, 42), 42)
+
+    def test_float(self):
+        dll.tf_f.restype = c_float
+        dll.tf_f.argtypes = (c_float,)
+        self.failUnlessEqual(dll.tf_f(-42.), -42.)
+        dll.tf_bf.restype = c_float
+        dll.tf_bf.argtypes = (c_byte, c_float)
+        self.failUnlessEqual(dll.tf_bf(0, -42.), -42.)
+
+    def test_double(self):
+        dll.tf_d.restype = c_double
+        dll.tf_d.argtypes = (c_double,)
+        self.failUnlessEqual(dll.tf_d(42), 42)
+        dll.tf_bd.restype = c_double
+        dll.tf_bd.argtypes = (c_byte, c_double)
+        self.failUnlessEqual(dll.tf_bd(0, 42), 42)
+
 if __name__ == '__main__':
     unittest.main()
