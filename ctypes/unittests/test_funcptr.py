@@ -25,8 +25,10 @@ class CFuncPtrTestCase(unittest.TestCase):
             return len(args)
 
         x = X(func)
-        self.failUnless(sizeof(x) == sizeof(c_voidp))
-        self.failUnless(sizeof(X) == sizeof(c_voidp))
+        self.failUnlessEqual(x.restype, c_int)
+        self.failUnlessEqual(x.argtypes, (c_int, c_int))
+        self.failUnlessEqual(sizeof(x), sizeof(c_voidp))
+        self.failUnlessEqual(sizeof(X), sizeof(c_voidp))
 
     def test_first(self):
         StdCallback = WINFUNCTYPE(c_int, c_int, c_int)
