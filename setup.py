@@ -11,7 +11,6 @@ dlls. It allows wrapping these libraries in pure Python.
 
 from __future__ import generators
 
-# XXX explain LIBFFI_SOURCES
 LIBFFI_SOURCES='source/gcc/libffi'
 
 ################################################################
