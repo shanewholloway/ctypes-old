@@ -1419,14 +1419,22 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		switch (PyString_AS_STRING(proto)[0]) {
 		case 'z': /* c_char_p */
 			ml = &c_char_p_method;
-			assert(c_char);
+			if (c_char == NULL) {
+				PyErr_SetString(PyExc_RuntimeError,
+						"Need to define c_char before c_char_p");
+				return NULL; /* don't care about refcount leaks */
+			}
 			Py_XDECREF(stgdict->itemtype);
 			Py_INCREF(c_char);
 			stgdict->itemtype = c_char;
 			break;
 		case 'Z': /* c_wchar_p */
 			ml = &c_wchar_p_method;
-			assert(c_wchar);
+			if (c_wchar == NULL) {
+				PyErr_SetString(PyExc_RuntimeError,
+						"Need to define c_wchar before c_wchar_p");
+				return NULL; /* don't care about refcount leaks */
+			}
 			Py_XDECREF(stgdict->itemtype);
 			Py_INCREF(c_wchar);
 			stgdict->itemtype = c_wchar;
