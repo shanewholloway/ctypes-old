@@ -13,6 +13,11 @@ PARAMFLAG_FOPT = 16 # Variable c_int
 PARAMFLAG_FHASDEFAULT = 32 # Variable c_int
 PARAMFLAG_FHASCUSTDATA = 64 # Variable c_int
 
+IMPLTYPEFLAG_FDEFAULT = 1
+IMPLTYPEFLAG_FSOURCE = 2
+IMPLTYPEFLAG_FRESTRICTED = 4
+IMPLTYPEFLAG_FDEFAULTVTABLE = 8
+
 UINT = c_uint # typedef
 LONG = c_long # typedef
 INT = c_int # typedef
@@ -209,8 +214,11 @@ class ITypeInfo(IUnknown):
         self.__com_GetRefTypeOfImplType(index, byref(hreftype))
         return hreftype.value
 
-    def GetImplTypeFlags(self, p0, p1):
-        pass
+    def GetImplTypeFlags(self, index):
+        "Return the impltypeflags"
+        flags = c_int()
+        self.__com_GetImplTypeFlags(index, byref(flags))
+        return flags.value
 
     def GetIDsOfNames(self, p0, p1, p2):
         pass
