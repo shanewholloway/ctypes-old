@@ -156,8 +156,8 @@ typedef struct {
 	int length;		/* number of fields */
 	ffi_type ffi_type;
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
-	SETFUNC setfunc;	/* Only for ArrayObject */
-	GETFUNC getfunc;	/* Only for ArrayObject */
+	SETFUNC setfunc;	/* Only for simple objects */
+	GETFUNC getfunc;	/* Only for simple objects */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
@@ -167,6 +167,46 @@ typedef struct {
 	int flags;		/* calling convention and such */
 	int nArgBytes;		/* number of argument bytes for callback */
 } StgDictObject;
+
+/****************************************************************
+ StgDictObject fields
+
+ setfunc and getfunc is only set for simple data types, it is copied from the
+ corresponding fielddesc entry.  These are functions to set and get the value
+ in a memory block.
+ They should probably by used by other types as well.
+
+ proto is only used for Pointer and Array types - it points to the item type
+ object.
+
+ Probably all the magic ctypes methods (like from_param) should have C
+ callable wrappers in the StgDictObject.  For simple data type, for example,
+ the fielddesc table could have entries for C codec from_param functions or
+ other methods as well, if a subtype overrides this method in Python at
+ construction time, or assigns to it later, tp_setattro should update the
+ StgDictObject function to a generic one.
+
+ Currently, CFuncPtr types have 'converters' and 'checker' entries in their
+ type dict.  They are only used to cache attributes from other entries, whihc
+ is wrong.
+
+ One use case is the .value attribute that all simple types have.  But some
+ complex structures, like VARIANT, represent a single value also, and should
+ have this attribute.
+
+ Another use case is a _check_retval_ function, which is called when a ctypes
+ type is used as return type of a function to validate and compute the return
+ value.
+
+ Common ctypes protocol:
+
+  - setfunc: store a python value in a memory block
+  - getfunc: convert data from a memory block into a python value
+
+  - checkfunc: validate and convert a return value from a function call
+  - toparamfunc: convert a python value into a function argument
+
+*****************************************************************/
 
 /* May return NULL, but does not set an exception! */
 extern StgDictObject *PyType_stgdict(PyObject *obj);
