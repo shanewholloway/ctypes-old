@@ -1,3 +1,20 @@
+2004-09-16  Thomas Heller  <theller@python.net>
+
+	* (Message): The internal conversions that ctypes does between
+	unicode and strings can now use a specified encoding and error
+	handling.  A set_conversion_mode() function allows to set them, it
+	returns the previous values.  The inital values are ('mbcs',
+	'ignore') on Windows, and ('ascii', 'strist') on other systems.
+
+	(source\callproc.c): The Extend_Error_Info() function has been
+	fixed - sometimes is displayed weird error messages like
+	'TypeError: function takes 5 arguments (1 given)' when an
+	UnicodeEncodingError was raised.
+
+	When internal processing of an argument for a function call fails,
+	the new ctypes.ArgumentError exception is raised.
+
+
 2004-09-15  Thomas Heller  <theller@python.net>
 
 	* ctypes\__init__.py: CDLL and subclasses now accept an optional

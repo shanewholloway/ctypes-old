@@ -8,6 +8,15 @@ Changes in 0.9.1
 
   ctypes changes
 
+    The internal conversions that ctypes does between unicode and
+    strings can now use a specified encoding and error handling.  A
+    set_conversion_mode() function allows to set them, it returns the
+    previous values.  The inital values are ('mbcs', 'ignore') on
+    Windows, and ('ascii', 'strict') on other systems.
+
+    When internal processing of an argument for a function call fails,
+    the new ctypes.ArgumentError is raised.
+
     CDLL and its subclasses now accept an optional second handle
     parameter.  If this is supplied, it is used instead of calling
     LoadLibrary() or dlopen() to get one.
