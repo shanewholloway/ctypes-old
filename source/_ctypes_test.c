@@ -281,12 +281,5 @@ PyMethodDef module_methods[] = {
 DL_EXPORT(void)
 init_ctypes_test(void)
 {
-	PyObject *m;
-
-/* Note:
-   ob_type is the metatype (the 'type'), defaults to PyType_Type,
-   tp_base is the base type, defaults to 'object' aka PyBaseObject_Type.
-*/
-	PyEval_InitThreads();
 	Py_InitModule("_ctypes_test", module_methods);
 }
