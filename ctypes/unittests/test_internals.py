@@ -101,12 +101,5 @@ class ObjectsTestCase(unittest.TestCase):
 ##XXX        print x.data[0]
 ##XXX        print x.data._objects
 
-def get_suite():
-    return unittest.makeSuite(ObjectsTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     test()

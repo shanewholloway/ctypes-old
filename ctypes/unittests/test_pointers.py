@@ -137,12 +137,5 @@ class PointersTestCase(unittest.TestCase):
             c = c.next[0]
         self.failUnlessEqual(result, [42] * 8)
     
-def get_suite():
-    return unittest.makeSuite(PointersTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     unittest.main()

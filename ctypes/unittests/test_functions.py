@@ -331,12 +331,5 @@ class FunctionTestCase(unittest.TestCase):
         expected = 203, 101, 102
         self.failUnlessEqual(got, expected)
 
-def get_suite():
-    return unittest.makeSuite(FunctionTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     unittest.main()

@@ -135,27 +135,18 @@ class test(Command):
         sys.path.insert(0, self.test_dir)
         
         self.announce("testing")
-        # build include path for test
 
+        # Import all test modules, collect unittest.TestCase classes,
+        # and build a TestSuite from them.
         test_suites = []
-
         for case in self.test_suffixes:
-            TEST = __import__(self.test_prefix+case,
-                              globals(), locals(),
-                              [''])
-
-            # Test modules must either expose a test() function which
-            # will be called to run the test, or a get_suite() function
-            # which returns a TestSuite.
-            try:
-                suite = TEST.get_suite()
-            except AttributeError:
-                self.announce("\t%s" % (self.test_prefix+case))
-                TEST.test(verbose=self.verbose)
-            else:
-                if suite:
-                    test_suites.append(suite)
-
+            mod = __import__(os.path.splitext(self.test_prefix + case)[0])
+            for name in dir(mod):
+                if name.startswith("_"):
+                    continue
+                o = getattr(mod, name)
+                if type(o) is type(unittest.TestCase) and issubclass(o, unittest.TestCase):
+                    test_suites.append(unittest.makeSuite(o))
 
         if test_suites:
             suite = unittest.TestSuite(test_suites)

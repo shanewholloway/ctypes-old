@@ -234,13 +234,6 @@ def check_perf():
 #      c_int_S(): 9.87 us
 #   c_int_S(999): 9.85 us
 
-def get_suite():
-    return unittest.makeSuite(NumberTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     check_perf()
     unittest.main()

@@ -127,12 +127,5 @@ class CFuncPtrTestCase(unittest.TestCase):
         self.failUnlessEqual(strtok(None, "\n"), "c")
         self.failUnlessEqual(strtok(None, "\n"), None)
         
-def get_suite():
-    return unittest.makeSuite(CFuncPtrTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     unittest.main()

@@ -130,13 +130,6 @@ def check_perf():
 #        c_int.from_param(42): 1.01 us
 # c_int.from_param(c_int(42)): 0.50 us
 
-def get_suite():
-    return unittest.makeSuite(SimpleTypesTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     import sys
     if '-p' in sys.argv:
