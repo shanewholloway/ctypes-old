@@ -804,6 +804,9 @@ void Extend_Error_Info(char *fmt, ...)
 	}
 }
 
+#ifdef MS_WIN32
+#define alloca _alloca
+#endif
 /*
  * Requirements, must be ensured by the caller:
  * - argtuple is tuple of arguments
@@ -822,6 +825,7 @@ PyObject *_CallProc(PPROC pProc,
 {
 	int i, n, argcount;
 	struct argument result;
+
 	PyCArgObject **pargs, **pp;
 	PyObject *retval = NULL;
 
@@ -831,9 +835,6 @@ PyObject *_CallProc(PPROC pProc,
 	if (pIunk)
 		++argcount;
 
-#ifdef MS_WIN32
-#define alloca _alloca
-#endif
 	pargs = (PyCArgObject **)alloca(sizeof(PyCArgObject *) * argcount);
 	memset(pargs, 0, sizeof(pargs) * argcount);
 
@@ -884,7 +885,7 @@ PyObject *_CallProc(PPROC pProc,
 	result.ffi_type = GetType(restype);
 
 	if (-1 == _call_function_pointer(flags, pProc, pargs, &result, argcount))
-		goto error;
+		goto cleanup;
 
 #ifdef MS_WIN32
 	if (flags & FUNCFLAG_HRESULT) {
@@ -895,7 +896,7 @@ PyObject *_CallProc(PPROC pProc,
 	} else
 #endif
 		retval = GetResult(restype, &result);
-  error:
+  cleanup:
 	for (i = 0; i < argcount; ++i) {
 		Py_XDECREF(pargs[i]);
 	}
