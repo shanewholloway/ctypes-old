@@ -21,7 +21,7 @@ import os, sys
 from distutils.core import setup, Extension, Command
 import distutils.core
 from distutils.errors import DistutilsOptionError
-from distutils.command import build_py, build_ext
+from distutils.command import build_py, build_ext, clean
 from distutils.dir_util import mkpath
 
 kw = {}
@@ -295,6 +295,7 @@ class my_build_ext(build_ext.build_ext):
             return
         src_dir = os.path.abspath(LIBFFI_SOURCES)
 
+        # Building libffi in a path containing spaces doesn't work:
         self.build_temp = self.build_temp.replace(" ", "")
 
         build_dir = os.path.join(self.build_temp, 'libffi')
@@ -302,7 +303,7 @@ class my_build_ext(build_ext.build_ext):
         lib_dir = os.path.abspath(os.path.join(inst_dir, 'lib'))
         inc_dir = os.path.abspath(os.path.join(inst_dir, 'include'))
 
-        for ext in self.extensions:
+1        for ext in self.extensions:
             ext.include_dirs.append(inc_dir)
             ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
             ext.library_dirs.append(lib_dir)
@@ -324,6 +325,11 @@ class my_build_ext(build_ext.build_ext):
             print "Failed"
             sys.exit(res)
 
+# Since we mangle the build_temp dir, we must also do this in the clean command.
+class my_clean(clean.clean):
+    def run(self):
+        self.build_temp = self.build_temp.replace(" ", "")
+        clean.clean.run(self)
 
 if __name__ == '__main__':
     setup(name="ctypes",
@@ -340,7 +346,7 @@ if __name__ == '__main__':
           url="http://starship.python.net/crew/theller/ctypes.html",
           platforms=["windows", "Linux", "MacOS X", "Solaris"],
 
-          cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext},
+          cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext, 'clean': my_clean},
           **options
           )
 
