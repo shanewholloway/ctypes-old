@@ -125,9 +125,11 @@ class NumberTestCase(unittest.TestCase):
             align = struct.calcsize("c%c" % code) - struct.calcsize(code)
 
             # alignment of the type...
-            self.failUnlessEqual(alignment(t), align)
-            # and alingment of an instance
-            self.failUnlessEqual(alignment(t()), align)
+            self.failUnlessEqual((code, alignment(t)),
+                                 (code, align))
+            # and alignment of an instance
+            self.failUnlessEqual((code, alignment(t())),
+                                 (code, align))
             
     def test_int_from_address(self):
         from array import array
