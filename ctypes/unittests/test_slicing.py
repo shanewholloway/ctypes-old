@@ -83,7 +83,12 @@ class SlicesTestCase(unittest.TestCase):
             self.assertRaises(TypeError, operator.setslice,
                               res, 0, 5, u"abcde")
 
-            dll.my_wcsdup.restype = POINTER(c_short)
+            if sizeof(c_wchar) == sizeof(c_short):
+                dll.my_wcsdup.restype = POINTER(c_short)
+            elif sizeof(c_wchar) == sizeof(c_int):
+                dll.my_wcsdup.restype = POINTER(c_int)
+            elif sizeof(c_wchar) == sizeof(c_long):
+                dll.my_wcsdup.restype = POINTER(c_long)
             res = dll.my_wcsdup(s)
             self.failUnlessEqual(res[:len(s)-1], range(ord("a"), ord("z")+1))
 
