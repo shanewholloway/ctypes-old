@@ -117,6 +117,8 @@ static PyTypeObject Simple_Type;
 char *conversion_mode_encoding = NULL;
 char *conversion_mode_errors = NULL;
 
+static PyObject *CData_AtAddress(PyObject *type, void *buf);
+
 
 /******************************************************************/
 /*
