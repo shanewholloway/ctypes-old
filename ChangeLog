@@ -1,7 +1,11 @@
 2004-12-02  Thomas Heller  <theller@python.net>
 
-	* (Message): The _fields_ attribute is now handled correctly in
-	Structure sub-subclasses.  It is extended instead of replaced.
+	* Structure types as restype of functions do work now. But I have
+	severe doubts that passing structures by values works.  Not to
+	speak about callback functions!
+
+	The _fields_ attribute is now handled correctly in Structure
+	sub-subclasses.  It is extended instead of replaced.
 
 	if 'sizeof(int) == sizeof(long)', c_int/c_uint are now aliases for
 	c_long/c_ulong, and if 'sizeof(long) == sizeof(long long)',
