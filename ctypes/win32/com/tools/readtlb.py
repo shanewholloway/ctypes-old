@@ -96,11 +96,24 @@ TYPES = {
     VT_PTR: "VT_PTR",
     VT_LPSTR: "c_char_p",
     VT_LPWSTR: "c_wchar_p",
+
+    VT_ERROR: "c_long",
+    VT_CARRAY: "VT_CARRAY",
+    VT_CY: "CURRENCY",
+    VT_DATE: "c_double",
     }
+
+def mangle_name(name):
+    # convert names into Python identifiers
+    # for now, only prevent that they start with double underscores
+    if name.startswith("__"):
+        return "_py" + name
+    return name
 
 class TypeInfoReader:
     _order = 0
     def __init__(self, library, typeinfo):
+        self._uses = []
         self.library = library
         self.ti = typeinfo
         # This is used to sort the interfaces later the same way they occurr in the
@@ -127,14 +140,14 @@ class TypeInfoReader:
         self.ti.GetDocumentation(-1, byref(name),
                                  byref(docstring), byref(helpcontext),
                                  byref(helpfile))
-        self.name = name.value
+        self.name = mangle_name(name.value)
         self.docstring = docstring.value
 
     def _parse_typeattr(self, ta):
         pass
 
     def _get_type(self, tdesc):
-        if tdesc.vt == VT_PTR:
+        if tdesc.vt in (VT_PTR, VT_SAFEARRAY):
             td = tdesc.u.lptdesc[0]
             if td.vt == VT_USERDEFINED:
                 # Pointer to a user defined data type.
@@ -148,9 +161,43 @@ class TypeInfoReader:
 
                 name = BSTR()
                 ti.GetDocumentation(-1, byref(name), None, None, None)
-                return "POINTER(%s)" % name.value
+                typ = mangle_name(name.value)
+                self._uses.append(typ)
+            else:
+                typ = self._get_type(td)
 
-            return "POINTER(%s)" % self._get_type(td)
+            if typ is None: # void pointer
+                return "c_void_p"
+            if tdesc.vt == VT_PTR:
+                return "POINTER(%s)" % typ
+            else:
+                return "SAFEARRAY(%s)" % typ
+
+        if tdesc.vt == VT_CARRAY:
+            ta = tdesc.u.lpadesc[0]
+            # number of dimensions
+            cDims = ta.cDims
+            # see the definition of ctypes.com.automation.ARRAYDESC
+            assert cDims == 1, "cannot handle multidimensional arrays (yet)"
+            bounds = ta.rgbounds[0]
+            td = ta.tdescElem
+            if td.vt == VT_USERDEFINED:
+                # Array of a user defined data type.
+                hr = td.u.hreftype
+                ti = pointer(ITypeInfo())
+                self.ti.GetRefTypeInfo(hr, byref(ti))
+
+                pta = LPTYPEATTR()
+                ti.GetTypeAttr(byref(pta))
+                ta = pta.contents
+
+                name = BSTR()
+                ti.GetDocumentation(-1, byref(name), None, None, None)
+                name = mangle_name(name.value)
+                self._uses.append(name)
+                return "%s * %d" % (name, bounds)
+
+            return "%s * %d" % (self._get_type(ta.tdescElem), bounds)
 
         if tdesc.vt == VT_USERDEFINED:
             # use hreftype
@@ -159,7 +206,9 @@ class TypeInfoReader:
             self.ti.GetRefTypeInfo(hr, byref(ti))
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
-            return name.value
+            name = mangle_name(name.value)
+            self._uses.append(name)
+            return name
 
         if tdesc.vt == VT_VOID:
             return None
@@ -188,7 +237,7 @@ class EnumReader(TypeInfoReader):
             name = BSTR()
             self.ti.GetDocumentation(vd.memid, byref(name),
                                      None, None, None)
-            name = name.value
+            name = mangle_name(name.value)
 
             assert vd.varkind == VAR_CONST
             assert vd.elemdescVar.tdesc.vt == VT_INT
@@ -234,7 +283,7 @@ class RecordReader(TypeInfoReader):
             name = BSTR()
             self.ti.GetDocumentation(vd.memid, byref(name),
                                      None, None, None)
-            name = name.value
+            name = mangle_name(name.value)
 
             assert vd.varkind == VAR_PERINSTANCE
             # vd.u.oInst gives the offset into the record.
@@ -250,7 +299,7 @@ class UnionReader(RecordReader):
 
 class Method:
     def __init__(self, name, restype, argtypes, dispid):
-        self.name = name
+        self.name = mangle_name(name)
         self.restype = restype
         self.argtypes = argtypes
         self.dispid = dispid
@@ -290,6 +339,9 @@ class InterfaceReader(TypeInfoReader):
     is_dispinterface = 0
 
     def _parse_typeattr(self, ta):
+        # I'm not completely sure what ta.cImplTypes != 1 would mean.
+        # stdole2.tlb contains the description of IUnknown, where cImplTypes is 0.
+        # Are there also typelibs where cImplTypes > 1?
         assert ta.cImplTypes == 1
         self.wTypeFlags = ta.wTypeFlags
         for i in range(ta.cImplTypes):
@@ -304,7 +356,7 @@ class InterfaceReader(TypeInfoReader):
             # XXX Sometimes this fails, because baseinterface is IDispatch
             # in an InterfaceReader 
             if 1:
-                self.baseinterface = name.value
+                self.baseinterface = mangle_name(name.value)
             else:
                 assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
 
@@ -332,13 +384,13 @@ class InterfaceReader(TypeInfoReader):
             name = BSTR()
             self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
             if fd.invkind == DISPATCH_PROPERTYGET:
-                name = "_get_" + name.value
+                name = "_get_" + mangle_name(name.value)
             elif fd.invkind == DISPATCH_PROPERTYPUT:
-                name = "_put_" + name.value
+                name = "_put_" + mangle_name(name.value)
             elif fd.invkind == DISPATCH_METHOD:
-                name = name.value
+                name = mangle_name(name.value)
             elif fd.invkind == DISPATCH_PROPERTYPUTREF:
-                name = "_putREF_" + name.value
+                name = "_putREF_" + mangle_name(name.value)
             else:
                 assert 0
             argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
@@ -554,8 +606,22 @@ class TypeLibReader:
         self.tlb.GetDocumentation(-1, byref(name),
                                  byref(docstring), byref(helpcontext),
                                  byref(helpfile))
-        self.name = name.value
+        self.name = mangle_name(name.value)
         self.docstring = docstring.value
+
+    def depends(self, a, b):
+        # A compare function used to sort datatypes, so that the generated
+        # code tries to work around dependencies.
+        #
+        # return -1 if a should come before b
+        if a.name in b._uses:
+            # b depends on a, so a comes first
+            return -1
+        if b.name in a._uses:
+            # a depends on b, b comes first
+            return 1
+        # not sure
+        return 0
 
     def dump(self, ofi=None):
 
@@ -573,7 +639,7 @@ class TypeLibReader:
         print >> ofi, "    flags = 0x%X" % self.wLibFlags
         print >> ofi, "    path = %r" % str(self.filename)
         
-        
+        # enum are only constantsl, they do not depend on something else
         if self.enums:
             print >> ofi
             print >> ofi, "#" * 78
@@ -581,27 +647,9 @@ class TypeLibReader:
                 print >> ofi
                 print >> ofi, itf.declaration()
 
-        if self.records:
-            print >> ofi
-            print >> ofi, "#" * 78
-            for itf in self.records:
-                print >> ofi
-                print >> ofi, itf.declaration()
 
-        # The following is an attempt to fix problems with a structure
-        # containing another structure but it does not work. Probably
-        # the simplistic approach to output the datatypes in the same
-        # order they appear in the TLB is too naive.
-        
-##        datatypes = self.enums + self.records
-##        if datatypes:
-##            print >> ofi
-##            print >> ofi, "#" * 78
-##            datatypes.sort(lambda a, b: cmp(a._order, b._order))
-##            for tp in datatypes:
-##                print >> ofi
-##                print >> ofi, tp.declaration()
-
+        # The interface 'declarations' (the class statement) also doesn't depend
+        # on something else
         if self.interfaces:
             print >> ofi
             print >> ofi, "#" * 78
@@ -613,6 +661,21 @@ class TypeLibReader:
                 print >> ofi
                 print >> ofi, itf.declaration()
 
+        if self.records:
+            # We *try* to sort the records (structures and unions) so that dependencies
+            # are satisfied.
+            # If this fails, the generated file must be fixed manually (although
+            # I'm not sure this is always possible).
+            self.records.sort(self.depends)
+            print >> ofi
+            print >> ofi, "#" * 78
+            for itf in self.records:
+                print "USES", itf.name, itf._uses
+                print >> ofi
+                print >> ofi, itf.declaration()
+
+        # The definition of the interfaces contains method lists.
+        if self.interfaces:
             for itf in interfaces:
                 print >> ofi
                 print >> ofi, itf.definition()
@@ -629,6 +692,12 @@ def main():
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
+##        path = r"c:\windows\system32\stdole2.tlb"
+##        path = r"c:\windows\system32\stdole32.tlb"
+##        path = r"c:\windows\system32\stdole.tlb"
+##        path = r"c:\windows\system32\simpdata.tlb"
+##        path = r"c:\windows\system32\nscompat.tlb"
+##        path = r"c:\windows\system32\mshtml.tlb"
         path = r"..\samples\server\sum.tlb"
 ##        path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
