@@ -2,11 +2,11 @@
 
 # special developer support to use ctypes from the CVS sandbox,
 # without installing it
-import os, sys
-_magicfile = os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")
-if os.path.isfile(_magicfile):
+import os as _os, sys
+_magicfile = _os.path.join(_os.path.dirname(__file__), ".CTYPES_DEVEL")
+if _os.path.isfile(_magicfile):
     execfile(_magicfile)
-del os, _magicfile
+del _magicfile
 
 __version__ = "0.9.1"
 
@@ -17,8 +17,6 @@ from _ctypes import __version__ as _ctypes_version
 
 if __version__ != _ctypes_version:
     raise Exception, ("Version number mismatch", __version__, _ctypes_version)
-
-import os as _os
 
 if _os.name == "nt":
     from _ctypes import FormatError
@@ -118,6 +116,9 @@ elif _os.name == "posix":
 
 from _ctypes import sizeof, byref, addressof, alignment
 from _ctypes import _SimpleCData
+
+class py_object(_SimpleCData):
+    _type_ = "O"
 
 class c_short(_SimpleCData):
     _type_ = "h"
@@ -294,6 +295,11 @@ class PyDLL(CDLL):
     class _CdeclFuncPtr(_CFuncPtr):
         _flags_ = _FUNCFLAG_CDECL | _FUNCFLAG_PYTHONAPI
         _restype_ = c_int # default, can be overridden in instances
+
+if _os.name == "nt":
+    pythonapi = PyDLL("python%s%s" % sys.version_info[:2])
+else:
+    pythonapi = PyDLL(None)
 
 if _os.name ==  "nt":
         
