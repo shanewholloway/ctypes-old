@@ -40,7 +40,15 @@ Changes in 0.9.1
     The alignment function was not exported by the ctypes module.  It
     returns the alignment requirements in bytes of a type or instance.
 
+    It is now possible to call Python API functions with ctypes.  This
+    is an experimental feature and will probably change.  Please don't
+    use it yet in production code, and watch the ctypes-users mailing
+    list.
+
   ctypes.com changes
+
+    COM servers now print a short usage message when they are run
+    without the /regserver or /unregserver flag.
 
     VARIANT does now handle the COM DATE type (VT_DATE) as Python
     datetime.
