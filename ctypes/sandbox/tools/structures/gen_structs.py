@@ -1,5 +1,5 @@
 """
-Usage: parse_structs [options] files...
+Usage: gen_structs [options] files...
 
 Command line flags:
 
@@ -27,7 +27,7 @@ Command line flags:
 
    Sample command line (depends on the MSVC compiler you have):
 
-     parse_structs -D _WIN32_WINNT=0x500 -c msvc71 -o- windows.h
+     gen_structs -D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc71 -o- windows.h
 """
 import sys, os, tempfile
 from xml.sax import make_parser, parse, handler
@@ -144,17 +144,21 @@ class Struct(object):
         self.name = attrs["name"]
         self.members = attrs["members"].split()
 
-    def dump(self, stream, handler):
+    def dump_1(self, stream, handler):
         print >> stream, "class %s(Structure):" % self.name
-        print >> stream, "    _fields_ = ["
+        print >> stream, "    pass"
+        print >> stream
+
+    def dump_2(self, stream, handler):
+        print >> stream, "%s._fields_ = [" % self.name
         for m in self.members:
             try:
                 field = handler.fields[m]
             except KeyError: # not a Field, maybe a Constructor
                 pass
             else:
-                print >> stream, "        (%s, %s)," % (field.name, field.type)
-        print >> stream, "    ]"
+                print >> stream, "    (%s, %s)," % (field.name, field.type)
+        print >> stream, "]"
         print >> stream
 
 class StructField(object):
@@ -168,6 +172,45 @@ class StructField(object):
         return self.types[id]
 
     type = property(fget=_get_type)
+################
+
+ctypes_names = {
+    "short int": "c_short",
+    "int": "c_int",
+    "long int": "c_long",
+    "long long int": "c_longlong",
+
+    "short unsigned int": "c_ushort",
+    "unsigned int": "c_uint",
+    "long unsigned int": "c_ulong",
+    "long long unsigned int": "c_ulonglong",
+
+    "float": "c_float",
+    "double": "c_double",
+
+    "char": "c_char",
+    "signed char": "c_byte",
+    "unsigned char": "c_ubyte",
+    "wchar_t": "c_wchar",
+    "void": "void", # ?
+    }
+
+class FundamentalType(object):
+    def __init__(self, name):
+        self.name = ctypes_names[name]
+
+class PointerType(object):
+    # id, type
+    type = None
+    def __init__(self, attrs):
+        self.attrs = attrs
+
+    def resolve(self):
+        if self.type is None:
+            return
+        self.type = find_type([self.attrs["type"]])
+        self.type.resolve()
+
 ################
 
 class Enum_Handler(GCCXML_Handler_Base):
@@ -191,7 +234,6 @@ class Enum_Handler(GCCXML_Handler_Base):
             self.structs[attrs["id"]] = s
 
     def Union(self, attrs):
-        print "UNION", attrs["name"]
         self.Struct(attrs)
 
     def Field(self, attrs):
@@ -202,9 +244,11 @@ class Enum_Handler(GCCXML_Handler_Base):
         self.types[attrs["id"]] = attrs["name"]
 
     def FundamentalType(self, attrs):
+        f = FundamentalType(attrs["name"])
         self.types[attrs["id"]] = attrs["name"]
 
     def PointerType(self, attrs):
+        # id, type
         self.types[attrs["id"]] = "POINTER"
 
     def ArrayType(self, attrs):
@@ -256,6 +300,8 @@ def main(args=None):
     parse(xml_file, handler)
     os.remove(xml_file)
 
+    sys.exit()
+
     if py_file is None:
         return 0
     if py_file == "-":
@@ -264,9 +310,17 @@ def main(args=None):
         ofi = open(py_file, "w")
 
     for struct in handler.structs.values():
-        struct.dump(ofi, handler)
+        struct.dump_1(ofi, handler)
+
+##    for struct in handler.structs.values():
+##        struct.dump_2(ofi, handler)
+
+##    for id in handler.structs.keys():
+##        print handler.types[id]
 
     return 0
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        sys.argv.extend("-D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc71 -o- test.h".split())
     sys.exit(main())
