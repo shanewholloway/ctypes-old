@@ -15,9 +15,7 @@
 static int
 StgDict_init(StgDictObject *self, PyObject *args, PyObject *kwds)
 {
-	if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0)
-		return -1;
-	return 0;
+	return PyDict_Type.tp_init((PyObject *)self, args, kwds);
 }
 
 static int
@@ -283,6 +281,7 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 			case FFI_TYPE_SINT8:
 			case FFI_TYPE_SINT16:
 			case FFI_TYPE_SINT32:
+				/* These can be ints, char, or wchar_t */
 				if (dict->getfunc != getentry("c")->getfunc
 #ifdef CTYPES_UNICODE
 				    && dict->getfunc != getentry("u")->getfunc
