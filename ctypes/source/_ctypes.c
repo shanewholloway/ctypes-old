@@ -1844,7 +1844,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 #endif
 	return _CallProc(*(void **)self->b_ptr,
 			 args,
-			 piunk,
+			 NULL,
 			 dict->flags,
 			 converters,
 			 restype);
