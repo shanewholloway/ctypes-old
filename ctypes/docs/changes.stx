@@ -1,5 +1,10 @@
 Changes in ctypes 0.6
 
+  Version 0.6.2
+
+    A nasty bug with pointer types was fixed which prevented the
+    'incomplete types' section in the tutorial to work.
+
   Version 0.6.1
 
     'ctypes' types now have a 'in_dll(dll, symbolname)' class method.
