@@ -836,12 +836,6 @@ Z_get(void *ptr, unsigned size)
 #endif
 
 #ifdef MS_WIN32
-static void
-_FreeBstr(void *ptr)
-{
-	SysFreeString((BSTR)ptr);
-}
-
 static PyObject *
 BSTR_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -862,10 +856,10 @@ BSTR_set(void *ptr, PyObject *value, unsigned size)
 		Py_INCREF(value);
 	s = PyUnicode_AS_UNICODE(value);
 	len = PyUnicode_GET_SIZE(value);
+	/* The programmer has to call SysFreeString somewhere, if needed */
 	bstr = SysAllocStringLen(s, len);
 	*(BSTR *)ptr = bstr;
-	Py_DECREF(value);
-	return PyCObject_FromVoidPtr(bstr, _FreeBstr);
+	return value;
 }
 
 
