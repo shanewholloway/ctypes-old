@@ -1,10 +1,4 @@
 /*
- * Copyright 1997-2001, Thomas Heller
- *
- * $Id$
- *
- */
-/*
  * History: First version dated from 3/97, derived from my SCMLIB version
  * for win16.
  */
