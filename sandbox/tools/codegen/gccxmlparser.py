@@ -20,7 +20,9 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         self.artificial = []
 
     def demangle(self, name):
-        return "_py_" + name.replace("$", "_")
+        if name.startswith("__"):
+            name = "_py_" + name
+        return name.replace("$", "_")
 
     def startElement(self, name, attrs):
         # find and call the handler for this element
@@ -61,7 +63,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     # simple types and modifiers
 
     def Typedef(self, attrs):
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         typ = attrs["type"]
         return typedesc.Typedef(name, typ)
 
@@ -69,7 +71,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         t.typ = self.all[t.typ]
 
     def FundamentalType(self, attrs):
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         if name == "void":
             size = ""
         else:
@@ -117,7 +119,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     
     def Function(self, attrs):
         # name, returns, extern, attributes
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         returns = attrs["returns"]
         attributes = attrs.get("attributes", "").split()
         extern = attrs.get("extern")
@@ -139,7 +141,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def OperatorFunction(self, attrs):
         # name, returns, extern, attributes
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         returns = attrs["returns"]
         return typedesc.OperatorFunction(name, returns)
 
@@ -147,14 +149,14 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         func.returns = self.all[func.returns]
 
     def Constructor(self, attrs):
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         return typedesc.Constructor(name)
 
     def _fixup_Constructor(self, const): pass
 
     def Method(self, attrs):
         # name, virtual, pure_virtual, returns
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         returns = attrs["returns"]
         return typedesc.Method(name, returns)
 
@@ -172,7 +174,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def Enumeration(self, attrs):
         # id, name
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         size = attrs["size"]
         align = attrs["align"]
         if attrs.get("artificial"):
@@ -187,7 +189,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def _fixup_Enumeration(self, e): pass
 
     def EnumValue(self, attrs):
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         value = attrs["init"]
         self.context[-1].add_value(name, value)
 
@@ -236,7 +238,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def Field(self, attrs):
         # name, type
-        name = attrs["name"]
+        name = self.demangle(attrs["name"])
         typ = attrs["type"]
         bits = attrs.get("bits", None)
         offset = attrs.get("offset")
