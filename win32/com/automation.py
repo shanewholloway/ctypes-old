@@ -1,5 +1,5 @@
 from ctypes import *
-from ctypes.wintypes import DWORD, WORD, LPOLESTR, LPCOLESTR
+from ctypes.wintypes import DWORD, WORD, LPOLESTR, LPCOLESTR, LCID
 from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, COMObject
 from ctypes.com.hresult import *
 
@@ -20,7 +20,6 @@ DISPID = c_long
 MEMBERID = DISPID
 TYPEKIND = c_int # enum
 
-LCID = c_ulong
 SYSKIND = c_int # enu
 
 FUNCKIND = c_int # enum
@@ -312,6 +311,9 @@ class VARIANT(Structure):
             oleaut32.VariantClear(byref(self))
             self.vt = VT_INT
             self._.VT_INT = value
+        elif typ is float:
+            self.vt = VT_R8
+            self._.VT_R8 = value
         elif typ is str:
             oleaut32.VariantClear(byref(self))
             self.vt = VT_BSTR
@@ -634,6 +636,16 @@ IDispatch._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "Invoke", DISPID, REFIID, LCID, WORD, POINTER(DISPPARAMS),
               POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint))]
 
+class IProvideClassInfo(IUnknown):
+    _iid_ = GUID("{B196B283-BAB4-101A-B69C-00AA00341D07}")
+    _methods_ = IUnknown._methods_ + [
+        STDMETHOD(HRESULT, "GetClassInfo", POINTER(POINTER(ITypeInfo)))]
+
+class IProvideClassInfo2(IProvideClassInfo):
+    _iid_ = GUID("{A6BC3AC0-DBAA-11CE-9DE3-00AA004BB851}")
+    _methods_ = IProvideClassInfo._methods_ + [
+        STDMETHOD(HRESULT, "GetGUID", DWORD, POINTER(GUID))]
+
 ################################################################
 # functions
 #
@@ -650,7 +662,7 @@ def LoadTypeLibEx(fnm, regkind=REGKIND_NONE):
 
 def LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid):
     p = POINTER(ITypeLib)()
-    oleaut32.LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid, byref(p))
+    oleaut32.LoadRegTypeLib(byref(rguid), wVerMajor, wVerMinor, lcid, byref(p))
     return p
 
 ################################################################
