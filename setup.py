@@ -33,11 +33,17 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 
 if os.name == "nt":
+    kw["sources"].extend(["source/libffi_msvc/types.c",
+                          "source/libffi_msvc/ffi.c",
+                          "source/libffi_msvc/prep_cif.c",
+                          "source/libffi_msvc/win32.c",
+                          ])
     extensions = [Extension("_ctypes",
                             define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             export_symbols=["DllGetClassObject,PRIVATE",
                                            "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
+                            include_dirs=["source/libffi_msvc"],
                             **kw),
                   Extension("_ctypes_test",
                             libraries=["oleaut32"],

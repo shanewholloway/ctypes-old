@@ -1,5 +1,13 @@
+/* fficonfig.h.  Originally created by configure, now hand_maintained for MSVC. */
+
 /* fficonfig.h.  Generated automatically by configure.  */
 /* fficonfig.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Defines for MSVC */
+#define __attribute__(x) /* */
+#define alloca _alloca
+
+/*----------------------------------------------------------------*/
 
 /* Define if using alloca.c.  */
 /* #undef C_ALLOCA */
@@ -12,7 +20,7 @@
 #define HAVE_ALLOCA 1
 
 /* Define if you have <alloca.h> and it should be used (not on Ultrix).  */
-#define HAVE_ALLOCA_H 1
+/* #define HAVE_ALLOCA_H 1 */
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
@@ -67,10 +75,10 @@
 /* #undef HAVE_RO_EH_FRAME */
 
 /* Define to the flags needed for the .section .eh_frame directive. */
-#define EH_FRAME_FLAGS "aw"
+/* #define EH_FRAME_FLAGS "aw" */
 
 /* Define to the flags needed for the .section .eh_frame directive. */
-#define EH_FRAME_FLAGS "aw"
+/* #define EH_FRAME_FLAGS "aw" */
 
 /* Define this if you want extra debugging. */
 /* #undef FFI_DEBUG */

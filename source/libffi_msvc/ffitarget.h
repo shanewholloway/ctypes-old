@@ -43,7 +43,7 @@ typedef enum ffi_abi {
   FFI_FIRST_ABI = 0,
 
   /* ---- Intel x86 Win32 ---------- */
-#ifdef X86_WIN32
+#if defined(X86_WIN32) || defined(_MSC_VER)
   FFI_SYSV,
   FFI_STDCALL,
   /* TODO: Add fastcall support for the sake of completeness */

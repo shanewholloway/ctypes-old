@@ -79,6 +79,9 @@ extern "C" {
 #  ifdef __GNUC__
 #   define FFI_LONG_LONG_MAX __LONG_LONG_MAX__
 #  endif
+#  ifdef _MSC_VER
+#   define FFI_LONG_LONG_MAX _I64_MAX
+#  endif
 # endif
 #endif
 
