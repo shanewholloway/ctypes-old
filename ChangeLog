@@ -1,3 +1,10 @@
+2004-07-28  Thomas Heller  <theller@python.net>
+
+	* (Message): CopyComPointer is no longer a function exported from
+	the _ctypes dll/shared lib, instead it is a normal Python function
+	implemented in the _ctypes extension.  This allows to build
+	_ctypes as a builtin module.
+
 2004-07-23  Thomas Heller  <theller@python.net>
 
 	(Message): ctypes 0.9.0 released.
