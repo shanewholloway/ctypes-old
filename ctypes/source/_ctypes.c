@@ -2289,12 +2289,10 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		obj->b_ptr = PyMem_Malloc(size);
 		obj->b_size = size;
 		obj->b_needsfree = 1;
-	}
-	if (data)
+		/* size is length of Python string + 1,
+		   so the terminating NUL character is also copied. */
 		memcpy(obj->b_ptr, data, size);
-	else
-		memset(obj->b_ptr, 0, size);
-
+	}
 	return (PyObject *)obj;
 }
 
