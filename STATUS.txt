@@ -18,3 +18,8 @@ configured on linux, and then further hacked on windows.
         func("abc", 3)   1.51 us - 1.24 us
 	func()           1.56 us - 1.32 us
 
+
+2004-02-04:
+
+    After writing new function calling code, I reverted the changes again.
+    It's better to integrate ffi_types before changing the calling stuff.
