@@ -73,6 +73,8 @@ def get_pointed_to(p):
         return get_pointed_to(p.typ)
     elif isinstance(p, CvQualifiedType):
         return get_pointed_to(p.typ)
+    elif isinstance(p, Typedef):
+        return get_pointed_to(p.typ)
     return p
 
 class PointerType(object):
