@@ -6,15 +6,6 @@ import unittest, sys
 
 from _ctypes import PyObj_FromPtr
 
-from _ctypes import _SimpleCData
-class PyObject(_SimpleCData):
-    _type_ = "O"
-
-if sys.platform == "win32":
-    python = getattr(pydll, "python%s%s" % sys.version_info[:2])
-else:
-    python = PyDLL(None)
-
 ################################################################
 
 from sys import getrefcount as grc
@@ -23,12 +14,12 @@ from sys import getrefcount as grc
 class PythonAPITestCase(unittest.TestCase):
 
     def test_PyString_FromString(self):
-        python.PyString_FromString.restype = PyObject
-        python.PyString_FromString.argtypes = (c_char_p,)
+        pythonapi.PyString_FromString.restype = py_object
+        pythonapi.PyString_FromString.argtypes = (c_char_p,)
 
         s = "abc"
         refcnt = grc(s)
-        pyob = python.PyString_FromString(s)
+        pyob = pythonapi.PyString_FromString(s)
         self.failUnlessEqual(grc(s), refcnt)
         self.failUnlessEqual(s, pyob)
         del pyob
@@ -36,15 +27,15 @@ class PythonAPITestCase(unittest.TestCase):
 
     def test_PyInt_Long(self):
         ref42 = grc(42)
-        python.PyInt_FromLong.restype = PyObject
-        self.failUnlessEqual(python.PyInt_FromLong(42), 42)
+        pythonapi.PyInt_FromLong.restype = py_object
+        self.failUnlessEqual(pythonapi.PyInt_FromLong(42), 42)
 
         self.failUnlessEqual(grc(42), ref42)
 
-        python.PyInt_AsLong.argtypes = (PyObject,)
-        python.PyInt_AsLong.restype = c_int
+        pythonapi.PyInt_AsLong.argtypes = (py_object,)
+        pythonapi.PyInt_AsLong.restype = c_int
 
-        res = python.PyInt_AsLong(42)
+        res = pythonapi.PyInt_AsLong(42)
         self.failUnlessEqual(grc(res), ref42 + 1)
         del res
         self.failUnlessEqual(grc(42), ref42)
@@ -59,6 +50,20 @@ class PythonAPITestCase(unittest.TestCase):
         self.failUnlessEqual(grc(s), ref + 1)
         del pyobj
         self.failUnlessEqual(grc(s), ref)
+
+    def test_PyOS_snprintf(self):
+        PyOS_snprintf = pythonapi.PyOS_snprintf
+        PyOS_snprintf.argtypes = POINTER(c_char), c_int, c_char_p
+
+        buf = c_buffer(256)
+        PyOS_snprintf(buf, sizeof(buf), "Hello from %s", "ctypes")
+        self.failUnlessEqual(buf.value, "Hello from ctypes")
+
+        PyOS_snprintf(buf, sizeof(buf), "Hello from %s", "ctypes", 1, 2, 3)
+        self.failUnlessEqual(buf.value, "Hello from ctypes")
+
+        # not enough arguments
+        self.failUnlessRaises(TypeError, PyOS_snprintf, buf)
 
 if __name__ == "__main__":
     unittest.main()
