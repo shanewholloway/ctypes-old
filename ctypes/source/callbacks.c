@@ -225,7 +225,6 @@ static void _CallPythonObject(void *mem,
 }
 
 typedef struct {
-/*	ffi_closure cl; /* the C callable */
 	ffi_closure *pcl; /* the C callable */
 	ffi_cif cif;
 	PyObject *converters;
