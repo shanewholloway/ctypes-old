@@ -727,6 +727,9 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 
 	dict = PyType_stgdict(restype);
 	if (dict && dict->getfunc) {
+		/* ffi.h defines the endianness:
+		   1234 = LIL_ENDIAN, 4321 = BIGENDIAN */
+#if (BYTEORDER == 4321)
 		/* This hack is needed for big endian machines.
 		   Is there another way?
 		 */
@@ -750,6 +753,7 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 			return dict->getfunc(&l, dict->size);
 #endif
 		}
+#endif
 		return dict->getfunc(&result->value, dict->size);
 	}
 	if (PyCallable_Check(restype))
