@@ -148,12 +148,21 @@ TryAddRef(StgDictObject *dict, PyObject *obj)
  * Call the python object with all arguments
  *
  */
-static void _CallPythonObject(void *mem,
-			      ffi_type *restype,
-			      SETFUNC setfunc,
-			      PyObject *callable,
-			      PyObject *converters,
-			      void **pArgs)
+typedef struct {
+	ffi_closure *pcl; /* the C callable */
+	ffi_cif cif;
+	PyObject *converters;
+	PyObject *callable;
+	PyObject *restype;
+	SETFUNC setfunc;
+	ffi_type *ffi_restype;
+	ffi_type *atypes[0];
+} ffi_info;
+
+static void _CallPythonObject(ffi_cif *cif,
+			      void *mem,
+			      void **pArgs,
+			      ffi_info *pinfo)
 {
 	int i;
 	PyObject *result;
@@ -166,7 +175,7 @@ static void _CallPythonObject(void *mem,
 	EnterPython();
 #endif
 
-	nArgs = PySequence_Length(converters);
+	nArgs = PySequence_Length(pinfo->converters);
 	/* Hm. What to return in case of error?
 	   For COM, 0xFFFFFFFF seems better than 0.
 	*/
@@ -182,7 +191,7 @@ static void _CallPythonObject(void *mem,
 	}
 	for (i = 0; i < nArgs; ++i) {
 		/* Note: new reference! */
-		PyObject *cnv = PySequence_GetItem(converters, i);
+		PyObject *cnv = PySequence_GetItem(pinfo->converters, i);
 		StgDictObject *dict;
 		if (cnv)
 			dict = PyType_stgdict(cnv);
@@ -221,7 +230,7 @@ static void _CallPythonObject(void *mem,
 #define CHECK(what, x) \
 if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
 
-	result = PyObject_CallObject(callable, arglist);
+	result = PyObject_CallObject(pinfo->callable, arglist);
 	CHECK("'calling callback function'", result);
 	if (result && result != Py_None) { /* XXX What is returned for Py_None ? */
 		/* another big endian hack */
@@ -232,31 +241,31 @@ if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
 			long l;
 		} r;
 		PyObject *keep;
-		switch (restype->size) {
+		switch (pinfo->ffi_restype->size) {
 		case 1:
-			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
+			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.c;
 			break;
 		case SIZEOF_SHORT:
-			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
+			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.s;
 			break;
 		case SIZEOF_INT:
-			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
+			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.i;
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
-			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
+			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.l;
 			break;
 #endif
 		default:
-			keep = setfunc(mem, result, 0, NULL); /* XXX need type */
+			keep = pinfo->setfunc(mem, result, 0, pinfo->restype);
 			CHECK("'converting callback result'", keep);
 			break;
 		}
@@ -276,31 +285,6 @@ if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
 #endif
 }
 
-typedef struct {
-	ffi_closure *pcl; /* the C callable */
-	ffi_cif cif;
-	PyObject *converters;
-	PyObject *callable;
-	SETFUNC setfunc;
-	ffi_type *restype;
-	ffi_type *atypes[0];
-} ffi_info;
-
-static void closure_fcn(ffi_cif *cif,
-			void *resp,
-			void **args,
-			void *userdata)
-{
-	ffi_info *p = userdata;
-
-	_CallPythonObject(resp,
-			  p->restype,
-			  p->setfunc,
-			  p->callable,
-			  p->converters,
-			  args);
-}
-
 void FreeCallback(THUNK thunk)
 {
 	FreeClosure(*(void **)thunk);
@@ -317,6 +301,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	int nArgs, i;
 	ffi_abi cc;
 
+	assert(restype);
 	nArgs = PySequence_Size(converters);
 	p = (ffi_info *)PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
 	if (p == NULL) {
@@ -341,11 +326,12 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		StgDictObject *dict = PyType_stgdict(restype);
 		if (dict) {
 			p->setfunc = dict->setfunc;
-			p->restype = &dict->ffi_type;
+			p->ffi_restype = &dict->ffi_type;
 		} else {
 			p->setfunc = getentry("i")->setfunc;
-			p->restype = &ffi_type_sint;
+			p->ffi_restype = &ffi_type_sint;
 		}
+		p->restype = restype;
 	}
 
 	cc = FFI_DEFAULT_ABI;
@@ -362,7 +348,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyMem_Free(p);
 		return NULL;
 	}
-	result = ffi_prep_closure(p->pcl, &p->cif, closure_fcn, p);
+	result = ffi_prep_closure(p->pcl, &p->cif, _CallPythonObject, p);
 	if (result != FFI_OK) {
 		PyErr_Format(PyExc_RuntimeError,
 			     "ffi_prep_closure failed with %d", result);
