@@ -30,8 +30,9 @@ class OperatorFunction(_HasArgs):
         self.arguments = []
 
 class FunctionType(_HasArgs):
-    def __init__(self, returns):
+    def __init__(self, returns, attributes):
         self.returns = returns
+        self.attributes = attributes
         self.arguments = []
 
 class Method(_HasArgs):
