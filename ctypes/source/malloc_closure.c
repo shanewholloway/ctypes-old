@@ -3,6 +3,11 @@
 #include <ffi.h>
 #include "ctypes.h"
 
+
+#ifdef _DEBUG
+#define MALLOC_CLOSURE_DEBUG
+#endif
+
 #ifdef MS_WIN32
 #include <windows.h>
 #else
@@ -15,7 +20,9 @@
 
 typedef struct _tagpage {
 	struct _tagpage *next;
+	struct _tagpage *prev;
 	int count;
+	int used;
 	ffi_closure closure[0];
 } PAGE;
 
@@ -31,7 +38,7 @@ static PAGE *get_page()
 		GetSystemInfo(&systeminfo);
 		pagesize = systeminfo.dwPageSize;
 	}
-	
+
 	page = (PAGE *)VirtualAlloc(NULL,
 				    pagesize,
 				    MEM_COMMIT,
@@ -73,44 +80,45 @@ static void free_page(PAGE *page)
 #endif
 }
 
+/******************************************************************/
+
 void FreeClosure(void *p)
 {
 	PAGE *page = start;
-	PAGE *prev = NULL;
 	ffi_closure *pcl = (ffi_closure *)p;
 	int i;
-	int isfree;
 
-	while(page) {
-		isfree = 1;
+	while (page) {
 		for (i = 0; i < page->count; ++i) {
-			if (page->closure[i].cif)
-				isfree = 0;
 			if (&page->closure[i] == pcl) {
 				page->closure[i].cif = NULL;
-				return;
+				--page->used;
+				goto done;
 			}
 		}
-		if (isfree) {
-			PAGE *tmp = page;
-
-			/* unlink the current page from the chain */
-			if (prev)
-				prev->next = page->next;
-			else
-				start = page->next;
-			page = page->next;
-			/* now, page can be freed */
-			free_page(tmp);
-#ifdef MALLOC_CLOSURE_DEBUG
-			printf("FREEING page %p\n", tmp);
-#endif
-		} else {
-			prev = page;
-			page = page->next;
-		}
+		page = page->next;
 	}
 	Py_FatalError("ctypes: closure not found in heap");
+
+  done:
+	if (page->used == 0) {
+		/* unlink the current page from the chain */
+		if (page->next)
+			page->next->prev = page->prev;
+		if (page->prev) {
+			page->prev->next = page->next;
+		} else {
+			start = page->next;
+			if (start)
+				start->prev = NULL;
+		}
+
+		/* now, page can be freed */
+		free_page(page);
+#ifdef MALLOC_CLOSURE_DEBUG
+		printf("FREEING page %p\n", page);
+#endif
+	}
 }
 
 void *MallocClosure(void)
@@ -118,24 +126,34 @@ void *MallocClosure(void)
 	PAGE *page = start;
 	int i;
 
-	if (page == NULL)
-		start = page = get_page();
+	if (start == NULL)
+		page = start = get_page();
 
 	while(page) {
-		for (i = 0; i < page->count; ++i) {
-			if (page->closure[i].cif == NULL) {
-				page->closure[i].cif = (ffi_cif *)-1;
-				return &page->closure[i];
+		if (page->used < page->count) {
+			/* This page has a free entry */
+			for (i = 0; i < page->count; ++i) {
+				if (page->closure[i].cif == NULL) {
+					page->closure[i].cif = (ffi_cif *)-1;
+					++page->used;
+					return &page->closure[i];
+				}
 			}
+			/* oops, where is it? */
+			Py_FatalError("ctypes: use count on page is wrong");
 		}
 		if (page->next)
+			/* try the next page, if there is one */
 			page = page->next;
 		else {
-			PAGE *next = get_page();
-			if (next == NULL)
+			/* need a fresh page */
+			PAGE *new_page = get_page();
+			if (new_page == NULL)
 				return NULL;
-			page->next = next;
-			page = next;
+			/* insert into chain */
+			new_page->prev = page;
+			page->next = new_page;
+			page = new_page;
 		}
 	}
 	return NULL;
