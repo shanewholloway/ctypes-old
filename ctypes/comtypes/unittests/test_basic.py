@@ -75,38 +75,24 @@ class BasicTest(unittest.TestCase):
 
         # the IUnknown class has the actual methods:
         self.failUnless(IUnknown.__dict__.get("QueryInterface"))
+        # but we can call it on the pointer instance
+        POINTER(IUnknown).QueryInterface
+
+    def test_make_methods(self):
+        class IBase(IUnknown):
+            _iid_ = GUID.create_new()
+        class IDerived(IBase):
+            _iid_ = GUID.create_new()
+
+        # We cannot assign _methods_ to IDerived before IBase has it's _methods_:
+        self.assertRaises(TypeError, lambda: setattr(IDerived, "_methods_", []))
+        # Make sure that setting _methods_ failed completely.
+        self.assertRaises(KeyError, lambda: IDerived.__dict__["_methods_"])
+        IBase._methods_ = []
+        # Now it works:
+        IDerived._methods_ = []
 
 ##    def test_identity(self):
-##        p = POINTER(IUnknown)()
-####        p[0]
-##        windll.oleaut32.CreateTypeLib(1, u"blabla", byref(p))
-
-##        p = p.QueryInterface(IUnknown)
-##        other = p.QueryInterface(IUnknown)
-
-##        print other == p
-##        print other is p
-##        print "A"
-##        print "?", p[0]
-##        print "B"
-####        p[0] = 42
-##        print "C"
-##        print dir(p)
-##        from ctypes import cast, c_int
-##        print cast(other, c_int).value
-##        print cast(p, c_int).value
-
-##        x = POINTER(IUnknown)()
-##        windll.oleaut32.CreateTypeLib(1, u"blabla_2", byref(x))
-##        x = x.QueryInterface(IUnknown)
-
-##        print cast(x, c_int).value
-
-##        print "D"
-##        del p
-##        print "E"
-##        del other
-##        print "F"
 
 if __name__ == "__main__":
     unittest.main()
