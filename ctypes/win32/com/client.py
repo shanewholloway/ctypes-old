@@ -551,15 +551,18 @@ def DispatchWithEvents(progid, user_class, interface=IDispatch,
     result.__dict__["_event_handler"] = rcv._handler
     return result
 
-##def GetObject(displayName):
-##    # see also: c:/python23/lib/site-packages/win32com/client/__init__.py 47
-##    # win32com is more flexible
+def WithEvents(d, user_class):
+    class EventReceiver(_EventReceiver):
+        _com_interfaces_ = [_CreateOutgoingInterface(d._comobj, None)]
 
-##    from ctypes.com.moniker import MkParseDisplayName
-##    moniker, i, bindCtx = MkParseDisplayName(displayName)
-##    pdisp = POINTER(IDispatch)()
-##    moniker.BindToObject(bindCtx, None, byref(IDispatch._iid_), byref(pdisp))
-##    return _Dispatch(pdisp)
+    rcv = EventReceiver(user_class)
+    _objects.append(rcv)
+    info = rcv.connect(d._comobj)
+
+##    def disconnect():
+##        rcv.disconnect(info)
+
+    return rcv
 
 def GetObject(displayName):
     pdisp = POINTER(IDispatch)()
