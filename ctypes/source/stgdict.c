@@ -140,7 +140,6 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 	int len, offset, size, align, i;
 	int union_size, total_align;
 	int field_size = 0;
-	PyObject *prev_desc = NULL;
 	int bitofs;
 	PyObject *isPacked;
 	int pack = 0;
