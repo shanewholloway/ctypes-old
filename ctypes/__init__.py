@@ -2,7 +2,7 @@
 
 # special developer support to use ctypes from the CVS sandbox,
 # without installing it
-import os
+import os, sys
 _magicfile = os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")
 if os.path.isfile(_magicfile):
     execfile(_magicfile)
@@ -223,7 +223,9 @@ class CDLL:
 
     def __repr__(self):
         return "<%s '%s', handle %x at %x>" % \
-               (self.__class__.__name__, self._name, self._handle, id(self))
+               (self.__class__.__name__, self._name,
+                (self._handle & (sys.maxint*2 + 1)),
+                id(self))
 
     def __getattr__(self, name):
         if name[:2] == '__' and name[-2:] == '__':
