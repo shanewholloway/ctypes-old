@@ -17,7 +17,7 @@ Overview
     platform.
 
     On windows, ctypes contains a ctypes.com package which allows to
-    descrive, call, and implement custom com interfaces.
+    call and implement custom COM interfaces.
 
 
 Changes in 0.9.1
@@ -40,12 +40,19 @@ Changes in 0.9.1
     The alignment function was not exported by the ctypes module.  It
     returns the alignment requirements in bytes of a type or instance.
 
+  experimental changes
+
     It is now possible to call Python API functions with ctypes.  This
     is an experimental feature and will probably change.  Please don't
     use it yet in production code, and watch the ctypes-users mailing
     list.
 
   ctypes.com changes
+
+    ctypes now caches the types that WINFUNCTYPE and CFUNCTYPE
+    creates, to avoid creation of a lot of similar classes. This makes
+    importing files containing a lot of COM interfaces (like the ones
+    that the readtlb tool generates) a lot (10 x) faster.
 
     COM servers now print a short usage message when they are run
     without the /regserver or /unregserver flag.
