@@ -3233,15 +3233,15 @@ EXPORT int _testfunc_callback_with_pointer(int (*func)(int *))
 }
 
 #ifdef HAVE_LONG_LONG
-EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
-				     double d, LONG_LONG q)
+EXPORT PY_LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
+				     double d, PY_LONG_LONG q)
 {
-	return (LONG_LONG)(b + h + i + l + f + d + q);
+	return (PY_LONG_LONG)(b + h + i + l + f + d + q);
 }
 
-EXPORT LONG_LONG _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
+EXPORT PY_LONG_LONG _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
 {
-	return (LONG_LONG)(b + h + i + l + f + d);
+	return (PY_LONG_LONG)(b + h + i + l + f + d);
 }
 
 EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
@@ -3254,9 +3254,9 @@ EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
 	return sum;
 }
 
-EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG))
+EXPORT PY_LONG_LONG _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
 {
-	LONG_LONG sum = 0;
+	PY_LONG_LONG sum = 0;
 
 	while (value != 0) {
 		sum += func(value);

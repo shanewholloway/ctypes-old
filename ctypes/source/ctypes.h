@@ -5,6 +5,14 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+/*
+  Backwards compatibility:
+  Python2.2 used LONG_LONG instead of PY_LONG_LONG
+*/
+#if defined(HAVE_LONG_LONG) && !defined(PY_LONG_LONG)
+#define PY_LONG_LONG LONG_LONG
+#endif
+
 typedef struct tagCDataObject CDataObject;
 typedef int (*THUNK)(void);
 
@@ -199,7 +207,7 @@ typedef struct {
 		int i;
 		long l;
 #ifdef HAVE_LONG_LONG
-		LONG_LONG q;
+		PY_LONG_LONG q;
 #endif
 		double d;
 		float f;
