@@ -430,17 +430,52 @@ static int _call_function_pointer(int flags,
 	void **values;
 	int i;
 
+/*
+  There's a problem with current CVS versions of libffi (2003-01-21).
+  It redefines ffi_type_slong and ffi_type_ulong to
+  ffi_type_sint64 and ffi_type_uint64.
+
+  Fortunately, ctypes' unittests catch this.
+
+	printf("SIZEOF_LONG %d\n", SIZEOF_LONG);
+
+	printf("ffi_type_slong %p\n", &ffi_type_slong);
+	printf("ffi_type_sint64 %p\n", &ffi_type_sint64);
+	printf("ffi_type_sint %p\n", &ffi_type_sint);
+	printf("ffi_type_sint32 %p\n", &ffi_type_sint32);
+*/
+
 	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
 	values = (void **)alloca(argcount * sizeof(void *));
 
 	for (i = 0; i < argcount; ++i) {
 		switch(parms[i]->tag) {
 		case 'c':
+			atypes[i] = &ffi_type_schar;
+			break;
 		case 'b':
+			atypes[i] = &ffi_type_sint8;
+			break;
+		case 'B':
 			atypes[i] = &ffi_type_uint8;
+			break;
+		case 'h':
+			atypes[i] = &ffi_type_sshort;
+			break;
+		case 'H':
+			atypes[i] = &ffi_type_ushort;
 			break;
 		case 'i':
 			atypes[i] = &ffi_type_sint;
+			break;
+		case 'I':
+			atypes[i] = &ffi_type_uint;
+			break;
+		case 'l':
+			atypes[i] = &ffi_type_slong;
+			break;
+		case 'L':
+			atypes[i] = &ffi_type_ulong;
 			break;
 		case 'z':
 		case 'Z':
@@ -464,7 +499,6 @@ static int _call_function_pointer(int flags,
 	case 'i':
 		rtype = &ffi_type_sint;
 		break;
-//	case 's':
 	case 'z':
 	case 'Z':
 	case 'P':
@@ -472,6 +506,9 @@ static int _call_function_pointer(int flags,
 		break;
 	case 'd':
 		rtype = &ffi_type_double;
+		break;
+	case 'f':
+		rtype = &ffi_type_float;
 		break;
 	default:
 		printf("RES ????? %c\n", res->tag);
