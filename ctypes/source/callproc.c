@@ -400,6 +400,23 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 		return parm;
 	}
 
+	if (PyLong_Check(obj)) {
+		parm->tag = 'i';
+		parm->value.i = (long)PyLong_AsUnsignedLong(obj);
+		if (parm->value.i == -1 && PyErr_Occurred()) {
+			PyErr_Clear();
+			parm->value.i = PyLong_AsLong(obj);
+			if (parm->value.i == -1 && PyErr_Occurred()) {
+				PyErr_SetString(PyExc_OverflowError,
+						"long int too long to convert");
+				return NULL;
+			}
+		}
+		Py_INCREF(obj);
+		parm->obj = obj;
+		return parm;
+	}
+
 	if (PyString_Check(obj)) {
 		parm->tag = 'P';
 		parm->value.p = PyString_AS_STRING(obj);
