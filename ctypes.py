@@ -22,12 +22,10 @@ from _ctypes import FUNCFLAG_CDECL
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
          FreeLibrary as _FreeLibrary
-    from _ctypes import DynFunction as _DynFunction
     from _ctypes import FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
 elif _os.name == "posix":
     from _ctypes import dlopen as _LoadLibrary
     _FreeLibrary = None
-    from _ctypes import DynFunction as _DynFunction
 
 from _ctypes import sizeof, byref, addressof
 

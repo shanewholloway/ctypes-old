@@ -26,7 +26,6 @@ CData_Type
   CWString_Type		_as_parameter_, raw, value
 
 CFunction_Type		__new__(), __init__(), _as_parameter_, callable
-DynFunction_Type	__new__(), __init__(), result_type, restype, argtypes
 
 CField_Type
 StgDict_Type
@@ -94,7 +93,6 @@ bytes(cdata)
  * CString_Type
  * CField_Type
  * CFunction_Type
- * DynFunction_Type
  *
  */
 
@@ -3375,254 +3373,6 @@ PyTypeObject CFunction_Type = {
 	0,					/* tp_free */
 };
 
-
-/******************************************************************/
-/*
- * DynFunction_Type
- *
- * XXX Idea: move is_cdecl to a flags member.
- * Flags would be FLAG_CDECL, FLAG_HRESULT, ???
- */
-
-typedef struct {
-	PyObject_HEAD
-	PyObject *dll;
-	int (* address)(void);
-	PyObject *argtypes;
-	int flags;
-	PyObject *restype;
-	char *name;
-} DynFunctionObject;
-
-static PyObject *
-DynFunction_call(DynFunctionObject *self, PyObject *args)
-{
-	int l1, l2;
-	if (self->argtypes) {
-		l1 = PyTuple_GET_SIZE(args);
-		l2 = PyTuple_GET_SIZE(self->argtypes);
-		if (l1 != l2) {
-			PyErr_Format(PyExc_ValueError,
-				     "Got %d arguments instead of %d",
-				     l1, l2);
-			return NULL;
-		}
-	}
-	return _CallProc(self->address,
-			 args,
-			 NULL,
-			 self->flags,
-			 self->argtypes,
-			 self->restype);
-}
-
-static PyObject *
-DynFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
-{
-	char *name;
-	int (* address)(void);
-	PyObject *dll;
-	PyObject *argtypes = NULL;
-	PyObject *obj;
-	DynFunctionObject *self;
-	int flags = 0;
-
-	void *handle;
-
-	if (!PyArg_ParseTuple(args, "sO|iO!", &name, &dll, &flags, &PyList_Type, &argtypes))
-		return NULL;
-
-	obj = PyObject_GetAttrString(dll, "_handle");
-	if (!obj)
-		return NULL;
-	if (!PyInt_Check(obj)) {
-		Py_DECREF(obj);
-		return NULL;
-	}
-	handle = (void *)PyInt_AS_LONG(obj);
-	Py_DECREF(obj);
-
-#ifdef MS_WIN32
-	address = (PPROC)GetProcAddress(handle, name);
-	if (!address) {
-		PyErr_Format(PyExc_ValueError,
-			     "function '%s' not found",
-			     name);
-		return NULL;
-	}
-#else
-	address = (PPROC)dlsym(handle, name);
-	if (!address) {
-		PyErr_Format(PyExc_ValueError,
-			     dlerror());
-		return NULL;
-	}
-#endif
-	self = (DynFunctionObject *)type->tp_alloc(type, 0);
-	if (!self)
-		return NULL;
-	Py_INCREF(dll);
-	self->dll = dll;
-	self->address = address;
-	Py_XINCREF(argtypes);
-	self->argtypes = argtypes;
-	self->flags = flags;
-	self->restype = NULL;
-	self->name = strdup(name);
-	return (PyObject *)self;
-}
-
-static int
-DynFunction_init(PyObject *self, PyObject *args, PyObject *kw)
-{
-	return 0;
-}
-
-void DynFunction_dealloc(DynFunctionObject *self)
-{
-	Py_XDECREF(self->dll);
-	Py_XDECREF(self->argtypes);
-	Py_XDECREF(self->restype);
-	if (self->name)
-		free(self->name);
-	self->ob_type->tp_free((PyObject *)self);
-}
-
-static int
-DynFunction_set_restype(DynFunctionObject *self, PyObject *value)
-{
-	StgDictObject *dict = PyType_stgdict(value);
-	if (!dict && !PyCallable_Check(value)) {
-		PyErr_SetString(PyExc_TypeError,
-				"restype must be a type or callable");
-		return -1;
-	}
-	Py_XDECREF(self->restype);
-	Py_INCREF(value);
-	self->restype = value;
-	return 0;
-}
-
-
-static PyObject *
-DynFunction_get_restype(DynFunctionObject *self)
-{
-	if (self->restype) {
-		Py_INCREF(self->restype);
-		return self->restype;
-	}
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-static int
-DynFunction_set_argtypes(DynFunctionObject *self, PyObject *value)
-{
-	PyObject *types;
-	int size, i;
-
-	size = PySequence_Size(value);
-	if (size == -1) {
- 		PyErr_SetString(PyExc_TypeError,
- 				"sequence expected");
-		return -1;
-	}
-	types = PyTuple_New(size);
-	if (!types)
-		return -1;
-
-	for (i = 0; i < size; ++i) {
-		PyObject *o, *v;
-		o = PySequence_GetItem(value, i);
-		if (!o)
-			goto error;
-		v = PyObject_GetAttrString(o, "from_param");
-		Py_DECREF(o);
-		if (!v || !PyCallable_Check(v)) {
-			Py_XDECREF(v);
-			PyErr_SetString(PyExc_TypeError,
-					"sequence items must have a "
-					"callable 'from_param' attribute");
-			goto error;
-		}
-		PyTuple_SET_ITEM(types, i, v); /* consumes v's reference */
-	}
-
-	Py_XDECREF(self->argtypes);
-
-	self->argtypes = types;
-	return 0;
-  error:
-	Py_DECREF(types);
-	return -1;
-}
-
-static PyObject *
-DynFunction_get_argtypes(DynFunctionObject *self)
-{
-	if (self->argtypes == NULL) {
-		Py_INCREF(Py_None);
-		return Py_None;
-	}
-	Py_INCREF(self->argtypes);
-	return self->argtypes;
-}
-
-static PyGetSetDef DynFunction_getsets[] = {
-	{ "argtypes", (getter)DynFunction_get_argtypes, (setter)DynFunction_set_argtypes,
-	  "the argument types" },
-	{ "restype", (getter)DynFunction_get_restype, (setter)DynFunction_set_restype,
-	  "the result type" },
-	{ NULL },
-};
-
-static char DynFunction_doc[] =
-"DynFunction(name, dll[, flags=0[, argtypes]]) -> function\n"
-"\n"
-"Retrieve a function from a dll and return a callable object.";
-
-PyTypeObject DynFunction_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0,					/* ob_size */
-	"_ctypes.DynFunction",			/* tp_name */
-	sizeof(DynFunctionObject),		/* tp_basicsize */
-	0,					/* tp_itemsize */
-	(destructor)DynFunction_dealloc,	/* tp_dealloc */
-	0,					/* tp_print */
-	0,					/* tp_getattr */
-	0,					/* tp_setattr */
-	0,					/* tp_compare */
-	0,			       		/* tp_repr */
-	0,					/* tp_as_number */
-	0,					/* tp_as_sequence */
-	0,					/* tp_as_mapping */
-	0,					/* tp_hash */
-	(ternaryfunc)DynFunction_call,		/* tp_call */
-	0,					/* tp_str */
-	0,					/* tp_getattro */
-	0,					/* tp_setattro */
-	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-	DynFunction_doc,			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
-	0,					/* tp_richcompare */
-	0,					/* tp_weaklistoffset */
-	0,					/* tp_iter */
-	0,					/* tp_iternext */
-	0,					/* tp_methods */
-	0,					/* tp_members */
-	DynFunction_getsets,			/* tp_getset */
-	0,					/* tp_base */
-	0,					/* tp_dict */
-	0,					/* tp_descr_get */
-	0,					/* tp_descr_set */
-	0,					/* tp_dictoffset */
-	DynFunction_init,			/* tp_init */
-	0,					/* tp_alloc */
-	DynFunction_new,			/* tp_new */
-	0,					/* tp_free */
-};
-
 /******************************************************************/
 /*
  *  Module initialization.
@@ -3916,10 +3666,6 @@ init_ctypes(void)
 	 *
 	 * Other stuff
 	 */
-
-	if (PyType_Ready(&DynFunction_Type) < 0)
-		return;
-	PyModule_AddObject(m, "DynFunction", (PyObject *)&DynFunction_Type);
 
 #ifdef MS_WIN32
 	PyModule_AddObject(m, "FUNCFLAG_HRESULT", PyInt_FromLong(FUNCFLAG_HRESULT));
