@@ -229,7 +229,7 @@ sc_retfloat:
 
 sc_retdouble:
 		cmp ecx, FFI_TYPE_DOUBLE
-		jne sc_retdouble
+		jne sc_retlongdouble
 //        movl  24(%ebp),%ecx
 		mov ecx, [ebp+24]
 		fstp QWORD PTR [ecx]
