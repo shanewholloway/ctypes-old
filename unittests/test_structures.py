@@ -1,7 +1,6 @@
 import unittest
 from ctypes import *
 from struct import calcsize
-from _ctypes import alignment
 
 class StructureTestCase(unittest.TestCase):
     formats = {"c": c_char,
@@ -36,6 +35,7 @@ class StructureTestCase(unittest.TestCase):
                                  (calcsize("%c" % (code)), code))
 
     def test_struct_alignment(self):
+        from _ctypes import alignment
         class X(Structure):
             _fields_ = [("x", c_char * 3)]
         self.failUnlessEqual(alignment(X), calcsize("s"))
@@ -67,6 +67,7 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(sizeof(XX), calcsize("3s 3s 0s"))
 
     def test_emtpy(self):
+        from _ctypes import alignment
         # I had problems with these
         #
         # Although these are patological cases: Empty Structures!
@@ -227,6 +228,25 @@ class StructureTestCase(unittest.TestCase):
         except Exception, detail:
             return detail.__class__, str(detail)
                 
+
+class PointerMemberTestCase(unittest.TestCase):
+
+    def test(self):
+        # a Structure with a POINTER field
+        class S(Structure):
+            _fields_ = [("array", POINTER(c_int))]
+
+        s = S()
+        # We can assign arrays of the correct type
+        s.array = (c_int * 3)(1, 2, 3)
+        items = [s.array[i] for i in range(3)]
+        self.failUnlessEqual(items, [1, 2, 3])
+
+        # The following are bugs:
+        # This fails with SystemError: bad arg to internal function
+        # s.array[0] = 42
+        # and this one with IndexError: invalid index
+        # s.array[1] = 42
 
 if __name__ == '__main__':
     unittest.main()
