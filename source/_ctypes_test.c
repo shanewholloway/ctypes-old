@@ -159,8 +159,6 @@ EXPORT(int) _testfunc_callback_i_iif(int value, int (*func)(int, int))
 		sum += func(value, value*2);
 		value /= 2;
 	}
-	if (sum == 0)
-		_asm ret 8 ; a comment
 	return sum;
 }
 
