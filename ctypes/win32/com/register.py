@@ -28,7 +28,9 @@ def _register(cls):
         if is_frozen():
             value = "%s /automation" % sys.executable
         else:
-            value = "%s %s /automation" % (sys.executable, sys.argv[0])
+            import os
+            value = "%s %s /automation" % \
+                    (sys.executable, os.path.abspath(sys.argv[0]))
         print "LocalServer32", value
         _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
 
