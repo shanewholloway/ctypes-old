@@ -385,6 +385,24 @@ size property/method, and the sequence protocol.
 
 */
 
+static int
+PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
+{
+	if (proto && !PyType_Check(proto)) {
+		PyErr_SetString(PyExc_TypeError,
+				"_type_ must be a type");
+		return -1;
+	}
+	if (proto && !PyType_stgdict(proto)) {
+		PyErr_SetString(PyExc_TypeError,
+				"_type_ must have storage info");
+		return -1;
+	}
+	Py_INCREF(proto);
+	stgdict->proto = proto;
+	return 0;
+}
+
 static PyObject *
 PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -396,23 +414,10 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	typedict = PyTuple_GetItem(args, 2);
 	if (!typedict)
 		return NULL;
-
-	proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
-
-	if (proto && !PyType_Check(proto)) {
-		PyErr_SetString(PyExc_TypeError,
-				"_type_ must be a type");
-		return NULL;
-	}
-	if (proto && !PyType_stgdict(proto)) {
-		PyErr_SetString(PyExc_TypeError,
-				"_type_ must have storage info");
-		return NULL;
-	}
-
-	/* Hm. We should require a _type_ object in the dict,
-	 * and build a CField from it. Or not? */
-
+/*
+  stgdict items size, align, length contain info about pointers itself,
+  stgdict->proto has info about the pointed to type!
+*/
 	stgdict = (StgDictObject *)PyObject_CallObject(
 		(PyObject *)&StgDict_Type, NULL);
 	if (!stgdict)
@@ -420,8 +425,12 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->size = sizeof(void *);
 	stgdict->align = getentry("P")->align;
 	stgdict->length = 1;
-	Py_XINCREF(proto);
-	stgdict->proto = proto;
+
+	proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
+	if (proto && -1 == PointerType_SetProto(stgdict, proto)) {
+		Py_DECREF((PyObject *)stgdict);
+		return NULL;
+	}
 
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
@@ -447,34 +456,11 @@ PointerType_set_type(PyTypeObject *self, PyObject *type)
 {
 	StgDictObject *dict;
 
-/* XXX. Before, this did check if type is an instance of CDataType_Type,
-   the common CData_Type metaclass. Since this does not exist any longer,
-   we have to do it differently. Check this code again!!!
-*/
-	if (!PyType_stgdict(type)) {
-		PyErr_SetString(PyExc_TypeError,
-				"object unusable as Pointer type");
-		return NULL;
-	}
+	dict = PyType_stgdict((PyObject *)self);
+	assert(dict);
 
-	/* Is this check needed? Don't think so... */
-	if (!PyType_HasFeature(self, Py_TPFLAGS_HAVE_CLASS)
-	    || !self->tp_dict || !StgDict_Check(self->tp_dict)) {
-		PyErr_Format(PyExc_TypeError,
-			     "%s has not a stgdict",
-			     self->tp_name);
+	if (-1 == PointerType_SetProto(dict, type))
 		return NULL;
-	}
-	dict = (StgDictObject *)self->tp_dict;
-	if (dict->proto) {
-		PyErr_Format(PyExc_ValueError,
-			     "type already set for %s",
-			     self->tp_name);
-		return NULL;
-	}
-
-	Py_INCREF(type);
-	dict->proto = type;
 
 	if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
 		return NULL;
@@ -1327,6 +1313,8 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 	mem = PyObject_Call(type, args, kw);
 	Py_DECREF(kw);
 	Py_DECREF(args);
+	if (mem == NULL)
+		return NULL;
 			    
 	/* XXX cobj will be invalid once we leave this function! */
 	assert(cobj->ob_refcnt == 1);
@@ -1352,6 +1340,8 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	if (type) {
 		StgDictObject *dict;
 		dict = PyType_stgdict(type);
+		if (dict)
+			assert(size == dict->size);
 		if (dict && dict->getfunc)
 			return dict->getfunc(adr, dict->size);
 		return CData_FromBaseObj(type, src, index, adr);
@@ -2442,14 +2432,10 @@ static PyTypeObject Simple_Type = {
 static PyObject *
 Pointer_item(CDataObject *self, int index)
 {
-	int size;
-	StgDictObject *stgdict;
-
-	if (index != 0) {
-		PyErr_SetString(PyExc_IndexError,
-				"invalid index");
-		return NULL;
-	}
+	int size, offset;
+	StgDictObject *stgdict, *itemdict;
+	PyObject *base;
+	PyObject *proto;
 
 	if (*(void **)self->b_ptr == NULL) {
 		PyErr_SetString(PyExc_ValueError,
@@ -2459,10 +2445,19 @@ Pointer_item(CDataObject *self, int index)
 
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
-	size = stgdict->size / stgdict->length;
+	
+	proto = stgdict->proto;
+	itemdict = PyType_stgdict(proto);
+	size = itemdict->size;
+	offset = index * itemdict->size;
 
-	return CData_get(stgdict->proto, stgdict->getfunc, (PyObject *)self,
-			 index, size, *(void **)self->b_ptr);
+	/* XXX explain! */
+	if (index != 0)
+		base = NULL;
+	else
+		base = (PyObject *)self;
+	return CData_get(stgdict->proto, stgdict->getfunc, base,
+			 index, size, (*(char **)self->b_ptr) + offset);
 }
 
 static int
@@ -3456,6 +3451,8 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
   	VARIANT *va;
  	OLECHAR FAR * FAR *p;
 	FUNCDESC *f = (FUNCDESC *)(arg->b_ptr);
+
+	ELEMDESC *pelemdesc = *(ELEMDESC **)arg->b_ptr;
  	int *pi;
  	char *cp;
  	char **cpp;
