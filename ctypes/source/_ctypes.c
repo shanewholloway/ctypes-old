@@ -1606,8 +1606,19 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		memcpy(ptr,
 		       src->b_ptr,
 		       size);
-		Py_INCREF(value);
-		return value;
+		/* If the target type is a pointer type, we have to return the
+		   source object complete, because the whole object incuding
+		   it's memory buffer must be kept.  Otherwise, we only return
+		   it's object list, the buffer is not needed.
+		*/
+		if (PointerTypeObject_Check(type)) {
+			Py_INCREF(value);
+			return value;
+		} else {
+			value = CData_GetList(src);
+			Py_INCREF(value);
+			return value;
+		}
 	}
 
 	if (PointerTypeObject_Check(type)
@@ -1624,8 +1635,15 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 			return NULL;
 		}
 		*(void **)ptr = src->b_ptr;
-		Py_INCREF(value);
-		return value;
+		/* See comment above */
+		if (PointerTypeObject_Check(type)) {
+			Py_INCREF(value);
+			return value;
+		} else {
+			value = CData_GetList(src);
+			Py_INCREF(value);
+			return value;
+		}
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "incompatible types, %s instance instead of %s instance",

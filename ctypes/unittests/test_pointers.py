@@ -121,6 +121,22 @@ class PointersTestCase(unittest.TestCase):
         self.failUnlessEqual(p[0], 42)
         self.failUnlessEqual(p.contents.value, 42)
         
+    def test_incomplete(self):
+        lpcell = POINTER("cell")
+        class cell(Structure):
+            _fields_ = [("value", c_int),
+                        ("next", lpcell)]
+        SetPointerType(lpcell, cell)
+
+        c = cell()
+        c.value = 42
+        c.next = pointer(c)
+        # The following line: SystemError: bad argument to internal function
+##XXX        print c, c.next[0]
+##        print c.value, c.next[0]
+##        for i in range(8):
+##            c = c.next[0]
+##            print c.value
     
 def get_suite():
     return unittest.makeSuite(PointersTestCase)
