@@ -59,11 +59,12 @@ if os.name == "nt":
                               "source/libffi_msvc/ffitarget.h",
                               "source/libffi_msvc/ffi_common.h"])
 else:
-    include_dirs = []
-    library_dirs = []
-    if os.path.exists('source/libffi'):
-        include_dirs.append('source/libffi/include')
-        library_dirs.append('source/libffi/lib')
+    include_dirs = ["build/libffi/include",
+                    "build/libffi/lib/gcc/3.5.0/include/libffi"]
+    library_dirs = ["build/libffi/lib"]
+##    if os.path.exists('source/libffi'):
+##        include_dirs.append('source/libffi/include')
+##        library_dirs.append('source/libffi/lib')
     extra_link_args = []
     if sys.platform == "darwin":
         kw["sources"].append("source/darwin/dlfcn_simple.c")
@@ -94,18 +95,23 @@ if sys.platform == 'darwin':
         print "Fixing Apple strangeness in Python configuration"
         distutils.sysconfig._config_vars['LDSHARED'] = y
 
-LIBFFI_SOURCES='libffi-src'
+##LIBFFI_SOURCES='libffi-src'
+LIBFFI_SOURCES='../gcc/libffi'
 if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h'):
     # A system with a pre-existing libffi.
     LIBFFI_SOURCES=None
 
 def subprocess(taskName, cmd, validRes=None):
     print "Performing task: %s" % (taskName,)
-    fd = os.popen(cmd, 'r')
-    for ln in fd.xreadlines():
-        sys.stdout.write(ln)
+    res = os.system(cmd)
+    validRes = 0
+##    fd = os.popen(cmd, 'r')
+##    for data in fd.read(256):
+##        sys.stdout.write(data)
+##        if not data:
+##            break
 
-    res = fd.close()
+##    res = fd.close()
     if res is not validRes:
         sys.stderr.write("Task '%s' failed [%d]\n"%(taskName, res))
         sys.exit(1)
@@ -119,7 +125,7 @@ if sys.version_info < req_ver:
 
 if LIBFFI_SOURCES is not None:
 
-    def task_build_libffi():
+    def task_build_libffi(force=0):
         if not os.path.isdir(LIBFFI_SOURCES):
             sys.stderr.write(
                 'LIBFFI_SOURCES is not a directory: %s\n'%LIBFFI_SOURCES)
@@ -135,7 +141,7 @@ if LIBFFI_SOURCES is not None:
         if not os.path.exists('build/libffi/BLD'):
             os.mkdir('build/libffi/BLD')
 
-        if not os.path.exists('build/libffi/lib/libffi.a'):
+        if force or not os.path.exists('build/libffi/lib/libffi.a'):
             # No pre-build version available, build it now.
             # Do not use a relative path for the build-tree, libtool on
             # MacOS X doesn't like that.
@@ -160,6 +166,8 @@ if LIBFFI_SOURCES is not None:
     LIBFFI_LDFLAGS=[
         '-L%s/lib'%LIBFFI_BASE, '-lffi',
     ]
+    libffi_include = ["include/%s" % LIBFFI_BASE]
+    libffi_lib = ["%s/lib" % LIBFFI_BASE]
 
 else:
     def task_build_libffi():
@@ -309,8 +317,8 @@ from distutils.command import build_ext
 
 class my_build_ext(build_ext.build_ext):
     def run(self):
-        task_build_libffi()
-        build_ext.run(self)
+        task_build_libffi(self.force)
+        build_ext.build_ext.run(self)
 
 if __name__ == '__main__':
     setup(name="ctypes",
