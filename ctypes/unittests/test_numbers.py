@@ -176,12 +176,6 @@ class NumberTestCase(unittest.TestCase):
         a[0] = '?'
         self.failUnlessEqual(v.value, a[0])
 
-    def test_init(self):
-        # c_int() can be initialized from Python's int, and c_int.
-        # Not from c_long or so, which seems strange, abd should
-        # probably be changed:
-        self.assertRaises(TypeError, c_int, c_long(42))
-
 ##    def test_perf(self):
 ##        check_perf()
         
