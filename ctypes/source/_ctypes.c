@@ -2277,6 +2277,58 @@ static PPROC FindAddress(void *handle, char *name, PyObject *type)
 }
 #endif
 
+/* Returns 1 on success, 0 on error */
+static int
+_validate_paramflags(PyTypeObject *type, PyObject *paramflags)
+{
+	int i, len;
+	StgDictObject *dict = PyType_stgdict((PyObject *)type);
+	PyObject *argtypes = dict->argtypes;
+
+	if (paramflags == NULL || dict->argtypes == NULL)
+		return 1;
+
+	len = PyTuple_GET_SIZE(paramflags);
+	if (len != PyTuple_GET_SIZE(dict->argtypes)) {
+		PyErr_SetString(PyExc_ValueError,
+				"paramflags must have the same length as argtypes");
+		return 0;
+	}
+	
+	for (i = 0; i < len; ++i) {
+		PyObject *item = PyTuple_GET_ITEM(paramflags, i);
+		int flag;
+		char *name;
+		PyObject *defval;
+		PyObject *typ;
+		if (!PyArg_ParseTuple(item, "i|sO", &flag, &name, &defval)) {
+			PyErr_SetString(PyExc_TypeError,
+			       "paramflags must be a sequence of (int [,string [,value]]) tuples");
+			return 0;
+		}
+		typ = PyTuple_GET_ITEM(argtypes, i);
+		dict = PyType_stgdict(typ);
+		if ((flag & 2) && (dict->ffi_type.type != FFI_TYPE_POINTER)) {
+			PyErr_Format(PyExc_TypeError,
+				     "output parameter %d not a pointer type: %s",
+				     i+1,
+				     ((PyTypeObject *)typ)->tp_name);
+			return 0;
+		}
+		switch (flag) {
+		case PARAMFLAG_FIN:
+		case PARAMFLAG_FOUT:
+			break;
+		default:
+			PyErr_Format(PyExc_TypeError,
+				     "paramflag value %d not supported",
+				     flag);
+			return 0;
+		}
+	}
+	return 1;
+}
+
 static PyObject *
 CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -2324,12 +2376,16 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 #endif
+	if (!_validate_paramflags(type, paramflags))
+		return NULL;
+
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
 	if (!self)
 		return NULL;
 
 	Py_XINCREF(paramflags);
 	self->paramflags = paramflags;
+
 	*(void **)self->b_ptr = address;
 
 	if (-1 == KeepRef((CDataObject *)self, 0, dll)) {
@@ -2353,6 +2409,9 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	PyObject *paramflags = NULL;
 
 	if (!PyArg_ParseTuple(args, "is|O!", &index, &name, &PyTuple_Type, &paramflags))
+		return NULL;
+
+	if (!_validate_paramflags(type, paramflags))
 		return NULL;
 
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
@@ -2473,15 +2532,266 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)self;
 }
 
+
 static PyObject *
-_build_callargs(CFuncPtrObject *self, PyObject *argtypes, PyObject *inargs, PyObject *kwds)
+_byref(PyObject *obj)
 {
+	PyCArgObject *parg;
+	if (!CDataObject_Check(obj)) {
+		PyErr_SetString(PyExc_TypeError,
+				"expected CData instance");
+		return NULL;
+	}
+
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+
+	parg->tag = 'P';
+	parg->pffi_type = &ffi_type_pointer;
+	Py_INCREF(obj);
+	parg->obj = obj;
+	parg->value.p = ((CDataObject *)obj)->b_ptr;
+	return (PyObject *)parg;
+}
+
+static PyObject *
+_get_arg(int *pindex, char *name, PyObject *defval, PyObject *inargs, PyObject *kwds)
+{
+	PyObject *v;
+
+	if (*pindex < PyTuple_GET_SIZE(inargs)) {
+		v = PyTuple_GET_ITEM(inargs, *pindex);
+		++*pindex;
+		Py_INCREF(v);
+		return v;
+	}
+	if (kwds && (v = PyDict_GetItemString(kwds, name))) {
+		++*pindex;
+		Py_INCREF(v);
+		return v;
+	}
+	if (defval) {
+		Py_INCREF(defval);
+		return defval;
+	}
+	PyErr_Format(PyExc_TypeError,
+		     "required argument '%s' missing", name);
+	return NULL;
+}
+
+/*
+ This function implements higher level functionality plus the ability to call
+ functions with keyword arguments by looking at parameter flags.  parameter
+ flags is a tuple of 1, 2 or 3-tuples.  The first entry in each is an integer
+ specifying the direction of the data transfer for this parameter - 'in',
+ 'out' or 'inout' (zero means the same as 'in').  The second entry is the
+ parameter name, and the third is the default value if the parameter is
+ missing in the function call.
+
+ Note: keyword args not yet implemented!
+
+ This function builds a new tuple 'callargs' which contains the parameters to
+ use in the call.  Items on this tuple are copied from the 'inargs' tuple for
+ 'in' parameters, and constructed from the 'argtypes' tuple for 'out'
+ parameters.
+
+*/
+static PyObject *
+_build_callargs(CFuncPtrObject *self, PyObject *argtypes,
+		PyObject *inargs, PyObject *kwds,
+		PyObject **pretval)
+{
+	PyObject *paramflags = self->paramflags;
+	PyObject *callargs;
+	StgDictObject *dict;
+	int i, len;
+	int inargs_index = 0;
+	int outmask = 0;
+	/* It's a little bit difficult to determine how many arguments the
+	function call requires/accepts.  For simplicity, we count the consumed
+	args and compare this to the number of supplied args. */
+	int actual_args;
+
+	*pretval = NULL;
+	/* Trivial cases, where we either return inargs itself, or a slice of it. */
+	if (argtypes == NULL || paramflags == NULL || PyTuple_GET_SIZE(argtypes) == 0) {
 #ifdef MS_WIN32
-	if (self->index)
-		return PyTuple_GetSlice(inargs, 1, PyTuple_GET_SIZE(inargs));
+		if (self->index)
+			return PyTuple_GetSlice(inargs, 1, PyTuple_GET_SIZE(inargs));
 #endif
-	Py_INCREF(inargs);
-	return inargs;
+		Py_INCREF(inargs);
+		return inargs;
+	}
+
+	len = PyTuple_GET_SIZE(argtypes);
+	callargs = PyTuple_New(len); /* the argument tuple we build */
+	if (callargs == NULL)
+		return NULL;
+
+#ifdef MS_WIN32
+	/* For a COM method, skip the first arg */
+	if (self->index) {
+		inargs_index = 1;
+	}
+#endif
+	
+	for (i = 0; i < len; ++i) {
+		PyObject *item = PyTuple_GET_ITEM(paramflags, i);
+		PyObject *ob;
+		int flag;
+		char *name = NULL;
+		PyObject *defval = NULL;
+		if (!PyArg_ParseTuple(item, "i|sO", &flag, &name, &defval)) {
+			/* Hm. Either we should raise a more specific error
+			   here, or we should validate the paramflags tuple
+			   when it is set */
+			_AddTraceback("_build_callargs", __FILE__, __LINE__-4);
+			goto error;
+		}
+		switch (flag) {
+		case 0:
+		case PARAMFLAG_FIN:
+			/* 'in' parameter.  Copy it from inargs. */
+			ob =_get_arg(&inargs_index, name, defval, inargs, kwds);
+			if (ob == NULL)
+				goto error;
+			PyTuple_SET_ITEM(callargs, i, ob);
+			break;
+		case PARAMFLAG_FOUT:
+			/* 'out' parameter.
+			   It's argtypes must be a POINTER of a c type.
+			*/
+			ob = PyTuple_GET_ITEM(argtypes, i);
+			dict = PyType_stgdict(ob);
+			/* Create an instance of the pointed-to type */
+			ob = PyObject_CallObject(dict->proto, NULL);
+			/* Insert as byref parameter */
+			PyTuple_SET_ITEM(callargs, i, _byref(ob));
+			outmask |= (1 << i);
+			break;
+		case (PARAMFLAG_FIN | PARAMFLAG_FOUT):
+			/* for [in, out] parameters, we should probably
+			   - call _get_arg to get the [in] value
+			   - create an object with the [in] value as parameter
+			   - and then proceed in the same way as for an [out] parameter
+			*/
+		default:
+			PyErr_Format(PyExc_ValueError,
+				     "paramflag %d not yet implemented", flag);
+			goto error;
+			break;
+		}
+	}
+
+	/* We have counted the arguments we have consumed in 'inargs_index'.  This
+	   must be the same as len(inargs) + len(kwds), otherwise we have
+	   either too much or not enough arguments. */
+
+	actual_args = PyTuple_GET_SIZE(inargs) + (kwds ? PyDict_Size(kwds) : 0);
+	if (actual_args != inargs_index) {
+		/* When we have default values or named parameters, this error
+		   message is misleading.  See unittests/test_paramflags.py
+		 */
+		PyErr_Format(PyExc_TypeError,
+			     "call takes exactly %d arguments (%d given)",
+			     inargs_index, actual_args);
+		goto error;
+	}
+
+	/* outmask is a bitmask containing indexes into callargs.  Items at
+	   these indexes contain values to return.
+	 */
+
+	len = 0;
+	for (i = 0; i < 32; ++i) {
+		if (outmask & (1 << i))
+			++len;
+	}
+
+	switch (len) {
+		int j;
+	case 0:
+		*pretval = NULL;
+		break;
+	case 1:
+		for (i = 0; i < 32; ++i) {
+			if (outmask & (1 << i)) {
+				*pretval = PyTuple_GET_ITEM(callargs, i);
+				Py_INCREF(*pretval);
+				break;
+			}
+		}
+		break;
+	default:
+		*pretval = PyTuple_New(len);
+		j = 0;
+		for (i = 0; i < 32; ++i) {
+			PyObject *ob;
+			if (outmask & (1 << i)) {
+				ob = PyTuple_GET_ITEM(callargs, i);
+				Py_INCREF(ob);
+				PyTuple_SET_ITEM(*pretval, j, ob);
+				++j;
+			}
+		}
+	}
+
+	return callargs;
+  error:
+	Py_DECREF(callargs);
+	return NULL;
+}
+
+/*
+  For simple objects like c_int and friends, call dict->getfunc.
+  Otherwise, return object itself.
+
+  Hm, it's not that simple:  For a VARIANT, we would like .value as well.
+*/
+static PyObject *
+_get_one(PyObject *obj)
+{
+	PyCArgObject *arg = (PyCArgObject *)obj;
+	PyObject *result = arg->obj;
+	StgDictObject *dict = PyObject_stgdict(result);
+
+	if (dict->getfunc) {
+		CDataObject *c = (CDataObject *)result;
+		return dict->getfunc(c->b_ptr, c->b_size);
+	}
+	Py_INCREF(result);
+	return result;
+}
+
+static PyObject *
+_build_result(PyObject *result, PyObject *retval)
+{
+	int i, len;
+
+	if (retval == NULL)
+		return result;
+	if (result == NULL) {
+		Py_DECREF(retval);
+		return NULL;
+	}
+	Py_DECREF(result);
+
+	if (!PyTuple_CheckExact(retval)) {
+		PyObject *v = _get_one(retval);
+		Py_DECREF(retval);
+		return v;
+	}
+	assert (retval->ob_refcnt == 1);
+	/* We know we are sole owner of the retval tuple.  So, we can replace
+	   the values in it instead of allocating a new one.
+	*/
+	len = PyTuple_GET_SIZE(retval);
+	for (i = 0; i < len; ++i) {
+		PyObject *ob = _get_one(PyTuple_GET_ITEM(retval, i));
+		PyTuple_SetItem(retval, i, ob);
+	}
+	return retval;
 }
 
 static PyObject *
@@ -2494,6 +2804,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	PyObject *result;
 	PyObject *callargs;
+	PyObject *retval;
 #ifdef MS_WIN32
 	IUnknown *piunk = NULL;
 #endif
@@ -2520,7 +2831,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 					"Expected a COM this pointer as first argument");
 			return NULL;
 		}
-		/* there should be more checks? No, in Python*/
+		/* there should be more checks? No, in Python */
 		/* First arg is an pointer to an interface instance */
 		if (!this->b_ptr || *(void **)this->b_ptr == NULL) {
 			PyErr_SetString(PyExc_ValueError,
@@ -2538,7 +2849,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 		pProc = *(void **)self->b_ptr;
 	}
 #endif
-	callargs = _build_callargs(self, argtypes, inargs, kwds);
+	callargs = _build_callargs(self, argtypes, inargs, kwds, &retval);
 	if (callargs == NULL)
 		return NULL;
 
@@ -2582,7 +2893,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 			   restype,
 			   checker);
 	Py_DECREF(callargs);
-	return result;
+	return _build_result(result, retval);
 }
 
 static int
