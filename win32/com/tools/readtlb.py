@@ -104,9 +104,14 @@ TYPES = {
     }
 
 class TypeInfoReader:
+    _order = 0
     def __init__(self, library, typeinfo):
         self.library = library
         self.ti = typeinfo
+        # This is used to sort the interfaces later the same way they occurr in the
+        # type library.
+        self._order = TypeInfoReader._order
+        TypeInfoReader._order += 1
 
         self._get_typeattr()
         self._get_documentation()
@@ -284,8 +289,10 @@ class InterfaceReader(TypeInfoReader):
             ti.GetDocumentation(-1, byref(name), None, None, None)
             # XXX Sometimes this fails, because baseinterface is IDispatch
             # in an InterfaceReader 
-##            self.baseinterface = name.value
-            assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
+            if 0:
+                self.baseinterface = name.value
+            else:
+                assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
 
     def declaration(self):
         l = []
@@ -304,6 +311,7 @@ class InterfaceReader(TypeInfoReader):
             self.ti.GetFuncDesc(i, byref(pfd))
             fd = pfd.contents
             if i < self.nummethods:
+##            if fd.oVft/4 < self.nummethods:
                 # method belongs to base class
                 continue
             
@@ -589,11 +597,15 @@ class TypeLibReader:
         if self.interfaces:
             print >> ofi
             print >> ofi, "#" * 78
-            for guid, itf in self.interfaces.iteritems():
+            interfaces = self.interfaces.values()
+            # Write out the interfaces in the same order they have appeared
+            # in the type lib.
+            interfaces.sort(lambda a, b: cmp(a._order, b._order))
+            for itf in interfaces:
                 print >> ofi
                 print >> ofi, itf.declaration()
 
-            for guid, itf in self.interfaces.iteritems():
+            for itf in interfaces:
                 print >> ofi
                 print >> ofi, itf.definition()
 
@@ -610,7 +622,6 @@ def main():
         path = sys.argv[1]
     else:
         path = r"c:\windows\system32\shdocvw.dll"
-        # None of these will work yet..., only very simple type libs
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 
         # Microsoft PictureClip Control 6.0 (Ver 1.1)
