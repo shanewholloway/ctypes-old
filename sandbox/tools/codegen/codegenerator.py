@@ -161,42 +161,6 @@ dont_assert_size = set(
     ]
     )
 
-dll_names = """\
-imagehlp
-user32
-kernel32
-gdi32
-advapi32
-oleaut32
-ole32
-imm32
-comdlg32
-shell32
-version
-winmm
-mpr
-winscard
-winspool.drv
-urlmon
-crypt32
-cryptnet
-ws2_32
-opengl32
-glu32
-mswsock
-msvcrt
-msimg32
-netapi32
-rpcrt4""".split()
-##glut32
-
-##rpcndr
-##ntdll
-##dll_names = "libxml2".split()
-
-from ctypes import CDLL
-searched_dlls = [CDLL(name) for name in dll_names]
-
 class Generator(object):
     def __init__(self, stream, use_decorators=False):
         self.done = set()
@@ -374,7 +338,7 @@ class Generator(object):
         self.done.add(body)
 
     def find_dllname(self, name):
-        for dll in searched_dlls:
+        for dll in self.searched_dlls:
             try:
                 getattr(dll, name)
             except AttributeError:
@@ -456,12 +420,13 @@ class Generator(object):
         for item in items:
             self.generate(item)
 
-    def generate_code(self, items, known_symbols):
+    def generate_code(self, items, known_symbols, searched_dlls):
         items = set(items)
         if known_symbols:
             self.known_symbols = known_symbols
         else:
             self.known_symbols = {}
+        self.searched_dlls = searched_dlls
         loops = 0
         while items:
             loops += 1
@@ -497,7 +462,8 @@ def generate_code(xmlfile,
                   symbols=None,
                   verbose=False,
                   use_decorators=False,
-                  known_symbols=None):
+                  known_symbols=None,
+                  searched_dlls=None):
     # expressions is a sequence of compiled regular expressions,
     # symbols is a sequence of names
     from gccxmlparser import parse
@@ -535,7 +501,9 @@ def generate_code(xmlfile,
     print >> outfile, "    _fields_ = [('lpVtbl', c_void_p)]"
     print >> outfile, "def STDMETHOD(*args,**kw): pass # fake"
     print >> outfile
-    loops = gen.generate_code(items, known_symbols)
+    loops = gen.generate_code(items,
+                              known_symbols,
+                              searched_dlls)
     if verbose:
         gen.print_stats(sys.stderr)
         print >> sys.stderr, "needed %d loop(s)" % loops
