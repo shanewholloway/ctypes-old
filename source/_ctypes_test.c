@@ -429,6 +429,8 @@ typedef struct {
 	long right;
 	long bottom;
 } RECT;
+
+typedef int HWND;
 	
 #endif
 
@@ -492,7 +494,7 @@ EXPORT(int) my_GetWindowRect(HWND hwnd, RECT *prect)
 #endif
 }
 
-EXPORT(int) TwoOutArgs(int a, int *pi, int b, int *pj)
+EXPORT(void) TwoOutArgs(int a, int *pi, int b, int *pj)
 {
 	*pi = a;
 	*pj = b;

@@ -3,6 +3,9 @@
 #ifndef MS_WIN32
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
+
+#define PARAMFLAG_FIN 1
+#define PARAMFLAG_FOUT 2
 #endif
 
 /*
@@ -58,8 +61,8 @@ typedef struct {
 	PyObject *checker;
 #ifdef MS_WIN32
 	int index;
-	PyObject *paramflags;
 #endif
+	PyObject *paramflags;
 } CFuncPtrObject;
 
 extern PyTypeObject StgDict_Type;
