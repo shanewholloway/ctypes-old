@@ -4,7 +4,7 @@ import ctypes
 
 try:
     ctypes.c_wchar
-except NameError:
+except AttributeError:
     pass
 else:
     import _ctypes_test
