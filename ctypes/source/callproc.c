@@ -1045,11 +1045,13 @@ call_commethod(PyObject *self, PyObject *args)
 	PPROC *lpVtbl;
 	PyObject *result;
 	CDataObject *pcom;
+	PyObject *argtypes = NULL;
 
 	if (!PyArg_ParseTuple(args,
-			      "OiO!",
+			      "OiO!|O!",
 			      &pcom, &index,
-			      &PyTuple_Type, &arguments))
+			      &PyTuple_Type, &arguments,
+			      &PyTuple_Type, &argtypes))
 		return NULL;
 
 	if (!CDataObject_Check(pcom) || (pcom->b_size != sizeof(void *))) {
@@ -1067,11 +1069,12 @@ call_commethod(PyObject *self, PyObject *args)
 
 	pIunk = (IUnknown *)(*(void **)(pcom->b_ptr));
 	lpVtbl = (PPROC *)(pIunk->lpVtbl);
+
 	result =  _CallProc(lpVtbl[index],
 			    arguments,
 			    pIunk,
 			    FUNCFLAG_HRESULT, /* flags */
-			    NULL, /* self->argtypes */
+			    argtypes, /* self->argtypes */
 			    NULL); /* self->restype */
 	return result;
 }
