@@ -66,47 +66,46 @@ class SimpleTypesTestCase(unittest.TestCase):
 
         self.assertRaises(TypeError, LPINT.from_param, pointer(l))
 
+    def test_performance(self):
+        check_perf()
+
 ################################################################
+
+def run_test(rep, msg, func, arg=None):
+##    items = [None] * rep
+    items = range(rep)
+    from time import clock
+    if arg is not None:
+        start = clock()
+        for i in items:
+            func(arg); func(arg); func(arg); func(arg); func(arg)
+        stop = clock()
+    else:
+        start = clock()
+        for i in items:
+            func(); func(); func(); func(); func()
+        stop = clock()
+    print "%15s: %.2f us" % (msg, ((stop-start)*1e6/5/rep))
+
 
 def check_perf():
     # Convert 5 objects into parameters, using different approaches
-    from time import clock
     from ctypes import c_int, POINTER, pointer, byref
 
-    REP = 100000
+    REP = 1000000
 
-    p = c_int(42)
-    start = clock()
-    for i in range(REP):
-        byref(p); byref(p); byref(p); byref(p); byref(p)
-    stop = clock()
+    run_test(REP, "c_int.from_param(42)", c_int.from_param, 42)
+    run_test(REP, "c_int.from_param(c_int(42))", c_int.from_param, c_int(42))
 
-    # My machine, win2k, Python 2.2: 1.38 us
-    # My machine, win2k, Python 2.3: 0.68 us
-    print "byref: %.2f us" % ((stop - start)*1e6/5/REP)
+# Python 2.2 -OO, win2k, P4 700 MHz
+#
+#        c_int.from_param(42): 1.68 us
+# c_int.from_param(c_int(42)): 0.62 us
 
-    f = c_int.from_param
-    c = 42
-    start = clock()
-    for i in range(REP):
-        f(c); f(c); f(c); f(c); f(c)
-    stop = clock()
-
-    # My machine, win2k, Python 2.2: 1.76 us
-    # My machine, win2k, Python 2.3: 1.00 us
-    print "from_param(42): %.2f us" % ((stop - start)*1e6/5/REP)
-
-    f = c_int.from_param
-    c = c_int(42)
-    start = clock()
-    for i in range(REP):
-        f(c); f(c); f(c); f(c); f(c)
-    stop = clock()
-
-    # My machine, win2k, Python 2.2: 0.70 us
-    # My machine, win2k, Python 2.3: 0.55 us
-    print "from_param(c_int()): %.2f us" % ((stop - start)*1e6/5/REP)
-
+# Python 2.3 -OO, win2k, P4 700 MHz
+#
+#        c_int.from_param(42): 1.01 us
+# c_int.from_param(c_int(42)): 0.50 us
 
 def get_suite():
     return unittest.makeSuite(SimpleTypesTestCase)
