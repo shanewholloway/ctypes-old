@@ -1,7 +1,16 @@
 import unittest
 
 from ctypes import *
-import _ctypes_test
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
 
 ctype_types = [c_byte, c_ubyte, c_short, c_ushort, c_int, c_uint,
                  c_long, c_ulong, c_longlong, c_ulonglong, c_double, c_float]
@@ -10,7 +19,7 @@ python_types = [int, int, int, int, int, long,
 
 class PointersTestCase(unittest.TestCase):
     def test_pass_pointers(self):
-        dll = CDLL(_ctypes_test.__file__)
+        dll = CDLL(find_test_dll())
         func = dll._testfunc_p_p
 
         i = c_int(12345678)
@@ -24,7 +33,7 @@ class PointersTestCase(unittest.TestCase):
         self.failUnlessEqual(res[0], 12345678)
 
     def test_change_pointers(self):
-        dll = CDLL(_ctypes_test.__file__)
+        dll = CDLL(find_test_dll())
         func = dll._testfunc_p_p
 
         i = c_int(87654)
@@ -59,7 +68,7 @@ class PointersTestCase(unittest.TestCase):
             return 0
         callback = PROTOTYPE(func)
 
-        dll = CDLL(_ctypes_test.__file__)
+        dll = CDLL(find_test_dll())
         # This function expects a function pointer,
         # and calls this with an integer pointer as parameter.
         # The int pointer points to a table containing the numbers 1..10

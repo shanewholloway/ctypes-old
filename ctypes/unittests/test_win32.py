@@ -3,6 +3,17 @@
 from ctypes import *
 import unittest, sys
 
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
+
 if sys.platform == "win32":
 
     class WindowsTestCase(unittest.TestCase):
@@ -52,8 +63,7 @@ class Structures(unittest.TestCase):
                             ("right", c_long),
                             ("bottom", c_long)]
 
-            import _ctypes_test
-            dll = CDLL(_ctypes_test.__file__)
+            dll = CDLL(find_test_dll())
 
             pt = POINT(10, 10)
             rect = RECT(0, 0, 20, 20)

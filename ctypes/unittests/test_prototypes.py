@@ -21,8 +21,17 @@ import unittest
 #
 # In this case, there would have to be an additional reference to the argument...
 
-import _ctypes_test
-testdll = CDLL(_ctypes_test.__file__)
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
+testdll = CDLL(find_test_dll())
 
 def c_wbuffer(init):
     n = len(init) + 1

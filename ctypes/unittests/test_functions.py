@@ -14,12 +14,22 @@ except NameError:
     # fake to enable this test on Linux
     WINFUNCTYPE = CFUNCTYPE
 
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
+
 class FunctionTestCase(unittest.TestCase):
 
     def setUp(self):
         global dll
-        import _ctypes_test
-        dll = CDLL(_ctypes_test.__file__)
+        dll = CDLL(find_test_dll())
 
     def test_mro(self):
         # in Python 2.3, this raises TypeError: MRO conflict among bases classes,
