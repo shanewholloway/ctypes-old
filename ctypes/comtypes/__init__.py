@@ -73,26 +73,26 @@ atexit.register(_clean_exc_info)
 
 class _cominterface_meta(type):
     # Metaclass for COM interface classes.
-    # Creates POINTER(cls) also for the newly created class.
+    # Creates also a POINTER type for the newly created class.
     def __new__(self, name, bases, namespace):
         methods = namespace.pop("_methods_", None)
         cls = type.__new__(self, name, bases, namespace)
-        # XXX ??? First assign the _methods_, or first create the POINTER class?
-        # or does it not matter?
         if methods is not None:
             setattr(cls, "_methods_", methods)
 
         # If we sublass a COM interface, for example:
+        #
         # class IDispatch(IUnknown):
         #     ....
-        # then we want (need?) that
-        # POINTER(IDispatch) is a subclass of POINTER(IUnknown).
+        #
+        # then we need to make sure that POINTER(IDispatch) is a
+        # subclass of POINTER(IUnknown) because of the way ctypes
+        # typechecks work.
         if bases == (object,):
             _ptr_bases = (cls, _compointer_base)
         else:
             _ptr_bases = (cls, POINTER(bases[0]))
         # The interface 'cls' is used as a mixin.
-        # XXX "POINTER(<interface>)" looks nice as class name, but is it ok?
         p = type(_compointer_base)("POINTER(%s)" % cls.__name__,
                                    _ptr_bases,
                                    {})
@@ -135,7 +135,6 @@ class _cominterface_meta(type):
             # a low level unbound method calling the com method.
             # attach it with a private name (__com_AddRef, for example),
             # so that custom method implementations can call it.
-            # XXX MORE INFO ABOUT THE SIGNATURE NEEDED!
             raw_func = prototype(i + vtbl_offset, name)
             setattr(self,
                     "_%s__com_%s" % (self.__name__, name),
@@ -145,22 +144,30 @@ class _cominterface_meta(type):
             func = prototype(i + vtbl_offset, name, paramflags)
             func.__doc__ = doc
             # make it an unbound method, so we don't have to pass 'self'
-            # XXX MORE INFO ABOUT THE SIGNATURE NEEDED!
             mth = new.instancemethod(func, None, self)
 
             # is it a property set or property get?
             is_prop = False
+
+            # XXX Hm.  What, when paramflags is None?
+            # Or does have '0' values?
+            # Seems we loose then, at least for properties...
+
             # The following code assumes that the docstrings for
             # propget and propput are identical.
             if "propget" in idlflags:
                 assert name.startswith("_get_")
+                nargs = len([flags for flags in paramflags
+                             if flags[0] & 1])
                 propname = name[len("_get_"):]
-                getters[propname, doc, len(argtypes)] = func
+                getters[propname, doc, nargs] = func
                 is_prop = True
             elif "propput" in idlflags:
                 assert name.startswith("_set_")
+                nargs = len([flags for flags in paramflags
+                              if flags[0] & 1]) - 1
                 propname = name[len("_set_"):]
-                setters[propname, doc, len(argtypes)] = func
+                setters[propname, doc, nargs] = func
                 is_prop = True
 
             # We install the method in the class, except when it's a
@@ -175,29 +182,46 @@ class _cominterface_meta(type):
         # create public properties / attribute accessors
         for item in set(getters.keys()) | set(getters.keys()):
             name, doc, nargs = item
-            if nargs == 1:
+            if nargs == 0:
                 prop = property(getters.get(item), setters.get(item), doc=doc)
             else:
                 # Hm, must be a descriptor where the __get__ method
                 # returns a bound object having __getitem__ and
                 # __setitem__ methods.
-##                prop = named_property(getters.get(item), setters.get(item), doc=doc)
-                import warnings
-                warnings.warn("Named property '%s'" % name,
-                              NotYetImplemented,
-                              stacklevel=3)
-                g = getters.get(item)
-                s = setters.get(item)
-                if g is not None:
-                    name, doc, kind = item
-                    setattr(self, "_get_%s" % name,
-                            new.instancemethod(g, None, self))
-                if s is not None:
-                    name, doc, kind = item
-                    setattr(self, "_set_%s" % name,
-                            new.instancemethod(s, None, self))
-                continue
-            setattr(self, name, prop)
+                prop = named_property(getters.get(item), setters.get(item), doc=doc)
+            # Again, we should not overwrite class attributes that are
+            # already present.
+            if hasattr(self, name):
+                setattr(self, "_" + name, prop)
+            else:
+                setattr(self, name, prop)
+
+class bound_named_property(object):
+    def __init__(self, getter, setter, im_inst):
+        self.im_inst = im_inst
+        self.getter = getter
+        self.setter = setter
+
+    def __getitem__(self, index):
+        if self.getter is None:
+            raise TypeError("unsubscriptable object")
+        return self.getter(self.im_inst, index)
+
+    def __setitem__(self, index, value):
+        if self.setter is None:
+            raise TypeError("object does not support item assignment")
+        self.setter(self.im_inst, index, value)
+
+class named_property(object):
+    def __init__(self, getter, setter, doc):
+        self.getter = getter
+        self.setter = setter
+        self.doc = doc
+
+    def __get__(self, im_inst, im_class=None):
+        if im_inst is None:
+            return self
+        return bound_named_property(self.getter, self.setter, im_inst)
 
 class NotYetImplemented(Warning):
     pass
