@@ -757,6 +757,7 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		   Is there another way?
 		 */
 		PyObject *retval;
+#if 0
 		char c;
 		short s;
 		int i;
@@ -791,6 +792,15 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 					       restype, NULL, 0);
 			break;
 		}
+#else
+		if (dict->size < sizeof(ffi_arg)) {
+			char *p = result;
+			p += sizeof(ffi_arg) - dict->size;
+			result = p;
+		}
+		retval = dict->getfunc(result, dict->size,
+				       restype, NULL, 0);
+#endif
 		if (retval == NULL)
 			return NULL;
 		if (checker == NULL)
