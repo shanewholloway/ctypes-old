@@ -1,7 +1,6 @@
 import sys, os, re, tempfile
 from cparser_config import C_KEYWORDS, EXCLUDED, EXCLUDED_RE
 import gccxmlparser, typedesc
-import subprocess
 
 if sys.platform == "win32":
 
@@ -41,12 +40,12 @@ class IncludeParser(object):
         definitions, and remove the source file again."""
         fname = self.create_source_file(lines)
         try:
-            args = ["gccxml", "--preprocess", "-dM", self.options.flags, fname]
-            proc = subprocess.Popen(args, stdout=subprocess.PIPE)
-            data, errors = proc.communicate()
-            retcode = proc.wait()
-            if retcode:
-                raise CompilerError, "gccxml returned %s" % retcode
+            args = ["gccxml", "--preprocess", "-dM", fname]
+            if self.options.flags:
+                args.append(self.options.flags)
+            i, o = os.popen4(" ".join(args))
+            i.close()
+            data = o.read()
         finally:
             os.remove(fname)
         return [line[len("#define "):]
@@ -57,8 +56,11 @@ class IncludeParser(object):
         """Create a temporary source file, 'compile' with gccxml to an
         xmlfile, and remove the source file again."""
         fname = self.create_source_file(lines)
+        args = ["gccxml", fname, "-fxml=%s" % xmlfile]
+        if self.options.flags:
+            args.append(self.options.flags)
         try:
-            retcode = subprocess.call(["gccxml", self.options.flags, fname, "-fxml=%s" % xmlfile])
+            retcode = os.system(" ".join(args))
             if retcode:
                 raise CompilerError, "gccxml returned %s" % retcode
         finally:
