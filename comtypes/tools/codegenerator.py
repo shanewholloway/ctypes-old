@@ -102,7 +102,7 @@ class Generator(ctypes.wrap.codegenerator.Generator):
     def make_ComMethod(self, m):
         # typ, name, idlflags, default
         code = "    COMMETHOD(%r, %s, '%s'" % (
-            m.idlflags,
+            [m.dispid] + m.idlflags,
             self.type_name(m.returns),
             m.name)
         
@@ -161,8 +161,3 @@ class Generator(ctypes.wrap.codegenerator.Generator):
             [prop.dispid] + prop.idlflags,
             self.type_name(prop.typ),
             prop.name)
-
-# shortcut for development
-if __name__ == "__main__":
-    import tlbparser
-    tlbparser.main()
