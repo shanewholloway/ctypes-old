@@ -555,14 +555,29 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		/* "bBhHiIlLqQdfP" */
 	case 'b':
 	case 'B':
+		p->format = "b";
+		break;
 	case 'h':
 	case 'H':
+		p->format = "h";
+		break;
 	case 'i':
 	case 'I':
+		p->format = "i";
+		break;
+	case 'P':
+		if (sizeof(void *) == sizeof(int))
+			p->format = "i";
+		else if (sizeof(void *) == sizeof(long))
+			p->format = "p";
+		else { /* Hm, what now? */
+			PyErr_Format(PyExc_TypeError, "unknown pointer size");
+			return NULL;
+		}
+		break;
 	case 'l':
 	case 'L':
-	case 'P':
-		p->format = "i";
+		p->format = "l";
 		break;
 #ifdef HAVE_LONG_LONG
 	case 'q':
