@@ -52,8 +52,8 @@ def run_gccxml(fnames, options, verbose=0, xml_file=None):
 
     try:
         if verbose:
-            print >> sys.stderr, r"gccxml.exe %s %s -fxml=%s" % (options, c_file, xml_file)
-        i, o = os.popen4(r"gccxml.exe %s %s -fxml=%s" % (options, c_file, xml_file))
+            print >> sys.stderr, r"gccxml %s %s -fxml=%s" % (options, c_file, xml_file)
+        i, o = os.popen4(r"gccxml %s %s -fxml=%s" % (options, c_file, xml_file))
         i.close()
         sys.stderr.write(o.read())
         retval = o.close()
