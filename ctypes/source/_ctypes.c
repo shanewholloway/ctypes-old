@@ -671,7 +671,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)result;
 }
 
-static PyTypeObject ArrayType_Type = {
+PyTypeObject ArrayType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
 	"_ctypes.ArrayType",			/* tp_name */
@@ -895,13 +895,60 @@ PyTypeObject SimpleType_Type = {
 /*
   CFuncPtrType_Type
  */
+
+static PyObject *
+converters_from_argtypes(PyObject *ob, int *psize)
+{
+	PyObject *converters;
+	int i;
+	int nArgs;
+	int nArgBytes;
+
+	ob = PySequence_Tuple(ob); /* new reference */
+	if (!ob) {
+		PyErr_SetString(PyExc_TypeError,
+				"_argtypes_ must be a sequence of types");
+		return NULL;
+	}
+
+	nArgs = PyTuple_GET_SIZE(ob);
+	converters = PyTuple_New(nArgs);
+	if (!converters)
+		return NULL;
+		
+	/* I have to check if this is correct. Using c_char, which has a size
+	   of 1, will be assumed to be pushed as only one byte!
+	   Aren't these promoted to integers by the C compiler and pushed as 4 bytes?
+	*/
+
+	nArgBytes = 0;
+	for (i = 0; i < nArgs; ++i) {
+		PyObject *tp = PyTuple_GET_ITEM(ob, i);
+		StgDictObject *dict = PyType_stgdict(tp);
+		PyObject *cnv = PyObject_GetAttrString(tp, "from_param");
+		if (!dict || !cnv)
+			goto argtypes_error_1;
+		nArgBytes += dict->size;
+		PyTuple_SET_ITEM(converters, i, cnv);
+	}
+	Py_DECREF(ob);
+	if (psize)
+		*psize = nArgBytes;
+	return converters;
+
+  argtypes_error_1:
+	Py_XDECREF(converters);
+	Py_DECREF(ob);
+	PyErr_Format(PyExc_TypeError,
+		     "item %d in _argtypes_ is not a valid C type", i+1);
+	return NULL;
+}
+
 static int
 make_funcptrtype_dict(StgDictObject *stgdict)
 {
 	PyObject *ob;
 	PyObject *converters = NULL;
-	int i;
-	int nArgs;
 
 	stgdict->align = getentry("P")->align;
 	stgdict->length = 1;
@@ -917,35 +964,17 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	}
 	stgdict->flags = PyInt_AS_LONG(ob);
 
+	/* _argtypes_ is optional... */
 	stgdict->nArgBytes = 0;
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_argtypes_");
-	if (!ob)
-		goto argtypes_error;
-	ob = PySequence_Tuple(ob); /* new reference */
-	if (!ob)
-		goto argtypes_error;
-
-	nArgs = PyTuple_GET_SIZE(ob);
-	converters = PyTuple_New(nArgs);
-	if (!converters)
-		return -1;
-
-	/* I have to check if this is correct. Using c_char, which has a size
-	   of 1, will be assumed to be pushed as only one byte!
-	   Aren't these promoted to integers by the C compiler and pushed as 4 bytes?
-	*/
-
-	for (i = 0; i < nArgs; ++i) {
-		PyObject *tp = PyTuple_GET_ITEM(ob, i);
-		StgDictObject *dict = PyType_stgdict(tp);
-		PyObject *cnv = PyObject_GetAttrString(tp, "from_param");
-		if (!dict || !cnv)
-			goto argtypes_error_1;
-		stgdict->nArgBytes += dict->size;
-		PyTuple_SET_ITEM(converters, i, cnv);
+	if (ob) {
+		converters = converters_from_argtypes(ob, &stgdict->nArgBytes);
+		if (!converters)
+			goto error;
+		Py_INCREF(ob);
+		stgdict->argtypes = ob;
+		stgdict->converters = converters;
 	}
-	stgdict->argtypes = ob;
-	stgdict->converters = converters;
 
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_restype_");
 	if (ob) {
@@ -960,18 +989,10 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	}
 	return 0;
 
-  argtypes_error:
+  error:
 	Py_XDECREF(converters);
-	PyErr_SetString(PyExc_TypeError,
-			"class must define_argtypes_ as a sequence of types");
 	return -1;
 
-  argtypes_error_1:
-	Py_XDECREF(converters);
-	Py_DECREF(ob);
-	PyErr_Format(PyExc_TypeError,
-		     "item %d in _argtypes_ is not a valid C type", i+1);
-	return -1;
 }
 
 static PyObject *
@@ -1475,12 +1496,102 @@ CFuncPtr_as_parameter(CDataObject *self)
 	return (PyObject *)parg;	
 }
 
+static int
+CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
+{
+	StgDictObject *dict = PyType_stgdict(ob);
+	if (!dict && !PyCallable_Check(ob)) {
+		PyErr_SetString(PyExc_TypeError,
+				"restype must be a type or callable");
+		return -1;
+	}
+	Py_XDECREF(self->restype);
+	Py_INCREF(ob);
+	self->restype = ob;
+	return 0;
+}
+
+static int
+CFuncPtr_set_argtypes(CFuncPtrObject *self, PyObject *ob)
+{
+	PyObject *converters = converters_from_argtypes(ob, NULL);
+	if (!converters)
+		return -1;
+	Py_XDECREF(self->converters);
+	self->converters = converters;
+	return 0;
+}
+
 static PyGetSetDef CFuncPtr_getsets[] = {
+	{ "restype", NULL, CFuncPtr_set_restype,
+	  "specify the result type", NULL },
+	{ "argtypes", NULL, CFuncPtr_set_argtypes,
+	  "specify the argument types", NULL },
 	{ "_as_parameter_", (getter)CFuncPtr_as_parameter, NULL,
 	  "return a magic value so that this can be converted to a C parameter (readonly)",
 	  NULL },
 	{ NULL, NULL }
 };
+
+static PyObject *
+CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	char *name;
+	int (* address)(void);
+	PyObject *dll;
+	PyObject *obj;
+	CFuncPtrObject *self;
+	void *handle;
+	PyObject *objects;
+
+	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
+		return NULL;
+
+	obj = PyObject_GetAttrString(dll, "_handle");
+	if (!obj)
+		return NULL;
+	if (!PyInt_Check(obj)) {
+		Py_DECREF(obj);
+		return NULL;
+	}
+	handle = (void *)PyInt_AS_LONG(obj);
+	Py_DECREF(obj);
+
+#ifdef MS_WIN32
+	address = (PPROC)GetProcAddress(handle, name);
+	if (!address) {
+		PyErr_Format(PyExc_ValueError,
+			     "function '%s' not found",
+			     name);
+		return NULL;
+	}
+#else
+	address = (PPROC)dlsym(handle, name);
+	if (!address) {
+		PyErr_Format(PyExc_ValueError,
+			     dlerror());
+		return NULL;
+	}
+#endif
+	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
+	if (!self)
+		return NULL;
+
+	*(void **)self->b_ptr = address;
+
+	objects = CData_GetList((CDataObject *)self);
+	if (!objects) {
+		Py_DECREF((PyObject *)self);
+		return NULL;
+	}
+
+	if (-1 == PyList_SetItem(objects, 0, dll)) {
+		Py_DECREF((PyObject *)self);
+		return NULL;
+	}
+	Py_INCREF((PyObject *)dll); /* for PyList_SetItem above */
+	return (PyObject *)self;
+}
 
 static PyObject *
 CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -1495,7 +1606,9 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return GenericCData_new(type, args, kwds);
 	}
 
-	/* Of course this has to work different if _basespec_ is in kwds */
+	if (2 == PyTuple_GET_SIZE(args))
+		return CFuncPtr_FromDll(type, args, kwds);
+
 	if (!PyArg_ParseTuple(args, "O", &callable))
 		return NULL;
 	if (!PyCallable_Check(callable)) {
@@ -1504,6 +1617,7 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 	dict = PyType_stgdict((PyObject *)type);
+	/* XXXX Fails if we do: 'CFuncPtr(lambda x: x)'
 	assert(dict);
 
 	/*****************************************************************/
@@ -1562,6 +1676,9 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static PyObject *
 CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 {
+	PyObject *restype;
+	PyObject *converters;
+
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	assert(dict); /* if not, it's a bug */
 	if (dict->argtypes) {
@@ -1576,12 +1693,14 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 	}
+	restype = self->restype ? self->restype : dict->restype;
+	converters = self->converters ? self->converters : dict->converters;
 	return _CallProc(*(void **)self->b_ptr,
 			 args,
 			 NULL,
 			 dict->flags,
-			 dict->converters, /* the .from_param methods */
-			 dict->restype);
+			 converters,
+			 restype);
 }
 
 static int
