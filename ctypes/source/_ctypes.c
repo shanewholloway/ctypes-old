@@ -131,6 +131,10 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	if (!result)
 		return NULL;
 
+	/* keep this for bw compatibility */
+	if (PyDict_GetItemString(result->tp_dict, "_abstract_"))
+		return (PyObject *)result;
+
 	fields = PyObject_GetAttrString((PyObject *)result, "_fields_");
 	if (fields == NULL) {
 		PyErr_Clear();
@@ -330,6 +334,10 @@ static int
 StructUnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value,
 			 int isStruct)
 {
+	/* keep this for bw compatibility */
+	if (PyDict_GetItemString(self->tp_dict, "_abstract_"))
+		return PyObject_GenericSetAttr((PyObject *)self, name, value);
+
 	if (PyString_Check(name)
 	    && 0 == strcmp("_fields_", PyString_AS_STRING(name))) {
 		PyObject *dict;
