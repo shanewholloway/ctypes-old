@@ -9,9 +9,11 @@ Python, and to call functions in dynamic link libraries/shared
 dlls. It allows wrapping these libraries in pure Python.
 """
 
+from __future__ import generators
+
 # XXX explain LIBFFI_SOURCES
-##LIBFFI_SOURCES='../libffi-src'
-LIBFFI_SOURCES='source/gcc/libffi'
+LIBFFI_SOURCES='../libffi-src'
+##LIBFFI_SOURCES='source/gcc/libffi'
 
 ################################################################
 
@@ -19,7 +21,7 @@ import os, sys
 
 try:
     walk = os.walk
-except NameError:
+except AttributeError:
     def walk(top):
         # Python 2.3's os.walk generator, without the large docstring ;-)
         # And without the topdown and onerror arguments.
@@ -31,9 +33,7 @@ except NameError:
         # minor reason when (say) a thousand readable directories are still
         # left to visit.  That logic is copied here.
         try:
-            # Note that listdir and error are globals in this module due
-            # to earlier import-*.
-            names = listdir(top)
+            names = os.listdir(top)
         except OSError, err:
             return
 
@@ -351,7 +351,7 @@ class my_build_ext(build_ext.build_ext):
         build_dir = os.path.join(self.build_temp, 'libffi')
         inst_dir = os.path.abspath(self.build_temp)
 
-        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
+        libffi_dir = find_file_in_subdir(inst_dir, "libffi.a")
         incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
         if libffi_dir and incffi_dir:
             self.fix_extension(libffi_dir, incffi_dir)
@@ -370,7 +370,7 @@ class my_build_ext(build_ext.build_ext):
             print "Failed"
             sys.exit(res)
 
-        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
+        libffi_dir = find_file_in_subdir(inst_dir, "libffi.a")
         incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
         # if not libffi_dir or not incffi_dir: raise some error
 
