@@ -1369,14 +1369,16 @@ CData_traverse(CDataObject *self, visitproc visit, void *arg)
 static int
 CData_clear(CDataObject *self)
 {
-	static SETFUNC BSTR_set;
-	if (!BSTR_set)
-		BSTR_set = getentry("X")->setfunc;
-
 	Py_XDECREF(self->b_objects);
 	self->b_objects = NULL;
 	if (self->b_needsfree) {
 #ifdef MS_WIN32
+		static SETFUNC BSTR_set;
+		StgDictObject *dict = PyObject_stgdict((PyObject *)self);
+
+		if (!BSTR_set)
+			BSTR_set = getentry("X")->setfunc;
+
 		/* XXX A hacck, but hopefully a working one.  If the memory
 		   has been allocated by us (b_needsfree is true), we also
 		   have to call SysFreeString
@@ -1384,7 +1386,6 @@ CData_clear(CDataObject *self)
 		
 		/* XXX more explanations needed !!! XXX XXX XXX */
 
-		StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 		if (dict && dict->setfunc == BSTR_set) {
 			if (*(BSTR *)self->b_ptr)
 				SysFreeString(*(BSTR *)self->b_ptr);
