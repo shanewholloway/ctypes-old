@@ -73,6 +73,38 @@ class StructureTestCase(unittest.TestCase):
         self.failUnless(alignment(XX) == 1)
         self.failUnless(sizeof(XX) == 0)
 
+    def test_fields(self):
+        # test the offset and size attributes of Structure/Unoin fields.
+        class X(Structure):
+            _fields_ = [("x", "i"),
+                        ("y", "b")]
+
+        self.failUnless(X.x.offset == 0)
+        self.failUnless(X.x.size == sizeof(c_int))
+
+        self.failUnless(X.y.offset == sizeof(c_int))
+        self.failUnless(X.y.size == sizeof(c_char))
+
+        # readonly
+        self.assertRaises(TypeError, setattr, X.x, "offset", 92)
+        self.assertRaises(TypeError, setattr, X.x, "size", 92)
+
+        class X(Union):
+            _fields_ = [("x", "i"),
+                        ("y", "b")]
+
+        self.failUnless(X.x.offset == 0)
+        self.failUnless(X.x.size == sizeof(c_int))
+
+        self.failUnless(X.y.offset == 0)
+        self.failUnless(X.y.size == sizeof(c_char))
+
+        # readonly
+        self.assertRaises(TypeError, setattr, X.x, "offset", 92)
+        self.assertRaises(TypeError, setattr, X.x, "size", 92)
+
+        # XXX Should we check nested data types also?
+        # offset is always relative to the class...
 
 def get_suite():
     return unittest.makeSuite(StructureTestCase)
