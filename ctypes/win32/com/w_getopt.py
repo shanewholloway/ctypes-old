@@ -13,39 +13,47 @@ def w_getopt(args, options):
     there is no '-' or '/' prefix to the option name, and the option
     name is always lower case.  The second is the list of arguments
     which do not belong to an option.
+
+    Different from getopt.getopt, a single argument not belonging to an option
+    does not terminate parsing.
     """
     opts = []
-    while args and args[0][:1] in "/-":
-        arg = args[0][1:] # strip the '-' or '/'
-        arg = arg.lower()
+    arguments = []
+    while args:
+        if args[0][:1] in "/-":
+            arg = args[0][1:] # strip the '-' or '/'
+            arg = arg.lower()
 
-        if arg + ':' in options:
-            try:
-                opts.append((arg, args[1]))
-            except IndexError:
-                raise GetoptError, "option '%s' requires an argument" % args[0]
+            if arg + ':' in options:
+                try:
+                    opts.append((arg, args[1]))
+                except IndexError:
+                    raise GetoptError, "option '%s' requires an argument" % args[0]
+                args = args[1:]
+            elif arg in options:
+                opts.append((arg, ''))
+            else:
+                raise GetoptError, "invalid option '%s'" % args[0]
             args = args[1:]
-        elif arg in options:
-            opts.append((arg, ''))
         else:
-            raise GetoptError, "invalid option '%s'" % args[0]
-        args = args[1:]
+            arguments.append(args[0])
+            args = args[1:]
 
-    return opts, args
+    return opts, arguments
 
 if __name__ == "__main__":
     import unittest
 
     class TestCase(unittest.TestCase):
         def test_1(self):
-            args = "-embedding /RegServer /UnregSERVER spam blabla".split()
+            args = "-embedding spam /RegServer foo /UnregSERVER blabla".split()
             opts, args = w_getopt(args,
                                   "regserver unregserver embedding".split())
             self.assertEqual(opts,
                              [('embedding', ''),
                               ('regserver', ''),
                               ('unregserver', '')])
-            self.assertEqual(args, ["spam", "blabla"])
+            self.assertEqual(args, ["spam", "foo", "blabla"])
 
         def test_2(self):
             args = "/TLB Hello.Tlb HELLO.idl".split()
