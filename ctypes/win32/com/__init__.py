@@ -192,12 +192,15 @@ class COMObject:
         # Take an interface class like 'IUnknown' and create
         # an pointer to it, implementing this interface.
         itf = itfclass()
+        itfname = itfclass.__name__
         vtbltype = itfclass._fields_[0][1]._type_
         methods = []
         for name, proto in vtbltype._fields_:
-            callable = getattr(self, name, self._notimpl)
+            callable = getattr(self, "%s_%s" % (itfname, name), None)
+            if callable is None:
+                callable = getattr(self, name, self._notimpl)
             if callable == self._notimpl:
-                print "# unimplemented", name
+                print "# unimplemented %s for interface %s" % (name, itfname)
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
         itf.lpVtbl = pointer(vtbl)
