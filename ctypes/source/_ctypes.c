@@ -962,6 +962,39 @@ CharArray_getfunc(char *ptr, unsigned size,
 	return PyString_FromStringAndSize(ptr, i);
 }
 
+/* DRY: This function should be refactored with CharArray_set_value */
+static PyObject *
+CharArray_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
+{
+	if (PyUnicode_Check(value)) {
+		value = PyUnicode_AsEncodedString(value,
+						  conversion_mode_encoding,
+						  conversion_mode_errors);
+		if (value == NULL)
+			return NULL;
+	} else
+		Py_INCREF(value);
+	if (PyString_Check(value)) {
+		char *data = PyString_AS_STRING(value);
+		unsigned len = PyString_GET_SIZE(value);
+		if (len < size)
+			++len; /* try to copy the terminating NUL if there is space */
+		else if (len > size) {
+			Py_DECREF(value);
+			PyErr_Format(PyExc_ValueError,
+				     "string too long (%d, maximum length %d)",
+				     size, len);
+			return NULL;
+		}
+		memcpy(ptr, data, size);
+		Py_DECREF(value);
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	Py_DECREF(value);
+	return StructUnion_setfunc(ptr, value, size, type);
+}
+
 #ifdef CTYPES_UNICODE
 static PyObject *
 WCharArray_getfunc(wchar_t *ptr, unsigned size,
@@ -1057,11 +1090,13 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		if (-1 == add_getset(result, CharArray_getsets))
 			return NULL;
 		stgdict->getfunc = CharArray_getfunc;
+		stgdict->setfunc = CharArray_setfunc;
 #ifdef CTYPES_UNICODE
 	} else if (itemdict->getfunc == getentry("u")->getfunc) {
 		if (-1 == add_getset(result, WCharArray_getsets))
 			return NULL;
 		stgdict->getfunc = WCharArray_getfunc;
+//		stgdict->setfunc = WCharArray_setfunc;
 #endif
 	}
 
