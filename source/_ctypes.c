@@ -2596,7 +2596,11 @@ CWString_from_param(PyObject *cls, PyObject *args)
 
 
 static PyMethodDef CWString_methods[] = {
+#ifdef NO_METH_CLASS /* Python 2.2 */
 	{ "from_param", CWString_from_param, METH_VARARGS | METH_CLASS,
+#else
+	{ "from_param", CWString_from_param, METH_O | METH_CLASS,
+#endif
 	  from_param_doc },
 	{ NULL, NULL },
 };
