@@ -232,8 +232,8 @@ CField_FromDesc(PyObject *desc, int index,
 }
 
 static PyObject *
-_CField_set(CDataObject *dst, PyObject *type, PyObject *value,
-	    int size, char *ptr)
+_CField_set(char *ptr, int size,
+	    PyObject *type, CDataObject *dst, PyObject *value)
 {
 	/* inlined code from _CData_set() */
 	if (CDataObject_Check(value)) {
@@ -273,7 +273,7 @@ _CField_set(CDataObject *dst, PyObject *type, PyObject *value,
 						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
-			result = _CField_set(dst, type, ob, size, ptr);
+			result = _CField_set(ptr, size, type, dst, ob);
 			Py_DECREF(ob);
 			return result;
 		}
@@ -300,8 +300,8 @@ CField_set(CFieldObject *self, CDataObject *dst, PyObject *value)
 	if (self->setfunc)
 		result = self->setfunc(ptr, value, self->size);
 	else
-		result = _CField_set(dst, self->fieldtype, value,
-				     self->size, ptr);
+		result = _CField_set(ptr, self->size,
+				     self->fieldtype, dst, value);
 	if (result == NULL)
 		return -1;
 	return KeepRef(dst, self->index, result);
