@@ -2823,6 +2823,35 @@ Array_item(CDataObject *self, int index)
 			 index, size, self->b_ptr + offset);
 }
 
+#ifdef CAN_SLICE
+static PyListObject *
+Array_slice(CDataObject *self, int ilow, int ihigh)
+{
+	PyListObject *np;
+	int i, len;
+
+	if (ilow < 0)
+		ilow = 0;
+	else if (ilow > self->b_length)
+		ilow = self->b_length;
+	if (ihigh < ilow)
+		ihigh = ilow;
+	else if (ihigh > self->b_length)
+		ihigh = self->b_length;
+	len = ihigh - ilow;
+
+	np = (PyListObject *) PyList_New(len);
+	if (np == NULL)
+		return NULL;
+
+	for (i = 0; i < len; i++) {
+		PyObject *v = Array_item(self, i+ilow);
+		PyList_SET_ITEM(np, i, v);
+	}
+	return np;
+}
+#endif
+
 static int
 Array_ass_item(CDataObject *self, int index, PyObject *value)
 {
@@ -2850,6 +2879,50 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 			 index, size, ptr);
 }
 
+#ifdef CAN_SLICE
+static int
+Array_ass_slice(CDataObject *self, int ilow, int ihigh, PyObject *value)
+{
+	int i, len;
+	PyObject *item;
+
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError,
+				"Array does not support item deletion");
+		return -1;
+	}
+
+	if (ilow < 0)
+		ilow = 0;
+	else if (ilow > self->b_length)
+		ilow = self->b_length;
+	if (ihigh < 0)
+		ihigh = 0;
+	if (ihigh < ilow)
+		ihigh = ilow;
+	else if (ihigh > self->b_length)
+		ihigh = self->b_length;
+
+	len = PySequence_Length(value);
+	if (len != ihigh - ilow) {
+		PyErr_SetString(PyExc_ValueError,
+				"Can only assign sequence of same size");
+		return -1;
+	}
+	for (i = 0; i < len; i++) {
+		PyObject *item = PySequence_GetItem(value, i);
+		int result;
+		if (item == NULL)
+			return -1;
+		result = Array_ass_item(self, i+ilow, item);
+		Py_DECREF(item);
+		if (result == -1)
+			return -1;
+	}
+	return 0;
+}
+#endif
+
 static int
 Array_length(CDataObject *self)
 {
@@ -2861,9 +2934,17 @@ static PySequenceMethods Array_as_sequence = {
 	0,					/* sq_concat; */
 	0,					/* sq_repeat; */
 	(intargfunc)Array_item,			/* sq_item; */
+#ifdef CAN_SLICE
+	(intintargfunc)Array_slice,		/* sq_slice; */
+#else
 	0,					/* sq_slice; */
+#endif
 	(intobjargproc)Array_ass_item,		/* sq_ass_item; */
+#ifdef CAN_SLICE
+	(intintobjargproc)Array_ass_slice,	/* sq_ass_slice; */
+#else
 	0,					/* sq_ass_slice; */
+#endif
 	0,					/* sq_contains; */
 	
 	0,					/* sq_inplace_concat; */
