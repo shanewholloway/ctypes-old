@@ -1018,7 +1018,7 @@ static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 void Extend_Error_Info(char *fmt, ...)
 {
 	va_list vargs;
-	PyObject *tp, *v, *tb, *s;
+	PyObject *tp, *v, *tb, *s, *msg;
 
 	va_start(vargs, fmt);
 	s = PyString_FromFormatV(fmt, vargs);
@@ -1027,8 +1027,15 @@ void Extend_Error_Info(char *fmt, ...)
 		return;
 
 	PyErr_Fetch(&tp, &v, &tb);
-	PyString_ConcatAndDel(&s, v);
-	PyErr_Restore(tp, s, tb);
+	PyErr_NormalizeException(&tp, &v, &tb);
+	msg = PyObject_Str(v);
+	if (msg) {
+		PyString_ConcatAndDel(&s, msg);
+		Py_DECREF(v);
+		v = msg;
+	} else
+		PyErr_Clear();
+	PyErr_Restore(tp, v, tb);
 }
 
 /*
