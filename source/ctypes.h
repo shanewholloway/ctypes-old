@@ -161,6 +161,7 @@ typedef struct {
 	PyObject *argtypes;	/* tuple of CDataObjects */
 	PyObject *converters;	/* tuple([t.from_param for t in argtypes]) */
 	PyObject *restype;	/* CDataObject or NULL */
+	PyObject *checker;
 	int flags;		/* calling convention and such */
 	int nArgBytes;		/* number of argument bytes for callback */
 } StgDictObject;

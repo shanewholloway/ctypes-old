@@ -27,6 +27,7 @@ StgDict_clear(StgDictObject *self)
 	Py_CLEAR(self->argtypes);
 	Py_CLEAR(self->converters);
 	Py_CLEAR(self->restype);
+	Py_CLEAR(self->checker);
 	return 0;
 }
 
@@ -58,6 +59,7 @@ StgDict_clone(StgDictObject *dst, StgDictObject *src)
 	Py_XINCREF(dst->argtypes);
 	Py_XINCREF(dst->converters);
 	Py_XINCREF(dst->restype);
+	Py_XINCREF(dst->checker);
 
 	if (src->ffi_type.elements == NULL)
 		return 0;
