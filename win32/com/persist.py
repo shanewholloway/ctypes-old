@@ -1,7 +1,7 @@
 from ctypes import *
 from ctypes.com import IUnknown, GUID, HRESULT, STDMETHOD
 from ctypes.wintypes import DWORD
-
+from ctypes.com.automation import VARIANT
 
 LPCOLESTR = c_wchar_p
 BOOL = c_int
@@ -35,4 +35,23 @@ class IPersistFile(IPersist):
         STDMETHOD(HRESULT, "GetCurFile", POINTER(LPCOLESTR))
         ]
 
-__all__ = ["Persist", "IPersistFile"]
+# fake:
+IErrorLog = IUnknown
+IPropertyBag = IUnknown
+
+class IPropertyBag(IUnknown):
+    _iid_ = GUID("{55272A00-42CB-11CE-8135-00AA004BB851}")
+    _methods_ = IUnknown._methods_ + [
+        STDMETHOD(HRESULT, "Read", LPCOLESTR, POINTER(VARIANT), POINTER(IErrorLog)),
+        STDMETHOD(HRESULT, "Write", LPCOLESTR, POINTER(VARIANT))
+        ]
+
+class IPersistPropertyBag(IPersist):
+    _iid_ = GUID("{37D84F60-42CB-11CE-8135-00AA004BB851}")
+    _methods_ = IPersist._methods_ + [
+        STDMETHOD(HRESULT, "InitNew"),
+        STDMETHOD(HRESULT, "Load", POINTER(IPropertyBag), POINTER(IErrorLog)),
+        STDMETHOD(HRESULT, "Save", POINTER(IPropertyBag), BOOL, BOOL)
+        ]
+
+__all__ = ["Persist", "IPersistFile", "IPropertyBag", "IPersistPropertyBag"]
