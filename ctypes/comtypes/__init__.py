@@ -182,8 +182,15 @@ class _cominterface_meta(type):
                 # returns a bound object having __getitem__ and
                 # __setitem__ methods.
 ##                prop = named_property(getters.get(item), setters.get(item), doc=doc)
-                raise "Named Properties not yet implemented"
+                import warnings
+                warnings.warn("Named property '%s'" % name,
+                              NotYetImplemented,
+                              stacklevel=3)
+                continue
             setattr(self, name, prop)
+
+class NotYetImplemented(Warning):
+    pass
             
 # metaclass for COM interface pointer classes
 class _compointer_meta(type(c_void_p), _cominterface_meta):
