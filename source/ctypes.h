@@ -151,7 +151,6 @@ typedef struct {
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
 	SETFUNC setfunc;	/* Only for ArrayObject */
 	GETFUNC getfunc;	/* Only for ArrayObject */
-	char fmt;		/* Only for SimpleObject */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
