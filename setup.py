@@ -3,9 +3,11 @@
 #
 #
 
-"""ctypes is a Python module allowing to create and manipulate C data
-types in Python. These can then be passed to C-functions loaded from
-dynamic link libraries."""
+"""ctypes is a Python package to create and manipulate C data types in
+Python, and to call functions in dynamic link libraries/shared
+dlls. It allows wrapping these libraries in pure Python.
+"""
+
 
 from distutils.core import setup, Extension, Command
 import distutils.core
