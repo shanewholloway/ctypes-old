@@ -217,7 +217,7 @@ if _os.name == "nt":
             return "c_wchar(%r)" % self.value
 
 # This cache maps types to pointers to them.
-_pointer_type_cache = {}
+from _ctypes import _pointer_type_cache
 
 def POINTER(cls):
     try:
@@ -377,3 +377,5 @@ else:
         set_conversion_mode("mbcs", "ignore")
     else:
         set_conversion_mode("ascii", "strict")
+
+_pointer_type_cache[None] = c_void_p
