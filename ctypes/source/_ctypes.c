@@ -3720,7 +3720,7 @@ init_ctypes(void)
 	PyModule_AddObject(m, "FUNCFLAG_STDCALL", PyInt_FromLong(FUNCFLAG_STDCALL));
 #endif
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
-	PyModule_AddStringConstant(m, "__version__", "0.9.0");
+	PyModule_AddStringConstant(m, "__version__", "0.9.1");
 
 	/*************************************************
 	 *
