@@ -1,8 +1,12 @@
 from ctcom.typeinfo import LoadTypeLib, ITypeInfoPointer, BSTR, \
-     LPTYPEATTR, LPFUNCDESC, HREFTYPE
+     LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT
 from ctcom.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS
 from ctcom.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
      DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF
+from ctcom.typeinfo import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
+from ctcom.typeinfo import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
+     IMPLTYPEFLAG_FSOURCE, IMPLTYPEFLAG_FRESTRICTED, \
+     IMPLTYPEFLAG_FDEFAULTVTABLE
 
 from ctypes import byref, c_int, c_ulong
 
@@ -111,8 +115,37 @@ class EnumReader(TypeInfoReader):
         l.append("class %s(enum):" % self.name)
         l.append('    """%s"""' % self.docstring)
         l.append("    _iid_ = GUID('%s')" % self.guid)
+        for name, value in self.items:
+            l.append('    %s = %s' % (name, value))
         l.append("")
         return "\n".join(l)
+
+    def _parse_typeattr(self, ta):
+        self.items = []
+        for i in range(ta.cVars):
+            pvd = LPVARDESC()
+            self.ti.GetVarDesc(i, byref(pvd))
+            vd = pvd.contents
+            name = BSTR()
+            self.ti.GetDocumentation(vd.memid, byref(name),
+                                     None, None, None)
+            name = name.value
+
+            assert vd.varkind == VAR_CONST
+            assert vd.elemdescVar.tdesc.vt == VT_INT
+
+            vsrc = vd.u.lpvarValue.contents # the source variant containing the value
+            v = VARIANT() # destination variant
+
+            # change the type to VT_I4
+            from ctypes import oledll
+            oleaut32 = oledll.oleaut32
+            oleaut32.VariantChangeType(byref(v),
+                                       byref(vsrc),
+                                       0, VT_I4)
+
+            self.items.append((name, v._.lVal))
+            self.ti.ReleaseVarDesc(pvd)
 
 class Method:
     def __init__(self, name, restype, argtypes):
@@ -124,7 +157,9 @@ class Method:
         return '"%s", [%s]' % (self.name, argtypes)
 
 class InterfaceReader(TypeInfoReader):
-    
+    baseinterface = "IUnknown"
+    nummethods = 3
+
     def _parse_typeattr(self, ta):
         assert ta.cImplTypes == 1
         for i in range(ta.cImplTypes):
@@ -136,7 +171,8 @@ class InterfaceReader(TypeInfoReader):
 
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
-            self.baseinterface = name.value
+##            self.baseinterface = name.value
+            assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
 
     def declaration(self):
         l = []
@@ -159,6 +195,10 @@ class InterfaceReader(TypeInfoReader):
             pfd = LPFUNCDESC()
             self.ti.GetFuncDesc(i, byref(pfd))
             fd = pfd.contents
+            if fd.oVft/4 < self.nummethods:
+                # method belongs to base class
+                continue
+            
             name = BSTR()
             self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
             if fd.invkind == DISPATCH_PROPERTYGET:
@@ -174,7 +214,7 @@ class InterfaceReader(TypeInfoReader):
             restype = fd.elemdescFunc.tdesc.vt
             assert restype in (VT_HRESULT, VT_VOID, VT_UI4, VT_I4), restype
             mth = Method(name, restype, argtypes)
-##            oVft/4
+##            fd.oVft/4
             methods.append(mth)
 ##            print "%s(%d)" % (name.value, fd.cParams)
 ##            print fd.elemdescFunc.tdesc.vt
@@ -218,11 +258,14 @@ class InterfaceReader(TypeInfoReader):
         return TYPES[tdesc.vt]
 
 class DispatchInterfaceReader(InterfaceReader):
-    pass
+    baseinterface = "IDispatch"
+    nummethods = 7
 
 class CoClassReader(TypeInfoReader):
     def _parse_typeattr(self, ta):
         self.interfaces = []
+        self.outgoing_interfaces = []
+        
         for i in range(ta.cImplTypes):
             hr = HREFTYPE()
             self.ti.GetRefTypeOfImplType(i, byref(hr))
@@ -232,7 +275,23 @@ class CoClassReader(TypeInfoReader):
 
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
-            self.interfaces.append(name.value)
+
+            flags = IMPLTYPEFLAGS()
+            self.ti.GetImplTypeFlags(i, byref(flags))
+            flags = flags.value
+
+            if flags & IMPLTYPEFLAG_FSOURCE:
+                which = self.outgoing_interfaces
+            else:
+                which = self.interfaces
+
+            if flags & IMPLTYPEFLAG_FDEFAULT:
+                which.insert(0, name.value)
+            else:
+                which.append(name.value)
+
+            # XXX There's also the IMPLTYPEFLAG_FDEFAULTVTABLE
+            # described in MSDN defaultvtable ODL attribute reference
 
     def declaration(self):
         l = []
@@ -241,8 +300,11 @@ class CoClassReader(TypeInfoReader):
         l.append("    _regclsid_ = %r" % self.guid)
 
         interfaces = ", ".join(self.interfaces)
-
         l.append("    _com_interfaces_ = [%s]" % interfaces)
+
+        if self.outgoing_interfaces:
+            outgoing = ", ".join(self.outgoing_interfaces)
+            l.append("    _outgoing_interfaces_ = [%s]" % outgoing)
         l.append("")
         return "\n".join(l)
 
