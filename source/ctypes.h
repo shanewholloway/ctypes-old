@@ -225,6 +225,13 @@ extern PyCArgObject *new_CArgObject(void);
 
 extern PyObject *ToPython(void *, char tag);
 
+extern PyObject *
+CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
+	  int index, int offset, int size);
+
+extern int
+CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
+	  int index, int offset, int size);
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
