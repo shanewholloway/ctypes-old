@@ -31,18 +31,6 @@ from distutils.util import get_platform
 ################################################################
 # Manipulate the environment for the build process.
 #
-if sys.platform == 'darwin':
-    # This section copied from the PyObjC project
-    # Apple has used build options that don't work with a 'normal' system.
-    # Remove '-arch i386' from the LDFLAGS.
-    import distutils.sysconfig
-    distutils.sysconfig.get_config_vars()
-    x = distutils.sysconfig._config_vars['LDSHARED']
-    y = x.replace('-arch i386', '')
-    if y != x:
-        print "Fixing Apple strangeness in Python configuration"
-        distutils.sysconfig._config_vars['LDSHARED'] = y
-
 if get_platform() in ["solaris-2.9-sun4u", "linux-x86_64"]:
     os.environ["CFLAGS"] = "-fPIC"
 
