@@ -35,7 +35,7 @@ class VS_FIXEDFILEINFO(Structure):
 def get_file_version(filename):
     verinfosize = windll.version.GetFileVersionInfoSizeA(filename, 0)
     if not verinfosize:
-        raise WinError
+        raise WinError()
 
     buffer = c_string("\000"*verinfosize)
     windll.version.GetFileVersionInfoA(filename, 0, buffer._b_size_, buffer)
@@ -62,7 +62,10 @@ def get_file_version(filename):
     return ffi
 
 if __name__ == '__main__':
-    file = r"c:\winnt\system32\notepad.exe"
+    import os.path
+    path = c_string("\000" * 256)
+    windll.kernel32.GetSystemDirectoryA(path, len(path))
+    file = os.path.join(path.value, "notepad.exe")
 
     vsfileinfo = get_file_version(file)
     dump(vsfileinfo)
