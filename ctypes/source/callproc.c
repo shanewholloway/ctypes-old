@@ -1153,7 +1153,9 @@ call_cdeclfunction(PyObject *self, PyObject *args)
 }
 
 static char alignment_doc[] =
-"addressof(C instance) -> integer\nReturn the address of the C instance";
+"alignment(C type) -> integer\n"
+"alignment(C instance) -> integer\n"
+"Return the alignment requirements of a C instance";
 static char sizeof_doc[] =
 "sizeof(C type) -> integer\n"
 "sizeof(C instance) -> integer\n"
@@ -1161,7 +1163,7 @@ static char sizeof_doc[] =
 
 static char byref_doc[] =
 "byref(C instance) -> byref-object\n"
-"Return a pointer lookalike to the C instance, only usable\n"
+"Return a pointer lookalike to a C instance, only usable\n"
 "as function argument";
 static char addressof_doc[] =
 "addressof(C instance) -> integer\n"
