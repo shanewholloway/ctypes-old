@@ -138,9 +138,8 @@ class _cominterface_meta(type):
         for i, (restype, name, argtypes) in enumerate(methods):
             # the function prototype
             prototype = WINFUNCTYPE(restype, *argtypes)
-            # create a bound method, which will call into the COM vtbl
-            # the three-argument call requires ctypes 0.9.3
-            mth = prototype(i + vtbl_offset, name, self)
+            mth = prototype(i + vtbl_offset, name)
+            mth = new.instancemethod(mth, None, self)
             impl = getattr(self, name, None)
             if impl is None:
                 # don't overwrite a custom implementation

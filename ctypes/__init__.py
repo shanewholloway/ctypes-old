@@ -76,7 +76,6 @@ def CFUNCTYPE(restype, *argtypes):
     callable object:
     
     prototype(vtbl_index, method_name) - a function that calls a COM method
-    prototype(vtbl_index, method_name, class) - an unbound method that calls a COM method
     prototype(callable) - returns a C callable function that calls callable
     prototype(funct_name, dll) - a function that calls an exported function in a dll
     """
@@ -107,7 +106,6 @@ if _os.name == "nt":
         callable object:
         
         prototype(vtbl_index, method_name) - a function that calls a COM method
-        prototype(vtbl_index, method_name, class) - an unbound method that calls a COM method
         prototype(callable) - returns a C callable function that calls callable
         prototype(funct_name, dll) - a function that calls an exported function in a dll
         """
