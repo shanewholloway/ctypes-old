@@ -81,6 +81,20 @@ else:
                             include_dirs=include_dirs,
                             )
                   ]
+################################################################
+# This section copied from the PyObjC project
+if sys.platform == 'darwin':
+    # Apple has used build options that don't work with a 'normal' system.
+    # Remove '-arch i386' from the LDFLAGS.
+    import distutils.sysconfig
+    distutils.sysconfig.get_config_vars()
+    x = distutils.sysconfig._config_vars['LDSHARED']
+    y = x.replace('-arch i386', '')
+    if y != x:
+        print "Fixing Apple strangeness in Python configuration"
+        distutils.sysconfig._config_vars['LDSHARED'] = y
+
+################################################################
 
 packages = ["ctypes"]
 package_dir = {}
