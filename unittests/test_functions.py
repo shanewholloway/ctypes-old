@@ -15,15 +15,8 @@ except NameError:
     WINFUNCTYPE = CFUNCTYPE
 
 def find_test_dll():
-    import sys, os
-    if os.name == "nt":
-        name = "_ctypes_test.pyd"
-    else:
-        name = "_ctypes_test.so"
-    for p in sys.path:
-        f = os.path.join(p, name)
-        if os.path.isfile(f):
-            return f
+    import _ctypes_test
+    return _ctypes_test.__file__
 
 class FunctionTestCase(unittest.TestCase):
 

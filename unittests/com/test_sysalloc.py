@@ -3,17 +3,7 @@ from ctypes import *
 from ctypes.com import mallocspy, ole32
 
 from ctypes.com.automation import BSTR, VARIANT
-
-def find_test_dll():
-    import sys, os
-    if os.name == "nt":
-        name = "_ctypes_test.pyd"
-    else:
-        name = "_ctypes_test.so"
-    for p in sys.path:
-        f = os.path.join(p, name)
-        if os.path.isfile(f):
-            return f
+import _ctypes_test
 
 class MallocSpyTest(unittest.TestCase):
     def setUp(self):
@@ -75,7 +65,7 @@ class MallocSpyTest(unittest.TestCase):
         # {
         #         *pbstr = SysAllocString(L"Goodbye!");
         # }
-        GetString = CDLL(find_test_dll()).GetString
+        GetString = CDLL(_ctypes_test.__file__).GetString
 
         # XXX Explain why we cannot create b outside the loop!
         # And why we cannot do anything against this :-)
