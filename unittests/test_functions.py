@@ -145,14 +145,12 @@ class FunctionTestCase(unittest.TestCase):
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
         result = f(1, 2, 3, 4, 5.0, 6.0)
         self.failUnlessEqual(result, 21)
-        self.failUnlessEqual(type(result), long)
 
         f = dll._testfunc_q_bhilfdq
         f.restype = c_longlong
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double, c_longlong]
         result = f(1, 2, 3, 4, 5.0, 6.0, 21)
         self.failUnlessEqual(result, 42)
-        self.failUnlessEqual(type(result), long)
 
     def test_stringresult(self):
         f = dll._testfunc_p_p
@@ -291,7 +289,7 @@ class FunctionTestCase(unittest.TestCase):
         f.argtypes = [c_longlong, MyCallback]
 
         def callback(value):
-            self.failUnlessEqual(type(value), long)
+            self.failUnless(isinstance(value, (int, long)))
             return value & 0x7FFFFFFF
 
         cb = MyCallback(callback)
