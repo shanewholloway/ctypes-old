@@ -1,4 +1,26 @@
+2004-10-28  Thomas Heller  <theller@python.net>
+
+	* Renamed the functions: get_string -> string_at,
+	get_wstring -> wstring_at
+
+2004-10-20  Thomas Heller  <theller@python.net>
+
+	* Cycle GC support added for the PointerType_Type metaclass.
+	This makes the test_leaks unittests work.
+	Reverted the changes for lazy structures again.
+
+	* Remove CFuncPtrType_from_param again.  Later.
+
+2004-10-19  Thomas Heller  <theller@python.net>
+
+	* unittests\test_cfuncs.py: Fixed the test to work on OS X.  The
+	problem probably was that OS X loads several different instances
+	of the _ctypes_test shared library.
+
 2004-10-15  Thomas Heller  <theller@python.net>
+
+	* Implemented memmove, memset and get_string functions.  They will operate
+	on any type of argument, so they should be used carefully.
 
 	* Reinstalled the magic _abstract_ attribute for Structure and
 	Union types.  If this attribute is defined, the _fields_ attribute
