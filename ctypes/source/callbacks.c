@@ -52,7 +52,7 @@ static void LeavePython(char *msg)
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
-			    int stdcall);
+			    int is_cdecl);
 
 
 #ifdef MS_WIN32
@@ -60,7 +60,7 @@ staticforward THUNK AllocCallback(PyObject *callable,
 				  int nArgBytes,
 				  PyObject *converters,
 				  DWORD RouterAddress,
-				  int stdcall);
+				  int is_cdecl);
 
 static int __stdcall CallPythonVTableEntry(PyObject *callable,
 					   PyObject *converters,
@@ -230,9 +230,8 @@ static int __stdcall CallPythonVTableEntry(PyObject *callable,
 /*
  * Callbacks are small blocks of code which create an interface between code
  * using different calling conventions.
- * In this case, an interface from __stdcall C-functions to python
- * callable objects is provided. Note that __stdcall is used to call
- * win32 api functions, and also for callback functions.
+ * In this case, an interface from __stdcall and __cdecl C-functions to python
+ * callable objects is provided.
  *
  * Callbacks are created by allocating some memory, copying the bytes from this
  * template into it, and configuring the callback by setting the number of
@@ -373,7 +372,7 @@ static CALLBACKINFO ti;
  */
 static THUNK AllocCallback(PyObject *callable, int nArgBytes,
 			   PyObject *converters, DWORD RouterAddress,
-			   int stdcall)
+			   int is_cdecl)
 {
 	BYTE *pCallback, *pNargBytes, *pConverters, *pCalladdr, *pRouter;
 
@@ -384,10 +383,10 @@ static THUNK AllocCallback(PyObject *callable, int nArgBytes,
 	pCalladdr = pCallback + (ti.pEnd - ti.pStart) - 8;
 	pRouter = pCallback + (ti.pEnd - ti.pStart) - 4;
 	*(DWORD *)pNargBytes = nArgBytes;
-	if (stdcall)
-		((BYTE *)pNargBytes)[-1] = 0xC2; /* ret <args>: for stdcall */
-	else
+	if (is_cdecl)
 		((BYTE *)pNargBytes)[-1] = 0xC3; /* ret: for cdecl */
+	else
+		((BYTE *)pNargBytes)[-1] = 0xC2; /* ret <args>: for stdcall */
 	*(DWORD *)pConverters = (DWORD)converters;
 	*(DWORD *)pCalladdr = (DWORD)callable;
 	*(DWORD *)pRouter = RouterAddress;
@@ -397,13 +396,13 @@ static THUNK AllocCallback(PyObject *callable, int nArgBytes,
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
-			    int stdcall)
+			    int is_cdecl)
 {
 	return AllocCallback(callable,
 			     nArgBytes,
 			     converters,
 			     (DWORD)CallPythonObject,
-			     stdcall);
+			     is_cdecl);
 }
 #else /* ! MS_WIN32 */
 
@@ -441,7 +440,7 @@ static void closure_fcn(ffi_cif *cif,
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
-			    int stdcall)
+			    int is_cdecl)
 {
 	int result;
 	ffi_info *p;
