@@ -2,6 +2,9 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.6  2005/03/16 07:51:19  theller
+# _COMMETHOD_defined was never set to True.
+#
 # Revision 1.5  2005/03/11 15:40:44  theller
 # Detect an 'Enum' com method, and create an __iter__ method in this class.
 #
@@ -558,7 +561,7 @@ class Generator(object):
         if self._COMMETHOD_defined:
             return
         print >> self.imports, "from comtypes import COMMETHOD"
-        self._STDMETHOD_defined = True
+        self._COMMETHOD_defined = True
 
     _GUID_defined = False
     def need_GUID(self):
