@@ -434,8 +434,6 @@ class Generator(object):
                     ", ".join(args))
             print >> self.stream, "]"
 
-##        self.done.add(body)
-
     def find_dllname(self, func):
         if hasattr(func, "dllname"):
             return func.dllname
