@@ -174,7 +174,7 @@ if __name__ == '__main__':
           ext_modules = extensions,
 ##          packages = ["ctcom"],
           py_modules = ["ctypes"],
-          version="0.4.0",
+          version="0.4.1",
           description="create and manipulate C data types in Python",
           long_description = __doc__,
           author="Thomas Heller",

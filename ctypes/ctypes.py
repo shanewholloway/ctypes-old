@@ -3,7 +3,7 @@
 #
 """create and manipulate C data types in Python"""
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 from _ctypes import Union, Structure, Array
 from _ctypes import c_string
