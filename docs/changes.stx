@@ -22,7 +22,8 @@ Changes in ctypes 0.6
         'ctypes.wintypes' - defines several common windows datatypes
 
 	'ctypes.com' - the beginning of a com framework, client code
-	as well as localserver code.
+	as well as localserver code. This is only proof-of-concept
+	code, the interface is *not* stable at all.
 
 	'ctypes.com.tools' - an utility 'readtlb.py' which generates
 	Python wrapper code from type libraries.
@@ -38,9 +39,14 @@ Changes in ctypes 0.6
 	and clients, it is centered around typelibraries.
 
     The source distribution contains additional code in a samples
-    directory, the full documentation, and a very cool windows gui
-    framework written by Henk Punt named 'wtl'. He even shows how to
-    embed the webbrowser control into a window ;-)
+    directory tree, the full documentation, and a very cool windows
+    gui framework written by Henk Punt named 'wtl'. He even shows how
+    to embed the webbrowser control into a window ;-)
+
+  General
+
+    It is now safe to do 'from ctypes import *', only symbols actually
+    needed are exposed.
 
   Format characters
 
