@@ -8,6 +8,12 @@ Later...
 from ctypes import *
 import unittest
 
+try:
+    WINFUNCTYPE
+except NameError:
+    # fake to enable this test on Linux
+    WINFUNCTYPE = CFUNCTYPE
+
 class FunctionTestCase(unittest.TestCase):
 
     def setUp(self):

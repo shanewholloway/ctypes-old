@@ -1,6 +1,22 @@
 import unittest
 from ctypes import * # bad style, generally
 
+try:
+    WINFUNCTYPE
+except NameError:
+    # fake to enable this test on Linux
+    WINFUNCTYPE = CFUNCTYPE
+
+import os, sys
+if os.name == "nt":
+    libc = cdll.msvcrt
+    
+elif os.name == "posix":
+    if sys.platform == "darwin":
+        libc = cdll.LoadLibrary("/usr/lib/libc.dylib")
+    else:
+        libc = cdll.LoadLibrary("/lib/libc.so.6")
+
 class CFuncPtrTestCase(unittest.TestCase):
     def test_basic(self):
         X = WINFUNCTYPE(c_int, c_int, c_int)
@@ -75,17 +91,17 @@ class CFuncPtrTestCase(unittest.TestCase):
                 raise WinError()
             return value
 
-        f = windll.kernel32.GetModuleHandleA
-        f.argtypes = (c_char_p,)
-        f.restype = NoNullHandle
+##        f = windll.kernel32.GetModuleHandleA
+##        f.argtypes = (c_char_p,)
+##        f.restype = NoNullHandle
 
-        strchr = cdll.msvcrt.strchr
+        strchr = libc.strchr
         strchr.restype = c_char_p
         strchr.argtypes = (c_char_p, c_char)
         self.failUnless(strchr("abcdefghi", "b") == "bcdefghi")
         self.failUnless(strchr("abcdefghi", "x") == None)
 
-        strtok = cdll.msvcrt.strtok
+        strtok = libc.strtok
         strtok.restype = c_char_p
         # Neither of this does work
 ##        strtok.argtypes = (c_char_p, c_char_p)
