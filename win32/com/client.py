@@ -541,13 +541,20 @@ def DispatchWithEvents(progid, user_class, interface=IDispatch,
     result.__dict__["_event_handler"] = rcv._handler
     return result
 
+##def GetObject(displayName):
+##    # see also: c:/python23/lib/site-packages/win32com/client/__init__.py 47
+##    # win32com is more flexible
+
+##    from ctypes.com.moniker import MkParseDisplayName
+##    moniker, i, bindCtx = MkParseDisplayName(displayName)
+##    pdisp = POINTER(IDispatch)()
+##    moniker.BindToObject(bindCtx, None, byref(IDispatch._iid_), byref(pdisp))
+##    return _Dispatch(pdisp)
+
 def GetObject(displayName):
-    # see also: c:/python23/lib/site-packages/win32com/client/__init__.py 47
-    # win32com is more flexible
-    from ctypes.com.moniker import MkParseDisplayName
-    moniker, i, bindCtx = MkParseDisplayName("winmgmts:")
     pdisp = POINTER(IDispatch)()
-    moniker.BindToObject(bindCtx, None, byref(IDispatch._iid_), byref(pdisp))
+    # Do we need a way to specify the BIND_OPTS parameter?
+    ole32.CoGetObject(unicode(displayName), None, byref(IDispatch._iid_), byref(pdisp))
     return _Dispatch(pdisp)
 
 
@@ -558,9 +565,18 @@ if __name__ == "__main__":
     #  dispatch = moniker.BindToObject(bindCtx, None, pythoncom.IID_IDispatch)
 
     d = GetObject("winmgmts:")
-    result = d.ExecQuery("SELECT * FROM Win32_NTLogEvent WHERE LogFile = 'Application'")
-    print len(result)
-    print result.Count
+    result = d.ExecQuery("SELECT * FROM Win32_LogicalDisk")# WHERE CAPTION = 'System Idle Process'")
+##    print len(result)
+##    print result.Count
+    for i in result:
+        print i.GetObjectText_()
+##        print len(i.Properties_)
+
+##        print i.Properties_.Item("Handle").Value
+
+##        for p in i.Properties_:
+##            print p.Name, p.Value
+            
 
     raise SystemExit
 
