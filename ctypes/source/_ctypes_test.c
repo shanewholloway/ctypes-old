@@ -450,28 +450,33 @@ typedef struct {
 	short y;
 } S2H;
 
-EXPORT(S2H) ret_2h_func(void)
+EXPORT(S2H) ret_2h_func(S2H inp)
 {
-	S2H s2h;
-	s2h.x = 42;
-	s2h.y = 24;
-
-	return s2h;
+	inp.x *= 2;
+	inp.y *= 3;
+	return inp;
 }
 
 typedef struct {
 	int a, b, c, d, e, f, g, h;
 } S8I;
 
-EXPORT(S8I) ret_8i_func(void)
+EXPORT(S8I) ret_8i_func(S8I inp)
 {
-	S8I s8i = {1, 2, 3, 4, 5, 6, 7, 8};
-	return s8i;
+	inp.a *= 2;
+	inp.b *= 3;
+	inp.c *= 4;
+	inp.d *= 5;
+	inp.e *= 6;
+	inp.f *= 7;
+	inp.g *= 8;
+	inp.h *= 9;
+	return inp;
 }
 
 #ifdef MS_WIN32
-EXPORT(S2H) __stdcall s_ret_2h_func(void) { return ret_2h_func(); }
-EXPORT(S8I) __stdcall s_ret_8i_func(void) { return ret_8i_func(); }
+EXPORT(S2H) __stdcall s_ret_2h_func(S2H inp) { return ret_2h_func(inp); }
+EXPORT(S8I) __stdcall s_ret_8i_func(S8I inp) { return ret_8i_func(inp); }
 #endif
 
 DL_EXPORT(void)
