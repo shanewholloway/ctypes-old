@@ -1,12 +1,11 @@
-# bugs:
-# packing of structures/unions with bitfields? See '##XXX FIXME'
-
 import nodes
 
 try:
     set
 except NameError:
     from sets import Set as set
+
+
 
 # XXX Should this be in ctypes itself?
 ctypes_names = {
@@ -65,7 +64,7 @@ def _calc_packing(struct, fields, pack, isStruct):
         total_align = 8 # in bits
     for i, f in enumerate(fields):
         if f.bits:
-            print "##XXX FIXME"
+##            print "##XXX FIXME"
             return -2 # XXX FIXME
         s, a = storage(f.typ)
         if pack is not None:
@@ -101,7 +100,7 @@ def calc_packing(struct, fields):
             if pack is None:
                 return None
             return pack/8
-    assert 0, "PACKING FAILED: %s" % details
+    raise PackingError, "PACKING FAILED: %s" % details
 
 def _type_name(t):
     # Return a string, containing an expression which can be used to
@@ -137,13 +136,16 @@ def _type_name(t):
         return t.name
     return t.name
 
-renames = {
+# Is this needed?
+##renames = {
 ##    "POINTER(const(WCHAR))": "c_wchar_p",
-    }
+##    }
 
-def type_name(t):
-    result = _type_name(t)
-    return renames.get(result, result)
+##def type_name(t):
+##    result = _type_name(t)
+##    return renames.get(result, result)
+
+type_name = _type_name
 
 def get_real_type(tp):
     if type(tp) is nodes.Typedef:
@@ -180,6 +182,7 @@ ws2_32
 opengl32
 mswsock
 msvcrt
+msimg32
 rpcrt4""".split()
 
 ##rpcndr
@@ -190,9 +193,9 @@ from ctypes import CDLL
 searched_dlls = [CDLL(name) for name in dll_names]
 
 class Generator(object):
-    def __init__(self):
+    def __init__(self, stream):
         self.done = set()
-        self.more = set()
+        self.stream = stream
 
     def StructureHead(self, head):
         if head in self.done:
@@ -202,16 +205,16 @@ class Generator(object):
             self.more.add(struct)
         basenames = [type_name(b) for b in head.struct.bases]
         if basenames:
-            print "class %s(%s):" % (head.struct.name, ", ".join(basenames))
+            print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
         else:
             methods = [m for m in head.struct.members if type(m) is nodes.Method]
             if methods:
-                print "class %s(_com_interface):" % head.struct.name
+                print >> self.stream, "class %s(_com_interface):" % head.struct.name
             elif type(head.struct) == nodes.Structure:
-                print "class %s(Structure):" % head.struct.name
+                print >> self.stream, "class %s(Structure):" % head.struct.name
             elif type(head.struct) == nodes.Union:
-                print "class %s(Union):" % head.struct.name
-        print "    pass"
+                print >> self.stream, "class %s(Union):" % head.struct.name
+        print >> self.stream, "    pass"
         self.done.add(head)
 
     _structures = 0
@@ -236,7 +239,7 @@ class Generator(object):
         else:
             self.generate(tp.typ)
         if tp.name != type_name(tp.typ):
-            print "%s = %s # typedef" % (tp.name, type_name(tp.typ))
+            print >> self.stream, "%s = %s # typedef" % (tp.name, type_name(tp.typ))
         self.done.add(tp)
 
     _arraytypes = 0
@@ -285,13 +288,13 @@ class Generator(object):
             return
         self._enumtypes += 1
         if tp.name:
-            print
-            print "%s = c_int # enum" % tp.name
+            print >> self.stream
+            print >> self.stream, "%s = c_int # enum" % tp.name
             for n, v in tp.values:
-                print "%s = %s # enum %s" % (n, v, tp.name)
+                print >> self.stream, "%s = %s # enum %s" % (n, v, tp.name)
         else:
             for n, v in tp.values:
-                print "%s = %s # enum" % (n, v)
+                print >> self.stream, "%s = %s # enum" % (n, v)
         self.done.add(tp)
 
     def StructureBody(self, body):
@@ -320,38 +323,38 @@ class Generator(object):
         if not methods:
             pack = calc_packing(body.struct, fields)
             if pack is not None:
-                print "%s._pack_ = %s" % (body.struct.name, pack)
+                print >> self.stream, "%s._pack_ = %s" % (body.struct.name, pack)
             else:
-                print "# %s" % body.struct.name
+                print >> self.stream, "# %s" % body.struct.name
         if fields:
             if body.struct.bases:
                 assert len(body.struct.bases) == 1
                 base = body.struct.bases[0].name
                 self.StructureBody(body.struct.bases[0].get_body())
-                print "%s._fields_ = %s._fields_ + [" % (body.struct.name, base)
+                print >> self.stream, "%s._fields_ = %s._fields_ + [" % (body.struct.name, base)
             else:
-                print "%s._fields_ = [" % body.struct.name
+                print >> self.stream, "%s._fields_ = [" % body.struct.name
             for f in fields:
                 if f.bits is None:
-                    print "    ('%s', %s)," % (f.name, type_name(f.typ))
+                    print >> self.stream, "    ('%s', %s)," % (f.name, type_name(f.typ))
                 else:
-                    print "    ('%s', %s, %s)," % (f.name, type_name(f.typ), f.bits)
-            print "]"
+                    print >> self.stream, "    ('%s', %s, %s)," % (f.name, type_name(f.typ), f.bits)
+            print >> self.stream, "]"
         if methods:
-            print "%s._methods_ = [" % body.struct.name
+            print >> self.stream, "%s._methods_ = [" % body.struct.name
             for m in methods:
                 args = [type_name(a) for a in m.arguments]
-                print "    STDMETHOD(%s, '%s', %s)," % (
+                print >> self.stream, "    STDMETHOD(%s, '%s', %s)," % (
                     type_name(m.returns),
                     m.name,
                     ", ".join(args))
-            print "]"
+            print >> self.stream, "]"
         if body.struct.size and body.struct.name not in dont_assert_size:
             size = body.struct.size // 8
-            print "assert sizeof(%s) == %s, sizeof(%s)" % \
+            print >> self.stream, "assert sizeof(%s) == %s, sizeof(%s)" % \
                   (body.struct.name, size, body.struct.name)
             align = body.struct.align // 8
-            print "assert alignment(%s) == %s, alignment(%s)" % \
+            print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
                   (body.struct.name, align, body.struct.name)
         self.done.add(body)
 
@@ -363,7 +366,6 @@ class Generator(object):
                 pass
             else:
                 return dll._name
-##        return None
         return "?"
 
     _functiontypes = 0
@@ -377,10 +379,10 @@ class Generator(object):
             self.generate_all(func.arguments)
             args = [type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
-                print "%s = STDCALL('%s', %s, '%s', [%s])" % \
+                print >> self.stream, "%s = STDCALL('%s', %s, '%s', [%s])" % \
                       (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
             else:
-                print "%s = CDECL('%s', %s, '%s', [%s])" % \
+                print >> self.stream, "%s = CDECL('%s', %s, '%s', [%s])" % \
                       (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
         self.done.add(func)
 
@@ -399,72 +401,62 @@ class Generator(object):
         for item in items:
             self.generate(item)
 
-    def print_stats(self):
-        print "################################################################"
-        print "# Statistics:"
-        print "#"
-        print "# Struct/Unions: %5d" % self._structures
-        print "# Functions:     %5d" % self._functiontypes
-        print "# Enums:         %5d" % self._enumtypes
-        print "# Typedefs:      %5d" % self._typedefs
-        print "# Pointertypes:  %5d" % self._pointertypes
-        print "# Arraytypes:    %5d" % self._arraytypes
-        print "#"
+    def generate_code(self, items):
+        items = set(items)
+        loops = 0
+        while items:
+            loops += 1
+            self.more = set()
+            self.generate_all(items)
+
+            items |= self.more
+            items -= self.done
+        return loops
+
+    def print_stats(self, stream):
+        print >> stream, "######################"
+        print >> stream, "# Symbols defined:"
+        print >> stream, "#"
+        print >> stream, "# Struct/Unions: %5d" % self._structures
+        print >> stream, "# Functions:     %5d" % self._functiontypes
+        print >> stream, "# Enums:         %5d" % self._enumtypes
+        print >> stream, "# Typedefs:      %5d" % self._typedefs
+        print >> stream, "# Pointertypes:  %5d" % self._pointertypes
+        print >> stream, "# Arraytypes:    %5d" % self._arraytypes
+        print >> stream, "#"
         total = self._structures + self._functiontypes + self._enumtypes + self._typedefs +\
                 self._pointertypes + self._arraytypes
-        print "# Total symbols: %5d" % total
-        print "################################################################"
+        print >> stream, "# Total symbols: %5d" % total
+        print >> stream, "######################"
 
 ################################################################
 
-def find_names(names):
+def generate_code(xmlfile, outfile, symbols=None):
     from gccxmlparser import parse
-    items = parse(files=["windows.h"],
-                  options=["-D WIN32_LEAN_AND_MEAN"],
-##                  options=["-dM"],
-                  xmlfile="windows.xml")
-
-    if "*" in names:
-        return items
-
-    result = []
-    for i in items:
-        if getattr(i, "name", None) in names:
-            result.append(i)
-    return result
-
-def main():
-##    items = parse(files=["windows.h"], xmlfile="windows.xml")
-    items = find_names(sys.argv[1:])
-    gen = Generator()
-    print "# files='windows.h'"
-    print "# options='-D WIN32_LEAN_AND_MEAN'"
-    print "from ctypes import *"
-    print "from _support import STDMETHOD, const, STDCALL, CDECL, _com_interface"
-##    print "def STDMETHOD(*args): pass"
-##    print "def const(x): return x"
-##    print "STDCALL = CDECL = STDMETHOD"
-##    print "class _com_interface(Structure):"
-##    print "    _fields_ = [('lpVtbl', c_void_p)]"
-    print
-
-    for i in range(20):
-        gen.more = set()
-        gen.generate_all(items)
-        items = gen.more
-        if not items:
-            break
-    if items:
-        print "left after 20 loops", len(items)
-        import pdb
-        pdb.set_trace()
-
-    gen.print_stats()
-
-if __name__ == "__main__":
     import sys
-    if len(sys.argv) == 1:
-        sys.argv.extend("*")
-#        sys.argv.extend("WNDCLASS".split())
-##        sys.argv.extend("ITypeComp".split())
-    main()
+    items = parse(xmlfile)
+
+    todo = []
+
+    if symbols:
+        syms = set(symbols.split(","))
+        for i in items:
+            if i.name in syms:
+                todo.append(i)
+                syms.remove(i.name)
+
+        items = todo
+        if syms:
+            print "SYMS NOT FOUND", list(syms)
+
+    gen = Generator(outfile)
+    # output header
+    print >> outfile, "from ctypes import *"
+    print >> outfile, "from _support import STDCALL, CDECL"
+    print >> outfile, "def const(x): return x"
+    print >> outfile
+    loops = gen.generate_code(items)
+    gen.print_stats(sys.stderr)
+
+    print "needed %d loop(s)" % loops
+
