@@ -155,7 +155,9 @@ class test(Command):
         # A sequence of testcase names together with their outcome is returned.
         if self.verbosity > 1:
             print "Running '%s run_remote_test.py %s'" % (sys.executable, path)
-        os.system("%s run_remote_test.py %s" % (sys.executable, path))
+        ret = os.system("%s run_remote_test.py %s" % (sys.executable, path))
+        if ret:
+            print "CRASHED (%d)" % ret, path
         cases = []
         o = open("test.output")
         while 1:
