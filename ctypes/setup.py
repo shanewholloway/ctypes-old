@@ -33,7 +33,7 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 if os.name == "nt":
     extensions = [Extension("_ctypes",
-##                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
+                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             export_symbols=["DllGetClassObject,PRIVATE",
                                            "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
@@ -167,7 +167,10 @@ if (hasattr(distutils.core, 'setup_keywords') and
                   'Operating System :: MacOS :: MacOS X',
                   'Operating System :: Microsoft :: Windows',
                   'Operating System :: POSIX',
-                  'Intended Audience :: Developers']
+                  'Intended Audience :: Developers',
+                  'Development Status :: 3 - Alpha',
+                  'Development Status :: 4 - Beta',
+                  ]
 
 
 from distutils.command import build_py
@@ -191,14 +194,14 @@ if __name__ == '__main__':
           package_dir = package_dir,
           packages = packages,
 
-          version="0.6.2",
+          version="0.6.3",
           description="create and manipulate C data types in Python",
           long_description = __doc__,
           author="Thomas Heller",
           author_email="theller@python.net",
           license="MIT License",
           url="http://starship.python.net/crew/theller/ctypes.html",
-          platforms=["windows", "linux", "MacOS X"],
+          platforms=["windows", "Linux", "MacOS X", "Solaris"],
 
           cmdclass = {'test': test, 'build_py': my_build_py},
           **options
