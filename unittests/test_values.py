@@ -31,13 +31,13 @@ else:
         """This test only works when python itself is a dll/shared library"""
 
         def test_optimizeflag(self):
-            """This test accesses the Py_OptimizeFlag intger, which is
-            exported by the Python dll.
+            # This test accesses the Py_OptimizeFlag intger, which is
+            # exported by the Python dll.
 
-            It's value is set depending on the -O and -OO flags:
-            if not given, it is 0 and __debug__ is 1.
-            If -O is given, the flag is 1, for -OO it is 2.
-            docstrings are also removed in the latter case."""
+            # It's value is set depending on the -O and -OO flags:
+            # if not given, it is 0 and __debug__ is 1.
+            # If -O is given, the flag is 1, for -OO it is 2.
+            # docstrings are also removed in the latter case.
             opt = c_int.in_dll(pydll, "Py_OptimizeFlag").value
             if __debug__:
                 self.failUnlessEqual(opt, 0)
@@ -47,13 +47,14 @@ else:
                 self.failUnlessEqual(opt, 2)
 
         def test_frozentable(self):
-            """Python exports a PyImport_FrozenModules symbol. This is a
-            pointer to an array of struct _frozen entries.  The end of the
-            array is marked by an entry containing a NULL name and zero
-            size.
+            # Python exports a PyImport_FrozenModules symbol. This is a
+            # pointer to an array of struct _frozen entries.  The end of the
+            # array is marked by an entry containing a NULL name and zero
+            # size.
 
-            In standard Python, this table contains a __hello__ module,
-            and a __phello__ package containing a spam module."""
+            # In standard Python, this table contains a __hello__
+            # module, and a __phello__ package containing a spam
+            # module.
             class struct_frozen(Structure):
                 _fields_ = [("name", c_char_p),
                             ("code", POINTER(c_ubyte)),
