@@ -60,9 +60,17 @@ CField_FromDesc(PyObject *desc, int index,
 		Py_DECREF(self);
 		return NULL;
 	}
+#ifdef MS_WIN32
 	if (bitsize /* this is a bitfield request */
 	    && *pfield_size /* we have a bitfield open */
 	    && dict->size * 8 == *pfield_size /* MSVC */
+	    && (*pbitofs + bitsize) <= *pfield_size) {
+		/* continue bit field */
+		fieldtype = CONT_BITFIELD;
+#else
+	if (bitsize /* this is a bitfield request */
+	    && *pfield_size /* we have a bitfield open */
+	    && dict->size * 8 <= *pfield_size
 	    && (*pbitofs + bitsize) <= *pfield_size) {
 		/* continue bit field */
 		fieldtype = CONT_BITFIELD;
@@ -72,6 +80,7 @@ CField_FromDesc(PyObject *desc, int index,
 	    && (*pbitofs + bitsize) <= dict->size * 8) {
 		/* expand bit field */
 		fieldtype = EXPAND_BITFIELD;
+#endif
 	} else if (bitsize) {
 		/* start new bitfield */
 		fieldtype = NEW_BITFIELD;
