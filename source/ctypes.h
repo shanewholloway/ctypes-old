@@ -151,7 +151,7 @@ typedef struct {
 /* A subclass of PyDictObject, used as the instance dictionary of ctypes
    metatypes */
 typedef struct {
-	PyDictObject dict;	/* a subclass of dict */
+	PyDictObject dict;	/* first part identical to PyDictObject */
 	int size;		/* number of bytes */
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
