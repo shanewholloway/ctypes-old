@@ -78,7 +78,8 @@ def main():
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <head>
-    <title>%s</title>
+    <meta HTTP-EQUIV="content-type" CONTENT="text/html; charset=ISO-8859-1">
+<title>%s</title>
     <link rel="STYLESHEET" href="default.css">
   </head>
 <body>\n''' % title
