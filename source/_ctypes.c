@@ -2453,7 +2453,19 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 		if (piunk)
 			required ++;
 #endif
-		if (required != actual) {
+		if (dict->flags & FUNCFLAG_CDECL == FUNCFLAG_CDECL) {
+			/* For cdecl functions, we allow more actual arguments
+			   than the length of the argtypes tuple.
+			*/
+			if (required > actual) {
+				PyErr_Format(PyExc_TypeError,
+			  "this function takes at least %d argument%s (%d given)",
+					     required,
+					     required == 1 ? "" : "s",
+					     actual);
+				return NULL;
+			}
+		} else if (required != actual) {
 			PyErr_Format(PyExc_TypeError,
 			     "this function takes %d argument%s (%d given)",
 				     required,

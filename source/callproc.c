@@ -817,7 +817,7 @@ PyObject *_CallProc(PPROC pProc,
 					   nethod) */
 		    PyObject *restype)
 {
-	int i, n, argcount;
+	int i, n, argcount, argtype_count;
 	struct argument result;
 	struct argument *args, *pa;
 	ffi_type **atypes;
@@ -831,7 +831,7 @@ PyObject *_CallProc(PPROC pProc,
 
 	args = (struct argument *)alloca(sizeof(struct argument) * argcount);
 	memset(args, 0, sizeof(struct argument) * argcount);
-
+	argtype_count = argtypes ? PyTuple_GET_SIZE(argtypes) : 0;
 	if (pIunk) {
 		args[0].ffi_type = &ffi_type_pointer;
 		args[0].value.p = pIunk;
@@ -847,7 +847,11 @@ PyObject *_CallProc(PPROC pProc,
 		int err;
 
 		arg = PyTuple_GET_ITEM(argtuple, i);	/* borrowed ref */
-		if (argtypes) {
+		/* For cdecl functions, we allow more actual arguments
+		   than the length of the argtypes tuple.
+		   This is checked in _ctypes::CFuncPtr_Call
+		*/
+		if (argtypes && argtype_count > i) {
 			PyObject *v;
 			converter = PyTuple_GET_ITEM(argtypes, i);
 			v = PyObject_CallFunctionObjArgs(converter,
