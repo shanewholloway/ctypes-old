@@ -140,7 +140,6 @@ typedef struct {
 	int index;			/* Index into CDataObject's
 					   object array */
 	PyObject *fieldtype;		/* ctypes type of field */
-	SETFUNC setfunc;		/* setter function if proto is NULL */
 } CFieldObject;
 
 /* A subclass of PyDictObject, used as the instance dictionary of ctypes

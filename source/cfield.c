@@ -40,7 +40,7 @@ CField_FromDesc(PyObject *desc, int index,
 		int *psize, int *poffset, int *palign, int pack)
 {
 	CFieldObject *self;
-	int size, align, length;
+	int size, align;
 	SETFUNC setfunc = NULL;
 	StgDictObject *dict;
 	int fieldtype;
@@ -94,12 +94,6 @@ CField_FromDesc(PyObject *desc, int index,
 	}
 
 	size = dict->size;
-	length = dict->length;
-
-	assert(dict->setfunc);
-	setfunc = dict->setfunc;
-
-	self->setfunc = setfunc;
 	self->index = index;
 
 	Py_XINCREF(desc);
@@ -167,7 +161,8 @@ CField_FromDesc(PyObject *desc, int index,
 static int
 CField_set(CFieldObject *self, CDataObject *dst, PyObject *value)
 {
-	PyObject *result = self->setfunc(dst->b_ptr + self->offset,
+	StgDictObject *dict = PyType_stgdict(self->fieldtype);
+	PyObject *result = dict->setfunc(dst->b_ptr + self->offset,
 					 value, self->size,
 					 self->fieldtype);
 	if (result == NULL)
