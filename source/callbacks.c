@@ -73,7 +73,7 @@ PrintError(char *msg, ...)
  *
  */
 static void _CallPythonObject(void *mem,
-			      char *format,
+			      SETFUNC setfunc,
 			      PyObject *callable,
 			      PyObject *converters,
 			      void **pArgs)
@@ -154,11 +154,16 @@ static void _CallPythonObject(void *mem,
 	if (!result) {
 		Extend_Error_Info("(in callback) ");
 		PyErr_Print();
-	} else {
-		if ((result != Py_None)
-		    && !PyArg_Parse(result, format, mem)) {
+	} else if (result != Py_None) {
+		PyObject *keep = setfunc(mem, result, 0);
+		if (keep == NULL) {
 			Extend_Error_Info("(callback return type) ");
 			PyErr_Print();
+		} else {
+			/* assert (keep == Py_None); */
+			/* XXX We have no way to keep the needed reference XXX */
+			/* Should we emit a warning? */
+			Py_DECREF(keep);
 		}
 	}
   Done:
@@ -176,7 +181,7 @@ typedef struct {
 	ffi_cif cif;
 	PyObject *converters;
 	PyObject *callable;
-	char *format;
+	SETFUNC setfunc;
 	ffi_type *atypes[0];
 } ffi_info;
 
@@ -188,7 +193,7 @@ static void closure_fcn(ffi_cif *cif,
 	ffi_info *p = userdata;
 
 	_CallPythonObject(resp,
-			  p->format,
+			  p->setfunc,
 			  p->callable,
 			  p->converters,
 			  args);
@@ -222,6 +227,13 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	p->atypes[i] = NULL;
 
 	PrepareResult(restype, &cResult);
+	{
+		StgDictObject *dict = PyType_stgdict(restype);
+		if (dict)
+			p->setfunc = dict->setfunc;
+		else
+			p->setfunc = getentry("i")->setfunc;
+	}
 
 	cc = FFI_DEFAULT_ABI;
 #ifdef MS_WIN32
@@ -245,56 +257,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		return NULL;
 	}
 
-	switch (cResult.tag) {
-		/* "bBhHiIlLqQdfP" */
-	case 'b':
-	case 'B':
-		p->format = "b";
-		break;
-	case 'h':
-	case 'H':
-		p->format = "h";
-		break;
-	case 'i':
-	case 'I':
-		p->format = "i";
-		break;
-	case 'P':
-		if (sizeof(void *) == sizeof(int))
-			p->format = "i";
-		else if (sizeof(void *) == sizeof(long))
-			p->format = "p";
-		else { /* Hm, what now? */
-			PyErr_Format(PyExc_TypeError, "unknown pointer size");
-			return NULL;
-		}
-		break;
-	case 'l':
-	case 'L':
-		p->format = "l";
-		break;
-#ifdef HAVE_LONG_LONG
-	case 'q':
-	case 'Q':
-		p->format = "L";
-		break;
-#endif
-	case 'd':
-		p->format = "d";
-		break;
-	case 'f':
-		p->format = "f";
-		break;
-	case 'z':
-		p->format = "z";
-		break;
-	case 'c':
-		p->format = "c";
-		break;
-	default:
-		PyErr_Format(PyExc_TypeError, "invalid restype %c", cResult.tag);
-		return NULL;
-	}
 	p->converters = converters;
 	p->callable = callable;
 
