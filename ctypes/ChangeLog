@@ -1,5 +1,7 @@
 2005-03-18  Thomas Heller  <theller@python.net>
 
+	* ctypes-0.9.6 released.
+
 	* Back out the '.so' magic again.
 
 2005-03-17  Thomas Heller  <theller@python.net>
