@@ -1,3 +1,7 @@
+2005-03-18  Thomas Heller  <theller@python.net>
+
+	* Back out the '.so' magic again.
+
 2005-03-17  Thomas Heller  <theller@python.net>
 
 	* ctypes\__init__.py: On platforms where dlopen is used, and '.so'
