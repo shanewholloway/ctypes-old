@@ -23,7 +23,7 @@ def main_is_frozen():
             or hasattr(sys, "frozen") # McMillan installer
             )
 
-class Registrar:
+class Registrar(object):
     """Registrar registers or unregisters a COM coclass in the registry.
 
     It can be extended by overriding the build_table method.
@@ -57,7 +57,7 @@ class Registrar:
                  (HKCR, self._reg_progid_, "", self._reg_desc_),
                  ]
 
-        if self._reg_clsctx_ & CLSCTX_INPROC_SERVER:
+        if not main_is_frozen() and self._reg_clsctx_ & CLSCTX_INPROC_SERVER:
             import _ctypes
             modname = self._cls.__module__
             if modname == "__main__":
@@ -71,7 +71,8 @@ class Registrar:
             e = [(HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonClass", classname),
                  (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonPath", path),
                  (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "", _ctypes.__file__),
-                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "ThreadingModel", "Both")]
+##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "ThreadingModel", "Both")
+                 ]
             
             table.extend(e)
                 
