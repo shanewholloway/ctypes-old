@@ -94,12 +94,17 @@ def main():
 </noscript>
 <!-- Copyright (c)2000 Site Meter -->
 <!--WEBBOT bot="HTMLMarkup" Endspan -->
+
+<a href="http://sourceforge.net">
+<img src="http://sourceforge.net/sflogo.php?group_id=71702&amp;type=1"
+width="88" height="31" border="0" alt="SourceForge.net Logo">
+</a>
         '''
 
         footer = '''
 <hr>
 <!--PLACEHOLDER-->
-<small>Updated: %s</small>
+<small>Page updated: %s</small>
 </body></html>
 '''
         pathname = f.replace('.stx','.html')
