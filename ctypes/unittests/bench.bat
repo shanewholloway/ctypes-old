@@ -11,4 +11,4 @@ echo.
 
 echo *** func():
 timeit %* -s "import ctypes; from _ctypes_test import func" "func()"
-timeit %* -s "from ctypes import cdll; import _ctypes_test; func=cdll[_ctypes_test.__file__]._py_func" "func('abc', 3)"
+timeit %* -s "from ctypes import cdll; import _ctypes_test; func=cdll[_ctypes_test.__file__]._py_func" "func()"
