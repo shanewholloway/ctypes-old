@@ -2,8 +2,9 @@
 @setlocal
 @set _exe=c:\python22\python.exe
 @if "%1"=="-d" set _exe=c:\python22\PCBuild\python_d.exe
-REM @set _exe=c:\python22\python.exe
-REM @if "%1"=="-d" set _exe=c:\python23\PCBuild\python_d.exe
+@REM set _exe=c:\python23\python.exe
+@REM if "%1"=="-d" set _exe=c:\python23\PCBuild\python_d.exe
+
 
 %_exe% Windows\FindFile.py
 %_exe% Windows\GetDiskFreeSpaceEx.py
