@@ -55,7 +55,7 @@ class WStringArrayTestCase(unittest.TestCase):
         self.failUnless(buf.value == u"xZCD")
 
 class StringTestCase(unittest.TestCase):
-    def test_basic_strings(self):
+    def XX_test_basic_strings(self):
         from ctypes import c_string, sizeof
         cs = c_string("abcdef")
 
@@ -82,7 +82,7 @@ class StringTestCase(unittest.TestCase):
 
         self.assertRaises(TypeError, c_string, u"123")
 
-    def test_sized_strings(self):
+    def XX_test_sized_strings(self):
         from ctypes import c_string
 
         # New in releases later than 0.4.0: 
@@ -100,14 +100,14 @@ class StringTestCase(unittest.TestCase):
         self.failUnless(c_string(2).raw[-1] == "\000")
         self.failUnless(len(c_string(2).raw) == 2)
 
-    def test_initialized_strings(self):
+    def XX_test_initialized_strings(self):
         from ctypes import c_string
 
         self.failUnless(c_string("ab", 4).raw[:2] == "ab")
         self.failUnless(c_string("ab", 4).raw[-1] == "\000")
         self.failUnless(c_string("ab", 2).raw == "a\000")
 
-    def test_toolong(self):
+    def XX_test_toolong(self):
         from ctypes import c_string
         cs = c_string("abcdef")
         # Much too long string:

@@ -15,7 +15,6 @@ del os
 __version__ = "0.6.0"
 
 from _ctypes import Union, Structure, Array
-from _ctypes import c_string
 from _ctypes import _Pointer
 from _ctypes import CFuncPtr as _CFuncPtr
 
@@ -23,7 +22,6 @@ import os as _os
 
 if _os.name == "nt":
     from _ctypes import FormatError
-    from _ctypes import c_wstring
 
 from _ctypes import FUNCFLAG_CDECL
 

@@ -1,8 +1,4 @@
 /*
- * $Id$
- */
-
-/*
 
 Name			methods, members, getsets
 ==============================================================================
@@ -18,10 +14,6 @@ CData_Type
   Pointer_Type		__new__(), __init__(), _as_parameter_, contents
   Array_Type		__new__(), __init__(), _as_parameter_, __get/setitem__(), __len__()
   Simple_Type		__new__(), __init__(), _as_parameter_
-
-  CString_Type class	from_param()
-  CString_Type		__new__(), __init__(), _as_parameter_, raw, value
-  CWString_Type		_as_parameter_, raw, value
 
 CField_Type
 StgDict_Type
@@ -83,7 +75,6 @@ bytes(cdata)
  * Array_Type
  * Simple_Type
  * Pointer_Type
- * CString_Type
  * CField_Type
  *
  */
@@ -2842,493 +2833,6 @@ static PyTypeObject Pointer_Type = {
 
 
 /******************************************************************/
-/*
-  CString_Type
-*/
-/*
- * XXX Some should be split into __init__()
- */
-static PyObject *
-CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-/* XXX Beware of UNICODE */
-	CDataObject *obj;
-	PyObject *init;
-	int size = -1;
-	char *data;
-	int slen;
-
-	if (!PyArg_ParseTuple(args, "O|i", &init, &size))
-		return NULL;
-	
-	if (PyString_Check(init)) {
-		PyString_AsStringAndSize(init, &data, &slen);
-		if (size == -1)
-			size = slen+1;
-		if (slen > size-1)
-			slen = size-1;
-	} else if (PyInt_Check(init)) {
-		size = PyInt_AS_LONG(init);
-		data = NULL;
-	} else {
-		PyErr_SetString(PyExc_TypeError,
-				"string or positive integer expected");
-		return NULL;
-	}
-	if (size <= 0) {
-		PyErr_SetString(PyExc_ValueError,
-				"string size must be positive");
-		return NULL;
-	}
-
-	obj = (CDataObject *)type->tp_alloc(type, 0);
-
-	obj->b_base = NULL;
-	obj->b_index = 0;
-	/* No python objects referenced... */
-	obj->b_objects = NoneList(0);
-	obj->b_length = 0;
-
-	obj->b_ptr = PyMem_Malloc(size);
-	obj->b_size = size;
-	obj->b_needsfree = 1;
-	if (data) {
-		memcpy(obj->b_ptr, data, slen);
-	}
-	obj->b_ptr[size-1] = '\0';
-	return (PyObject *)obj;
-}
-
-static PyMemberDef CString_members[] = {
-	{ "_b_size_", T_UINT,
-	  offsetof(CDataObject, b_size), READONLY,
-	  "the internal buffer size" },
-	{ NULL },
-};
-
-static PyObject *
-CString_get_value(CDataObject *self)
-{
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return NULL;
-	}
-	/* PyUnicode_FromWideChar */
-	return PyString_FromString(self->b_ptr);
-}
-
-static PyObject *
-CString_get_value_raw(CDataObject *self)
-{
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return NULL;
-	}
-	return PyString_FromStringAndSize(self->b_ptr, self->b_size);
-}
-
-static int
-CString_set_value(CDataObject *self, PyObject *value)
-{
-	char *data;
-	int size;
-
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return -1;
-	}
-	data = PyString_AsString(value);
-	if (!data)
-		return -1;
-	size = PyString_Size(value);
-	if (size == -1)
-		return -1;
-	if (size+1 > self->b_size) {
-		PyErr_SetString(PyExc_ValueError,
-				"string too long");
-		return -1;
-	}
-	/* clear old contents of buffer, just in case */
-	memset(self->b_ptr, 0, self->b_size);
-	/* copy new contents */
-	memcpy(self->b_ptr, data, size);
-	return 0;
-}
-
-static PyObject *
-CString_as_parameter(CDataObject *self)
-{
-	PyCArgObject *p = new_CArgObject();
-	if (p == NULL)
-		return NULL;
-	p->tag = 'z';
-	p->value.p = (char *)self->b_ptr;
-	Py_INCREF(self);
-	p->obj = (PyObject *)self;
-	return (PyObject *)p;
-}
-
-static PyGetSetDef CString_getsets[] = {
-	{ "raw", (getter)CString_get_value_raw,
-	  (setter)CString_set_value,
-	  "the raw string contents", NULL },
-	{ "value", (getter)CString_get_value,
-	  (setter)CString_set_value,
-	  "the string contents", NULL },
-	{ "_as_parameter_", (getter)CString_as_parameter,
-	  (setter)NULL, "convert to a parameter", NULL },
-	{ NULL },
-};
-
-static PyObject *
-CString_repr(CDataObject *self)
-{
-	if (self->b_ptr == NULL)
-		return PyString_FromString("<c_string NULL>");
-	if (self->b_size > 20)
-		return PyString_FromFormat("<c_string '%20s...'>", self->b_ptr);
-	else
-		return PyString_FromFormat("<c_string '%20s'>", self->b_ptr);
-}
-
-/*
- * If this is a real C classmethod (Python 2.3 and later),
- * it has METH_O style. So the type is in the first argument,
- * and the arg in the second.
- *
- * We fake this in Python 2.2, where METH_CLASS is not present,
- * and 'args' is a tuple containing the type as first member.
- */
-static PyObject *
-CString_from_param(PyObject *cls, PyObject *args)
-{
-	PyObject *value;
-
-#ifdef NO_METH_CLASS
-	PyObject *ignore;
-
-	if (!PyArg_ParseTuple(args, "OO", &ignore, &value))
-		return NULL;
-#else
-	value = args;
-#endif
-	if (value == Py_None)
-		return PyInt_FromLong(0);
-
-	if (!CString_Check(value) && !PyString_Check(value)) {
-		PyErr_SetString(PyExc_TypeError,
-				"c_string, string, or None expected");
-		return NULL;
-	}
-	Py_INCREF(value);
-	return value;
-}
-
-static PyMethodDef CString_methods[] = {
-#ifdef NO_METH_CLASS /* Python 2.2 */
-	{ "from_param", CString_from_param, METH_VARARGS | METH_CLASS,
-#else
-	{ "from_param", CString_from_param, METH_O | METH_CLASS,
-#endif
-	  from_param_doc },
-	{ NULL, NULL },
-};
-
-static PyTypeObject CString_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0,
-	"_ctypes.c_string",
-	sizeof(CDataObject),			/* tp_basicsize */
-	0,					/* tp_itemsize */
-	CData_dealloc,				/* tp_dealloc */
-	0,					/* tp_print */
-	0,					/* tp_getattr */
-	0,					/* tp_setattr */
-	0,					/* tp_compare */
-	(reprfunc)CString_repr,			/* tp_repr */
-	0,					/* tp_as_number */
-	0,					/* tp_as_sequence */
-	0,					/* tp_as_mapping */
-	0,					/* tp_hash */
-	0,					/* tp_call */
-	0,					/* tp_str */
-	0,					/* tp_getattro */
-	0,					/* tp_setattro */
-	&CData_as_buffer,			/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-	"a mutable string",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
-	0,					/* tp_richcompare */
-	0,					/* tp_weaklistoffset */
-	0,					/* tp_iter */
-	0,					/* tp_iternext */
-	CString_methods,			/* tp_methods */
-	CString_members,			/* tp_members */
-	CString_getsets,			/* tp_getset */
-	0,					/* tp_base */
-	0,					/* tp_dict */
-	0,					/* tp_descr_get */
-	0,					/* tp_descr_set */
-	0,					/* tp_dictoffset */
-	0,					/* tp_init */
-	0,					/* tp_alloc */
-	CString_new,				/* tp_new */
-	0,					/* tp_free */
-};
-
-
-#ifdef HAVE_USABLE_WCHAR_T
-/******************************************************************/
-/*
-  CWString_Type
-*/
-/*
- * XXX Some should be split into __init__()
- */
-static PyObject *
-CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-	CDataObject *obj;
-	PyObject *init;
-	int size = -1;
-	int slen;
-	wchar_t *data;
-
-	if (!PyArg_ParseTuple(args, "O|i", &init, &size))
-		return NULL;
-
-	if (PyUnicode_Check(init)) {
-		data = PyUnicode_AS_UNICODE(init);
-		slen = PyUnicode_GET_SIZE(init);
-		if (size == -1)
-			size = slen+1;
-		if (slen > size-1)
-			slen = size-1;
-	} else if (PyInt_Check(init)) {
-		size = PyInt_AS_LONG(init);
-		data = NULL;
-	} else {
-		PyErr_SetString(PyExc_TypeError,
-				"unicode string or None expected");
-		return NULL;
-	}
-	if (size <= 0) {
-		PyErr_SetString(PyExc_ValueError,
-				"string size must be positive");
-		return NULL;
-	}
-
-	obj = (CDataObject *)type->tp_alloc(type, 0);
-
-	obj->b_base = NULL;
-	obj->b_index = 0;
-	/* No python objects referenced... */
-	obj->b_objects = NoneList(0);
-	obj->b_length = 0;
-
-	obj->b_ptr = PyMem_Malloc(size * sizeof(wchar_t));
-	obj->b_size = size * sizeof(wchar_t);
-	obj->b_needsfree = 1;
-	if (data) {
-		memcpy(obj->b_ptr, data, slen * sizeof(wchar_t));
-		memset(obj->b_ptr+(slen * sizeof(wchar_t)), 0, (size-slen)*sizeof(wchar_t));
-	} else
-		memset(obj->b_ptr, 0, size*sizeof(wchar_t));
-
-	return (PyObject *)obj;
-}
-
-static PyMemberDef CWString_members[] = {
-	{ "_b_size_", T_UINT,
-	  offsetof(CDataObject, b_size), READONLY,
-	  "the internal buffer size" },
-	{ NULL },
-};
-
-static PyObject *
-CWString_get_value(CDataObject *self)
-{
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return NULL;
-	}
-	return PyUnicode_FromWideChar((wchar_t *)self->b_ptr,
-				      wcslen((wchar_t *)self->b_ptr));
-}
-
-static PyObject *
-CWString_get_value_raw(CDataObject *self)
-{
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return NULL;
-	}
-	return PyUnicode_FromWideChar((wchar_t *)self->b_ptr,
-				      self->b_size/sizeof(wchar_t));
-}
-
-static int
-CWString_set_value(CDataObject *self, PyObject *value)
-{
-	wchar_t *data;
-	unsigned int size;
-
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return -1;
-	}
-
-	if (PyUnicode_Check(value)) {
-		data = PyUnicode_AS_UNICODE(value);
-		size = PyUnicode_GET_SIZE(value);
-	} else {
-		PyErr_SetString(PyExc_TypeError,
-				"unicode string expected");
-		return -1;
-	}
-	size *= sizeof(wchar_t);
-
-	if (size+sizeof(wchar_t) > (unsigned)self->b_size) {
-		PyErr_SetString(PyExc_ValueError,
-				"unicode string too long");
-		return -1;
-	}
-	/* clear old contents of buffer, just in case */
-	memset(self->b_ptr, 0, self->b_size);
-	/* copy new contents */
-	memcpy(self->b_ptr, data, size);
-	return 0;
-}
-
-static PyObject *
-CWString_as_parameter(CDataObject *self)
-{
-	PyCArgObject *p = new_CArgObject();
-	if (p == NULL)
-		return NULL;
-	p->tag = 'Z';
-	p->value.p = (char *)self->b_ptr;
-	Py_INCREF(self);
-	p->obj = (PyObject *)self;
-	return (PyObject *)p;
-}
-
-static PyGetSetDef CWString_getsets[] = {
-	{ "_as_parameter_", (getter)CWString_as_parameter,
-	  (setter)NULL, "convert to a parameter", NULL },
-	{ "value", (getter)CWString_get_value,
-	  (setter)CWString_set_value,
-	  "the string contents", NULL },
-	{ "raw", (getter)CWString_get_value_raw,
-	  (setter)CWString_set_value,
-	  "the raw string contents", NULL },
-	{ NULL },
-};
-
-static PyObject *
-CWString_from_param(PyObject *cls, PyObject *args)
-{
-	PyObject *value;
-
-#ifdef NO_METH_CLASS
-	PyObject *ignore;
-
-	if (!PyArg_ParseTuple(args, "OO", &ignore, &value))
-		return NULL;
-#else
-	value = args;
-#endif
-	if (value == Py_None)
-		return PyInt_FromLong(0);
-
-	if (!CWString_Check(value) && !PyUnicode_Check(value)) {
-		PyErr_SetString(PyExc_TypeError,
-				"c_wstring, unicode, or None expected");
-		return NULL;
-	}
-	Py_INCREF(value);
-	return value;
-}
-
-
-static PyMethodDef CWString_methods[] = {
-#ifdef NO_METH_CLASS /* Python 2.2 */
-	{ "from_param", CWString_from_param, METH_VARARGS | METH_CLASS,
-#else
-	{ "from_param", CWString_from_param, METH_O | METH_CLASS,
-#endif
-	  from_param_doc },
-	{ NULL, NULL },
-};
-
-static PyObject *
-CWString_repr(CDataObject *self)
-{
-	wchar_t buffer[64];
-	int size;
-	if (self->b_ptr == NULL)
-		return PyString_FromString("<c_wstring NULL>");
-
-	if (self->b_size > 20)
-		size = _snwprintf(buffer, 64, L"<c_wstring '%.20s...'>", self->b_ptr);
-	else
-		size = _snwprintf(buffer, 64, L"<c_wstring '%.20s'>", self->b_ptr);
-	return PyUnicode_FromWideChar(buffer, size);
-}
-
-static PyTypeObject CWString_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0,
-	"_ctypes.c_wstring",
-	sizeof(CDataObject),			/* tp_basicsize */
-	0,					/* tp_itemsize */
-	CData_dealloc,				/* tp_dealloc */
-	0,					/* tp_print */
-	0,					/* tp_getattr */
-	0,					/* tp_setattr */
-	0,					/* tp_compare */
-	(reprfunc)CWString_repr,		/* tp_repr */
-	0,					/* tp_as_number */
-	0,					/* tp_as_sequence */
-	0,					/* tp_as_mapping */
-	0,					/* tp_hash */
-	0,					/* tp_call */
-	0,					/* tp_str */
-	0,					/* tp_getattro */
-	0,					/* tp_setattro */
-	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-	"a mutable unicode string",		/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
-	0,					/* tp_richcompare */
-	0,					/* tp_weaklistoffset */
-	0,					/* tp_iter */
-	0,					/* tp_iternext */
-	CWString_methods,			/* tp_methods */
-	CWString_members,			/* tp_members */
-	CWString_getsets,			/* tp_getset */
-	0,					/* tp_base */
-	0,					/* tp_dict */
-	0,					/* tp_descr_get */
-	0,					/* tp_descr_set */
-	0,					/* tp_dictoffset */
-	0,					/* tp_init */
-	0,					/* tp_alloc */
-	CWString_new,				/* tp_new */
-	0,					/* tp_free */
-};
-#endif
-
-
-/******************************************************************/
 PyObject *
 ToPython(void *ptr, char tag)
 {
@@ -3356,15 +2860,10 @@ sizeof_func(PyObject *self, PyObject *obj)
 	if (dict)
 		return PyInt_FromLong(dict->size);
 
-	/* Should be able to handle CString and CWString instances? */
-	if (CDataObject_Check(obj) || CString_Check(obj)
-#ifdef HAVE_USABLE_WCHAR_T
-	    || CWString_Check(obj)
-#endif
-		)
+	if (CDataObject_Check(obj))
 		return PyInt_FromLong(((CDataObject *)obj)->b_size);
 	PyErr_SetString(PyExc_TypeError,
-			"no size");
+			"this type has no size");
 	return NULL;
 }
 
@@ -3393,7 +2892,6 @@ align_func(PyObject *self, PyObject *obj)
 PyObject *
 byref(PyObject *self, PyObject *obj)
 {
-	/* Should be able to handle CString and CWString instances? */
 	PyCArgObject *parg;
 	if (!CDataObject_Check(obj)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -3419,14 +2917,10 @@ byref(PyObject *self, PyObject *obj)
 PyObject *
 addressof(PyObject *self, PyObject *obj)
 {
-	if (CDataObject_Check(obj) || CString_Check(obj)
-#ifdef HAVE_USABLE_WCHAR_T
-	    || CWString_Check(obj)
-#endif
-		)
+	if (CDataObject_Check(obj))
 		return PyInt_FromLong((long)((CDataObject *)obj)->b_ptr);
 	PyErr_SetString(PyExc_TypeError,
-			"expected CData instance");
+			"invalid type");
 	return NULL;
 }
 
@@ -3591,30 +3085,6 @@ init_ctypes(void)
 	/* CField_Type is derived from PyBaseObject_Type */
 	if (PyType_Ready(&CField_Type) < 0)
 		return;
-//	PyModule_AddObject(m, "CFieldType", (PyObject *)&CField_Type);
-
-	/* CString_Type is *not* derived from CData_Type */
-	/* XXX Should CString_Type be derived from CData_Type?
-	   This would enable sizeof() and byref(). But is this correct?
-	*/
-//	CString_Type.tp_base = &CData_Type;
-	if (PyType_Ready(&CString_Type) < 0)
-		return;
-	/* Hm. Better use a custom metaclass? */
-#ifdef NO_METH_CLASS
-	DoClassMethods(&CString_Type);
-#endif
-	PyModule_AddObject(m, "c_string", (PyObject *)&CString_Type);
-
-#ifdef HAVE_USABLE_WCHAR_T
-	if (PyType_Ready(&CWString_Type) < 0)
-		return;
-	/* Hm. Better use a custom metaclass? */
-#ifdef NO_METH_CLASS
-	DoClassMethods(&CWString_Type);
-#endif
-	PyModule_AddObject(m, "c_wstring", (PyObject *)&CWString_Type);
-#endif
 
 	/*************************************************
 	 *

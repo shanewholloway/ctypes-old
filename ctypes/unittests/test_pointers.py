@@ -56,7 +56,7 @@ class PointersTestCase(unittest.TestCase):
             for i in range(10):
 ##                print arg[i],
                 self.result.append(arg[i])
-##            print
+            print
             return 0
         callback = PROTOTYPE(func)
 

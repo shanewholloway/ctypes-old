@@ -38,11 +38,6 @@ else:
 unsigned_ranges = valid_ranges(*unsigned_types)
 signed_ranges = valid_ranges(*signed_types)
 
-try:
-    string_types = [c_string, c_wstring]
-except NameError:
-    string_types = [c_string]
-
 ################################################################
 
 class NumberTestCase(unittest.TestCase):

@@ -72,14 +72,6 @@ extern PyTypeObject SimpleType_Type;
 #define SimpleTypeObject_CheckExact(v)	((v)->ob_type == &SimpleType_Type)
 #define SimpleTypeObject_Check(v)	PyObject_TypeCheck(v, &SimpleType_Type)
 
-extern PyTypeObject CString_Type;
-#define CString_CheckExact(v)		((v)->ob_type == &CString_Type)
-#define CString_Check(v)		PyObject_TypeCheck(v, &CString_Type)
-
-extern PyTypeObject CWString_Type;
-#define CWString_CheckExact(v)		((v)->ob_type == &CWString_Type)
-#define CWString_Check(v)		PyObject_TypeCheck(v, &CWString_Type)
-
 extern PyTypeObject CField_Type;
 extern struct fielddesc *getentry(char *fmt);
 
