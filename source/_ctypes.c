@@ -2468,8 +2468,10 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static PyObject *
 _build_callargs(CFuncPtrObject *self, PyObject *argtypes, PyObject *inargs, PyObject *kwds)
 {
+#ifdef MS_WIN32
 	if (self->index)
 		return PyTuple_GetSlice(inargs, 1, PyTuple_GET_SIZE(inargs));
+#endif
 	Py_INCREF(inargs);
 	return inargs;
 }
@@ -2486,8 +2488,8 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 	PyObject *callargs;
 #ifdef MS_WIN32
 	IUnknown *piunk = NULL;
-	void *pProc;
 #endif
+	void *pProc = NULL;
 
 	assert(dict); /* if not, it's a bug */
 	restype = self->restype ? self->restype : dict->restype;
@@ -3170,7 +3172,6 @@ static int
 Simple_init(CDataObject *self, PyObject *args, PyObject *kw)
 {
 	PyObject *value = NULL;
-	int len = PyTuple_GET_SIZE(args);
 	
 	/* XXX Optimize. PyArg_ParseTuple is slow... */
 	if (!PyArg_ParseTuple(args, "|O", &value))
