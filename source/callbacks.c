@@ -126,22 +126,13 @@ static void _CallPythonObject(void *mem,
 		}
 
 		if (dict && dict->getfunc) {
-			PyObject *v = dict->getfunc(pArgs, dict->size);
+			PyObject *v = dict->getfunc(pArgs[i], dict->size);
 			if (!v) {
 				PrintError("create argument %d:\n", i);
 				goto Done;
 			}
 			PyTuple_SET_ITEM(arglist, i, v);
-			/* XXX XXX XX
-			   We have the problem that c_byte or c_short have dict->size of
-			   1 resp. 4, but these parameters are pushed as sizeof(int) bytes.
-			   BTW, the same problem occurrs when they are pushed as parameters
-			*/
-			pArgs += (dict->size + sizeof(int) - 1) / sizeof(int);
-			continue;
-		}
-
-		if (dict) {
+		} else if (dict) {
 			/* Hm, shouldn't we use CData_AtAddress() or something like that instead? */
 			CDataObject *obj = (CDataObject *)PyObject_CallFunctionObjArgs(cnv, NULL);
 			if (!obj) {
@@ -153,9 +144,7 @@ static void _CallPythonObject(void *mem,
 				PrintError("unexpected result of create argument %d:\n", i);
 				goto Done;
 			}
-			memcpy(obj->b_ptr, pArgs, dict->size);
-			/* XXX See above */
-			pArgs += (dict->size + sizeof(int) - 1) / sizeof(int);
+			memcpy(obj->b_ptr, pArgs[i], dict->size);
 			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
 		} else {
 			PyErr_SetString(PyExc_TypeError,
@@ -199,23 +188,34 @@ static void closure_fcn(ffi_cif *cif,
 			void *userdata)
 {
 	ffi_info *p = userdata;
-	int nArgs = PySequence_Length(p->converters);
-	void **pArgs = alloca(sizeof(void *) * nArgs);
-	int i;
+#ifdef XX__DEBUG
+	unsigned int i;
+	union {
+		char c;
+		int i;
+		float f;
+		double d;
+		LONGLONG l;
+	} *p_arg;
 
+
+	_asm int 3;
 	/* args is an array containing pointers to pointers to arguments, but
 	   CallPythonObject expects an array containing pointers to arguments.
 	*/
-	for (i = 0; i < nArgs; ++i) {
-		pArgs[i] = *(void ***)args[i];
+	for (i = 0; i < cif->nargs; ++i) {
+		p_arg = args[i];
 	}
+#endif
 
 	_CallPythonObject(resp,
 			  p->format,
 			  p->callable,
 			  p->converters,
-			  pArgs);
+			  args);
 }
+
+extern ffi_type *tag2ffitype(char tag);
 
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
@@ -228,13 +228,24 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	int nArgs, i;
 	PyCArgObject cResult;
 	int abi;
+	ffi_type *resp;
 
 	nArgs = PySequence_Size(converters);
 	p = malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
 
 	/* Check for NULL */
 	for (i = 0; i < nArgs; ++i) {
-		p->atypes[i] = &ffi_type_sint;
+		/* Note: new reference! */
+		PyObject *cnv = PySequence_GetItem(converters, i);
+		StgDictObject *dict;
+		if (cnv == NULL)
+			return NULL;
+		dict = PyType_stgdict(cnv);
+		if (dict->proto && PyString_Check(dict->proto)) {
+			p->atypes[i] = tag2ffitype(PyString_AS_STRING(dict->proto)[0]);
+		} else
+			p->atypes[i] = &ffi_type_sint;
+		Py_DECREF(cnv);
 	}
 
 #ifdef MS_WIN32
@@ -245,14 +256,27 @@ THUNK AllocFunctionCallback(PyObject *callable,
 #else
 	abi = FFI_DEFAULT_ABI;
 #endif
+
+	if (restype == NULL)
+		resp = &ffi_type_sint;
+	else {
+		StgDictObject *dict;
+		dict = PyType_stgdict(restype);
+		if (dict->proto && PyString_Check(dict->proto)) {
+			resp = tag2ffitype(PyString_AS_STRING(dict->proto)[0]);
+		} else
+			resp = &ffi_type_sint;
+	}
+
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_cif(&p->cif, abi, nArgs,
-			      &ffi_type_sint,
+			      resp,
 			      &p->atypes[0]);
 
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
 
+// XXX The following is no longer needed, or???
 	PrepareResult(restype, &cResult);
 	switch (cResult.tag) {
 		/* "bBhHiIlLqQdfP" */
