@@ -8,6 +8,10 @@ Changes in 0.9.1
 
   ctypes changes
 
+    CDLL and its subclasses now accept an optional second handle
+    parameter.  If this is supplied, it is used instead of calling
+    LoadLibrary() or dlopen() to get one.
+
     Sometimes objects have been freed too early when calling functions
     where argtypes have been set.
 

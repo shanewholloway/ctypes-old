@@ -1,5 +1,9 @@
 2004-09-15  Thomas Heller  <theller@python.net>
 
+	* ctypes\__init__.py: CDLL and subclasses now accept an optional
+	second handle parameter.  If this is supplied, it is used instead
+	of calling LoadLibrary() or dlopen() to get one.
+
 	* source\callproc.c: Important fix - sometimes pointers to
 	arguments in function call have been free'd too early, especially
 	when argtypes have been specified for functions.
