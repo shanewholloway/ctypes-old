@@ -7,6 +7,7 @@ ctypes.com
 
   **Warning: work in progress**
 
-  The ctypes COM framework
-
     On Windows, the 'ctypes' distribution contains a simple COM framework.
+
+  The 'ctypes.com' package
+
