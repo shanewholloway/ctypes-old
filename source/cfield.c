@@ -197,6 +197,7 @@ PyTypeObject CField_Type = {
 static int
 get_long(PyObject *v, long *p)
 {
+#if (PYTHON_API_VERSION < 1012)
 	long x;
 	if (!PyInt_Check(v) && !PyLong_Check(v)) {
 		PyErr_Format(PyExc_TypeError,
@@ -213,6 +214,20 @@ get_long(PyObject *v, long *p)
 	}
 	*p = x;
 	return 0;
+#else
+	long x;
+	if (!PyInt_Check(v) && !PyLong_Check(v)) {
+		PyErr_Format(PyExc_TypeError,
+			     "int expected instead of %s instance",
+			     v->ob_type->tp_name);
+		return -1;
+	}
+	x = PyInt_AsUnsignedLongMask(v);
+	if (x == -1 && PyErr_Occurred())
+		return -1;
+	*p = x;
+	return 0;
+#endif
 }
 
 /* Same, but handling unsigned long */
@@ -220,6 +235,7 @@ get_long(PyObject *v, long *p)
 static int
 get_ulong(PyObject *v, unsigned long *p)
 {
+#if (PYTHON_API_VERSION < 1012)
 	if (PyLong_Check(v)) {
 		unsigned long x = PyLong_AsUnsignedLong(v);
 		if (x == (unsigned long)(-1) && PyErr_Occurred()) {
@@ -245,6 +261,20 @@ get_ulong(PyObject *v, unsigned long *p)
 			     v->ob_type->tp_name);
 		return -1;
 	}
+#else
+	unsigned long x;
+	if (!PyInt_Check(v) && !PyLong_Check(v)) {
+		PyErr_Format(PyExc_TypeError,
+			     "int expected instead of %s instance",
+			     v->ob_type->tp_name);
+		return -1;
+	}
+	x = PyInt_AsUnsignedLongMask(v);
+	if (x == -1 && PyErr_Occurred())
+		return -1;
+	*p = x;
+	return 0;
+#endif
 }
 
 #ifdef HAVE_LONG_LONG
