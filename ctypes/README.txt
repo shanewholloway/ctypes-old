@@ -40,4 +40,4 @@ Homepage: http://starship.python.net/crew/theller/ctypes.html
 
 License: MIT
 
-Platforms: Windows, linux
+Platforms: Windows, linux, MacOS X
