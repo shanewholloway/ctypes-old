@@ -49,8 +49,7 @@ and `build GCC-XML from source`_.
 
 .. _the ctypes download page: http://sourceforge.net/project/showfiles.php?group_id=71702
 
-XXX UPDATE LINK!
-.. _GCC-XML windows installer: http://sourceforge.net/project/showfiles.php?group_id=71702&package_id=71318&release_id=312072
+.. _GCC-XML windows installer: http://sourceforge.net/project/showfiles.php?group_id=71702&package_id=71318&release_id=313813
 
 .. _GCC-XML: http://www.gccxml.org/
 
@@ -72,6 +71,9 @@ Changes in the ctypes 0.9.6 release
 
  - ``h2xml.py`` can load an optional local configuration file from the
    current directory
+
+ - several bugs in the gccxml installer plus one bug in gccxml has been fixed,
+   and the gccxml installer snapshot has been rebuilt.
 
 Usage examples
 ==============
