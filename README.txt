@@ -16,6 +16,19 @@ works with this release, it is availabale for download from the ctypes
 download page
 http://sourceforge.net/project/showfiles.php?group_id=71702.
 
+To install ctypes from source, unpack the distribution,
+enter the ctypes-0.4.0 directory, and enter
+
+  python setup.py install --help
+
+to see the options available, then
+
+  python setup.py install [options]
+
+to install it.  If you want to run the unittests before, you should do
+
+  python setup.py test
+
 ----
 
 It provides classes which can be used to create complicated C data
