@@ -31,7 +31,7 @@ if os.name == "nt":
     extensions = [Extension("_ctypes",
                             export_symbols=["DllGetClassObject,PRIVATE",
                                             "DllCanUnloadNow,PRIVATE"],
-                            libraries=["ole32"],
+                            libraries=["ole32", "user32"],
                             **kw)
                   ]
 else:
