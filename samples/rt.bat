@@ -16,4 +16,5 @@
 %_exe% test_argcount.py
 %_exe% test_strchr.py
 %_exe% test_time.py
+%_exe% test_incomplete.py
 %_exe% -c "import ctypes; print 'VESION', ctypes.__version__"
