@@ -1774,10 +1774,22 @@ static PySequenceMethods Array_as_sequence = {
 	0,					/* sq_inplace_repeat; */
 };
 
-static PyMemberDef Array_members[] = {
-	{ "_as_parameter_", T_UINT,
-	  offsetof(CDataObject, b_ptr), READONLY,
-	  "convert into parameter" },
+static PyObject *
+Array_as_parameter(CDataObject *self)
+{
+	PyCArgObject *p = new_CArgObject();
+	if (p == NULL)
+		return NULL;
+	p->tag = 'P';
+	p->value.p = (char *)self->b_ptr;
+	Py_INCREF(self);
+	p->obj = (PyObject *)self;
+	return (PyObject *)p;
+}
+
+static PyGetSetDef Array_getsets[] = {
+	{ "_as_parameter_", (getter)Array_as_parameter,
+	  (setter)NULL, "convert to a parameter", NULL },
 	{ NULL },
 };
 
@@ -1811,8 +1823,8 @@ static PyTypeObject Array_Type = {
 	0,					/* tp_iter */
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
-	Array_members,				/* tp_members */
-	0,					/* tp_getset */
+	0,					/* tp_members */
+	Array_getsets,				/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
@@ -2061,7 +2073,7 @@ Pointer_as_parameter(CDataObject *self)
 	if (parg == NULL)
 		return NULL;
 
-	parg->tag = 'p';
+	parg->tag = 'P';
 	Py_INCREF(self);
 	parg->obj = (PyObject *)self;
 	parg->value.p = *(void **)self->b_ptr;
@@ -2238,9 +2250,6 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef CString_members[] = {
-	{ "_as_parameter_",
-	  T_UINT, offsetof(CDataObject, b_ptr), READONLY,
-	  "convert to a parameter" },
 	{ "_b_size_", T_UINT,
 	  offsetof(CDataObject, b_size), READONLY,
 	  "the internal buffer size" },
@@ -2318,6 +2327,19 @@ CString_set_value_raw(CDataObject *self, PyObject *value)
 	return 0;
 }
 
+static PyObject *
+CString_as_parameter(CDataObject *self)
+{
+	PyCArgObject *p = new_CArgObject();
+	if (p == NULL)
+		return NULL;
+	p->tag = 'z';
+	p->value.p = (char *)self->b_ptr;
+	Py_INCREF(self);
+	p->obj = (PyObject *)self;
+	return (PyObject *)p;
+}
+
 static PyGetSetDef CString_getsets[] = {
 	{ "raw", (getter)CString_get_value_raw,
 	  (setter)CString_set_value_raw,
@@ -2325,6 +2347,8 @@ static PyGetSetDef CString_getsets[] = {
 	{ "value", (getter)CString_get_value,
 	  (setter)CString_set_value,
 	  "the string contents", NULL },
+	{ "_as_parameter_", (getter)CString_as_parameter,
+	  (setter)NULL, "convert to a parameter", NULL },
 	{ NULL },
 };
 
@@ -3369,6 +3393,40 @@ Z_get(void *ptr, unsigned size)
 }
 #endif
 
+static PyObject *
+P_set(void *ptr, PyObject *value, unsigned size)
+{
+	void *v;
+	if (value == Py_None) {
+		*(void **)ptr = NULL;
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	
+	v = PyLong_AsVoidPtr(value);
+	if (PyErr_Occurred()) {
+		/* prevent the SystemError: bad argument to internal function */
+		if (!PyInt_Check(value) && !PyLong_Check(value)) {
+			PyErr_SetString(PyExc_TypeError,
+					"cannot be converted to pointer");
+		}
+		return NULL;
+	}
+	*(void **)ptr = v;
+	Py_INCREF(value);
+	return value;
+}
+
+static PyObject *
+P_get(void *ptr, unsigned size)
+{
+	if (*(void **)ptr == NULL) {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	return PyLong_FromVoidPtr(*(void **)ptr);
+}
+
 typedef struct { char c; char x; } s_char;
 /* typedef struct { char c; wchar_t x; } s_wchar; */
 typedef struct { char c; short x; } s_short;
@@ -3378,7 +3436,7 @@ typedef struct { char c; float x; } s_float;
 typedef struct { char c; double x; } s_double;
 typedef struct { char c; char *x; } s_char_p;
 typedef struct { char c; wchar_t *x; } s_wchar_p;
-/* typedef struct { char c; void *x; } s_void_p; */
+typedef struct { char c; void *x; } s_void_p;
 
 #define CHAR_ALIGN (sizeof(s_char) - sizeof(char))
 #define WCHAR_ALIGN (sizeof(s_wchar) - sizeof(wchar_t))
@@ -3389,7 +3447,7 @@ typedef struct { char c; wchar_t *x; } s_wchar_p;
 #define DOUBLE_ALIGN (sizeof(s_double) - sizeof(double))
 #define CHAR_P_ALIGN (sizeof(s_char_p) - sizeof(char*))
 #define WCHAR_P_ALIGN (sizeof(s_wchar_p) - sizeof(wchar_t*))
-/* #define VOID_P_ALIGN (sizeof(s_void_p) - sizeof(void*)) */
+#define VOID_P_ALIGN (sizeof(s_void_p) - sizeof(void*))
 
 #ifdef HAVE_LONG_LONG
 typedef struct { char c; LONG_LONG x; } s_long_long;
@@ -3416,7 +3474,7 @@ static struct fielddesc formattable[] = {
 	{ 'q', sizeof(LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get},
 	{ 'Q', sizeof(LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
 #endif
-/*     { 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get}, */
+	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
 /*     { 't', sizeof(char *),		CHAR_P_ALIGN,		t_set, t_get}, */
 /*     { 'y', sizeof(wchar_t *),		WCHAR_P_ALIGN,		y_set, y_get}, */
 	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
@@ -3436,6 +3494,19 @@ getentry(char *fmt)
 	    return table;
     }
     return NULL;
+}
+
+PyObject *
+ToPython(void *ptr, char tag)
+{
+	struct fielddesc *fd = getentry(&tag);
+	if (!fd) {
+		PyErr_Format(PyExc_ValueError,
+			     "invalid format char for restype '%c'",
+			     tag);
+		return NULL;
+	}
+	return fd->getfunc(ptr, 0);
 }
 
 static char *var_field_codes = "sS";
@@ -3667,11 +3738,28 @@ static PyMemberDef CFunction_members[] = {
 	{ "callable", T_OBJECT,
 	  offsetof(CFunctionObject, callable), READONLY,
 	  "the callable object" },
-	{ "_as_parameter_", T_UINT,
-	  offsetof(CFunctionObject, callback), READONLY,
-	  "address of the C callable function" },
 	{ NULL },
 };
+
+static PyObject *
+CFunction_as_parameter(CFunctionObject *self)
+{
+	PyCArgObject *p = new_CArgObject();
+	if (p == NULL)
+		return NULL;
+	p->tag = 'P';
+	p->value.p = (char *)self->callback;
+	Py_INCREF(self);
+	p->obj = (PyObject *)self;
+	return (PyObject *)p;
+}
+
+static PyGetSetDef CFunction_getsets[] = {
+	{ "_as_parameter_", (getter)CFunction_as_parameter,
+	  (setter)NULL, "convert to a parameter", NULL },
+	{ NULL },
+};
+
 
 static PyObject *
 CFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
@@ -3825,7 +3913,7 @@ static PyTypeObject CFunction_Type = {
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
 	CFunction_members,			/* tp_members */
-	0,					/* tp_getset */
+	CFunction_getsets,			/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
@@ -4127,7 +4215,7 @@ byref(PyObject *self, PyObject *obj)
 	if (parg == NULL)
 		return NULL;
 
-	parg->tag = 'p';
+	parg->tag = 'P';
 	Py_INCREF(obj);
 	parg->obj = obj;
 	parg->value.p = ((CDataObject *)obj)->b_ptr;
@@ -4218,6 +4306,9 @@ init_ctypes(void)
 	PyEval_InitThreads();
 	m = Py_InitModule3("_ctypes", module_methods, module_docs);
 	if (!m)
+		return;
+
+	if (PyType_Ready(&PyCArg_Type) < 0)
 		return;
 
 	/*************************************************
