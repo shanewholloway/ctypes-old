@@ -1,5 +1,59 @@
 import unittest
 
+class StringArrayTestCase(unittest.TestCase):
+    def test(self):
+        from ctypes import c_char
+        BUF = c_char * 4
+
+        buf = BUF("a", "b", "c")
+        self.failUnless(buf.value == "abc")
+        self.failUnless(buf.raw == "abc\000")
+
+        buf.value = "ABCD"
+        self.failUnless(buf.value == "ABCD")
+        self.failUnless(buf.raw == "ABCD")
+
+        buf.value = "x"
+        self.failUnless(buf.value == "x")
+        self.failUnless(buf.raw == "x\000CD")
+
+        buf[1] = "Z"
+        self.failUnless(buf.value == "xZCD")
+        self.failUnless(buf.raw == "xZCD")
+
+        self.assertRaises(ValueError, setattr, buf, "value", "aaaaaaaa")
+        self.assertRaises(TypeError, setattr, buf, "value", 42)
+
+    def test_param_1(self):
+        from ctypes import c_char, c_char_p
+        BUF = c_char * 4
+        buf = BUF()
+##        print c_char_p.from_param(buf)
+        
+    def test_param_2(self):
+        from ctypes import c_char, c_char_p
+        BUF = c_char * 4
+        buf = BUF()
+##        print BUF.from_param(c_char_p("python"))
+##        print BUF.from_param(BUF(*"pyth"))
+
+class WStringArrayTestCase(unittest.TestCase):
+    def test(self):
+        from ctypes import c_wchar
+        BUF = c_wchar * 4
+
+        buf = BUF(u"a", u"b", u"c")
+        self.failUnless(buf.value == u"abc")
+
+        buf.value = u"ABCD"
+        self.failUnless(buf.value == u"ABCD")
+
+        buf.value = u"x"
+        self.failUnless(buf.value == u"x")
+
+        buf[1] = u"Z"
+        self.failUnless(buf.value == u"xZCD")
+
 class StringTestCase(unittest.TestCase):
     def test_basic_strings(self):
         from ctypes import c_string, sizeof
@@ -133,11 +187,14 @@ def check_perf():
 
 def get_suite():
     try:
-        from ctypes import c_wstring
+        from ctypes import c_wchar
     except ImportError:
-        return unittest.makeSuite(StringTestCase)
+        return unittest.TestSuite((unittest.makeSuite(StringTestCase),
+                                   unittest.makeSuite(StringArrayTestCase)))
     return unittest.TestSuite((unittest.makeSuite(StringTestCase),
-                                unittest.makeSuite(WStringTestCase)))
+##                               unittest.makeSuite(WStringTestCase),
+                               unittest.makeSuite(StringArrayTestCase),
+                               unittest.makeSuite(WStringArrayTestCase)))
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
