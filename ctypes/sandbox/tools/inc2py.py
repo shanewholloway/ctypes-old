@@ -90,7 +90,13 @@ class ParserError(Exception):
 # pass one or more include files to the preprocessor, and return a
 # sequence of text lines containing the #define's that the
 # preprocessor dumps out.
-def get_cpp_symbols(*fnames):
+def get_cpp_symbols(options, *fnames):
+    # options is a sequence of command line options for GCCXML
+    # fnames is the sequence of include files
+    #
+
+    options = " ".join(options)
+
     # write a temporary C file
     handle, c_file = tempfile.mkstemp(suffix=".c", text=True)
     for fname in fnames:
@@ -108,7 +114,7 @@ def get_cpp_symbols(*fnames):
             if retval:
                 raise ParserError, "gccxml returned error %s" % retval
 
-        threading.Thread(target=get_errout, args=(e,)).start()
+        threading.Thread(target=get_errout, args=(fd,)).start()
 
     try:
         # We don't want the predefined symbols. So we get them and
@@ -122,8 +128,7 @@ def get_cpp_symbols(*fnames):
             raise ParserError, "gccxml returned error %s" % retval
 
         result = []
-        ##print (r"# gccxml.exe %s --preprocess -dM" % c_file)
-        i, o, e = os.popen3(r"gccxml.exe %s --preprocess -dM" % c_file)
+        i, o, e = os.popen3(r"gccxml.exe %s %s --preprocess -dM" % (options, c_file))
         i.close()
         read_stderr(e)
         for line in o.readlines():
@@ -139,12 +144,11 @@ def get_cpp_symbols(*fnames):
 
 class IncludeParser(object):
 
-    def __init__(self, env=None):
-        if env is None:
-            self.env = {}
-        else:
-            self.env = env
-        self.statements = []
+    def __init__(self, cpp_options=()):
+        self._env = {}
+        self._statements = []
+        self._errlines = []
+        self._cpp_options = cpp_options
 
     # ripped from h2py
     def pytify(self, body):
@@ -157,68 +161,70 @@ class IncludeParser(object):
 
     def parse(self, *files):
         self._parse(*files)
-        try:
-            del self.env["__builtins__"]
-        except KeyError:
-            pass
+        self._env.pop("__builtins__", None)
 
     def _parse(self, *files):
         self.files = files
-        lines = get_cpp_symbols(*files)
+        lines = get_cpp_symbols(self._cpp_options, *files)
 
         total = 0
         for i in range(10):
-            processed = self.create_pycode(lines)
+            processed = self.parse_lines(lines)
             total += processed
             print "processed %d (%d) defs in pass %d, %d defs remain" % \
                   (processed, total, i, len(lines))
             if not processed:
                 return
 
-    def create_pycode(self, lines):
+    def create_statement(self, line):
+        match = p_define.match(line)
+        if match:
+            name = match.group(1)
+            body = line[match.end():]
+            body = self.pytify(body)
+            return '%s = %s\n' % (name, body.strip())
+
+        match = p_macro.match(line)
+        if match:
+            macro, arg = match.group(1, 2)
+            body = line[match.end():]
+            body = self.pytify(body)
+            return 'def %s(%s): return %s\n' % (macro, arg, body)
+        return None
+
+    def parse_lines(self, lines):
         processed = [] # line numbers of processed lines
         for lineno, line in enumerate(lines):
-            match = p_define.match(line)
-            if match:
-                name = match.group(1)
-                if name in self.env:
-                    continue
-                body = line[match.end():]
-                body = self.pytify(body)
-                stmt = '%s = %s\n' % (name, body.strip())
+            stmt = self.create_statement(line)
+            if stmt is None: # cannot process this line
+                self._errlines.append(line)
+                print line.rstrip()
+                processed.append(lineno)
+            else:
                 try:
-                    exec stmt in self.env
+                    exec stmt in self._env
                 except:
                     pass
                 else:
-                    self.statements.append(stmt)
+                    self._statements.append(stmt)
                     processed.append(lineno)
-                continue
-
-            match = p_macro.match(line)
-            if match:
-                macro, arg = match.group(1, 2)
-                if macro in self.env:
-                    continue
-                body = line[match.end():]
-                body = self.pytify(body)
-                stmt = 'def %s(%s): return %s\n' % (macro, arg, body)
-                try:
-                    exec stmt in self.env
-                except:
-                    pass
-                else:
-                    self.statements.append(stmt)
-                    processed.append(lineno)
-                continue
-
-            # no pattern matches, cannot process this line
-            processed.append(lineno)
 
         processed.reverse()
         for i in processed:
             del lines[i]
         return len(processed)
+
+    def get_symbols(self):
+        # return a dictionary containing the symbols collected
+        return self._env.copy()
+
+    def get_statements(self):
+        # return a sequence of Python statements generated from the #defines
+        return self._statements[:]
+
+    def get_errlines(self):
+        # return a sequence of #define lines which could not be processed
+        return self._errlines[:]
 
 # script start
 if __name__ == "__main__":
@@ -226,18 +232,23 @@ if __name__ == "__main__":
     import types
     os.environ["GCCXML_COMPILER"] = "msvc71"
     
-    parser = IncludeParser()
     start = time.clock()
-    parser.parse("windows.h", "sql.h")
+
+    parser = IncludeParser()
+    parser.parse("windows.h")
     print "%.2f seconds" % (time.clock() - start)
     
     n = 0
     ofi = open("symbols.py", "w")
-    names = parser.env.keys()
+    names = parser._env.keys()
     names.sort() # it's nicer
     for name in names:
-        value = parser.env[name]
+        value = parser._env[name]
         if not type(value) is types.FunctionType:
-            ofi.write("%s = %r\n" % (name, value))
+##            ofi.write("%s = %r\n" % (name, value))
+            print name, value
             n += 1
     print "Dumped %d symbols" % n
+##    from pprint import pprint as pp
+
+##    pp(parser._errlines)
