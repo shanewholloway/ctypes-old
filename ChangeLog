@@ -1,3 +1,18 @@
+2004-09-01  Thomas Heller  <theller@python.net>
+
+	* (Message): A pythonapi object has been added to the ctypes
+	package.  On windows, it is bound to the python dll, on other
+	systems it is bound to the current process.
+
+	It allows to access C Python api functions.
+
+	py_object is the ctypes type corresponding to the C 'PyObject *'
+	type.
+
+	* ctypes: It is now possible to call cdecl functions with more
+	arguments than the length of the argtypes attribute, even if this
+	is set.  This allows specify argtypes for functions like sprintf().
+
 2004-08-27  Thomas Heller  <theller@python.net>
 
 	* ctypes: Accept integer addresses, uncode strings, and strings in
