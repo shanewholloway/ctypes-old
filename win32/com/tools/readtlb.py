@@ -327,6 +327,29 @@ class DispMethod(Method):
         items.extend(self.argtypes)
         return ", ".join(items) + ")"
 
+class ModuleReader(TypeInfoReader):
+    def _parse_typeattr(self, ta):
+        self._get_documentation()
+        print self.name,
+        print "Funcs", ta.cFuncs, "Vars", ta.cVars, "ImplTypes", ta.cImplTypes
+        for i in range(ta.cFuncs):
+            pfd = LPFUNCDESC()
+            self.ti.GetFuncDesc(i, byref(pfd))
+            fd = pfd.contents
+            name = BSTR()
+            self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
+            argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
+            restype = self._get_type(fd.elemdescFunc.tdesc)
+            print restype, name, argtypes
+
+    def _get_argtypes(self, n, pelemdesc):
+        result = []
+        for i in range(n):
+            e = pelemdesc[i]
+            vt = e.tdesc.vt
+            result.append(self._get_type(e.tdesc))
+        return result
+
 class InterfaceReader(TypeInfoReader):
     baseinterface = "IUnknown"
     nummethods = 3
@@ -578,6 +601,7 @@ class TypeLibReader:
         self.interfaces = {}
         self.enums = []
         self.records = []
+        self.modules = []
 
         self.types = {}
 
@@ -610,6 +634,9 @@ class TypeLibReader:
             elif kind.value == TKIND_UNION:
                 rdr = UnionReader(self, ti)
                 self.records.append(rdr)
+            elif kind.value == TKIND_MODULE:
+                rdr = ModuleReader(self, ti)
+                self.modules.append(rdr)
                 
         for iid in self.types:
             ti = self.types[iid]
@@ -740,6 +767,7 @@ def main():
         # Microsoft PictureClip Control 6.0 (Ver 1.1)
 ##        path = r"c:\Windows\System32\PICCLP32.OCX"
 ##        path = r"c:\windows\system32\Macromed\Flash\swflash.ocx"
+        path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 
     import time
     start = time.clock()
