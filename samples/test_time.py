@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     # prototype
     clib.asctime.argtypes = [POINTER(tm)]
-    clib.asctime.restype = "s"
+    clib.asctime.restype = "z"
 
     # prototype
     clib.time.argtypes = [POINTER(c_int)]

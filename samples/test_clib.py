@@ -58,7 +58,7 @@ def test_snprintf():
 
 def test_strtok():
     strtok = libc.strtok
-    strtok.restype = "s"
+    strtok.restype = "z"
 
     delim = " "
 

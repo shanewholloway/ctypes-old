@@ -6,7 +6,7 @@ if os.name == "nt":
 elif os.name == "posix":
     strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
 
-strchr.restype = "s"
+strchr.restype = "z"
 
 strchr.argtypes = [c_string, c_int]
 
