@@ -4222,6 +4222,8 @@ sizeof_func(PyObject *self, PyObject *obj)
 	dict = PyType_stgdict(obj);
 	if (dict)
 		return PyInt_FromLong(dict->size);
+
+	/* Should be able to handle CString and CWString instances? */
 	if (!CDataObject_Check(obj)) {
 		PyErr_SetString(PyExc_TypeError,
 				"no size");
@@ -4237,6 +4239,7 @@ sizeof_func(PyObject *self, PyObject *obj)
 PyObject *
 byref(PyObject *self, PyObject *obj)
 {
+	/* Should be able to handle CString and CWString instances? */
 	PyCArgObject *parg;
 	if (!CDataObject_Check(obj)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -4262,6 +4265,7 @@ byref(PyObject *self, PyObject *obj)
 PyObject *
 addressof(PyObject *self, PyObject *obj)
 {
+	/* Should be able to handle CString and CWString instances? */
 	if (!CDataObject_Check(obj)) {
 		PyErr_SetString(PyExc_TypeError,
 				"expected CData instance");
@@ -4577,9 +4581,6 @@ EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
 EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG))
 {
 	LONG_LONG initial = value;
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 
 	while (value != 0) {
 		func(value);
