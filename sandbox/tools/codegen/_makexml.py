@@ -78,8 +78,6 @@ EXCLUDED_RE = [re.compile(pat) for pat in EXCLUDED_RE
 # give a syntax error when compiled, so it cannot be a value!
 INVALID_CHARS = "=/{};&"
 
-log = open("skipped.txt", "w")
-
 def is_excluded(name, value):
     if "(" in name:
         return "macro with parameters"
@@ -163,16 +161,6 @@ def create_file():
     ofi.write('#include <windows.h>\n')
     return ofi
     
-################################################################
-# parse a C header file, and dump the preprocessor symbols
-create_file()
-
-# find the preprocessor defined symbols
-print "... finding preprocessor symbol names"
-defs = gccxml_get_defines("glut.cpp")
-
-print "%d '#define' symbols found" % len(defs)
-
 def find_aliases(defs):
     aliases = {}
     wordpat = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -185,49 +173,20 @@ def find_aliases(defs):
             del defs[name]
     return aliases
 
-aliases = find_aliases(defs)
-
-print "%d symbols are name aliases" % len(aliases)
-
 ################################################################
-# parse the standard output
-print "... processing with gccxml"
-os.system("gccxml glut.cpp -fxml=glut.xml")
+# parse a C header file, and dump the preprocessor symbols
 
-print "... parsing gccxml output:",
-items = parse("glut.xml")
-print "%d type descriptions found" % len(items)
+log = open("skipped.txt", "w")
 
-types = {}
-for i in items:
-    name = getattr(i, "name", None)
-    if name:
-        types[name] = i
+create_file()
 
-##interesting = (typedesc.Function,)
-##interesting = (typedesc.EnumValue,)
-interesting = (typedesc.FundamentalType, typedesc.Function, typedesc.FunctionType,
-               typedesc.Typedef)
+# find the preprocessor defined symbols
+print "... finding preprocessor symbol names"
+defs = gccxml_get_defines("glut.cpp")
 
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX here continue to work...
-
-# filter the symbols ...
-newdefs = {}
-skipped = 0
-known = set()
-for name, value in defs.iteritems():
-    if value in types:
-        # Ah, we know the *type* and the *value* of this item already
-        skipped += 1
-##        print "SKIPPED", type(types[value]).__name__, name, value
-        known.add(name)
-        pass
-    else:
-        newdefs[name] = value
-print "skipped %d symbols, type and value are known from XML" % skipped
-print "Remaining %s items" % len(newdefs)
-
-defs = newdefs
+print "%d '#define' symbols found" % len(defs)
+aliases = find_aliases(defs)
+print "%d symbols are name aliases" % len(aliases)
 
 ################################################################
 # invoke some C++ magic, which will create a lot of functions.
@@ -252,7 +211,6 @@ ofi.close()
 print "... finding preprocessor symbol types"
 # compile the file
 os.system("gccxml glut.cpp -fxml=glut.xml")
-
 # parse the result
 items = parse("glut.xml")
 
@@ -283,5 +241,7 @@ ofi.close()
 # will be used to generate Python code
 print "... finding preprocessor symbol values"
 os.system("gccxml glut.cpp -fxml=glut.xml")
+
+# now we should reinsert the aliases list again
 
 print "took %.2f seconds" % (time.clock() - start)
