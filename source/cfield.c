@@ -508,7 +508,7 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
  */
 
 static PyObject *
-b_set(void *ptr, PyObject *value, unsigned size, ...)
+b_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
 	if (get_long(value, &val) < 0)
@@ -527,7 +527,7 @@ b_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-B_set(void *ptr, PyObject *value, unsigned size, ...)
+B_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
 	if (get_ulong(value, &val) < 0)
@@ -547,7 +547,7 @@ B_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-h_set(void *ptr, PyObject *value, unsigned size, ...)
+h_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
 	if (get_long(value, &val) < 0)
@@ -566,7 +566,7 @@ h_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-H_set(void *ptr, PyObject *value, unsigned size, ...)
+H_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
 	if (get_ulong(value, &val) < 0)
@@ -590,7 +590,7 @@ H_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 #define i_get l_get
 #else
 static PyObject *
-i_set(void *ptr, PyObject *value, unsigned size, ...)
+i_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
 	if (get_long(value, &val) < 0)
@@ -611,7 +611,7 @@ i_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 #ifdef MS_WIN32
 /* short BOOL - VARIANT_BOOL */
 static PyObject *
-vBOOL_set(void *ptr, PyObject *value, unsigned size, ...)
+vBOOL_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	switch (PyObject_IsTrue(value)) {
 	case -1:
@@ -637,7 +637,7 @@ vBOOL_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 #define I_get L_get
 #else
 static PyObject *
-I_set(void *ptr, PyObject *value, unsigned size, ...)
+I_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
 	if (get_ulong(value, &val) < 0)
@@ -657,7 +657,7 @@ I_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 #endif
 
 static PyObject *
-l_set(void *ptr, PyObject *value, unsigned size, ...)
+l_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
 	if (get_long(value, &val) < 0)
@@ -676,7 +676,7 @@ l_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-L_set(void *ptr, PyObject *value, unsigned size, ...)
+L_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
 	if (get_ulong(value, &val) < 0)
@@ -696,7 +696,7 @@ L_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 
 #ifdef HAVE_LONG_LONG
 static PyObject *
-q_set(void *ptr, PyObject *value, unsigned size, ...)
+q_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	PY_LONG_LONG val;
 	if (get_longlong(value, &val) < 0)
@@ -714,7 +714,7 @@ q_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-Q_set(void *ptr, PyObject *value, unsigned size, ...)
+Q_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned PY_LONG_LONG val;
 	if (get_ulonglong(value, &val) < 0)
@@ -739,7 +739,7 @@ Q_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 
 
 static PyObject *
-d_set(void *ptr, PyObject *value, unsigned size, ...)
+d_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	double x;
 
@@ -761,7 +761,7 @@ d_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-f_set(void *ptr, PyObject *value, unsigned size, ...)
+f_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	float x;
 
@@ -797,7 +797,7 @@ O_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-O_set(void *ptr, PyObject *value, unsigned size, ...)
+O_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	*(PyObject **)ptr = value;
 	Py_INCREF(value);
@@ -806,7 +806,7 @@ O_set(void *ptr, PyObject *value, unsigned size, ...)
 
 
 static PyObject *
-c_set(void *ptr, PyObject *value, unsigned size, ...)
+c_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	if (!PyString_Check(value) || (1 != PyString_Size(value))) {
 		PyErr_Format(PyExc_TypeError,
@@ -828,7 +828,7 @@ c_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 #ifdef CTYPES_UNICODE
 /* u - a single wchar_t character */
 static PyObject *
-u_set(void *ptr, PyObject *value, unsigned size, ...)
+u_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	int len;
 
@@ -901,7 +901,7 @@ U_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-U_set(void *ptr, PyObject *value, unsigned length, ...)
+U_set(void *ptr, PyObject *value, unsigned length, PyObject *type)
 {
 	unsigned int size;
 
@@ -959,7 +959,7 @@ s_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static PyObject *
-s_set(void *ptr, PyObject *value, unsigned length, ...)
+s_set(void *ptr, PyObject *value, unsigned length, PyObject *type)
 {
 	char *data;
 	unsigned size;
@@ -985,7 +985,7 @@ s_set(void *ptr, PyObject *value, unsigned length, ...)
 }
 
 static PyObject *
-z_set(void *ptr, PyObject *value, unsigned size, ...)
+z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	if (value == Py_None) {
 		*(char **)ptr = NULL;
@@ -1029,7 +1029,7 @@ z_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 
 #ifdef CTYPES_UNICODE
 static PyObject *
-Z_set(void *ptr, PyObject *value, unsigned size, ...)
+Z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	if (value == Py_None) {
 		*(wchar_t **)ptr = NULL;
@@ -1107,7 +1107,7 @@ Z_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 
 #ifdef MS_WIN32
 static PyObject *
-BSTR_set(void *ptr, PyObject *value, unsigned size, ...)
+BSTR_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	BSTR bstr;
 
@@ -1167,7 +1167,7 @@ BSTR_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 #endif
 
 static PyObject *
-P_set(void *ptr, PyObject *value, unsigned size, ...)
+P_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	void *v;
 	if (value == Py_None) {
