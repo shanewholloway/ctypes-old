@@ -72,7 +72,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         if name.startswith("cpp_sym_"):
             # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx fix me!
             name = name[len("cpp_sym_"):]
-        init = attrs["init"]
+        init = attrs.get("init", None)
         typ = attrs["type"]
         return typedesc.Variable(name, typ, init)
 

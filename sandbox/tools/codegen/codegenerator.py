@@ -142,6 +142,21 @@ def type_name(t):
         return t.name
     return t.name
 
+def init_value(t, init):
+    if isinstance(t, typedesc.CvQualifiedType):
+        return init_value(t.typ, init)
+    if isinstance(t, typedesc.FundamentalType):
+        name = ctypes_names[t.name]
+        if name in ("c_double", "c_float"):
+            return float(init)
+        if "unsigned" in t.name:
+            return int(init, 16)
+        return int(init)
+    if isinstance(t, typedesc.PointerType):
+        # XXXXXXXXXXXXXXXXX
+        return "pointer(%s)" % init_value(t.typ, init)
+    raise "HALT"
+
 # Is this needed?
 ##renames = {
 ##    "POINTER(const(WCHAR))": "c_wchar_p",
@@ -256,7 +271,7 @@ class Generator(object):
             return
         self.done.add(tp)
         print >> self.stream, \
-              "%s = %s # Variable" % (tp.name, tp.init)
+              "%s = %s" % (tp.name, init_value(tp.typ, tp.init))
 
     def EnumValue(self, tp):
         if tp in self.done:
