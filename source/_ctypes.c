@@ -216,9 +216,6 @@ static char from_param_doc[] =
 static PyObject *
 CDataType_from_param(PyObject *type, PyObject *value)
 {
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	if (1 == PyObject_IsInstance(value, type)) {
 		Py_INCREF(value);
 		return value;
