@@ -196,6 +196,45 @@ class test(Command):
 
 # class test
 
+class test_local(test):
+    def run(self):
+        import glob, unittest, doctest, new
+        self.run_command('build')
+
+        test_suites = []
+
+        for direct in self.test_dirs:
+            mask = os.path.join(direct, self.test_prefix + "*.py")
+            test_files = glob.glob(mask)
+
+            print "=== Testing in '%s' ===" % direct
+            test_suites = []
+            old_path = sys.path[:]
+            sys.path.insert(0, direct)
+
+            try:
+                for pathname in test_files:
+                    modname = os.path.splitext(pathname)[0].split(os.sep)[-1]
+                    mod = __import__(modname)
+                    try:
+                        suite = doctest.DocTestSuite(mod)
+                    except ValueError:
+                        pass
+                    else:
+                        test_suites.append(suite)
+                    for name, obj in mod.__dict__.items():
+                        if name.startswith("_"):
+                            continue
+                        if type(obj) is type(unittest.TestCase) \
+                               and issubclass(obj, unittest.TestCase):
+                            test_suites.append(unittest.makeSuite(obj))
+            finally:
+                sys.path = old_path
+                suite = unittest.TestSuite(test_suites)
+                unittest.TextTestRunner(verbosity=1).run(suite)
+# class test_local
+                        
+
 class my_build_py(build_py.build_py):
     def find_package_modules (self, package, package_dir):
         """We extend distutils' build_py.find_package_modules() method
@@ -455,7 +494,8 @@ if __name__ == '__main__':
           platforms=["windows", "Linux", "MacOS X", "Solaris", "FreeBSD"],
           
           cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext,
-                      'clean': my_clean, 'install_data': my_install_data},
+                      'clean': my_clean, 'install_data': my_install_data,
+                      'testlocal': test_local},
           options = setup_options
           )
 
