@@ -94,7 +94,7 @@ CField_FromDesc(PyObject *desc, int index,
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 			if (idict->getfunc == getentry("u")->getfunc) {
 				struct fielddesc *fd = getentry("U");
 				getfunc = fd->getfunc;
@@ -635,7 +635,7 @@ c_get(void *ptr, unsigned size)
 	return PyString_FromStringAndSize((char *)ptr, 1);
 }
 
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 /* u - a single unicode character */
 static PyObject *
 u_set(void *ptr, PyObject *value, unsigned size)
@@ -835,7 +835,7 @@ z_get(void *ptr, unsigned size)
 	}
 }
 
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 static PyObject *
 Z_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -1003,7 +1003,7 @@ static struct fielddesc formattable[] = {
 #endif
 	{ 'P', P_set, P_get, &ffi_type_pointer},
 	{ 'z', z_set, z_get, &ffi_type_pointer},
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 /* Correct or not? */
 	{ 'u', u_set, u_get, &ffi_type_sshort},
 	{ 'U', U_set, U_get, &ffi_type_pointer},

@@ -500,7 +500,7 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 		return 0;
 	}
 
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 	if (PyUnicode_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
 		pa->value.p = PyUnicode_AS_UNICODE(obj);
@@ -1224,7 +1224,7 @@ My_Py_DECREF(PyObject *self, PyObject *arg)
 	return arg;
 }
 
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 
 static PyObject *
 set_conversion_mode(PyObject *self, PyObject *args)
@@ -1260,25 +1260,24 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	PyObject *obj, *ctype;
 	struct argument a;
 	CDataObject *result;
-	int size;
 
 	if (!PyArg_ParseTuple(args, "OO", &obj, &ctype))
 		return NULL;
 	if (-1 == ConvParam(obj, 0, &a))
 		return NULL;
-	result = PyObject_CallFunctionObjArgs(ctype, NULL);
+	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
 	if (result == NULL)
 		return NULL;
 	// result->b_size
 	// a.ffi_type->size
 	memcpy(result->b_ptr, &a.value,
 	       min(result->b_size, a.ffi_type->size));
-	return result;
+	return (PyObject *)result;
 }
 
 PyMethodDef module_methods[] = {
 	{"cast", cast, METH_VARARGS},
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
 #endif
 #ifdef MS_WIN32

@@ -735,7 +735,7 @@ static PyGetSetDef CharArray_getsets[] = {
 	{ NULL, NULL }
 };
 
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 static PyObject *
 WCharArray_get_value(CDataObject *self)
 {
@@ -925,7 +925,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		if (-1 == add_getset(result, CharArray_getsets))
 			return NULL;
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 	} else if (itemdict->getfunc == getentry("u")->getfunc) {
 		if (-1 == add_getset(result, WCharArray_getsets))
 			return NULL;
@@ -2990,7 +2990,7 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = (char *)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 	} else if (itemdict->getfunc == getentry("u")->getfunc) {
 		wchar_t *ptr = (wchar_t *)self->b_ptr;
 		return PyUnicode_FromWideChar(ptr + ilow, len);
@@ -3519,7 +3519,7 @@ Pointer_slice(CDataObject *self, int ilow, int ihigh)
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = *(char **)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
-#ifdef HAVE_USABLE_WCHAR_T
+#ifdef Py_USING_UNICODE
 	} else if (itemdict->getfunc == getentry("u")->getfunc) {
 		wchar_t *ptr = *(wchar_t **)self->b_ptr;
 		return PyUnicode_FromWideChar(ptr + ilow, len);
