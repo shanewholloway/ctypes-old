@@ -285,12 +285,12 @@ class Generator(object):
             self.more.add(tp.typ)
         else:
             self.generate(tp.typ)
-        if self.type_name(tp.typ) in  self.known_symbols:
+        if self.type_name(tp.typ) in self.known_symbols:
             stream = self.imports
         else:
             stream = self.stream
         if tp.name != self.type_name(tp.typ):
-            print >> self.stream, "%s = %s" % \
+            print >> stream, "%s = %s" % \
                   (tp.name, self.type_name(tp.typ))
         self.names.add(tp.name)
 
