@@ -76,7 +76,8 @@ class DependencyResolver(object):
                 if not deps - done:
                     resolved.add(o)
                     result.append(o)
-            print "# resolved %d of %d -> %d" % (len(resolved), len(remaining), len(remaining) - len(resolved))
+            print "# resolved %d of %d -> %d" % (len(resolved), len(remaining),
+                                                 len(remaining) - len(resolved))
             if not resolved:
                 print "# %d unresolved deps" % len(remaining)
                 return result, remaining
@@ -86,12 +87,20 @@ class DependencyResolver(object):
 
 ################################################################
 
+HEADER = """\
+from ctypes import *
+
+IUnknown = c_void_p
+IDispatch = c_void_p
+IRecordInfo = c_void_p
+"""
+
 class CodeGenerator(gccxmltools.Visitor):
 
     def __init__(self, *args, **kw):
         super(CodeGenerator, self).__init__(*args, **kw)
         self._env = {}
-        exec "from ctypes import *" in self._env
+        self.try_code(HEADER)
 
     def PointerType(self, ptr):
         pass
@@ -100,27 +109,19 @@ class CodeGenerator(gccxmltools.Visitor):
         # generate the ctypes code for an enumeration.
         code = ["class %s(c_int):" % enum.name]
         code += ["    %s = %s" % pair for pair in enum.values]
-        code = "\n".join(code)
-        exec code in self._env
-        print code
+        self.try_code(code)
 
     def Typedef(self, td):
         if type(td.typ) is gccxmltools.Structure and td.typ.isClass():
             return
         code = "%s = %s" % (td.name, self.ctypes_name(td.typ))
-        if self.try_code(code):
-            print code
-        else:
-            print "# failed", code
+        self.try_code(code)
 
     def Structure(self, struct):
         code = self.gen_structure(struct)
         if struct.name.startswith("$_"):
             return
-        if self.try_code("\n".join(code)):
-            print "\n".join(code)
-        else:
-            print "# failed " + "\n# ".join(code)
+        self.try_code(code)
 
     Union = Structure
 
@@ -151,11 +152,17 @@ class CodeGenerator(gccxmltools.Visitor):
 
     def try_code(self, code):
         # code it either a string or a sequence of strings
+        if isinstance(code, (str, unicode)):
+            text = code
+        else:
+            text = "\n".join(code)
         try:
-            exec code in self._env
-        except Exception:
-            return False
-        return True
+            exec text in self._env
+        except Exception, details:
+            print "# --- %s: %s ---" % (details.__class__.__name__, details)
+            print "# " + "\n# ".join(text.splitlines())
+        else:
+            print text
 
     def ctypes_name(self, obj):
         if type(obj) is gccxmltools.FundamentalType:
@@ -172,7 +179,8 @@ class CodeGenerator(gccxmltools.Visitor):
         elif type(obj) is gccxmltools.ArrayType:
             assert obj.min == 0
             return "%s * %d" % (self.ctypes_name(obj.typ), obj.max + 1)
-        elif type(obj) in (gccxmltools.Typedef, gccxmltools.Enumeration, gccxmltools.Structure, gccxmltools.Union):
+        elif type(obj) in (gccxmltools.Typedef, gccxmltools.Enumeration, \
+                           gccxmltools.Structure, gccxmltools.Union):
             name = obj.name
             if obj.name.startswith("$_"):
                 name = "_inner_" + name[2:]
@@ -192,11 +200,12 @@ if __name__ == "__main__":
     p = DependencyResolver(result)
     result, remaining = p.run()
 
-    print "from ctypes import *"
-    print
-
     cg = CodeGenerator(result)
     cg.go()
 
     for o in remaining:
         print "#", o
+
+##    cg = CodeGenerator(result + list(remaining))
+##    cg.go()
+
