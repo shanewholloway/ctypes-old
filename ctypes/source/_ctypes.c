@@ -963,7 +963,7 @@ _type_ attribute.
 
 */
 
-static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfzZqQ";
+static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfzZqQP";
 
 static PyObject *
 SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -3546,26 +3546,30 @@ P_get(void *ptr, unsigned size)
 }
 
 typedef struct { char c; char x; } s_char;
-/* typedef struct { char c; wchar_t x; } s_wchar; */
 typedef struct { char c; short x; } s_short;
 typedef struct { char c; int x; } s_int;
 typedef struct { char c; long x; } s_long;
 typedef struct { char c; float x; } s_float;
 typedef struct { char c; double x; } s_double;
 typedef struct { char c; char *x; } s_char_p;
-typedef struct { char c; wchar_t *x; } s_wchar_p;
 typedef struct { char c; void *x; } s_void_p;
 
 #define CHAR_ALIGN (sizeof(s_char) - sizeof(char))
-#define WCHAR_ALIGN (sizeof(s_wchar) - sizeof(wchar_t))
 #define SHORT_ALIGN (sizeof(s_short) - sizeof(short))
 #define INT_ALIGN (sizeof(s_int) - sizeof(int))
 #define LONG_ALIGN (sizeof(s_long) - sizeof(long))
 #define FLOAT_ALIGN (sizeof(s_float) - sizeof(float))
 #define DOUBLE_ALIGN (sizeof(s_double) - sizeof(double))
 #define CHAR_P_ALIGN (sizeof(s_char_p) - sizeof(char*))
-#define WCHAR_P_ALIGN (sizeof(s_wchar_p) - sizeof(wchar_t*))
 #define VOID_P_ALIGN (sizeof(s_void_p) - sizeof(void*))
+
+#ifdef HAVE_USABLE_WCHAR_T
+typedef struct { char c; wchar_t x; } s_wchar;
+typedef struct { char c; wchar_t *x; } s_wchar_p;
+
+#define WCHAR_ALIGN (sizeof(s_wchar) - sizeof(wchar_t))
+#define WCHAR_P_ALIGN (sizeof(s_wchar_p) - sizeof(wchar_t*))
+#endif
 
 #ifdef HAVE_LONG_LONG
 typedef struct { char c; LONG_LONG x; } s_long_long;
@@ -3576,7 +3580,6 @@ typedef struct { char c; LONG_LONG x; } s_long_long;
 static struct fielddesc formattable[] = {
 	{ 's', sizeof(char),		CHAR_ALIGN,		s_set, s_get},
 	{ 'S', sizeof(char),		CHAR_ALIGN,		S_set, S_get},
-/*     { 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get}, */
 	{ 'B', sizeof(char),		CHAR_ALIGN,		B_set, B_get},
 	{ 'b', sizeof(char),		CHAR_ALIGN,		b_set, b_get},
 	{ 'c', sizeof(char),		CHAR_ALIGN,		c_set, c_get},
@@ -3593,25 +3596,24 @@ static struct fielddesc formattable[] = {
 	{ 'Q', sizeof(LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
 #endif
 	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
-/*     { 't', sizeof(char *),		CHAR_P_ALIGN,		t_set, t_get}, */
-/*     { 'y', sizeof(wchar_t *),		WCHAR_P_ALIGN,		y_set, y_get}, */
 	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
 #ifdef HAVE_USABLE_WCHAR_T
+/*	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get}, */
 	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
 #endif
-	{ 0,   0,		0,		NULL,  NULL},
+	{ 0,   0,			0,			NULL,  NULL},
 };
 
 static struct fielddesc *
 getentry(char *fmt)
 {
-    struct fielddesc *table = formattable;
+	struct fielddesc *table = formattable;
 
-    for (; table->code; ++table) {
-	if (table->code == fmt[0])
-	    return table;
-    }
-    return NULL;
+	for (; table->code; ++table) {
+		if (table->code == fmt[0])
+			return table;
+	}
+	return NULL;
 }
 
 PyObject *

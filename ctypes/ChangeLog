@@ -1,3 +1,9 @@
+2003-02-19  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c, ctypes.py: Add a c_voidp data type, which
+	represents (void) pointers to memory locations. The value
+	attribute is a Python integer (or a long).
+
 2003-02-18  Thomas Heller  <theller@python.net>
 
 	* (Repository): Added a packages directory, and created a ctcom

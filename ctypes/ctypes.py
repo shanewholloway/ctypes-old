@@ -121,6 +121,11 @@ class c_char_p(_SimpleCData):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 
+class c_voidp(_SimpleCData):
+    _type_ = "P"
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.value)
+
 if _os.name == "nt":
     class c_wchar_p(_SimpleCData):
         _type_ = "Z"
