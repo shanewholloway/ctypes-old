@@ -14,9 +14,7 @@ class LeakTestCase(unittest.TestCase):
                 _fields_ = [("ul", POINT),
                             ("br", POINT)]
 
-    if not hasattr(sys, "gettotalrefcount"):
-        print >> sys.stderr, "(can only test for refcount leaks in debug build!)"
-    else:
+    if hasattr(sys, "gettotalrefcount"):
 
         def test_no_cycles_refcount(self):
             last_refcount = 0
@@ -85,6 +83,15 @@ class LeakTestCase(unittest.TestCase):
                     return
                 last_objcount = total_objcount
             self.fail("leaking objects")
+
+    def test_dll_leak_1(self):
+        dll = cdll.LoadLibrary("msvcrt.dll")
+##        dll = CDLL("msvcrt.dll")
+##        dll = cdll.msvcrt
+        dll._inp.restype = c_byte
+        del dll
+        gc.collect()
+        print gc.garbage
 
 if __name__ == "__main__":
     unittest.main()
