@@ -34,6 +34,13 @@ def _register(cls):
         print "LocalServer32", value
         _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
 
+    if hasattr(cls, "_reg_clsctx_") and cls._reg_clsctx_ & CLSCTX_INPROC_SERVER:
+        import _ctypes
+        import os
+        value = os.path.abspath(_ctypes.__file__)
+        print "InprocServer32", value
+        _winreg.SetValue(h, "InprocServer32", _winreg.REG_SZ, value)
+
     if hasattr(cls, "_reg_progid_"):
 
         _winreg.SetValue(_winreg.HKEY_CLASSES_ROOT, "AppID\\%s" % cls._reg_clsid_,

@@ -24,6 +24,8 @@ if not os.path.isfile(SumLib.path):
 # and ctypes.com provides a handy bas class we can use:
 from ctypes.com.automation import DualObjImpl
 
+from ctypes.com.server import CLSCTX_LOCAL_SERVER, CLSCTX_INPROC_SERVER
+
 class SumObject(DualObjImpl):
 ##    _reg_clsctx_ = 0
     # A sequence of COM interfaces this object implements
@@ -38,6 +40,8 @@ class SumObject(DualObjImpl):
     # typelib contains a CoClass. The typelib could as well only
     # describe an interface.
     _reg_clsid_ = CSum._reg_clsid_
+
+    _reg_clsctx_ = CLSCTX_LOCAL_SERVER | CLSCTX_INPROC_SERVER
 
     # We *should* implement the methods described in the typelib.  COM
     # servers receive an additional 'this' parameter, which is the COM
