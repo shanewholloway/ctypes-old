@@ -12,27 +12,27 @@ except NameError:
 
 # XXX Should this be in ctypes itself?
 ctypes_names = {
-    "unsigned char": "c_ubyte",
-    "signed char": "c_byte",
-    "char": "c_char",
+    "unsigned char": "ctypes.c_ubyte",
+    "signed char": "ctypes.c_byte",
+    "char": "ctypes.c_char",
 
-    "wchar_t": "c_wchar",
+    "wchar_t": "ctypes.c_wchar",
 
-    "short unsigned int": "c_ushort",
-    "short int": "c_short",
+    "short unsigned int": "ctypes.c_ushort",
+    "short int": "ctypes.c_short",
 
-    "long unsigned int": "c_ulong",
-    "long int": "c_long",
-    "long signed int": "c_long",
+    "long unsigned int": "ctypes.c_ulong",
+    "long int": "ctypes.c_long",
+    "long signed int": "ctypes.c_long",
 
-    "unsigned int": "c_uint",
-    "int": "c_int",
+    "unsigned int": "ctypes.c_uint",
+    "int": "ctypes.c_int",
 
-    "long long unsigned int": "c_ulonglong",
-    "long long int": "c_longlong",
+    "long long unsigned int": "ctypes.c_ulonglong",
+    "long long int": "ctypes.c_longlong",
 
-    "double": "c_double",
-    "float": "c_float",
+    "double": "ctypes.c_double",
+    "float": "ctypes.c_float",
 
     # Hm...
     "void": "None",
@@ -138,19 +138,19 @@ class Generator(object):
 
     def init_value(self, t, init):
         tn = self.type_name(t, False)
-        if tn in ["c_ulonglong", "c_ulong", "c_uint", "c_ushort", "c_ubyte"]:
+        if tn in ["ctypes.c_ulonglong", "ctypes.c_ulong", "ctypes.c_uint", "ctypes.c_ushort", "ctypes.c_ubyte"]:
             return decode_value(init)
-        elif tn in ["c_longlong", "c_long", "c_int", "c_short", "c_byte"]:
+        elif tn in ["ctypes.c_longlong", "ctypes.c_long", "ctypes.c_int", "ctypes.c_short", "ctypes.c_byte"]:
             return decode_value(init)
-        elif tn in ["c_float", "c_double"]:
+        elif tn in ["ctypes.c_float", "ctypes.c_double"]:
             return float(init)
-        elif tn == "POINTER(c_char)":
+        elif tn == "ctypes.POINTER(ctypes.c_char)":
             if init[0] == '"':
                 value = eval(init)
             else:
                 value = int(init, 16)
             return value
-        elif tn == "POINTER(c_wchar)":
+        elif tn == "ctypes.POINTER(ctypes.c_wchar)":
             if init[0] == '"':
                 value = eval(init)
             else:
@@ -159,21 +159,21 @@ class Generator(object):
                 value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
                 value = value.decode("utf-16") # XXX Is this correct?
             return value
-        elif tn == "c_void_p":
+        elif tn == "ctypes.c_void_p":
             if init[0] == "0":
                 value = int(init, 16)
             else:
                 value = int(init) # hm..
             # Hm, ctypes represents them as SIGNED int
             return value
-        elif tn == "c_char":
+        elif tn == "ctypes.c_char":
             return decode_value(init)
-        elif tn == "c_wchar":
+        elif tn == "ctypes.c_wchar":
             value = decode_value(init)
             if isinstance(value, int):
                 return unichr(value)
             return value
-        elif tn.startswith("POINTER("):
+        elif tn.startswith("ctypes.POINTER("):
             # Hm, POINTER(HBITMAP__) for example
             return decode_value(init)
         else:
@@ -183,36 +183,24 @@ class Generator(object):
         # Return a string, containing an expression which can be used to
         # refer to the type. Assumes the ctypes.* namespace is available.
         if isinstance(t, typedesc.PointerType):
-            result = "POINTER(%s)" % self.type_name(t.typ, generate)
+            result = "ctypes.POINTER(%s)" % self.type_name(t.typ, generate)
             # XXX Better to inspect t.typ!
-            if result.startswith("POINTER(WINFUNCTYPE"):
-                if generate:
-                    self.need_POINTER()
-                return result[8:-1]
-            if result.startswith("POINTER(CFUNCTYPE"):
-                if generate:
-                    self.need_POINTER()
-                return result[8:-1]
+            if result.startswith("ctypes.POINTER(ctypes.WINFUNCTYPE"):
+                return result[15:-1]
+            if result.startswith("ctypes.POINTER(ctypes.CFUNCTYPE"):
+                return result[15:-1]
             # XXX See comment above...
-            elif result == "POINTER(None)":
-                if generate:
-                    self.need_c_void_p()
-                return "c_void_p"
-            if generate:
-                self.need_POINTER()
+            elif result == "ctypes.POINTER(None)":
+                return "ctypes.c_void_p"
             return result
         elif isinstance(t, typedesc.ArrayType):
             return "%s * %s" % (self.type_name(t.typ, generate), int(t.max)+1)
         elif isinstance(t, typedesc.FunctionType):
             args = [self.type_name(x, generate) for x in [t.returns] + t.arguments]
             if "__stdcall__" in t.attributes:
-                if generate:
-                    self.need_WINFUNCTYPE()
-                return "WINFUNCTYPE(%s)" % ", ".join(args)
+                return "ctypes.WINFUNCTYPE(%s)" % ", ".join(args)
             else:
-                if generate:
-                    self.need_CFUNCTYPE()
-                return "CFUNCTYPE(%s)" % ", ".join(args)
+                return "ctypes.CFUNCTYPE(%s)" % ", ".join(args)
         elif isinstance(t, typedesc.CvQualifiedType):
             # const and volatile are ignored
             return "%s" % self.type_name(t.typ, generate)
@@ -223,7 +211,7 @@ class Generator(object):
         elif isinstance(t, typedesc.Enumeration):
             if t.name:
                 return t.name
-            return "c_int" # enums are integers
+            return "ctypes.c_int" # enums are integers
         elif isinstance(t, typedesc.Typedef):
             return t.name
         return t.name
@@ -277,11 +265,9 @@ class Generator(object):
                 self.need_cominterface()
                 print >> self.stream, "class %s(_com_interface):" % head.struct.name
             elif type(head.struct) == typedesc.Structure:
-                self.need_Structure()
-                print >> self.stream, "class %s(Structure):" % head.struct.name
+                print >> self.stream, "class %s(ctypes.Structure):" % head.struct.name
             elif type(head.struct) == typedesc.Union:
-                self.need_Union()
-                print >> self.stream, "class %s(Union):" % head.struct.name
+                print >> self.stream, "class %s(ctypes.Union):" % head.struct.name
         if head.struct.location:
             print >> self.stream, "    # %s %s" % head.struct.location
         print >> self.stream, "    pass"
@@ -394,12 +380,11 @@ class Generator(object):
     def Enumeration(self, tp):
         if tp in self.done:
             return
-        self.need_c_int()
         self.done.add(tp)
         self._enumtypes += 1
         if tp.name:
             print >> self.stream
-            print >> self.stream, "%s = c_int # enum" % tp.name
+            print >> self.stream, "%s = ctypes.c_int # enum" % tp.name
         for item in tp.values:
             self.EnumValue(item)
 
@@ -463,12 +448,10 @@ class Generator(object):
             # generate assert statements for size and alignment
             if body.struct.size and body.struct.name not in dont_assert_size:
                 size = body.struct.size // 8
-                self.need_sizeof()
-                print >> self.stream, "assert sizeof(%s) == %s, sizeof(%s)" % \
+                print >> self.stream, "assert ctypes.sizeof(%s) == %s, ctypes.sizeof(%s)" % \
                       (body.struct.name, size, body.struct.name)
                 align = body.struct.align // 8
-                self.need_alignment()
-                print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
+                print >> self.stream, "assert ctypes.alignment(%s) == %s, ctypes.alignment(%s)" % \
                       (body.struct.name, align, body.struct.name)
 
         if methods:
@@ -479,13 +462,12 @@ class Generator(object):
                 self.type_name(m.returns)
                 for a in m.arguments:
                     self.type_name(a)
-            self.need_STDMETHOD()
             print >> self.stream, "%s._methods_ = [" % body.struct.name
             if body.struct.location:
                 print >> self.stream, "# %s %s" % body.struct.location
             for m in methods:
                 args = [self.type_name(a) for a in m.arguments]
-                print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
+                print >> self.stream, "    ctypes.STDMETHOD(%s, '%s', [%s])," % (
                     self.type_name(m.returns),
                     m.name,
                     ", ".join(args))
@@ -510,7 +492,6 @@ class Generator(object):
         return None
 
     _loadedlibs = None
-    _CDLL_defined = False
     def get_sharedlib(self, dllname):
         if self._loadedlibs is None:
             self._loadedlibs = {}
@@ -522,10 +503,7 @@ class Generator(object):
         basename = os.path.basename(dllname)
         name, ext = os.path.splitext(basename)
         self._loadedlibs[dllname] = name
-        if not self._CDLL_defined:
-            print >> self.stream, "from ctypes import CDLL"
-            self._CDLL_defined = True
-        print >> self.stream, "%s = CDLL(%r)" % (name, dllname)
+        print >> self.stream, "%s = ctypes.CDLL(%r)" % (name, dllname)
         return name
 
     _cominterface_defined = False
@@ -535,89 +513,13 @@ class Generator(object):
         print >> self.stream, "from comtypes import _com_interface"
         self._cominterface_defined = True
 
-    _STDMETHOD_defined = False
-    def need_STDMETHOD(self):
-        if self._STDMETHOD_defined:
-            return
-        print >> self.stream, "from comtypes import STDMETHOD"
-        self._STDMETHOD_defined = True
-
-    _stdcall_defined = False
-    def need_stdcall(self):
-        if self._stdcall_defined:
-            return
-        print >> self.stream, "from ctypes.decorators import stdcall"
-        self._stdcall_defined = True
-
-    _cdecl_defined = False
-    def need_cdecl(self):
-        if self._cdecl_defined:
-            return
-        print >> self.stream, "from ctypes.decorators import cdecl"
-        self._cdecl_defined = True
-
-    _Union_defined = False
-    def need_Union(self):
-        if self._Union_defined:
-            return
-        print >> self.stream, "from ctypes import Union"
-        self._Union_defined = True
-
-    _Structure_defined = False
-    def need_Structure(self):
-        if self._Structure_defined:
-            return
-        print >> self.stream, "from ctypes import Structure"
-        self._Structure_defined = True
-
-    _sizeof_defined = False
-    def need_sizeof(self):
-        if self._sizeof_defined:
-            return
-        print >> self.stream, "from ctypes import sizeof"
-        self._sizeof_defined = True
-
-    _alignment_defined = False
-    def need_alignment(self):
-        if self._alignment_defined:
-            return
-        print >> self.stream, "from ctypes import alignment"
-        self._alignment_defined = True
-
-    _c_int_defined = False
-    def need_c_int(self):
-        if self._c_int_defined:
-            return
-        print >> self.stream, "from ctypes import c_int"
-        self._c_int_defined = True
-
-    _c_void_p_defined = False
-    def need_c_void_p(self):
-        if self._c_void_p_defined:
-            return
-        print >> self.stream, "from ctypes import c_void_p"
-        self._c_void_p_defined = True
-
-    _WINFUNCTYPE_defined = False
-    def need_WINFUNCTYPE(self):
-        if self._WINFUNCTYPE_defined:
-            return
-        print >> self.stream, "from ctypes import WINFUNCTYPE"
-        self._WINFUNCTYPE_defined = True
-
-    _CFUNCTYPE_defined = False
-    def need_CFUNCTYPE(self):
-        if self._CFUNCTYPE_defined:
-            return
-        print >> self.stream, "from ctypes import CFUNCTYPE"
-        self._CFUNCTYPE_defined = True
-
-    _POINTER_defined = False
-    def need_POINTER(self):
-        if self._POINTER_defined:
-            return
-        print >> self.stream, "from ctypes import POINTER"
-        self._POINTER_defined = True
+    _decorators_defined = False
+    def need_decorators(self):
+        if self._decorators_defined:
+            return "decorators"
+        print >> self.stream, "from ctypes import decorators"
+        self._decorators_defined = True
+        return "decorators"
 
     _functiontypes = 0
     _notfound_functiontypes = 0
@@ -629,12 +531,11 @@ class Generator(object):
             self.generate(func.returns)
             self.generate_all(func.arguments)
             args = [self.type_name(a) for a in func.arguments]
+            prefix = self.need_decorators()
             if "__stdcall__" in func.attributes:
-                self.need_stdcall()
-                cc = "stdcall"
+                cc = "%s.stdcall" % prefix
             else:
-                self.need_cdecl()
-                cc = "cdecl"
+                cc = "%s.cdecl" % prefix
             libname = self.get_sharedlib(dllname)
             print >> self.stream
             if self.use_decorators:
@@ -662,8 +563,8 @@ class Generator(object):
         if item in self.done:
             return
         name = ctypes_names[item.name]
-        if name !=  "None":
-            print >> self.stream, "from ctypes import %s" % name
+##        if name !=  "None":
+##            print >> self.stream, "from ctypes import %s" % name
         self.done.add(item)
 
     ########
@@ -684,6 +585,7 @@ class Generator(object):
             self.generate(item)
 
     def generate_code(self, items, known_symbols, searched_dlls):
+        print >> self.stream, "import ctypes"
         items = set(items)
         if known_symbols:
             self.known_symbols = known_symbols
