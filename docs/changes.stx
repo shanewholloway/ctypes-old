@@ -2,16 +2,45 @@ Changes in ctypes 0.6
 
   Installation
 
-    ctypes has been converted into a package instead of a couple of
-    modules.  This requires that you remove any previous version of
+    'ctypes' has been converted into a package, it is no longer a
+    couple of modules.
+
+    **This requires that you remove any previous version** of
     ctypes you may have installed, either (on Windows, if you have
-    installed from the exe-file) by using Control Panel->Add/Remove
-    Programs, or by deleting the files Lib/site-packages/ctypes.py
-    and Lib/site-packages/_ctypes.pyd.
+    installed from the exe-file) by running the uninstaller from
+    *Control Panel->Add/Remove Programs*, or by deleting the files
+    'Lib/site-packages/ctypes.py' and 'Lib/site-packages/_ctypes.pyd'.
 
   Package contents
 
-    On Windows, 
+    All platforms:
+
+        'ctypes' - the basic stuff mentioned in the tutorial
+
+    On Windows:
+
+        'ctypes.wintypes' - defines several common windows datatypes
+
+	'ctypes.com' - the beginning of a com framework, client code
+	as well as localserver code.
+
+	'ctypes.com.tools' - an utility 'readtlb.py' which generates
+	Python wrapper code from type libraries.
+
+	'ctypes.com.samples' - this is not really a package, currently
+	it contains a sample which controls Internet Explorer, and
+	receives events.
+
+	The com framework is currently undocumented, but I believe it
+	contains quite some code which should be quite easy to read,
+	at least for experienced com/C programmers.  The basic goal of
+	this framework is to allow easy collaboration with ATL servers
+	and clients, it is centered around typelibraries.
+
+    The source distribution contains additional code in a samples
+    directory, the full documentation, and a very cool windows gui
+    framework written by Henk Punt named 'wtl'. He even shows how to
+    embed the webbrowser control into a window ;-)
 
   Format characters
 
@@ -57,7 +86,7 @@ Changes in ctypes 0.6
     pointer instances are usually created by 'pointer(c_int(42))' for
     example. 'pointer()' internally calls 'POINTER()' to get the type.
 
-  c_string and c_wstring
+  c_string and c_wstring have been removed
 
     In previous versions the 'c_string' and 'c_wstring' types could be
     used to allocate mutable buffers and fill them from or convert
@@ -66,4 +95,3 @@ Changes in ctypes 0.6
     ctypes now exports a 'c_buffer()' function as a replacement.
     Actually 'c_buffer' returns a character array (an instance of
     'c_char * size').
-
