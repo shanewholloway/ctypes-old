@@ -681,22 +681,19 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 
 	/* THIS code should probably move into CallProc, where GetResult is
 	   called. But doesn't matter too much. */
+#if IS_BIG_ENDIAN
 	if (dict && dict->size < sizeof(ffi_arg)) {
-		int n = 1;
-		char *pn = (char *) &n;
-
-		if (*pn != 1) { /* big endian */
-			/* libffi returns the result in a buffer of
-			   sizeof(ffi_arg).  This causes problems on big
-			   endian machines, since the result buffer cannot
-			   simply be casted to the actual result type.
-			   Instead, we must adjust the pointer:
-			 */
-			char *ptr = result;
-			ptr += sizeof(ffi_arg) - dict->size;
-			result = ptr;
-		}
+		/* libffi returns the result in a buffer of
+		   sizeof(ffi_arg).  This causes problems on big
+		   endian machines, since the result buffer cannot
+		   simply be casted to the actual result type.
+		   Instead, we must adjust the pointer:
+		*/
+		char *ptr = result;
+		ptr += sizeof(ffi_arg) - dict->size;
+		result = ptr;
 	}
+#endif
 
 	if (dict && dict->getfunc) {
 		PyObject *retval = dict->getfunc(result, dict->size,
