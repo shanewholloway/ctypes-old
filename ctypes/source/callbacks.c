@@ -199,6 +199,15 @@ static void closure_fcn(ffi_cif *cif,
 			  args);
 }
 
+static ffi_type *GetType(PyObject *obj)
+{
+	StgDictObject *dict = PyType_stgdict(obj);
+	if (dict == NULL)
+		return &ffi_type_sint;
+	return &dict->ffi_type;
+}
+
+
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
@@ -208,7 +217,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	int result;
 	ffi_info *p;
 	int nArgs, i;
-	PyCArgObject cResult;
 	ffi_abi cc;
 
 	nArgs = PySequence_Size(converters);
@@ -220,13 +228,11 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
-		PrepareResult(cnv, &cResult);
-		p->atypes[i] = cResult.pffi_type;
+		p->atypes[i] = GetType(cnv);
 		Py_DECREF(cnv);
 	}
 	p->atypes[i] = NULL;
 
-	PrepareResult(restype, &cResult);
 	{
 		StgDictObject *dict = PyType_stgdict(restype);
 		if (dict)
@@ -241,7 +247,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		cc = FFI_STDCALL;
 #endif
 	result = ffi_prep_cif(&p->cif, cc, nArgs,
-			      cResult.pffi_type,
+			      GetType(restype),
 			      &p->atypes[0]);
 	if (result != FFI_OK) {
 		PyErr_Format(PyExc_RuntimeError,

@@ -245,8 +245,6 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 
 extern void Extend_Error_Info(char *fmt, ...);
 
-extern void PrepareResult(PyObject *restype, PyCArgObject *result);
-
 struct basespec {
 	CDataObject *base;
 	int index;
