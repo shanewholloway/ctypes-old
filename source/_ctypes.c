@@ -1214,13 +1214,15 @@ _type_ attribute.
 
 static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
 
+/* We need access to some simple types */
+static PyObject *c_char, *c_wchar, *c_void_p;
+
 static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
 {
-	if (PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
-	}
+	StgDictObject *typedict = PyType_stgdict(type);
+	StgDictObject *itemdict = PyType_stgdict(typedict->proto);
+
 	/* z_set and Z_set accept integers as well. Until that is fixed, we
 	 have to typecheck here. */
 	if (value == Py_None || PyString_Check(value) || PyUnicode_Check(value)) {
@@ -1236,47 +1238,11 @@ string_ptr_from_param(PyObject *type, PyObject *value)
 		}
 		return (PyObject *)parg;
 	}
-	/* XXX better message */
-	PyErr_SetString(PyExc_TypeError,
-			"wrong type");
-	return NULL;
-}
-
-static PyObject *
-c_wchar_p_from_param(PyObject *type, PyObject *value)
-{
-	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
-		/* c_wchar array instance or pointer(c_wchar(...)) */
-		StgDictObject *dt = PyObject_stgdict(value);
-		StgDictObject *dict = dt && dt->proto ? PyType_stgdict(dt->proto) : NULL;
-		if (dict && (dict->setfunc == getentry("u")->setfunc)) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
-	if (PyCArg_CheckExact(value)) {
-		/* byref(c_char(...)) */
-		PyCArgObject *a = (PyCArgObject *)value;
-		StgDictObject *dict = PyObject_stgdict(a->obj);
-		if (dict && (dict->setfunc == getentry("u")->setfunc)) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
-	return string_ptr_from_param(type, value);
-}
-
-static PyObject *
-c_char_p_from_param(PyObject *type, PyObject *value)
-{
-	/* It seems that c_char_p's stgdict->proto should better be c_char,
-	   and c_wchar_p's stgdict->proto shoule be c_wchar.  Something like that.
-	 */
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		/* c_char array instance or pointer(c_char(...)) */
 		StgDictObject *dt = PyObject_stgdict(value);
 		StgDictObject *dict = dt && dt->proto ? PyType_stgdict(dt->proto) : NULL;
-		if (dict && (dict->setfunc == getentry("c")->setfunc)) {
+		if (dict && (dict->setfunc == itemdict->setfunc)) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -1285,12 +1251,19 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 		/* byref(c_char(...)) */
 		PyCArgObject *a = (PyCArgObject *)value;
 		StgDictObject *dict = PyObject_stgdict(a->obj);
-		if (dict && (dict->setfunc == getentry("c")->setfunc)) {
+		if (dict && (dict->setfunc == itemdict->setfunc)) {
 			Py_INCREF(value);
 			return value;
 		}
 	}
-	return string_ptr_from_param(type, value);
+	if (PyObject_IsInstance(value, type)) {
+		Py_INCREF(value);
+		return value;
+	}
+	/* XXX better message */
+	PyErr_SetString(PyExc_TypeError,
+			"wrong type");
+	return NULL;
 }
 
 static PyObject *
@@ -1347,13 +1320,9 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		}
 	}
 	stgd = PyObject_stgdict(value);
-	if (stgd && CDataObject_Check(value) && stgd->proto && PyString_Check(stgd->proto)) {
-		PyCArgObject *parg;
-
-		switch (PyString_AS_STRING(stgd->proto)[0]) {
-		case 'z': /* c_char_p */
-		case 'Z': /* c_wchar_p */
-			parg = new_CArgObject();
+	if (stgd) {
+		if (stgd->proto == c_char || stgd->proto == c_wchar) {
+			PyCArgObject *parg = new_CArgObject();
 			if (parg == NULL)
 				return NULL;
 			parg->pffi_type = &ffi_type_pointer;
@@ -1371,8 +1340,8 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 }
 
 static PyMethodDef c_void_p_method = { "from_param", c_void_p_from_param, METH_O };
-static PyMethodDef c_char_p_method = { "from_param", c_char_p_from_param, METH_O };
-static PyMethodDef c_wchar_p_method = { "from_param", c_wchar_p_from_param, METH_O };
+static PyMethodDef c_char_p_method = { "from_param", string_ptr_from_param, METH_O };
+static PyMethodDef c_wchar_p_method = { "from_param", string_ptr_from_param, METH_O };
 
 static int
 Simple_asparam(CDataObject *self, struct argument *pa)
@@ -1444,19 +1413,36 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	/* Install from_param class methods in ctypes base classes.
 	   Overrides the SimpleType_from_param generic method.
 	 */
+	ml = NULL;
 	if (result->tp_base == &Simple_Type) {
 		switch (PyString_AS_STRING(proto)[0]) {
 		case 'z': /* c_char_p */
 			ml = &c_char_p_method;
+			assert(c_char);
+			Py_XDECREF(stgdict->proto);
+			Py_INCREF(c_char);
+			stgdict->proto = c_char;
 			break;
 		case 'Z': /* c_wchar_p */
 			ml = &c_wchar_p_method;
+			assert(c_wchar);
+			Py_XDECREF(stgdict->proto);
+			Py_INCREF(c_wchar);
+			stgdict->proto = c_wchar;
 			break;
 		case 'P': /* c_void_p */
 			ml = &c_void_p_method;
+			assert(c_void_p == NULL);
+			Py_INCREF(result);
+			c_void_p = (PyObject *)result;
 			break;
-		default:
-			ml = NULL;
+		case 'c': /* c_char */
+			assert(c_char == NULL);
+			c_char = (PyObject *)result;
+			break;
+		case 'u': /* c_wchar */
+			assert(c_wchar == NULL);
+			c_wchar = (PyObject *)result;
 			break;
 		}
 			
