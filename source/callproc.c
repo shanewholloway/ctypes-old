@@ -429,6 +429,7 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 {
 	StgDictObject *stgdict;
 
+	pa->keep = NULL; /* so we cannot forget it later */
 	if (PyCArg_CheckExact(obj)) {
 		PyCArgObject *carg = (PyCArgObject *)obj;
 		pa->ffi_type = carg->pffi_type;
@@ -1295,6 +1296,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "OO", &obj, &ctype))
 		return NULL;
+	memset(&a, 0, sizeof(struct argument));
 	if (-1 == ConvParam(obj, 1, &a))
 		return NULL;
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
