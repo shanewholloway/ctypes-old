@@ -87,6 +87,16 @@ class CFunctions(unittest.TestCase):
         self.dll.tf_bd.argtypes = (c_byte, c_double)
         self.failUnlessEqual(self.dll.tf_bd(0, 42), 42)
 
+    def test_callwithresult(self):
+        def process_result(result):
+            return result * 2
+        self.dll.tf_i.restype = process_result
+        self.dll.tf_i.argtypes = (c_int,)
+        self.failUnlessEqual(self.dll.tf_i(42), 84)
+        self.failUnlessEqual(self.dll.tf_i(-42), -84)
+
+# The following repeates the above tests with stdcall functions (where
+# they are available)
 try:
     WinDLL
 except NameError:
