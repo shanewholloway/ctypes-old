@@ -94,11 +94,8 @@ Implementing a COM server with 'ctypes'
 
         from ctypes import *
         from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
-        from ctypes.com.automation import IDispatch, BSTR, VARIANT
-
-        class COMObject:
-            # later this class will be used to create COM objects.
-            pass
+        from ctypes.com.automation import IDispatch, BSTR, VARIANT, dispinterface, \
+                                          DISPMETHOD, DISPPARAMS, EXCEPINFO
 
         ##############################################################################
 
@@ -118,12 +115,12 @@ Implementing a COM server with 'ctypes'
 
 
         IDualSum._methods_ = IDispatch._methods_ + [
-            (STDMETHOD(HRESULT, "Add", c_double, c_double, POINTER(c_double))),
+            STDMETHOD(HRESULT, "Add", c_double, c_double, POINTER(c_double)),
         ]
 
         ##############################################################################
 
-        class CSum(COMObject):
+        class CSum:
             """CSum Class"""
             _reg_clsid_ = '{2E0504A1-1A23-443F-939D-869A6C731521}'
             _com_interfaces_ = [IDualSum]
@@ -170,7 +167,7 @@ Implementing a COM server with 'ctypes'
 
     The '_typelib_' attribute is required for classes deriving from
     'DualObjImpl'. It must be an object having the attributes of the
-    'sum_gen.SumLib' class. Note that 'readtlb.py' writes in absolute
+    'sum_gen.SumLib' class. Note that 'readtlb.py' writes an absolute
     pathname for the type library file into the generated module, this
     must be changed if the file is moved somewhere else. The type
     library path is used for registration of the type library, the
@@ -234,17 +231,17 @@ Implementing a COM server with 'ctypes'
 	  UseCommandLine(SumObject)
 
     'UseCommandLine' responds to the command line switches
-    '/regserver', '/unregserver', and '/embedding, the latter will be
+    '/regserver', '/unregserver', and '/embedding', the latter will be
     automatically provided for an exe server if it is started by
     COM. All switches are case insensitive and can also start with "-"
     instead of "/".
 
     '/regserver' and '/unregserver' will register or unregister our
-    COM object *and the type library* in the Windows registry.
+    COM object and the type library in the Windows registry.
 
-  Trying the COM object
+  Testing the COM object
 
-    We're ready to go. The first step is to register the COM object by
+    We're ready to go. The first step is to register the COM object with
     this command line::
 
       python sum.py -regserver
@@ -279,7 +276,7 @@ Implementing a COM server with 'ctypes'
     An empty dos box pops up (since python.exe is registered as local
     server, not pythonw.exe), and after a short moment in which
     'oleview' tries to request all known interfaces from the object
-    you should see the implemented interfaces displayed under 'Sum
+    you should see the implemented interfaces displayed as 'Sum
     Object'.  'IUnknown', 'IDispatch', and 'IDualSum' are what we
     expected, but there are other interfaces as well, which are
     implemented by COM itself, probably for internal use:
@@ -350,5 +347,4 @@ Implementing a COM server with 'ctypes'
       import sys
       sys.stdout = sys.stderr = Output()
 
-    At the time of writing this, you need an unreleased version of
-    py2exe, later than 0.3.4 at least.
+    You need a recent version of py2exe, version 0.4.1 or later should work.
