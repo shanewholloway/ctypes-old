@@ -1,3 +1,5 @@
+import datetime
+
 from ctypes import *
 from ctypes.wintypes import DWORD, WORD, LPOLESTR, LPCOLESTR, LCID
 from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, \
@@ -324,6 +326,9 @@ class VARIANT(Structure):
         if args:
             self.value = args[0]
 
+    # 30. December 1899, midnight.
+    _com_null_date = datetime.datetime(1899, 12, 31, 0, 0, 0)
+
     def _set_value(self, value):
         oleaut32.VariantClear(byref(self))
         typ = type(value)
@@ -359,6 +364,12 @@ class VARIANT(Structure):
             # It is a POINTER(IUnknown or IUnknown subclass)
             CopyComPointer(value, byref(self._))
             self.vt = VT_UNKNOWN
+        elif typ is datetime.datetime:
+            delta = value - self._com_null_date
+            # a day has 24 * 60 * 60 = 86400 seconds
+            com_days = delta.days + (delta.seconds + delta.microseconds * 1e-6) / 86400.
+            self.vt = VT_DATE
+            self._.VT_R8 = com_days
         else:
             raise TypeError, "don't know how to store %r in a VARIANT" % value
 
@@ -422,6 +433,10 @@ class VARIANT(Structure):
             return ("Error", self._.VT_SCODE)
         elif self.vt == VT_NULL:
             return None
+        elif self.vt == VT_DATE:
+            days = self._.VT_R8
+            return datetime.timedelta(days=days) + self._com_null_date
+            raise "NYI"
         else:
             raise TypeError, "don't know how to convert typecode %d" % self.vt
         # not yet done:

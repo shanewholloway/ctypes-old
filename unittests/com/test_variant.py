@@ -78,12 +78,15 @@ class VariantTestCase(unittest.TestCase):
         self.failUnlessEqual(v.value, 1)
         self.failUnlessEqual(type(v.value), int)
 
-##    def test_datetime(self):
-##        import datetime
-##        now = datetime.datetime.now()
+    def test_datetime(self):
+        import datetime
+        now = datetime.datetime.now()
 
-##        v = VARIANT()
-##        v.value = now
+        v = VARIANT()
+        v.value = now
+        from ctypes.com.automation import VT_DATE
+        self.failUnlessEqual(v.vt, VT_DATE)
+        self.failUnlessEqual(v.value, now)
 
 ################################################################
 
