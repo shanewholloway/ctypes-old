@@ -702,12 +702,12 @@ static int _call_function_pointer(int flags,
 /*
  * Convert the C value in result into an instance described by restype
  */
-static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, union result *result)
+static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, void *result)
 {
 	StgDictObject *dict;
 
 	if (restype == NULL) {
-		return getentry("i")->getfunc(&result->l, sizeof(int));
+		return getentry("i")->getfunc(result, sizeof(int));
 	}
 
 	if (restype == Py_None) {
@@ -748,20 +748,20 @@ static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, union result *
 #endif
 		switch (dict->size) {
 		case 1:
-			c = (char)result->l;
+			c = (char)*(long *)result;
 			retval = dict->getfunc(&c, dict->size);
 			break;
 		case SIZEOF_SHORT:
-			s = (short)result->l;
+			s = (short)*(long *)result;
 			retval = dict->getfunc(&s, dict->size);
 			break;
 		case SIZEOF_INT:
-			i = (int)result->l;
+			i = (int)*(long *)result;
 			retval = dict->getfunc(&i, dict->size);
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
-			l = (long)result->l;
+			l = (long)*(long *)result;
 			retval = dict->getfunc(&l, dict->size);
 			break;
 #endif
@@ -783,7 +783,7 @@ static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, union result *
 	}
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
-					     result->i);
+					     *(int *)result);
 	PyErr_SetString(PyExc_TypeError,
 			"Bug: cannot convert result");
 	return NULL; /* to silence the compiler */
