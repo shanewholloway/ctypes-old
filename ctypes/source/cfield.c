@@ -824,12 +824,12 @@ U_set(void *ptr, PyObject *value, unsigned length)
 	size = PyUnicode_GET_SIZE(value);
 	if (size > length) {
 		PyErr_Format(PyExc_ValueError,
-			     "too long (%d chars instead of less than %d)",
+			     "string too long (%d, maximum length %d)",
 			     size, length);
 		Py_DECREF(value);
 		return NULL;
 	} else if (size < length-1)
-		/* copy terminating NUL character */
+		/* copy terminating NUL character if there is space */
 		size += 1;
 	PyUnicode_AsWideChar((PyUnicodeObject *)value, (wchar_t *)ptr, size);
 	return value;
@@ -873,13 +873,13 @@ s_set(void *ptr, PyObject *value, unsigned length)
 		 * if there is space for it.
 		 */
 		++size;
-	} else if (size >= length) {
+	} else if (size > length) {
 		PyErr_Format(PyExc_ValueError,
-			     "string too long (%d instead of less than %d)",
+			     "string too long (%d, maximum length %d)",
 			     size, length);
 		return NULL;
 	}
-	/* Also copy the terminating NUL character */
+	/* Also copy the terminating NUL character if there is space */
 	memcpy((char *)ptr, data, size);
 	_RET(value);
 }
