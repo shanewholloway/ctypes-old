@@ -189,7 +189,26 @@ class _Constants(object):
 # There's also a quite useful document at
 # http://aromakiki.ismyweb.net/doc/S1227.htm
 
-class _Dispatch(object):
+class _InvokeMixin(object):
+    def _do_invoke(self, memid, invkind, parms):
+        result = VARIANT()
+        excepinfo = EXCEPINFO()
+        uArgError = c_uint()
+        try:
+            self._comobj.Invoke(memid,
+                                byref(guid_null),
+                                0, # LCID
+                                invkind,
+                                byref(parms),
+                                byref(result), # pVarResult
+                                byref(excepinfo), # pExcepInfo
+                                byref(uArgError)) # puArgError
+        except WindowsError, what:
+            assert excepinfo.pfnDeferredFillIn == 0
+            raise COMError(what.errno, what.strerror, excepinfo.as_tuple(), uArgError.value)
+        return result
+
+class _Dispatch(_InvokeMixin):
     # these are to silence pychecker
     _comobj = None
     _typecomp = None
@@ -226,31 +245,16 @@ class _Dispatch(object):
         return _funcdesc(fd, ti)
 
     def __prop_get(self, memid):
-        result = VARIANT()
-        self._comobj.Invoke(memid,
-                           byref(guid_null),
-                           0, # LCID
-                           DISPATCH_PROPERTYGET,
-                           byref(DISPPARAMS()),
-                           byref(result),
-                           None, # pExcepInfo
-                           None) # puArgError
+        result = self._do_invoke(memid, DISPATCH_PROPERTYGET, DISPPARAMS())
         return _wrap(result)
 
     def __prop_put(self, memid, value):
         parms = DISPPARAMS()
-        parms.cArgs = 1
         parms.rgvarg = pointer(VARIANT(value))
-        parms.cNamedArgs = 1
         parms.rgdispidNamedArgs = pointer(DISPID(DISPID_PROPERTYPUT))
-        self._comobj.Invoke(memid,
-                           byref(guid_null),
-                           0, # LCID
-                           DISPATCH_PROPERTYPUT,
-                           byref(parms),
-                           None, # pVarResult
-                           None, # pExcepInfo
-                           None) # puArgError
+        parms.cArgs = 1
+        parms.cNamedArgs = 1
+        self._do_invoke(memid, DISPATCH_PROPERTYPUT, parms)
 
     def __setattr__(self, name, value):
         fd = self._get_funcdesc(name, DISPATCH_PROPERTYPUT) # | DISPATCH_PROPERTYPUTREF)
@@ -322,7 +326,7 @@ class _NewEnum(object):
             raise StopIteration
         return _wrap(result)
 
-class _DispMethod(object):
+class _DispMethod(_InvokeMixin):
     def __init__(self, name, comobj, fd):
         self.name = name
         self._comobj = comobj
@@ -377,23 +381,7 @@ class _DispMethod(object):
     # a tuple of them.
     def __call__(self, *args, **kw):
         parms = self._build_parms(*args, **kw)
-        result = VARIANT()
-        excepinfo = EXCEPINFO()
-        uArgError = c_uint()
-        try:
-            self._comobj.Invoke(self.fd.memid,
-                                byref(guid_null),
-                                0, # LCID
-                                self.fd.invkind,
-                                byref(parms),
-                                byref(result), # pVarResult
-                                byref(excepinfo), # pExcepInfo
-                                byref(uArgError)) # puArgError
-        except WindowsError, (errno, strerror):
-            assert excepinfo.pfnDeferredFillIn == 0
-            # No need for GetErrorInfo, DispInvoke already returns
-            # info in excepinfo.
-            raise COMError(errno, strerror, excepinfo.as_tuple(), uArgError.value)
+        result = self._do_invoke(self.fd.memid, self.fd.invkind, parms)
         return _wrap(result)
 
     # XXX Note to self: There's a DispGetParam oleaut32 api, is this useful somewhere?
