@@ -8,7 +8,7 @@ if _os.path.isfile(_magicfile):
     execfile(_magicfile)
 del _magicfile
 
-__version__ = "0.9.2"
+__version__ = "0.9.3"
 
 from _ctypes import Union, Structure, Array
 from _ctypes import _Pointer
@@ -16,7 +16,6 @@ from _ctypes import CFuncPtr as _CFuncPtr
 from _ctypes import __version__ as _ctypes_version
 
 from _ctypes import ArgumentError
-from _ctypes import _check_HRESULT
 
 if __version__ != _ctypes_version:
     raise Exception, ("Version number mismatch", __version__, _ctypes_version)
@@ -325,6 +324,7 @@ if _os.name ==  "nt":
             setattr(self, name, func)
             return func
 
+    from _ctypes import _check_HRESULT
     class HRESULT(c_long):
         # _check_retval_ is called with the function's result when it
         # is used as restype.  It checks for the FAILED bit, and
