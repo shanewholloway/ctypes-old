@@ -43,7 +43,7 @@ The ctypes module
     Thanks to all of you who reported bugs so quickly, and those who
     tried out the codegenerator toolchain.
 
-    **The code generator if brand new and still experimental, although
+    **The code generator is brand new and still experimental, although
     hopefully better than in the 0.9.5 release.**
 
     Bug fixes:
