@@ -1,5 +1,3 @@
-# bugs:
-# packing of structures/unions with bitfields? See '##XXX FIXME'
 import sys, re
 from optparse import OptionParser
 from codegenerator import generate_code
@@ -32,7 +30,6 @@ msvcrt
 msimg32
 netapi32
 rpcrt4""".split()
-##glut32
 
 ##rpcndr
 ##ntdll
