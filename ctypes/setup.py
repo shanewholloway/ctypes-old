@@ -419,7 +419,7 @@ if __name__ == '__main__':
           package_dir = package_dir,
           packages = packages,
 
-          version="0.6.3",
+          version="0.9.0",
           description="create and manipulate C data types in Python",
           long_description = __doc__,
           author="Thomas Heller",
