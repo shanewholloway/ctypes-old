@@ -192,6 +192,133 @@ static void SetException(DWORD code)
 }
 #endif
 
+/**************************************************************/
+
+PyCArgObject *
+new_CArgObject(void)
+{
+	PyCArgObject *p;
+	p = PyObject_New(PyCArgObject, &PyCArg_Type);
+	if (p == NULL)
+		return NULL;
+	p->tag = '\0';
+	p->obj = NULL;
+	return p;
+}
+
+static void
+PyCArg_dealloc(PyCArgObject *self)
+{
+	Py_XDECREF(self->obj);
+	PyObject_Del(self);
+}
+
+static PyObject *
+PyCArg_repr(PyCArgObject *self)
+{
+	char buffer[256];
+	switch(self->tag) {
+	case 'b':
+	case 'B':
+		sprintf(buffer, "<cparam '%c' (%d)>",
+			self->tag, self->value.b);
+		break;
+	case 'h':
+	case 'H':
+		sprintf(buffer, "<cparam '%c' (%d)>",
+			self->tag, self->value.h);
+		break;
+	case 'i':
+	case 'I':
+		sprintf(buffer, "<cparam '%c' (%d)>",
+			self->tag, self->value.i);
+		break;
+	case 'l':
+	case 'L':
+		sprintf(buffer, "<cparam '%c' (%ld)>",
+			self->tag, self->value.l);
+		break;
+		
+#ifdef HAVE_LONG_LONG
+	case 'q':
+	case 'Q':
+		sprintf(buffer,
+#ifdef MS_WIN32
+			"<cparam '%c' (%I64d)>",
+#else
+			"<cparam '%c' (%qd)>",
+#endif
+			self->tag, self->value.q);
+		break;
+#endif
+	case 'd':
+		sprintf(buffer, "<cparam '%c' (%f)>",
+			self->tag, self->value.d);
+		break;
+	case 'f':
+		sprintf(buffer, "<cparam '%c' (%f)>",
+			self->tag, self->value.f);
+		break;
+
+	case 'c':
+		sprintf(buffer, "<cparam '%c' (%c)>",
+			self->tag, self->value.c);
+		break;
+
+/* Hm, are these 'z' and 'Z' codes useful at all?
+   Shouldn't they be replaced by the functionality of c_string
+   and c_wstring ?
+*/
+
+	case 'z':
+		sprintf(buffer, "<cparam '%c' (%p)>",
+			self->tag, self->value.p);
+		break;
+
+		/* XXX Rename 'Z' into 'u' */
+	case 'Z':
+		sprintf(buffer, "<cparam '%c' (%p)>",
+			self->tag, self->value.p);
+		break;
+
+	case 'p':
+		sprintf(buffer, "<cparam '%c' (%lx)>",
+			self->tag, (long)self->value.p);
+		break;
+
+	default:
+		sprintf(buffer, "<cparam '%c' at %p>",
+			self->tag, self);
+		break;
+	}
+	return PyString_FromString(buffer);
+}
+
+PyTypeObject PyCArg_Type = {
+	PyObject_HEAD_INIT(NULL)
+	0,
+	"CArgObject",
+	sizeof(PyCArgObject),
+	0,
+	(destructor)PyCArg_dealloc,		/* tp_dealloc */
+	0,					/* tp_print */
+	0,					/* tp_getattr */
+	0,					/* tp_setattr */
+	0,					/* tp_compare */
+	(reprfunc)PyCArg_repr,			/* tp_repr */
+	0,					/* tp_as_number */
+	0,					/* tp_as_sequence */
+	0,					/* tp_as_mapping */
+	0,					/* tp_hash */
+	0,					/* tp_call */
+	0,					/* tp_str */
+	0,					/* tp_getattro */
+	0,					/* tp_setattro */
+	0,					/* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT,			/* tp_flags */
+};
+
+/****************************************************************/
 /*
  * Convert a PyObject * into a parameter suitable to pass to an
  * C function call.
@@ -275,6 +402,16 @@ static int ConvParam(PyObject *obj, param *parm, int index)
 	}
 #endif
 
+	if (PyCArg_CheckExact(obj)) {
+		PyCArgObject *p = (PyCArgObject *)obj;
+		memcpy(&parm->val, &p->value, sizeof(parm->val));
+		Py_INCREF(p->obj);
+		parm->keepref = p->obj;
+		parm->format = p->tag;
+		return 0;
+	}
+
+
 	/* If it isn't a tuple, retrieve the _as_parameter_ property.
 	   This must either be an integer or a 'magic' 3-tuple, containing
 	   a single letter string, the value to be passed, and a Python object
@@ -290,6 +427,17 @@ static int ConvParam(PyObject *obj, param *parm, int index)
 		if (PyInt_Check(arg)) {
 			parm->val.i = PyInt_AS_LONG(arg);
 			parm->format = 'i';
+			Py_DECREF(arg);
+			return 0;
+		}
+
+		/* If we have a PyCArgObject, we are done */
+		if (PyCArg_CheckExact(arg)) {
+			PyCArgObject *p = (PyCArgObject *)arg;
+			memcpy(&parm->val, &p->value, sizeof(parm->val));
+			Py_INCREF(p->obj);
+			parm->keepref = p->obj;
+			parm->format = p->tag;
 			Py_DECREF(arg);
 			return 0;
 		}
@@ -473,7 +621,7 @@ static int _call_function_pointer(int flags,
 	*/
 	for (i = argcount-1; i >= 0; --i) {
 
-		ASSERT_FORMAT(parms[i].format);
+//		ASSERT_FORMAT(parms[i].format);
 
 		switch(parms[i].format) {
 		case 'c':
@@ -496,11 +644,15 @@ static int _call_function_pointer(int flags,
 			push(parms[i].val.d);
 			argbytes += sizeof(double);
 			break;
+		case 'z':
+		case 'Z':
 		case 'p':
 			push(parms[i].val.p);
 			argbytes += sizeof(void *);
 			break;
 		default:
+			printf("unhandled FMT char '%c'",
+			       parms[i].format);
 			assert(FALSE);
 			break;
 		}
@@ -735,7 +887,6 @@ PyObject *_CallProc(PPROC pProc,
 
 			if (-1 == ConvParam(arg, pp, i+1))
 				goto error; /* leak, if ths path is taken */
-			ASSERT_FORMAT(pp->format);
 			Py_DECREF(arg);
 		} else {
 			if (-1 == ConvParam(arg, pp, i+1))

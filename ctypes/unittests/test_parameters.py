@@ -35,22 +35,22 @@ def test_float():
     >>> from ctypes import c_float
 
     >>> c_float.from_param(2)
-    ('f', 2.0, None)
+    <cparam 'f' (2.000000)>
 
     >>> c_float.from_param(-2.0)
-    ('f', -2.0, None)
+    <cparam 'f' (-2.000000)>
 
     >>> c_float.from_param(10000000000L)
-    ('f', 10000000000.0, None)
+    <cparam 'f' (10000000000.000000)>
 
     >>> c_float.from_param(-10000000000L)
-    ('f', -10000000000.0, None)
+    <cparam 'f' (-10000000000.000000)>
 
     >>> c_float.from_param(c_float(-2.0))
     c_float(-2.000000)
     
     >>> c_float(2.0)._as_parameter_
-    ('f', 2.0, c_float(2.000000))
+    <cparam 'f' (2.000000)>
 
     >>> c_float(2.0)._as_parameter_ = None
     Traceback (most recent call last):
@@ -65,22 +65,22 @@ def test_double():
     >>> from ctypes import c_double
 
     >>> c_double.from_param(2)
-    ('d', 2.0, None)
+    <cparam 'd' (2.000000)>
 
     >>> c_double.from_param(-2.0)
-    ('d', -2.0, None)
+    <cparam 'd' (-2.000000)>
 
     >>> c_double.from_param(10000000000L)
-    ('d', 10000000000.0, None)
+    <cparam 'd' (10000000000.000000)>
 
     >>> c_double.from_param(-10000000000L)
-    ('d', -10000000000.0, None)
+    <cparam 'd' (-10000000000.000000)>
 
     >>> c_double.from_param(c_double(-2.0))
     c_double(-2.000000)
 
     >>> c_double(2.0)._as_parameter_
-    ('d', 2.0, c_double(2.000000))
+    <cparam 'd' (2.000000)>
     
     """
 
@@ -92,14 +92,14 @@ def test_integer():
     >>> signed_types = [c_byte, c_short, c_int, c_long]
     >>> unsigned_types = [c_ubyte, c_ushort, c_uint, c_ulong]
 
-    >>> [t.from_param(10) for t in signed_types + unsigned_types]
-    [10, 10, 10, 10, 10, 10, 10, 10]
+    >>> [t.from_param(10) for t in signed_types]
+    [<cparam 'b' (10)>, <cparam 'h' (10)>, <cparam 'i' (10)>, <cparam 'l' (10)>]
 
-    >>> [t.from_param(-10) for t in signed_types + unsigned_types]
-    [-10, -10, -10, -10, -10, -10, -10, -10]
+    >>> [t.from_param(10) for t in unsigned_types]
+    [<cparam 'B' (10)>, <cparam 'H' (10)>, <cparam 'I' (10)>, <cparam 'L' (10)>]
 
-    >>> [t.from_param(10L) for t in signed_types + unsigned_types]
-    [10, 10, 10, 10, 10, 10, 10, 10]
+    >>> [t.from_param(-10) for t in signed_types]
+    [<cparam 'b' (-10)>, <cparam 'h' (-10)>, <cparam 'i' (-10)>, <cparam 'l' (-10)>]
 
     >>> [t.from_param(t(10)) for t in signed_types]
     [c_byte(10), c_short(10), c_int(10), c_long(10)]
@@ -108,12 +108,17 @@ def test_integer():
     [c_ubyte(10), c_ushort(10), c_uint(10), c_ulong(10)]
 
     >>> c_int(42)._as_parameter_
-    ('i', 42, c_int(42))
+    <cparam 'i' (42)>
+
     """
 
 def test_strings():
     # C char * is created from Python strings,
     # or from None to create a NULL pointer
+    #
+    # XXX How is this related to the c_char_p data type?
+    # c_string is a mutable string, and c_char_p is only a pointer?
+    # In this case, c_string.from_param should allocate a new buffer, probably.
     """
     >>> from ctypes import c_string
     >>> c_string.from_param("123")
@@ -139,35 +144,36 @@ def test_strings():
     
     >>> c_string(None)._as_parameter_
     0
+
     """
 
-# disabled, doesn't yet work: c_wstring has no from_param classmethod.
+### disabled, doesn't yet work: c_wstring has no from_param classmethod.
 
-##def test_wstrings():
-##    # C wchar * is created from Python strings,
-##    # or from None to create a NULL pointer
-##    """
-##    >>> from ctypes import c_wstring
-##    >>> c_wstring.from_param("123")
-##    '123'
+####def test_wstrings():
+####    # C wchar * is created from Python strings,
+####    # or from None to create a NULL pointer
+####    """
+####    >>> from ctypes import c_wstring
+####    >>> c_wstring.from_param("123")
+####    '123'
 
-##    >>> c_string.from_param(u"123")
-##    Traceback (most recent call last):
-##       ...
-##    TypeError: c_string, string, or None expected
+####    >>> c_string.from_param(u"123")
+####    Traceback (most recent call last):
+####       ...
+####    TypeError: c_string, string, or None expected
 
-##    >>> c_string.from_param(c_string("123"))
-##    <c_string '123'>
+####    >>> c_string.from_param(c_string("123"))
+####    <c_string '123'>
 
-##    >>> c_string.from_param(None)
-##    0
-##    """
+####    >>> c_string.from_param(None)
+####    0
+####    """
 
 def test_char():
     """
     >>> from ctypes import c_char
     >>> c_char.from_param("x")
-    120
+    <cparam 'c' (x)>
 
     >>> c_char(42)
     Traceback (most recent call last):
@@ -182,13 +188,13 @@ def test_char():
     >>> c_char.from_param(u"x")
     Traceback (most recent call last):
         ...
-    TypeError: expected one character string instead of unicode instance
+    TypeError: one character string expected
 
     >>> c_char.from_param(c_char("x"))
     c_char('x')
 
     >>> c_char("x")._as_parameter_
-    ('c', 120, c_char('x'))
+    <cparam 'c' (x)>
 
     """
 
@@ -196,11 +202,29 @@ def test_longlong():
     # currently you cannot pass c_longlong and c_ulonglong values
     # to function calls.
     """
-    >>> from ctypes import c_longlong
+    >>> from ctypes import c_longlong, c_ulonglong
     >>> c_longlong.from_param(42)
-    Traceback (most recent call last):
-       ...
-    TypeError: c_longlong and c_ulonglong objects cannot be passed as function parameters
+    <cparam 'q' (42)>
+
+    >>> c_ulonglong.from_param(42)
+    <cparam 'Q' (42)>
+    
+    """
+
+def test_byref():
+    """
+    >>> from ctypes import byref, c_int, addressof
+    >>> ci = c_int(42)
+    >>> "<cparam 'p' (%x)>" % addressof(ci) == repr(byref(ci))
+    1
+    
+    >>> from ctypes import pointer
+    >>> p = pointer(ci)
+    >>> a = addressof(p.contents)
+    >>> b = p._as_parameter_
+    >>> "<cparam 'p' (%x)>" % a == repr(p._as_parameter_)
+    1
+
     """
 
 def test(*args, **kw):
