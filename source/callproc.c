@@ -620,13 +620,21 @@ static int _call_function_pointer(int flags,
 	values = (void **)alloca(argcount * sizeof(void *));
 
 	for (i = 0; i < argcount; ++i) {
-		ffi_type * tp = tag2ffitype(parms[i]->tag);
+		ffi_type *tp = parms[i]->pffi_type;
+		if (tp == NULL) {
+			fprintf(stderr, "BUG (arg): NO TYPE FOR '%c'\n", parms[i]->tag);
+			tp = tag2ffitype(parms[i]->tag);
+		}
 		if (tp == NULL)
 			return -1;
 		atypes[i] = tp;
 		values[i] = &parms[i]->value;
 	}
-	rtype = tag2ffitype(res->tag);
+	rtype = res->pffi_type;
+	if (rtype == NULL) {
+		fprintf(stderr, "BUG (result): NO TYPE FOR '%c'\n", res->tag);
+		rtype = tag2ffitype(res->tag);
+	}
     
 	if (FFI_OK != ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
 				   argcount,
@@ -921,6 +929,7 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 	}
 
 	if (PointerTypeObject_Check(restype)) {
+		result->pffi_type = &ffi_type_pointer;
 		result->tag = 'P';
 		return;
 	}
@@ -947,16 +956,19 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 #endif
 	if (PyCallable_Check(restype)) {
 		result->tag = 'i'; /* call with integer result */
+		result->pffi_type = &ffi_type_sint;
 		return;
 	}
 
 	if (restype == Py_None) {
 		result->tag = 'v'; /* call with void result */
+		result->pffi_type = &ffi_type_void;
 		return;
 	}
 
 	/* XXX This should not occur... */
 	result->tag = 'i';
+	result->pffi_type = &ffi_type_sint;
 }
 
 /*
