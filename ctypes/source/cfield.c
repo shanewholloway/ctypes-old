@@ -175,20 +175,12 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 	if (self->proto) {
 		CDataObject *src = (CDataObject *)value;
 		if (!CDataObject_Check(value)) {
-			if (CFunctionObject_Check(value)) {
-				CFunctionObject *func;
-				func = (CFunctionObject *)value;
-				assert(self->size == sizeof(void *));
-				*(void **)(dst->b_ptr + self->offset) = func->callback;
-				Py_INCREF(value); /* reference to keep */
-			} else {
-				/* Hm. We can arrive here when self->proto is an ArrayType_Type,
-				   and value is a sequence. */
-				/* Should we call (self->proto).from_param(PySequence_GetItem())? */
-				PyErr_SetString(PyExc_TypeError,
-						"CDataObject expected");
-				return -1;
-			}
+			/* Hm. We can arrive here when self->proto is an ArrayType_Type,
+			   and value is a sequence. */
+			/* Should we call (self->proto).from_param(PySequence_GetItem())? */
+			PyErr_SetString(PyExc_TypeError,
+					"CDataObject expected");
+			return -1;
 		} else if (PyObject_IsInstance(value, self->proto)) {
 			memcpy(dst->b_ptr + self->offset,
 			       src->b_ptr,
@@ -253,12 +245,6 @@ CField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
 
 	/* XXX Do we need to check the size here, or do we trust in 'self'? */
 	if (self->proto) {
-		/* We should probably special case here if self->proto->ob_type
-		   is CFunctionType_Type */
-/*
-		if (self->proto->ob_type == &CFunctionType_Type)
-			....
-*/
 		return CData_FromBaseObj(self->proto,
 					 inst,
 					 self->index,

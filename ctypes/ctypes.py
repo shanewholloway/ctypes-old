@@ -5,7 +5,7 @@
 
 __version__ = "0.5.1"
 
-from _ctypes import Union, Structure, Array, CFunction
+from _ctypes import Union, Structure, Array
 from _ctypes import c_string
 
 from _ctypes import _Pointer, CFuncPtr
