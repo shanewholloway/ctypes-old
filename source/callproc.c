@@ -504,7 +504,8 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 #endif
 	stgdict = PyObject_stgdict(obj);
 	if (stgdict && stgdict->asparam) {
-		return stgdict->asparam(obj, pa);
+		/* If it has an stgdict, it must be a CDataObject */
+		return stgdict->asparam((CDataObject *)obj, pa);
 	} else {
 		PyObject *arg;
 		arg = PyObject_GetAttrString(obj, "_as_parameter_");
