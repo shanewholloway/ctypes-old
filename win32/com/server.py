@@ -251,6 +251,7 @@ def localserver(objclass):
 def UseCommandLine(cls):
     opts, args = w_getopt(sys.argv[1:], "regserver unregserver embedding".split())
     if not opts:
+        sys.stderr.write("Usage: %s [-regserver] [-unregserver]\n" % sys.argv[0])
         return 0 # nothing for us to do
 
     for option, value in opts:
