@@ -2,10 +2,25 @@
 
 import os
 if os.path.isfile(os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")):
-    # magic to allow using ctypes from the CVS tree
+    # magic to allow using ctypes from the CVS tree, after 'setup.py build'
+    # has been run
+
+    # Would it be better to move this code inside the .CTYPES_DEVEL file,
+    # and simply exec it?
     import sys
-    __path__.insert(0, os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", sys.platform)))
+    p = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", sys.platform))
+    __path__.insert(0, p)
+
+    # Try to convince py2exe or Installer not to include distutils
+    # because of this, so use __import__ instead of import!
+    m = __import__("distutils.util")
+    get_platform = m.util.get_platform
+    plat_specifier = ".%s-%s" % (get_platform(), sys.version[0:3])
+    build_dir = os.path.join("..", 'build', 'lib' + plat_specifier)
+
+    p = os.path.abspath(os.path.join(os.path.dirname(__file__), build_dir))
+    sys.path.insert(0, p)
     del sys
 del os
 
