@@ -1662,7 +1662,7 @@ static PyTypeObject CFuncPtr_Type = {
 	0,					/* tp_descr_get */
 	0,					/* tp_descr_set */
 	0,					/* tp_dictoffset */
-	0, /*(initproc)CFuncPtr_init,		/* tp_init */
+	0,					/* tp_init */
 	0,					/* tp_alloc */
         CFuncPtr_new,				/* tp_new */
 	0,					/* tp_free */
