@@ -888,7 +888,8 @@ converters_from_argtypes(PyObject *ob, int *psize)
 		PyObject *cnv = PyObject_GetAttrString(tp, "from_param");
 		if (!dict || !cnv)
 			goto argtypes_error_1;
-		nArgBytes += dict->size;
+		/* round to full DWORDs */
+		nArgBytes += (dict->size + sizeof(int) - 1) / sizeof(int) * sizeof(int);
 		PyTuple_SET_ITEM(converters, i, cnv);
 	}
 	Py_DECREF(ob);
