@@ -47,5 +47,11 @@ class CompleteCoverage(unittest.TestCase):
         self.failUnlessRaises(TypeError,
                               lambda: setattr(x, "P", "abc"))
 
+	pythonapi.PyDict_GetItemString.restype = py_object
+	pythonapi.PyDict_GetItemString.argtypes = py_object, c_char_p
+
+	self.failUnlessRaises(ValueError,
+                              lambda: pythonapi.PyDict_GetItemString(x.__dict__, "spam"))
+
 if __name__ == "__main__":
     unittest.main()
