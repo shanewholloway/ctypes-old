@@ -151,8 +151,9 @@ typedef struct {
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
-	SETFUNC setfunc;	/* Only for ArrayObject */
-	GETFUNC getfunc;	/* Only for ArrayObject */
+	SETFUNC setfunc;	/* Only for Simple */
+	GETFUNC getfunc;	/* Only for Simple */
+	ffi_type *tp;		/* Only for Simple */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
