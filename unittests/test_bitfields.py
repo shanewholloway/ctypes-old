@@ -130,8 +130,8 @@ class BitFieldTest(unittest.TestCase):
         except NameError:
             pass
         else:
-            result = self.fail_fields(("a", c_char, 1))
-            self.failUnlessEqual(result, (TypeError, 'bit fields not allowed for type c_char'))
+            result = self.fail_fields(("a", c_wchar, 1))
+            self.failUnlessEqual(result, (TypeError, 'bit fields not allowed for type c_wchar'))
 
         class Dummy(Structure):
             _fields_ = []
