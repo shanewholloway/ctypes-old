@@ -1,3 +1,6 @@
+# A lot of failures in these tests on Mac OS X.
+# Byte order related?
+
 import unittest
 from ctypes import *
 
