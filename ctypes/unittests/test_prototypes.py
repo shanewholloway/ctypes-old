@@ -54,13 +54,13 @@ class CharPointersTestCase(unittest.TestCase):
         self.failUnlessEqual(addressof(ci), func(byref(ci)))
         
         func.argtypes = c_char_p,
-        self.assertRaises(TypeError, func, byref(ci))
+        self.assertRaises(ArgumentError, func, byref(ci))
 
         func.argtypes = POINTER(c_short),
-        self.assertRaises(TypeError, func, byref(ci))
+        self.assertRaises(ArgumentError, func, byref(ci))
 
         func.argtypes = POINTER(c_double),
-        self.assertRaises(TypeError, func, byref(ci))
+        self.assertRaises(ArgumentError, func, byref(ci))
 
     def test_POINTER_c_char_arg(self):
         func = testdll._testfunc_p_p

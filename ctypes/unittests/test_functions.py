@@ -208,7 +208,7 @@ class FunctionTestCase(unittest.TestCase):
         result = f(arg)
         self.failIfEqual(result.contents, v.value)
 
-        self.assertRaises(TypeError, f, byref(c_short(22)))
+        self.assertRaises(ArgumentError, f, byref(c_short(22)))
 
         # It is dangerous, however, because you don't control the lifetime
         # of the pointer:
@@ -269,7 +269,7 @@ class FunctionTestCase(unittest.TestCase):
         # check that the prototype works: we call f with wrong
         # argument types
         cb = AnotherCallback(callback)
-        self.assertRaises(TypeError, f, -10, cb)
+        self.assertRaises(ArgumentError, f, -10, cb)
 
 
     def test_callbacks_2(self):
