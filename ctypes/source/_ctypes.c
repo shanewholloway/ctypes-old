@@ -367,6 +367,18 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	PyObject *fields, *dict;
 	PyObject *cls_dict;
 
+	cls_dict = PyTuple_GetItem(args, 2); /* borrowed ref */
+	if (!cls_dict) {
+		/* Hm. Should not be possible, but who knows. */
+		PyErr_SetString(PyExc_ValueError,
+				"class creation without class dict?");
+		return NULL;
+	}
+/* Not yet enabled!
+	if (!PyDict_GetItemString(cls_dict, "__slots__")) {
+		PyDict_SetItemString(cls_dict, "__slots__", PyTuple_New(0));
+	}
+*/
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
@@ -380,14 +392,6 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	   The value of the _abstract_ item is ignored.
 	*/
 
-	cls_dict = PyTuple_GetItem(args, 2); /* borrowed ref */
-	if (!cls_dict) {
-		/* Hm. Should not be possible, but who knows. */
-		PyErr_SetString(PyExc_ValueError,
-				"class creation without class dict?");
-		Py_DECREF(result);
-		return NULL;
-	}
 	if (PyDict_GetItemString(cls_dict, "_abstract_"))
 		return (PyObject *)result;
 
@@ -727,7 +731,19 @@ PointerType_from_param(PyObject *type, PyObject *value)
 {
 	if (value == Py_None)
 		return PyInt_FromLong(0); /* NULL pointer */
-	return CDataType_from_param(type, value);
+
+	if (ArrayObject_Check(value)) {
+		/* Array instances are also pointers when
+		   the item types are the same.
+		*/
+		StgDictObject *v = PyObject_stgdict(value);
+		StgDictObject *t = PyType_stgdict(type);
+		if (v && t && v->proto == t->proto) {
+			Py_INCREF(value);
+			return value;
+		}
+	}
+     	return CDataType_from_param(type, value);
 }
 
 static PyMethodDef PointerType_methods[] = {
@@ -4612,6 +4628,7 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
   	DISPPARAMS *dp;
   	VARIANT *va;
  	OLECHAR FAR * FAR *p;
+	FUNCDESC *f = (FUNCDESC *)(arg->b_ptr);
  	int *pi;
  	char *cp;
  	char **cpp;
