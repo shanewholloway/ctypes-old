@@ -801,10 +801,18 @@ static int _call_function_pointer(int flags,
 	if (flags & FUNCFLAG_CDECL) /* Clean up stack if needed */
 		new_esp -= argbytes;
 	if (new_esp < 0) {
-		PyErr_Format(PyExc_ValueError,
-			     "Procedure probably called with not enough "
-			     "arguments (%d bytes missing)",
-			     -new_esp);
+		/* Try to give a better error message */
+		if (flags & FUNCFLAG_CDECL)
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure called with not enough "
+				     "arguments (%d bytes missing) "
+				     "or wrong calling convention",
+				     -new_esp);
+		else
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure probably called with not enough "
+				     "arguments (%d bytes missing)",
+				     -new_esp);
 		return -1;
 	}
 	if (new_esp > 0) {
@@ -945,9 +953,7 @@ void Extend_Error_Info(char *fmt, ...)
 		return;
 
 	PyErr_Fetch(&tp, &v, &tb);
-
 	PyString_ConcatAndDel(&s, v);
-
 	PyErr_Restore(tp, s, tb);
 }
 
