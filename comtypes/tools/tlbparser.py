@@ -1,4 +1,4 @@
-from comtypes import automation
+from comtypes import _automation as automation
 import typedesc
 
 ################################
@@ -61,19 +61,20 @@ COMTYPES = {
     automation.VT_UINT: uint_type, # 23
     automation.VT_VOID: typedesc.FundamentalType("void", 0, 0), # 24
     automation.VT_HRESULT: HRESULT_type, # 25
-#automation.VT_PTR = 26 # enum VARENUM
+    # This is wrong.  We must create separate SAFEARRAY(type) things.
     automation.VT_SAFEARRAY: SAFEARRAY_type, # 27
-#automation.VT_CARRAY = 28 # enum VARENUM
     automation.VT_LPSTR: PTR(char_type), # 30
     automation.VT_LPWSTR: PTR(wchar_t_type), # 31
 }
 
-#automation.VT_USERDEFINED = 29 # enum VARENUM
+#automation.VT_PTR = 26 # below
+#automation.VT_CARRAY = 28 # below
+#automation.VT_USERDEFINED = 29 # below
 
-#automation.VT_RECORD = 36 # enum VARENUM
+#automation.VT_RECORD = 36
 
-#automation.VT_ARRAY = 8192 # enum VARENUM
-#automation.VT_BYREF = 16384 # enum VARENUM
+#automation.VT_ARRAY = 8192
+#automation.VT_BYREF = 16384
 
 ################################################################
 
@@ -82,6 +83,7 @@ class TlbParser(object):
     def __init__(self, path):
         self.tlib = automation.LoadTypeLibEx(path, regkind=automation.REGKIND_REGISTER)
         self.items = {}
+        self.tlib.GetLibAttr()
 
     def make_type(self, tdesc, tinfo):
         try:
@@ -106,6 +108,11 @@ class TlbParser(object):
             result = self.parse_typeinfo(ti)
             assert result is not None, ti.GetDocumentation(-1)[0]
             return result
+
+        elif tdesc.vt == automation.VT_SAFEARRAY:
+            # SAFEARRAY(long), see Don Box pp.331f
+            print "SAFEARRAY", tdesc._.lptdesc[0].vt
+            return SAFEARRAY_type        
 
         # VT_SAFEARRAY ???
         raise "NYI", tdesc.vt
@@ -481,7 +488,8 @@ class TlbParser(object):
         elif tkind == automation.TKIND_UNION: # 7
             return self.ParseUnion(tinfo, ta)
         else:
-            raise "NYI", tkind
+            print "NYI", tkind
+##            raise "NYI", tkind
 
     ################################################################
 
@@ -501,33 +509,39 @@ def main():
 ##    path = r"hnetcfg.dll"
 ##    path = r"simpdata.tlb"
 ##    path = r"nscompat.tlb"
-##    path = r"mshtml.tlb"
+##    path = r"mshtml.tlb" # has propputref
 ##    path = r"stdole32.tlb"
 ##    path = "msscript.ocx"
 ##    path = r"shdocvw.dll"
     
 ##    path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
-##    path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
+##    path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB" # has propputref
 ##    path = r"msi.dll" # DispProperty
 
 ##    path = r"PICCLP32.OCX" # DispProperty
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
-##    path = r"MSHFLXGD.OCX"
-##    path = r"scrrun.dll"
+##    path = r"MSHFLXGD.OCX" # DispProperty, propputref
+##    path = r"scrrun.dll" # propput AND propputref on IDictionary::Item
 ##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\threadapi.tlb"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
 
-##    path = "mytlb.tlb"
+    path = "mytlb.tlb"
 ##    # this has a IUnknown* default parameter
 ##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
-    
+
 ##    path = r"c:\tss5\include\fpanel.tlb"
-    path = "auto.tlb"
+    
+##    path = "auto.tlb"
     known_symbols = {}
 
-    for name in ("comtypes.automation", "comtypes", "ctypes"):
+    from ctypes.wrap import template
+    templates = {}
+##    templates = template.get_templates("mytlb.py")
+
+##    for name in ("comtypes._automation", "comtypes", "ctypes"):
+    for name in ("auto", "comtypes", "ctypes"):
         mod = __import__(name)
         for submodule in name.split(".")[1:]:
             mod = getattr(mod, submodule)
@@ -539,9 +553,10 @@ def main():
     items["CoClass"] = coclass
     from codegenerator import Generator
 
+##    gen = Generator(open("mytlb.py", "w"))
     gen = Generator(sys.stdout)
     print >> gen.imports, "from helpers import *"
-    loops = gen.generate_code(items.values(), known_symbols, [])
+    loops = gen.generate_code(items.values(), known_symbols, [], templates)
 
 if __name__ == "__main__":
     main()
