@@ -42,7 +42,7 @@ CField_FromDesc(PyObject *desc, int index,
 	int size, align, length;
 	SETFUNC setfunc = NULL;
 	GETFUNC getfunc = NULL;
-	StgDictObject *dict;
+	StgDictObject *dict, *prev_dict;
 	int fieldtype;
 #define NO_BITFIELD 0
 #define CONT_BITFIELD 1
@@ -53,6 +53,7 @@ CField_FromDesc(PyObject *desc, int index,
 	if (self == NULL)
 		return NULL;
 	dict = PyType_stgdict(desc);
+	prev_dict = prev_desc ? PyType_stgdict(prev_desc) : NULL;
 	if (!dict) {
 		PyErr_SetString(PyExc_TypeError,
 				"has no _stginfo_");
@@ -60,7 +61,8 @@ CField_FromDesc(PyObject *desc, int index,
 		return NULL;
 	}
 	if (bitsize /* this is a bitfield request */
-	    && prev_desc == desc /* basic types are same */
+//	    && prev_desc == desc /* basic types are same */
+	    && prev_dict && dict->size == prev_dict->size
 	    && *pbitofs /* we have a bitfield open */
 	    && (*pbitofs + bitsize) <= (dict->size * 8)) { /* fits into the space */
 		/* continue bit field */
