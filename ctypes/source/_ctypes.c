@@ -2445,7 +2445,25 @@ PyTypeObject Array_Type = {
 PyObject *
 CreateArrayType(PyObject *itemtype, int length)
 {
+	static PyObject *cache;
+	PyObject *key;
+	PyObject *result;
 	char name[256];
+
+	if (cache == NULL) {
+		cache = PyDict_New();
+		if (cache == NULL)
+			return NULL;
+	}
+	key = Py_BuildValue("(Oi)", itemtype, length);
+	if (!key)
+		return NULL;
+	result = PyDict_GetItem(cache, key);
+	if (result) {
+		Py_INCREF(result);
+		Py_DECREF(key);
+		return result;
+	}
 
 	if (!PyType_Check(itemtype)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -2455,15 +2473,20 @@ CreateArrayType(PyObject *itemtype, int length)
 	sprintf(name, "%.200s_Array_%d",
 		((PyTypeObject *)itemtype)->tp_name, length);
 
-	return PyObject_CallFunction((PyObject *)&ArrayType_Type,
-				     "s(O){s:i,s:O}",
-				     name,
-				     &Array_Type,
-				     "_length_",
-				     length,
-				     "_type_",
-				     itemtype
-				     );
+	result = PyObject_CallFunction((PyObject *)&ArrayType_Type,
+				       "s(O){s:i,s:O}",
+				       name,
+				       &Array_Type,
+				       "_length_",
+				       length,
+				       "_type_",
+				       itemtype
+		);
+	if (!result)
+		return NULL;
+	PyDict_SetItem(cache, key, result);
+	Py_DECREF(key);
+	return result;
 }
 
 

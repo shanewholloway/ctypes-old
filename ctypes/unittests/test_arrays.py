@@ -16,9 +16,7 @@ class ArrayTestCase(unittest.TestCase):
 
         for fmt in formats:
             alen = len(init)
-            class int_array(Array):
-                _type_ = fmt
-                _length_ = alen
+            int_array = ARRAY(fmt, alen)
 
             ia = int_array(*init)
             # length of instance ok?
@@ -43,11 +41,7 @@ class ArrayTestCase(unittest.TestCase):
             # Too many in itializers should be caught
             self.assertRaises(IndexError, int_array, *range(alen*2))
 
-        class CharArray(Array):
-            _type_ = c_char
-            _length_ = 3
-
-        CharArray = c_char * 3
+        CharArray = ARRAY(c_char, 3)
 
         ca = CharArray("a", "b", "c")
 
@@ -75,9 +69,7 @@ class ArrayTestCase(unittest.TestCase):
 
         alen = 5
 
-        class numarray(Array):
-            _type_ = c_int
-            _length_ = alen
+        numarray = ARRAY(c_int, alen)
 
         na = numarray()
         values = [na[i] for i in range(alen)]
@@ -94,6 +86,10 @@ class ArrayTestCase(unittest.TestCase):
         na = numarray(*map(c_int, (1, 2, 3, 4, 5)))
         values = [i for i in na]
         self.failUnless(values == [1, 2, 3, 4, 5])
+
+    def test_classcache(self):
+        self.failUnless(not ARRAY(c_int, 3) is ARRAY(c_int, 4))
+        self.failUnless(ARRAY(c_int, 3) is ARRAY(c_int, 3))
 
 def get_suite():
     return unittest.makeSuite(ArrayTestCase)

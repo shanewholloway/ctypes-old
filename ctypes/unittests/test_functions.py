@@ -189,7 +189,7 @@ class FunctionTestCase(unittest.TestCase):
         def callback(v):
             args.append(v)
 
-        CallBack = CFuncType(c_int, c_int)
+        CallBack = CFUNCTYPE(c_int, c_int)
 
         cb = CallBack(callback)
         f(2**18, cb)
@@ -202,7 +202,7 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_callback_i_if
         f.restype = c_int
 
-        MyCallback = CFuncType(c_int, c_int)
+        MyCallback = CFUNCTYPE(c_int, c_int)
 
         def callback(value):
             #print "called back with", value
@@ -218,7 +218,7 @@ class FunctionTestCase(unittest.TestCase):
         result = f(-10, cb)
         self.failUnless(result == -18)
                 
-        AnotherCallback = WinFuncType(c_int, c_int, c_int, c_int, c_int)
+        AnotherCallback = WINFUNCTYPE(c_int, c_int, c_int, c_int, c_int)
 
         # check that the prototype works: we call f with wrong
         # argument types
@@ -233,7 +233,7 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_callback_i_if
         f.restype = c_int
 
-        MyCallback = CFuncType(c_int, c_int)
+        MyCallback = CFUNCTYPE(c_int, c_int)
 
         f.argtypes = [c_int, MyCallback]
 
@@ -251,7 +251,7 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_callback_q_qf
         f.restype = c_longlong
 
-        MyCallback = CFuncType(c_longlong, c_longlong)
+        MyCallback = CFUNCTYPE(c_longlong, c_longlong)
 
         f.argtypes = [c_longlong, MyCallback]
 

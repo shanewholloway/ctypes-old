@@ -48,7 +48,7 @@ class PointersTestCase(unittest.TestCase):
 
     def test_callbacks_with_pointers(self):
         # a function type receiving a pointer
-        PROTOTYPE = CFuncType(c_int, POINTER(c_int))
+        PROTOTYPE = CFUNCTYPE(c_int, POINTER(c_int))
 
         self.result = []
 
