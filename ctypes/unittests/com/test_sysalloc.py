@@ -2,7 +2,7 @@ import unittest
 from ctypes import *
 from ctypes.com import mallocspy, ole32
 
-from ctypes.com.automation import BSTR
+from ctypes.com.automation import BSTR, VARIANT
 
 # We init COM before each test, and uninit afterwards.
 # So we must start UN-initialized!
@@ -108,6 +108,19 @@ class MallocSpyTest(unittest.TestCase):
             p = pointer(BSTR())
             p.value = u"Hello World %d" % i
         self.expect = 0
+
+    def test_VARIANT(self):
+        # We still have to clear variants manually, to avoid memory leaks.
+        for i in range(32):
+            v = VARIANT("Hello, World")
+            v.value = None
+        self.expect = 0
+
+    def test_VARIANT_memleak(self):
+        # This demonstrates the memory leak:
+        for i in range(32):
+            VARIANT("Hello, World")
+        self.expect = 32
 
 # Offtopic for this test:
 # XXX These need better error messages:
