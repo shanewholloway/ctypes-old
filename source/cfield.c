@@ -369,6 +369,21 @@ i_set(void *ptr, PyObject *value, unsigned size)
 
 
 static PyObject *
+O_get(void *ptr, unsigned size)
+{
+	return *(PyObject **)ptr;
+}
+
+static PyObject *
+O_set(void *ptr, PyObject *value, unsigned size)
+{
+	*(PyObject **)ptr = value;
+	Py_INCREF(value);
+	return value;
+}
+
+
+static PyObject *
 i_get(void *ptr, unsigned size)
 {
 	return PyInt_FromLong(*(int *)ptr);
@@ -872,6 +887,7 @@ static struct fielddesc formattable[] = {
 #ifdef MS_WIN32
 	{ 'X', BSTR_set, BSTR_get, &ffi_type_pointer},
 #endif
+	{ 'O', O_set, O_get, &ffi_type_pointer},
 	{ 0, NULL, NULL, NULL},
 };
 
