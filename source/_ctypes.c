@@ -116,8 +116,6 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	PyTypeObject *result;
 	PyObject *fields, *dict;
 	PyObject *cls_dict;
-	PyObject *isPacked;
-	int pack = 0;
 
 	cls_dict = PyTuple_GetItem(args, 2); /* borrowed ref */
 	if (!cls_dict) {
@@ -142,19 +140,8 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	if (PyDict_GetItemString(cls_dict, "_abstract_"))
 		return (PyObject *)result;
 
-	isPacked = PyDict_GetItemString(cls_dict, "_pack_");
-	if (isPacked) {
-		pack = PyInt_AsLong(isPacked);
-		if (pack < 0 || PyErr_Occurred()) {
-			PyErr_SetString(PyExc_ValueError,
-					"_pack_ must be a non-negative integer");
-			Py_DECREF(result);
-			return NULL;
-		}
-	}
-
 	fields = PyObject_GetAttrString((PyObject *)result, "_fields_");
-	dict = StgDict_FromDict(fields, cls_dict, isStruct, pack);
+	dict = StgDict_FromDict(fields, cls_dict, isStruct);
 	Py_XDECREF(fields);
 	if (!dict) {
 		Py_DECREF(result);
