@@ -225,7 +225,8 @@ static void _CallPythonObject(void *mem,
 }
 
 typedef struct {
-	ffi_closure cl; /* the C callable */
+/*	ffi_closure cl; /* the C callable */
+	ffi_closure *pcl; /* the C callable */
 	ffi_cif cif;
 	PyObject *converters;
 	PyObject *callable;
@@ -249,6 +250,12 @@ static void closure_fcn(ffi_cif *cif,
 			  args);
 }
 
+void FreeCallback(THUNK thunk)
+{
+	PyMem_Free(*(void **)thunk);
+	FreeExecMem(thunk);
+}
+
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
@@ -266,6 +273,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyErr_NoMemory();
 		return NULL;
 	}
+	p->pcl = MallocExecMem(sizeof(ffi_info));
 
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
@@ -299,7 +307,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyMem_Free(p);
 		return NULL;
 	}
-	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
+	result = ffi_prep_closure(p->pcl, &p->cif, closure_fcn, p);
 	if (result != FFI_OK) {
 		PyErr_Format(PyExc_RuntimeError,
 			     "ffi_prep_closure failed with %d", result);
@@ -311,11 +319,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	p->callable = callable;
 
 	return (THUNK)p;
-}
-
-void FreeCallback(THUNK thunk)
-{
-	PyMem_Free(thunk);
 }
 
 /****************************************************************************
