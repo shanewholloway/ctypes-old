@@ -357,7 +357,7 @@ class Generator(object):
             print >> self.stream, "%s._methods_ = [" % body.struct.name
             for m in methods:
                 args = [type_name(a) for a in m.arguments]
-                print >> self.stream, "    STDMETHOD(%s, '%s', %s)," % (
+                print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
                     type_name(m.returns),
                     m.name,
                     ", ".join(args))
@@ -423,15 +423,16 @@ class Generator(object):
             print >> self.stream
             # decorator
             if self.use_decorators:
-                print >> self.stream, "@ %s(%s, %s, [%s])" % \
+                print >> self.stream, "@ %s(%s, '%s', [%s])" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             else:
                 self.need_call_as()
-                print >> self.stream, "[ call_as(%s(%s, %s, [%s])) ]" % \
+                print >> self.stream, "[ call_as(%s(%s, '%s', [%s])) ]" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
             print >> self.stream, "def %s(%s):" % (func.name, ", ".join(argnames))
+            print >> self.stream, "    'Function %s in %s'" % (func.name, dllname)
             print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
             print >> self.stream
             self._functiontypes += 1
