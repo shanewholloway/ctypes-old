@@ -21,12 +21,13 @@ Source: "C:\sf\buildgcc\bin\release\vcInstall.exe"; DestDir: "{app}\install"; Fl
 Source: "C:\sf\gccxml\GCC_XML\VcInstall\*.patch"; DestDir: "{app}\install"; Flags: ignoreversion
 Source: "C:\sf\gccxml\GCC_XML\VcInstall\vcCat.exe"; DestName: cat.exe; DestDir: "{app}\install"; Flags: ignoreversion
 Source: "C:\sf\gccxml\GCC_XML\VcInstall\vcPatch.exe"; DestName: patch.exe; DestDir: "{app}\install"; Flags: ignoreversion
+Source: "config"; DestDir: "{app}\bin";
 
 [Icons]
 Name: {group}\Uninstall gccxml; Filename: {uninstallexe}; Comment: Click to uninstall gccxml
 
 [Run]
-Filename: "{app}\install\vcInstall.exe"; Parameters: "{app}\install {app}\bin"; Check: CreateConfig({app}\bin\config)
+Filename: "{app}\install\vcInstall.exe"; WorkingDir: "{app}\install"; Parameters: ". ..\bin"
 
 [UninstallDelete]
 Type: files; Name: {app}\bin\config
@@ -36,11 +37,3 @@ Type: filesandordirs; Name: {app}\bin\Vc71
 
 [Registry]
 Root: HKLM; Subkey: "Software\gccxml"; ValueType: string; ValueName: "loc"; ValueData: {app}; Flags: uninsdeletekey
-
-[Code]
-function CreateConfig(filename: String) : Boolean;
-begin
-  SaveStringToFile(filename, 'GCCXML_COMPILER="cl"', false);
-  Result := true;
-end;
-
