@@ -89,7 +89,7 @@ class IncludeParser(object):
 
         INVALID_CHARS = "=/{}&;"
         if "(" in name:
-            return "macro with parameters"
+            return "IS_FUNCTION"
         if value in C_KEYWORDS:
             return "value is keyword"
         if name in EXCLUDED:
@@ -105,16 +105,23 @@ class IncludeParser(object):
         return False
 
     def filter_definitions(self, defines):
-        "Return a dict of aliases, and another dict of constants and literals"
+        """Return a dict of aliases, a dict of fucntion-like macros, and
+        another dict of constants and literals"""
         result = {}
         aliases = {}
+        functions = {}
+        excluded = {}
         for name, value in defines.iteritems():
             why = self.is_excluded(name, value)
-            if why == "IS_ALIAS":
-                aliases[name] = value
             if not why:
                 result[name] = value
-        return aliases, result
+            elif why == "IS_ALIAS":
+                aliases[name] = value
+            elif why == "IS_FUNCTION":
+                functions[name] = value
+            else:
+                excluded[name] = value
+        return aliases, functions, excluded, result
 
     ################################################################
 
@@ -179,6 +186,15 @@ class IncludeParser(object):
             return tp.name
         raise TypeError, type(tp).__name__
 
+    def dump_as_cdata(self, f, mapping, name):
+            f.write('  <CPP_DUMP name="%s"><![CDATA[' % name)
+            names = mapping.keys()
+            names.sort()
+            for n in names:
+                v = mapping[n]
+                f.write("%s %s\n" % (n, v))
+            f.write("]]></CPP_DUMP>\n")
+
     ################################################################
 
     def parse(self, include_file, options):
@@ -197,7 +213,7 @@ class IncludeParser(object):
             print >> sys.stderr, "%d found" % len(defines)
 
             print >> sys.stderr, "filtering definitions ..."
-        aliases, defines = self.filter_definitions(defines)
+        aliases, functions, excluded, defines = self.filter_definitions(defines)
         if options.verbose:
             print >> sys.stderr, "%d values, %d aliases" % (len(defines), len(aliases))
 
@@ -211,16 +227,19 @@ class IncludeParser(object):
         if options.verbose:
             print >> sys.stderr, "creating xml output file ..."
         self.create_final_xml(include_file, types)
-        # Should we now insert the aliases into the xml, again?
-        
-##if __name__ == "__main__":
-##    class options(object):
-##        pass
-##    options = options()
 
-##    options.verbose = 1
-##    options.flags = "-D WIN32_LEAN_AND_MEAN -D NO_STRICT"
+        # Include additional preprecessor definitions into the XML file.
 
-##    p = IncludeParser()
-##    options.xmlfile = "windows.xml"
-##    p.parse("windows.h", options)
+        if self.options.xmlfile:
+            f = open(self.options.xmlfile, "r+")
+            f.seek(-12, 2)
+            assert f.read() == "</GCC_XML>\n"
+            f.seek(-12, 2)
+            f.flush()
+
+            self.dump_as_cdata(f, functions, "functions")
+            self.dump_as_cdata(f, aliases, "aliases")
+            self.dump_as_cdata(f, excluded, "excluded")
+
+            f.write("</GCC_XML>\n")
+            f.close()
