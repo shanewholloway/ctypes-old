@@ -7,6 +7,14 @@ from ctypes.com.connectionpoints import dispinterface_EventReceiver, GetConnecti
 
 from ie6_gen import InternetExplorer, IWebBrowser2, DWebBrowserEvents2
 
+# To receive events, we have to run a message loop:
+def pump_messages():
+    user32 = windll.user32
+    msg = MSG()
+    while user32.GetMessageA(byref(msg), None, 0, 0):
+        user32.TranslateMessage(byref(msg))
+        user32.DispatchMessageA(byref(msg))
+
 ################################################################
 #
 # dispinterface_EventReceiver is a base class which implements a
@@ -33,51 +41,39 @@ class DWebBrowserEvents2Impl(dispinterface_EventReceiver):
     # and simply print the method name with the arguments
     # for unimplemented methods.
     def OnQuit(self, this, *args):
-        print "OnQuit", self, args
+        print "OnQuit", self, this, args
         windll.user32.PostQuitMessage(0)
 
 ################################################################
 
 # Start InternetExplorer as ActiveX object
 browser = CreateInstance(InternetExplorer)
+
 # We can now call methods on it
+#
+# Note that readtlb *can* create Python properties from COM properties,
+# but I don't like the code which is generated, it is too verbose IMO.
+# So this is disabled by default, to enable it see the readtlb.py script.
 browser._put_Visible(1)
 v = c_int()
 browser._get_Visible(byref(v))
 print "Is visible?", hex(v.value)
 
-# But we also want to receive events from it via the
-# DWebBrowserEvents2 interface.
-
-# Get a connection point, this is a pointer to a IConnectionPoint
-# interface.
-cp = GetConnectionPoint(browser, DWebBrowserEvents2)
-
-# We have to implement the COM object which will receive the events,
-# and retrieve a pointer to the DWebBrowserEvents2 interface:
-comobj = DWebBrowserEvents2Impl()
-# _com_pointers_ is a sequence of (guid, interface_pointer) pairs.
-# Get the interface_pointer to the first (default) interface.
-pevents = comobj._com_pointers_[0][1]
-
-# We call the Advise method on the IConnectionPoint interface, we supply
-# a pointer to a DWORD where a value will be stored which is used to identify
-# the connection:
-cookie = DWORD()
-cp.Advise(byref(pevents), byref(cookie))
-# The connection is now established.
+# We are interested in events, so create the event receiver instance...
+pevents = DWebBrowserEvents2Impl()
+# ...and connect it to the browser (the event source).
+info = pevents.connect(browser)
 
 # Call the Navigate method. We have to supply empty values for all arguments:
 v = VARIANT()
 browser.Navigate("http://www.python.org/",
                  byref(v), byref(v), byref(v), byref(v))
 
-# To receive events, we have to run a message loop:
-def pump_messages():
-    user32 = windll.user32
-    msg = MSG()
-    while user32.GetMessageA(byref(msg), None, 0, 0):
-        user32.TranslateMessage(byref(msg))
-        user32.DispatchMessageA(byref(msg))
-
+# To receive event, we have to run a message loop.
+# The messageloop is terminated by posting a quit message,
+# which is done in the handler for the OnQuit event.
 pump_messages()
+
+# To be nice, we clean up.
+pevents.disconnect(info)
+print "disconnected"
