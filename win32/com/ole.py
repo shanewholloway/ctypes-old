@@ -1,9 +1,25 @@
 from ctypes.com import IUnknown, STDMETHOD, HRESULT, GUID
 
-from ctypes import c_int, POINTER, Structure
-from ctypes.wintypes import MSG, RECT, OLESTR
+from ctypes import *
+from ctypes.wintypes import DWORD, MSG, RECT, OLESTR, HANDLE
+HDC = HANDLE
 
 BORDERWIDTHS = RECT
+
+class RECTL(Structure):
+    _fields_ = [("left", c_long),
+                ("top", c_long),
+                ("right", c_long),
+                ("bottom", c_long)]
+
+    def _get_height(self):
+        return self.bottom - self.top
+    height = property(_get_height)
+
+class SIZEL(Structure):
+    _fields_ = [("cx", c_long),
+                ("cy", c_long)]
+
 
 class IOleWindow(IUnknown):
     _iid_ = GUID("{00000114-0000-0000-C000-000000000046}")
@@ -31,4 +47,45 @@ IOleInPlaceActiveObject._methods_ = IOleWindow._methods_ + [
     STDMETHOD(HRESULT, "ResizeBorder", POINTER(RECT), POINTER(IOleInPlaceUIWindow), c_int),
     STDMETHOD(HRESULT, "EnableModeless", c_int)]
 
-__all__ = ["IOleWindow", "IOleInPlaceUIWindow", "IOleInPlaceActiveObject"]
+
+# Fakes:
+void = c_int
+FORMATETC = c_int
+STGMEDIUM = c_int
+IMoniker = c_int
+DVTARGETDEVICE = c_int
+LOGPALETTE = c_int
+
+class IAdviseSink(IUnknown):
+    _iid_ = GUID("{0000010F-0000-0000-C000-000000000046}")
+    _methods_ = IUnknown._methods_ + [
+        STDMETHOD(void, "OnDataChange", POINTER(FORMATETC), POINTER(STGMEDIUM)),
+        STDMETHOD(void, "OnViewChange", DWORD, c_long),
+        STDMETHOD(void, "OnRename", POINTER(IMoniker)),
+        STDMETHOD(void, "OnSave"),
+        STDMETHOD(void, "OnClose")]
+
+class IViewObject(IUnknown):
+    _iid_ = GUID("{0000010D-0000-0000-C000-000000000046}")
+    _methods_ = IUnknown._methods_ + [
+        STDMETHOD(HRESULT, "Draw", DWORD, c_long, c_void_p,
+                  POINTER(DVTARGETDEVICE), HDC, HDC, POINTER(RECTL),
+                  POINTER(RECTL), c_void_p, DWORD),
+        STDMETHOD(HRESULT, "GetColorSet", DWORD, c_long, c_void_p,
+                  POINTER(DVTARGETDEVICE), HDC, POINTER(POINTER(LOGPALETTE))),
+        STDMETHOD(HRESULT, "Freeze", DWORD, c_long, c_void_p, POINTER(DWORD)),
+        STDMETHOD(HRESULT, "Unfreeze", DWORD),
+        STDMETHOD(HRESULT, "SetAdvise", DWORD, DWORD, POINTER(IAdviseSink)),
+        STDMETHOD(HRESULT, "GetAdvise", POINTER(DWORD), POINTER(DWORD),
+                  POINTER(POINTER(IAdviseSink)))]
+
+class IViewObject2(IViewObject):
+    _iid_ = GUID("{00000127-0000-0000-C000-000000000046}")
+    _methods_ = IViewObject._methods_ + [
+        STDMETHOD(HRESULT, "GetExtent", DWORD, c_long,
+                  POINTER(DVTARGETDEVICE), POINTER(SIZEL))]
+
+################################################################
+
+
+##__all__ = ["IOleWindow", "IOleInPlaceUIWindow", "IOleInPlaceActiveObject"]
