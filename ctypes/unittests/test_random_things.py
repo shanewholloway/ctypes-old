@@ -47,22 +47,22 @@ class CallbackTracbackTestCase(unittest.TestCase):
         cb = CFUNCTYPE(c_int, c_int)(callback_func)
         out = self.capture_stderr(cb, 0)
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) "
-                             "exceptions.ZeroDivisionError: integer division or modulo by zero")
+                             "RuntimeError: (in callback) exceptions.ZeroDivisionError: "
+                             "integer division or modulo by zero")
 
     def test_FloatDivisionError(self):
         cb = CFUNCTYPE(c_int, c_double)(callback_func)
         out = self.capture_stderr(cb, 0.0)
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) "
-                             "exceptions.ZeroDivisionError: float division")
+                             "RuntimeError: (in callback) exceptions.ZeroDivisionError: "
+                             "float division")
 
     def test_TypeErrorDivisionError(self):
         cb = CFUNCTYPE(c_int, c_char_p)(callback_func)
         out = self.capture_stderr(cb, "spam")
         self.failUnlessEqual(out.splitlines()[-1],
-                             "RuntimeError: (in callback) "
-            "exceptions.TypeError: unsupported operand type(s) for /: 'int' and 'str'")
+                             "RuntimeError: (in callback) exceptions.TypeError: "
+                             "unsupported operand type(s) for /: 'int' and 'str'")
 
 if __name__ == '__main__':
     unittest.main()
