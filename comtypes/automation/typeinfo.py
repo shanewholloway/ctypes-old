@@ -356,26 +356,27 @@ class ITypeInfo(IUnknown):
 class ITypeComp(IUnknown):
     _iid_ = GUID("{00020403-0000-0000-C000-000000000046}")
 
-    def Bind(self, name, flags, lHashVal=0):
+    def Bind(self, name, flags=0, lHashVal=0):
         "Bind to a name"
         bindptr = BINDPTR()
         desckind = DESCKIND()
         ti = POINTER(ITypeInfo)()
         self.__com_Bind(name, lHashVal, flags, byref(ti), byref(desckind), byref(bindptr))
-        if desckind == DESCKIND_FUNCDESC:
+        kind = desckind.value
+        if kind == DESCKIND_FUNCDESC:
             fd = bindptr.lpfuncdesc[0]
             fd.__ref__ = weakref.ref(fd, lambda dead: ti.ReleaseFuncDesc(bindptr.lpfuncdesc))
-            return fd
-        elif desckind == DESCKIND_VARDESC:
+            return "function", fd
+        elif kind == DESCKIND_VARDESC:
             vd = bindptr.lpvardesc[0]
             vd.__ref__ = weakref.ref(vd, lambda dead: ti.ReleaseVarDesc(bindptr.lpvardesc))
-            return vd
-        elif desckind == DESCKIND_TYPECOMP:
-            return bindptr.lptcomp
-        elif desckind == DESCKIND_IMPLICITAPPOBJ:
+            return "variable", vd
+        elif kind == DESCKIND_TYPECOMP:
+            return "type", bindptr.lptcomp
+        elif kind == DESCKIND_IMPLICITAPPOBJ:
             raise "NYI"
-        elif desckind == DESCKIND_NONE:
-            return None
+        elif kind == DESCKIND_NONE:
+            raise NameError, "Name %s not found" % name
         
 ##    STDMETHOD(HRESULT, 'BindType', [LPOLESTR, DWORD, POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp))]),
 
