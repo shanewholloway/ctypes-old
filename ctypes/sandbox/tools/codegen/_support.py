@@ -1,3 +1,6 @@
+# For using decorators with Python 2.3, see this post by Philip Eby:
+# http://dirtsimple.org/2004/11/using-24-decorators-with-22-and-23.html
+
 import new
 
 def STDMETHOD(*args): pass # fake
@@ -18,27 +21,13 @@ def _create_func_codestring(func, name):
     #   def <name>(first, second="spam", third=42):
     #       return _api_(first, second, third)
     import inspect
-    # inspect.getargspec() returns: (args, varargs, varkw, defaults)
-    args = inspect.getargspec(func)
-    if args[2]:
+    args, varargs, varkw, defaults = inspect.getargspec(func)
+    if varkw:
         raise TypeError, "function argument list cannot contain ** argument"
-
-    argnames = args[0]
-    defaults = args[-1]
-
-    if not defaults:
-        if args[1]:
-            argnames.append("*%s" % args[1])
-        argnames = ", ".join(argnames)
-        return "def %s(%s): return _api_(%s)" % (name, argnames, argnames)
-
-    first_list = ", ".join(argnames)
-
-    args = argnames[:-len(defaults)]
-    args.extend( ["%s=%r" % t for t in zip(argnames[-len(defaults):], defaults)] )
-    args = ", ".join(args)
-
-    return """def %s(%s): return _api_(%s)""" % (name, args, first_list)
+    return """def %s%s: return _api_%s""" % \
+           (name,
+            inspect.formatargspec(args, varargs, varkw, defaults),
+            inspect.formatargspec(args, varargs, varkw))
 
 def _decorate_with_api_global(func, call_api):
     # return a new function derived from <func>, inserting an '_api_'
