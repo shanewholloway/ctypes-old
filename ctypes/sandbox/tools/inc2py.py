@@ -29,6 +29,44 @@
 # XXX To do:
 # - turn C Boolean operators "&& || !" into Python "and or not"
 # - what to do about macros with multiple parameters?
+"""
+Usage: inc2py [options] files...
+
+This program parses C include files and converts #define statements
+into Python code.  It requires that the GCCXML C++ parser from
+http://www.gccxml.org/ is installed and on the PATH.
+
+Command line flags:
+
+   -c <value>, --compiler <value>
+      Specifies the compiler that GCCXML should emulate.  For Windows,
+      typically use msvc6 or msvc71.
+
+   -D <symbol>
+   -D <symbol=value>
+   -U <symbol>
+   -I <directory>
+      These flags are passed to GCCXML.
+
+   -o <filename>
+      Write the parsing results to <filename>.  Using '-' as filename
+      will write the results to standard output.
+
+   -r
+      Create the output file in raw format - default is non-raw.
+
+      In non-raw format, only constant values are written to the
+      output file, sorted by names.
+
+      In raw format, the names are not sorted, C macros are included
+      as Python functions, and the last section of the file will
+      contain the #define directives that could not be parsed.
+
+   -v
+      Increases the verbosity.  Verbosity 1 prints out what the
+      program is doing, verbosity 2 additionally prints lines it could
+      not parse.
+"""
 
 import sys, re, os, tempfile
 import warnings
@@ -81,7 +119,9 @@ replaces = [
     # Remove the U suffix from decimal constants
     (re.compile(r"(\d+)U"), r"\1"),
     # Remove the U suffix from hex constants
-    (re.compile(r"(0[xX][0-9a-fA-F]+)U"), r"\1")
+    (re.compile(r"(0[xX][0-9a-fA-F]+)U"), r"\1"),
+    # Replace L"spam" with u"spam"
+    (re.compile(r'[lL]("[^"]*")'), r"u\1")
     ]
 
 class ParserError(Exception):
@@ -90,17 +130,21 @@ class ParserError(Exception):
 # pass one or more include files to the preprocessor, and return a
 # sequence of text lines containing the #define's that the
 # preprocessor dumps out.
-def get_cpp_symbols(options, *fnames):
+def get_cpp_symbols(options, verbose, *fnames):
     # options is a sequence of command line options for GCCXML
     # fnames is the sequence of include files
     #
 
+    compiler = ""
+    for o in options:
+        if o.startswith("--gccxml-compiler"):
+            compiler = o
     options = " ".join(options)
 
     # write a temporary C file
     handle, c_file = tempfile.mkstemp(suffix=".c", text=True)
     for fname in fnames:
-        os.write(handle, "#include <%s>\n" % fname)
+        os.write(handle, '#include <%s>\n' % fname)
     os.close(handle)
 
     def read_stderr(fd):
@@ -114,41 +158,52 @@ def get_cpp_symbols(options, *fnames):
             if retval:
                 raise ParserError, "gccxml returned error %s" % retval
 
-        threading.Thread(target=get_errout, args=(fd,)).start()
+        thread = threading.Thread(target=get_errout, args=(fd,))
+        thread.start()
+        return thread
 
     try:
         # We don't want the predefined symbols. So we get them and
         # remove them later.
-        i, o, e = os.popen3(r"gccxml.exe --preprocess -dM")
+        if verbose:
+            print >> sys.stderr, r"run gccxml.exe %s --preprocess -dM" % compiler
+        i, o, e = os.popen3(r"gccxml.exe %s --preprocess -dM" % compiler)
+        t = read_stderr(e)
         i.close()
-        read_stderr(e)
         builtin_syms = o.readlines()
         retval = o.close()
         if retval:
             raise ParserError, "gccxml returned error %s" % retval
+        t.join()
 
         result = []
+        if verbose:
+            print >> sys.stderr, r"run gccxml.exe %s %s --preprocess -dM" % (options, c_file)
         i, o, e = os.popen3(r"gccxml.exe %s %s --preprocess -dM" % (options, c_file))
+        t = read_stderr(e)
         i.close()
-        read_stderr(e)
         for line in o.readlines():
             if not line in builtin_syms:
                 result.append(line)
         retval = o.close()
+        t.join()
         if retval:
             raise ParserError, "gccxml returned error %s" % retval
         return result
     finally:
+        if verbose:
+            print >> sys.stderr, "Deleting temporary file %s" % c_file
         os.remove(c_file)
 
 
 class IncludeParser(object):
 
-    def __init__(self, cpp_options=()):
+    def __init__(self, cpp_options=(), verbose=0):
         self._env = {}
         self._statements = []
         self._errlines = []
         self._cpp_options = cpp_options
+        self._verbose = verbose
 
     # ripped from h2py
     def pytify(self, body):
@@ -165,16 +220,25 @@ class IncludeParser(object):
 
     def _parse(self, *files):
         self.files = files
-        lines = get_cpp_symbols(self._cpp_options, *files)
+        lines = get_cpp_symbols(self._cpp_options, self._verbose, *files)
 
+        if self._verbose:
+            print >> sys.stderr, "Start parsing..."
         total = 0
         for i in range(10):
             processed = self.parse_lines(lines)
             total += processed
-            print "processed %d (%d) defs in pass %d, %d defs remain" % \
-                  (processed, total, i, len(lines))
+            if self._verbose:
+                print >> sys.stderr, "processed %d (%d) defs in pass %d, %d defs remain" % \
+                      (processed, total, i, len(lines))
             if not processed:
-                return
+                break
+        if self._verbose > 1:
+            for line in lines:
+                print >> sys.stderr, "Skipped '%s'" % line.rstrip("\n")
+        if self._verbose:
+            print >> sys.stderr, "Parsing done."
+
 
     def create_statement(self, line):
         match = p_define.match(line)
@@ -198,7 +262,6 @@ class IncludeParser(object):
             stmt = self.create_statement(line)
             if stmt is None: # cannot process this line
                 self._errlines.append(line)
-                print line.rstrip()
                 processed.append(lineno)
             else:
                 try:
@@ -226,29 +289,60 @@ class IncludeParser(object):
         # return a sequence of #define lines which could not be processed
         return self._errlines[:]
 
-# script start
+    def write_symbols(self, fname, raw):
+        import types
+        if fname == "-":
+            ofi = sys.stdout
+        else:
+            ofi = open(fname, "w")
+        if raw:
+            for s in self._statements:
+                ofi.write(s)
+            ofi.write("\n\n##### skipped lines #####\n\n")
+            for s in self._errlines:
+                ofi.write(s)
+        else:
+            symbols = self.get_symbols()
+            names = symbols.keys()
+            names.sort() # it's nicer
+            for name in names:
+                value = symbols[name]
+                if not type(value) is types.FunctionType:
+                    ofi.write("%s = %r\n" % (name, value))
+        
+################################################################
+
+def main(args=sys.argv[1:]):
+    import getopt
+
+    gccxml_options = []
+    verbose = 0
+    py_file = None
+    raw = 0
+    try:
+        opts, files = getopt.getopt(args, "rvc:D:U:I:o:", ["compiler="])
+        if not files:
+            raise ValueError
+    except (getopt.GetoptError, ValueError):
+        print >> sys.stderr, __doc__
+        return 1
+    for o, a in opts:
+        if o in ("-c", "--compiler"):
+            gccxml_options.append("--gccxml-compiler %s" % a)
+        elif o in ("-D", "-U", "-I"):
+            gccxml_options.append("%s %s" % (o, a))
+        elif o == "-o":
+            py_file = a
+        elif o == "-v":
+            verbose += 1
+        elif o == "-r":
+            raw = 1
+
+    parser = IncludeParser(gccxml_options, verbose=verbose)
+    parser.parse(*files)
+    if py_file:
+        parser.write_symbols(py_file, raw)
+    return 0
+
 if __name__ == "__main__":
-    import time
-    import types
-    os.environ["GCCXML_COMPILER"] = "msvc71"
-    
-    start = time.clock()
-
-    parser = IncludeParser()
-    parser.parse("windows.h")
-    print "%.2f seconds" % (time.clock() - start)
-    
-    n = 0
-    ofi = open("symbols.py", "w")
-    names = parser._env.keys()
-    names.sort() # it's nicer
-    for name in names:
-        value = parser._env[name]
-        if not type(value) is types.FunctionType:
-##            ofi.write("%s = %r\n" % (name, value))
-            print name, value
-            n += 1
-    print "Dumped %d symbols" % n
-##    from pprint import pprint as pp
-
-##    pp(parser._errlines)
+    sys.exit(main())
