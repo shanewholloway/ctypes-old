@@ -2325,6 +2325,7 @@ _validate_paramflags(PyTypeObject *type, PyObject *paramflags)
 			return 0;
 		}
 		switch (flag) {
+		case 0:
 		case PARAMFLAG_FIN:
 		case PARAMFLAG_FOUT:
 		case (PARAMFLAG_FIN | PARAMFLAG_FOUT):
@@ -2772,12 +2773,6 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 	return NULL;
 }
 
-/*
-  For simple objects like c_int and friends, call dict->getfunc.
-  Otherwise, return object itself.
-
-  Hm, it's not that simple:  For a VARIANT, we would like .value as well.
-*/
 static PyObject *
 _get_one(PyObject *obj)
 {
@@ -2785,6 +2780,16 @@ _get_one(PyObject *obj)
 	PyObject *result = arg->obj;
 	StgDictObject *dict = PyObject_stgdict(result);
 
+/*
+  XXX See comments in comtypes::COMMETHOD2.  Urgent need to clean this up:
+  replace with a _from_outparam_ slot call.
+*/
+	if (dict-> proto && PyString_CheckExact(dict->proto)) {
+		char *tag = PyString_AS_STRING(dict->proto);
+		/* simple data type, but no pointer */
+		if (tag[0] == 'P')
+			return result;
+	}
 	if (dict->getfunc) {
 		CDataObject *c = (CDataObject *)result;
 		return dict->getfunc(c->b_ptr, c->b_size);
