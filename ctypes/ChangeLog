@@ -1,3 +1,13 @@
+2004-08-18  Thomas Heller  <theller@python.net>
+
+	* (Message): Array and POINTER instance now support slicing, for
+	POINTER only getslice is implemented (setslice is too dangerous,
+	probably).  Slices are accepted or returned as lists of the
+	elements, except for character and unicode character pointer and
+	arrays, where strings resp. unicode strings are used - much more
+	convenient.
+
+
 2004-07-28  Thomas Heller  <theller@python.net>
 
 	* (Message): CopyComPointer is no longer a function exported from

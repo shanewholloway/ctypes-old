@@ -1,5 +1,15 @@
 ctypes News - http://starship.python.net/crew/theller/ctypes.html
 
+Version 0.9.1
+
+    Array and POINTER instance now support slicing, for POINTER only
+    getslice is implemented (setslice is too dangerous, probably).
+    Slices are accepted or returned as lists of the elements, except
+    for character and unicode character pointer and arrays, where
+    strings resp. unicode strings are used - much more convenient.
+
+Other Versions: no news recorded in this file!
+
 Version 0.4.0, 2003-02-07:
 
     This an intermediate release, there is still a lot to be done.
