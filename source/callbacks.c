@@ -87,6 +87,7 @@ TryAddRef(StgDictObject *dict, CDataObject *obj)
  *
  */
 static void _CallPythonObject(void *mem,
+			      ffi_type *restype,
 			      SETFUNC setfunc,
 			      PyObject *callable,
 			      PyObject *converters,
@@ -171,7 +172,37 @@ static void _CallPythonObject(void *mem,
 		Extend_Error_Info("(in callback) ");
 		PyErr_Print();
 	} else if (result != Py_None) {
-		PyObject *keep = setfunc(mem, result, 0);
+		/* another big endian hack */
+		struct {
+			char c;
+			short s;
+			int i;
+			long l;
+		} r;
+		PyObject *keep;
+		switch (restype->size) {
+		case 1:
+			keep = setfunc(&r, result, 0);
+			*(int *)mem = r.c;
+			break;
+		case SIZEOF_SHORT:
+			keep = setfunc(&r, result, 0);
+			*(int *)mem = r.s;
+			break;
+		case SIZEOF_INT:
+			keep = setfunc(&r, result, 0);
+			*(int *)mem = r.i;
+			break;
+#if (SIZEOF_LONG != SIZEOF_INT)
+		case SIZEOF_LONG:
+			keep = setfunc(&r, result, 0);
+			*(long *)mem = r.l;
+			break;
+#endif
+		default:
+			keep = setfunc(mem, result, 0);
+			break;
+		}
 		if (keep == NULL) {
 			Extend_Error_Info("(callback return type) ");
 			PyErr_Print();
@@ -199,6 +230,7 @@ typedef struct {
 	PyObject *converters;
 	PyObject *callable;
 	SETFUNC setfunc;
+	ffi_type *restype;
 	ffi_type *atypes[0];
 } ffi_info;
 
@@ -210,6 +242,7 @@ static void closure_fcn(ffi_cif *cif,
 	ffi_info *p = userdata;
 
 	_CallPythonObject(resp,
+			  p->restype,
 			  p->setfunc,
 			  p->callable,
 			  p->converters,
@@ -243,10 +276,13 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	{
 		StgDictObject *dict = PyType_stgdict(restype);
-		if (dict)
+		if (dict) {
 			p->setfunc = dict->setfunc;
-		else
+			p->restype = &dict->restype;
+		} else {
 			p->setfunc = getentry("i")->setfunc;
+			p->restype = &ffi_type_sint;
+		}
 	}
 
 	cc = FFI_DEFAULT_ABI;
