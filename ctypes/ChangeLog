@@ -1,5 +1,7 @@
 2003-02-26  Thomas Heller  <theller@python.net>
 
+	* source\_ctypes.c: Removed the unused from_bytes stuff.
+	
 	* source\_ctypes.c (CString_new): The buffer is only initialized
 	to the bytes from the string is passed in, if any.  The
 	terminating NUL byte is always set.  This allows large c_string
