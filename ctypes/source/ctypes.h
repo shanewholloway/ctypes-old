@@ -180,6 +180,8 @@ typedef struct {
 } StgDictObject;
 
 /****************************************************************
+ XXX No longer correct - update this when finished.
+
  StgDictObject fields
 
  setfunc and getfunc is only set for simple data types, it is copied from the
@@ -237,8 +239,13 @@ extern PyObject *_CallProc(PPROC pProc,
 			   PyObject *restype,
 			   PyObject *checker);
  
-extern PyObject *
-CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr);
+extern PyObject *CData_FromBaseObj(PyObject *type, PyObject *base,
+				   int index, char *adr);
+
+extern intKeepRef(CDataObject *target, int index, PyObject *keep);
+
+extern PyObject *GetKeepedObjects(CDataObject *target);
+
 
 #define FUNCFLAG_STDCALL 0x0
 #define FUNCFLAG_CDECL   0x1

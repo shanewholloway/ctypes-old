@@ -1627,7 +1627,7 @@ CData_GetContainer(CDataObject *self)
 	return self;
 }
 
-static PyObject *
+PyObject *
 GetKeepedObjects(CDataObject *target)
 {
 	return CData_GetContainer(target)->b_objects;
@@ -1654,7 +1654,7 @@ unique_key(CDataObject *target, int index)
  * couple of small integers, are used to build a byte string usable as
  * key int the root object's _objects dict.
  */
-static int
+int
 KeepRef(CDataObject *target, int index, PyObject *keep)
 {
 	int result;
