@@ -1,7 +1,17 @@
+2005-03-16  Thomas Heller  <theller@python.net>
+
+	* ctypes\source: Removed the unneeded nArgBytes member from
+	StgDictObject, and change the code accordingly.  Thanks to
+	Andreas Degert for spotting this.
+
+	* ctypes\wrap\cparser_config.py: Added some symbols from windows
+	limits.h header file to the excluded list - h2xml.py choked on
+	them.
+
 2005-03-14  Thomas Heller  <theller@python.net>
 
 	* _ctypes.c: Fixed refcount leak in functions with 'out'
-	parameters.
+	parameters.  This has only relevance for comtypes.
 
 	* _ctypes.c: Keyword arguments to Structures/Unions were ignored.
 	Thanks to Jimmy Retzlaff for finding this.
