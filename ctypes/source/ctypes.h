@@ -58,6 +58,7 @@ typedef struct {
 	PyObject *checker;
 #ifdef MS_WIN32
 	int index;
+	PyObject *paramflags;
 #endif
 } CFuncPtrObject;
 
