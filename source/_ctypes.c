@@ -1381,7 +1381,6 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	int size, align, length;
 	StgDictObject *dict;
 
-
 	dict = PyType_stgdict((PyObject *)type);
 	if (!dict) {
 		PyErr_SetString(PyExc_TypeError,
@@ -1396,7 +1395,8 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		basespec = PyDict_GetItemString(kwds, "_basespec_");
 
 	obj = (CDataObject *)type->tp_alloc(type, 0);
-
+	if (!obj)
+		return NULL;
 	/* Three different cases:
 	 * - no basespec object in kwds: Allocate new memory
 	 * - basespec->base is set:
@@ -2003,15 +2003,18 @@ static int
 Array_init(CDataObject *self, PyObject *args, PyObject *kw)
 {
 	int i;
+	int n;
 
 	if (!PyTuple_Check(args)) {
 		PyErr_SetString(PyExc_TypeError,
 				"args not a tuple?");
 		return -1;
 	}
-	for (i = 0; i < PyTuple_GET_SIZE(args); ++i) {
-		if (-1 == PySequence_SetItem((PyObject *)self, i,
-					     PyTuple_GET_ITEM(args, i)))
+	n = PyTuple_GET_SIZE(args);
+	for (i = 0; i < n; ++i) {
+		PyObject *v;
+		v = PyTuple_GET_ITEM(args, i);
+		if (-1 == PySequence_SetItem((PyObject *)self, i, v))
 			return -1;
 	}
 	return 0;
@@ -2035,7 +2038,7 @@ Array_item(CDataObject *self, int index)
 
 	if (stgdict->proto)
 		return CData_FromBaseObj(stgdict->proto,
-					 (PyObject *)self, index, offset);
+					   (PyObject *)self, index, offset);
 	else
 		return stgdict->getfunc(self->b_ptr + offset, size);
 }
@@ -2071,6 +2074,8 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 			if (dict && dict->setfunc) {
 				value = dict->setfunc(self->b_ptr + offset,
 						      value, size);
+				if (value == 0)
+					return -1;
 			} else {
 				PyErr_SetString(PyExc_TypeError,
 						"CData object expected");
