@@ -28,10 +28,12 @@ class RECT(Structure):
 class Class(object):
     pass
 
-# get a FUNCDESC instance
-from ctypes.com.client import Dispatch
-d = Dispatch("InternetExplorer.Application")
-fd = d.Navigate.fd
+
+def get_fd():
+    # get a FUNCDESC instance
+    from ctypes.com.client import Dispatch
+    d = Dispatch("InternetExplorer.Application")
+    return d.Navigate.fd
 
 ################################################################
 
@@ -49,17 +51,17 @@ if __name__ == "__main__":
          "point.y")
     timeit("-s", "from test_perf import RECT; rect = RECT()",
          "rect.lr")
-    timeit("-s", "from test_perf import fd",
+    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
          "fd.lprgelemdescParam")
-    timeit("-s", "from test_perf import fd",
+    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
          "fd.lprgelemdescParam[0]")
-    timeit("-s", "from test_perf import fd",
+    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
          "fd.lprgelemdescParam[1]")
-    timeit("-s", "from test_perf import fd",
+    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
          "fd.lprgelemdescParam[1].tdesc")
-    timeit("-s", "from test_perf import fd",
+    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
          "fd.lprgelemdescParam[1].tdesc.vt")
-    timeit("-s", "from test_perf import fd",
+    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
          "fd.lprgelemdescParam[1].tdesc.u.lptdesc[0].vt")
     timeit('-s', "from ctypes import c_int",
            "c_int()")
@@ -74,14 +76,15 @@ if __name__ == "__main__":
     try:
         import comtypes
     except ImportError:
-        sys.exit()
+        pass
+    else:
 
-    timeit('-s', "from comtypes.automation import VARIANT",
-           "VARIANT()                                   # comtypes")
-    timeit('-s', "from comtypes.automation import VARIANT; variant = VARIANT(3)",
-           "variant.value                               # comtypes")
-    timeit('-s', "from comtypes.automation import VARIANT; variant = VARIANT()",
-           "variant.value = 3.14                        # comtypes")
+        timeit('-s', "from comtypes.automation import VARIANT",
+               "VARIANT()                                   # comtypes")
+        timeit('-s', "from comtypes.automation import VARIANT; variant = VARIANT(3)",
+               "variant.value                               # comtypes")
+        timeit('-s', "from comtypes.automation import VARIANT; variant = VARIANT()",
+               "variant.value = 3.14                        # comtypes")
 
 # on my machine:
 
@@ -123,6 +126,6 @@ if __name__ == "__main__":
 ##    2.40: VARIANT()                                   # ctypes.com
 ##    5.25: variant.value                               # ctypes.com
 ##   11.20: variant.value = 3.14                        # ctypes.com
-##    1.00: VARIANT()                                   # comtypes
+##    2.08: VARIANT()                                   # comtypes
 ##    4.99: variant.value                               # comtypes
 ##   11.40: variant.value = 3.14                        # comtypes
