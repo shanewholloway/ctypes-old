@@ -165,7 +165,9 @@ def get_inout_args_func():
 
     We construct two functions having the same signature:
     
-    >>> def p(a, b, c, d): return a+c, b+d
+    >>> def p(a, b, c, d):
+    ...     return a+c, b+d
+    ...
     >>> f = get_inout_args_func()
     >>> f(a=1, b=3) # ctypes function
     Traceback (most recent call last):
@@ -196,16 +198,18 @@ def get_inout_args_func():
     Traceback (most recent call last):
       ...
     TypeError: int expected instead of str instance
-HU?
+    >>>
+
+    # The following examples show problems with the error messages:
+    
     >>> f(a=1, b="y", p1=3, p2=4)
     Traceback (most recent call last):
       ...
     ArgumentError: argument 3: exceptions.TypeError: int expected instead of str instance
-HU?
     >>> f(a=1, b=2, p1="3", p2=4)
     Traceback (most recent call last):
       ...
-    ArgumentError: argument 3: exceptions.TypeError: int expected instead of str instance
+    TypeError: int expected instead of str instance
     >>>
     """
     import _ctypes_test
