@@ -19,8 +19,8 @@
 # See also: http://archive.devx.com/upload/free/features/vcdj/2000/03mar00/fg0300/fg0300.asp
 #
 
-from ctypes.com.typeinfo import LoadTypeLib, ITypeInfo, BSTR, \
-     LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT
+from ctypes.com.typeinfo import LoadTypeLibEx, ITypeInfo, BSTR, \
+     LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT, LPTLIBATTR
 from ctypes.com.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS, \
      TKIND_RECORD
 from ctypes.com.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
@@ -32,7 +32,7 @@ from ctypes.com.typeinfo import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
 
 from ctypes.com import GUID
 
-from ctypes import byref, c_int, c_ulong, pointer
+from ctypes import byref, c_int, c_ulong, pointer, POINTER
 
 VT_EMPTY	= 0
 VT_NULL	= 1
@@ -415,7 +415,7 @@ class enum(c_int):
 class TypeLibReader:
     def __init__(self, filename):
         self.filename = filename
-        tlb = self.tlb = LoadTypeLib(filename)
+        tlb = self.tlb = LoadTypeLibEx(filename)
 
         self.coclasses = {}
         self.interfaces = {}
@@ -451,10 +451,42 @@ class TypeLibReader:
             rdr = InterfaceReader(self, ti)
             self.types[iid] = rdr
 
+        self._get_documentation()
+        self._get_libattr()
+
+    def _get_libattr(self):
+        pta = LPTLIBATTR()
+        self.tlb.GetLibAttr(byref(pta))
+        ta = pta.contents
+        self.guid = str(ta.guid)
+        self.wMajorVerNum = ta.wMajorVerNum
+        self.wMinorVerNum = ta.wMinorVerNum
+        self.wLibFlags = ta.wLibFlags
+        self.tlb.ReleaseTLibAttr(pta)
+
+    def _get_documentation(self):
+        name = BSTR()
+        docstring = BSTR()
+        helpcontext = c_ulong()
+        helpfile = BSTR()
+        self.tlb.GetDocumentation(-1, byref(name),
+                                 byref(docstring), byref(helpcontext),
+                                 byref(helpfile))
+        self.name = name.value
+        self.docstring = docstring.value
+
     def dump(self, ofi=None):
 
         print >> ofi, "# Generated from %s" % self.filename
         print >> ofi, HEADER
+
+        print >> ofi, "class %s:" % self.name
+        print >> ofi, "    %r" % str(self.docstring)
+        print >> ofi, "    guid = GUID('%s')" % self.guid
+        print >> ofi, "    version = (%d, %d)" % (self.wMajorVerNum, self.wMinorVerNum)
+        print >> ofi, "    flags = 0x%X" % self.wLibFlags
+        print >> ofi, "    path = %r" % str(self.filename)
+        
         
         if self.enums:
             print >> ofi
