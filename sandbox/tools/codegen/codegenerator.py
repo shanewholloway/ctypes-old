@@ -105,43 +105,6 @@ def calc_packing(struct, fields):
             return pack/8
     raise PackingError, "PACKING FAILED: %s" % details
 
-def type_name(t):
-    # Return a string, containing an expression which can be used to
-    # refer to the type. Assumes the ctypes.* namespace is available.
-    if isinstance(t, typedesc.PointerType):
-        result = "POINTER(%s)" % type_name(t.typ)
-        # XXX Better to inspect t.typ!
-        if result.startswith("POINTER(WINFUNCTYPE"):
-            return result[8:-1]
-        if result.startswith("POINTER(CFUNCTYPE"):
-            return result[8:-1]
-        # XXX See comment above...
-        elif result == "POINTER(None)":
-            return "c_void_p"
-        return result
-    elif isinstance(t, typedesc.ArrayType):
-        return "%s * %s" % (type_name(t.typ), int(t.max)+1)
-    elif isinstance(t, typedesc.FunctionType):
-        args = map(type_name, [t.returns] + t.arguments)
-        if "__stdcall__" in t.attributes:
-            return "WINFUNCTYPE(%s)" % ", ".join(args)
-        else:
-            return "CFUNCTYPE(%s)" % ", ".join(args)
-    elif isinstance(t, typedesc.CvQualifiedType):
-        # const and volatile are ignored
-        return "%s" % type_name(t.typ)
-    elif isinstance(t, typedesc.FundamentalType):
-        return ctypes_names[t.name]
-    elif isinstance(t, typedesc.Structure):
-        return t.name
-    elif isinstance(t, typedesc.Enumeration):
-        if t.name:
-            return t.name
-        return "c_int" # enums are integers
-    elif isinstance(t, typedesc.Typedef):
-        return t.name
-    return t.name
-
 def decode_value(init):
     # decode init value from gccxml
     if init[0] == "0":
@@ -151,49 +114,6 @@ def decode_value(init):
     elif init[0] == '"':
         return eval(init) # string
     return int(init) # integer
-
-def init_value(t, init):
-    tn = type_name(t)
-    if tn in ["c_ulonglong", "c_ulong", "c_uint", "c_ushort", "c_ubyte"]:
-        return decode_value(init)
-    elif tn in ["c_longlong", "c_long", "c_int", "c_short", "c_byte"]:
-        return decode_value(init)
-    elif tn in ["c_float", "c_double"]:
-        return float(init)
-    elif tn == "POINTER(c_char)":
-        if init[0] == '"':
-            value = eval(init)
-        else:
-            value = int(init, 16)
-        return value
-    elif tn == "POINTER(c_wchar)":
-        if init[0] == '"':
-            value = eval(init)
-        else:
-            value = int(init, 16)
-        if isinstance(value, str):
-            value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
-            value = value.decode("utf-16") # XXX Is this correct?
-        return value
-    elif tn == "c_void_p":
-        if init[0] == "0":
-            value = int(init, 16)
-        else:
-            value = int(init) # hm..
-        # Hm, ctypes represents them as SIGNED int
-        return value
-    elif tn == "c_char":
-        return decode_value(init)
-    elif tn == "c_wchar":
-        value = decode_value(init)
-        if isinstance(value, int):
-            return unichr(value)
-        return value
-    elif tn.startswith("POINTER("):
-        # Hm, POINTER(HBITMAP__) for example
-        return decode_value(init)
-    else:
-        raise ValueError, "cannot decode %s(%r)" % (tn, init)
 
 def get_real_type(tp):
     if type(tp) is typedesc.Typedef:
@@ -214,13 +134,105 @@ class Generator(object):
         self.stream = stream
         self.use_decorators = use_decorators
 
+    def init_value(self, t, init):
+        tn = self.type_name(t, False)
+        if tn in ["c_ulonglong", "c_ulong", "c_uint", "c_ushort", "c_ubyte"]:
+            return decode_value(init)
+        elif tn in ["c_longlong", "c_long", "c_int", "c_short", "c_byte"]:
+            return decode_value(init)
+        elif tn in ["c_float", "c_double"]:
+            return float(init)
+        elif tn == "POINTER(c_char)":
+            if init[0] == '"':
+                value = eval(init)
+            else:
+                value = int(init, 16)
+            return value
+        elif tn == "POINTER(c_wchar)":
+            if init[0] == '"':
+                value = eval(init)
+            else:
+                value = int(init, 16)
+            if isinstance(value, str):
+                value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
+                value = value.decode("utf-16") # XXX Is this correct?
+            return value
+        elif tn == "c_void_p":
+            if init[0] == "0":
+                value = int(init, 16)
+            else:
+                value = int(init) # hm..
+            # Hm, ctypes represents them as SIGNED int
+            return value
+        elif tn == "c_char":
+            return decode_value(init)
+        elif tn == "c_wchar":
+            value = decode_value(init)
+            if isinstance(value, int):
+                return unichr(value)
+            return value
+        elif tn.startswith("POINTER("):
+            # Hm, POINTER(HBITMAP__) for example
+            return decode_value(init)
+        else:
+            raise ValueError, "cannot decode %s(%r)" % (tn, init)
+
+    def type_name(self, t, generate=True):
+        # Return a string, containing an expression which can be used to
+        # refer to the type. Assumes the ctypes.* namespace is available.
+        if isinstance(t, typedesc.PointerType):
+            result = "POINTER(%s)" % self.type_name(t.typ, generate)
+            # XXX Better to inspect t.typ!
+            if result.startswith("POINTER(WINFUNCTYPE"):
+                if generate:
+                    self.need_POINTER()
+                return result[8:-1]
+            if result.startswith("POINTER(CFUNCTYPE"):
+                if generate:
+                    self.need_POINTER()
+                return result[8:-1]
+            # XXX See comment above...
+            elif result == "POINTER(None)":
+                if generate:
+                    self.need_c_void_p()
+                return "c_void_p"
+            if generate:
+                self.need_POINTER()
+            return result
+        elif isinstance(t, typedesc.ArrayType):
+            return "%s * %s" % (self.type_name(t.typ, generate), int(t.max)+1)
+        elif isinstance(t, typedesc.FunctionType):
+            args = [self.type_name(x, generate) for x in [t.returns] + t.arguments]
+            if "__stdcall__" in t.attributes:
+                if generate:
+                    self.need_WINFUNCTYPE()
+                return "WINFUNCTYPE(%s)" % ", ".join(args)
+            else:
+                if generate:
+                    self.need_CFUNCTYPE()
+                return "CFUNCTYPE(%s)" % ", ".join(args)
+        elif isinstance(t, typedesc.CvQualifiedType):
+            # const and volatile are ignored
+            return "%s" % self.type_name(t.typ, generate)
+        elif isinstance(t, typedesc.FundamentalType):
+            return ctypes_names[t.name]
+        elif isinstance(t, typedesc.Structure):
+            return t.name
+        elif isinstance(t, typedesc.Enumeration):
+            if t.name:
+                return t.name
+            return "c_int" # enums are integers
+        elif isinstance(t, typedesc.Typedef):
+            return t.name
+        return t.name
+
     def StructureHead(self, head):
         if head in self.done:
             return
         for struct in head.struct.bases:
             self.StructureHead(struct.get_head())
             self.more.add(struct)
-        basenames = [type_name(b) for b in head.struct.bases]
+        basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
             print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
         else:
@@ -228,8 +240,10 @@ class Generator(object):
             if methods:
                 print >> self.stream, "class %s(_com_interface):" % head.struct.name
             elif type(head.struct) == typedesc.Structure:
+                self.need_Structure()
                 print >> self.stream, "class %s(Structure):" % head.struct.name
             elif type(head.struct) == typedesc.Union:
+                self.need_Union()
                 print >> self.stream, "class %s(Union):" % head.struct.name
         print >> self.stream, "    pass"
         self.done.add(head)
@@ -255,8 +269,8 @@ class Generator(object):
             self.more.add(tp.typ)
         else:
             self.generate(tp.typ)
-        if tp.name != type_name(tp.typ):
-            print >> self.stream, "%s = %s # typedef" % (tp.name, type_name(tp.typ))
+        if tp.name != self.type_name(tp.typ):
+            print >> self.stream, "%s = %s # typedef" % (tp.name, self.type_name(tp.typ))
         self.done.add(tp)
 
     _arraytypes = 0
@@ -309,14 +323,14 @@ class Generator(object):
             # wtypes.h contains IID_IProcessInitControl, for example
             return
         try:
-            v = init_value(tp.typ, tp.init)
+            value = self.init_value(tp.typ, tp.init)
         except (TypeError, ValueError), detail:
-            print "Could not init", detail
+            print "Could not init", tp.name, tp.init, detail
             return
         print >> self.stream, \
               "%s = %r # %s" % (tp.name,
-                                init_value(tp.typ, tp.init),
-                                type_name(tp.typ))
+                                value,
+                                self.type_name(tp.typ, False))
 
     def EnumValue(self, tp):
         if tp in self.done:
@@ -329,6 +343,7 @@ class Generator(object):
     def Enumeration(self, tp):
         if tp in self.done:
             return
+        self.need_c_int()
         self.done.add(tp)
         self._enumtypes += 1
         if tp.name:
@@ -369,7 +384,6 @@ class Generator(object):
         if fields:
             if body.struct.bases:
                 assert len(body.struct.bases) == 1
-                base = body.struct.bases[0].name
                 self.StructureBody(body.struct.bases[0].get_body())
             print >> self.stream, "%s._fields_ = [" % body.struct.name
             # unnamed fields will get autogenerated names "_", "_1". "_2", "_3", ...
@@ -385,24 +399,26 @@ class Generator(object):
                 else:
                     fieldname = f.name
                 if f.bits is None:
-                    print >> self.stream, "    ('%s', %s)," % (fieldname, type_name(f.typ))
+                    print >> self.stream, "    ('%s', %s)," % (fieldname, self.type_name(f.typ))
                 else:
-                    print >> self.stream, "    ('%s', %s, %s)," % (fieldname, type_name(f.typ), f.bits)
+                    print >> self.stream, "    ('%s', %s, %s)," % (fieldname, self.type_name(f.typ), f.bits)
             print >> self.stream, "]"
         if methods:
             print >> self.stream, "%s._methods_ = [" % body.struct.name
             for m in methods:
-                args = [type_name(a) for a in m.arguments]
+                args = [self.type_name(a) for a in m.arguments]
                 print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
-                    type_name(m.returns),
+                    self.type_name(m.returns),
                     m.name,
                     ", ".join(args))
             print >> self.stream, "]"
         if body.struct.size and body.struct.name not in dont_assert_size:
             size = body.struct.size // 8
+            self.need_sizeof()
             print >> self.stream, "assert sizeof(%s) == %s, sizeof(%s)" % \
                   (body.struct.name, size, body.struct.name)
             align = body.struct.align // 8
+            self.need_alignment()
             print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
                   (body.struct.name, align, body.struct.name)
         self.done.add(body)
@@ -434,6 +450,69 @@ class Generator(object):
         print >> self.stream, "from ctypes.decorators import cdecl"
         self._cdecl_defined = True
 
+    _Union_defined = False
+    def need_Union(self):
+        if self._Union_defined:
+            return
+        print >> self.stream, "from ctypes import Union"
+        self._Union_defined = True
+
+    _Structure_defined = False
+    def need_Structure(self):
+        if self._Structure_defined:
+            return
+        print >> self.stream, "from ctypes import Structure"
+        self._Structure_defined = True
+
+    _sizeof_defined = False
+    def need_sizeof(self):
+        if self._sizeof_defined:
+            return
+        print >> self.stream, "from ctypes import sizeof"
+        self._sizeof_defined = True
+
+    _alignment_defined = False
+    def need_alignment(self):
+        if self._alignment_defined:
+            return
+        print >> self.stream, "from ctypes import alignment"
+        self._alignment_defined = True
+
+    _c_int_defined = False
+    def need_c_int(self):
+        if self._c_int_defined:
+            return
+        print >> self.stream, "from ctypes import c_int"
+        self._c_int_defined = True
+
+    _c_void_p_defined = False
+    def need_c_void_p(self):
+        if self._c_void_p_defined:
+            return
+        print >> self.stream, "from ctypes import c_void_p"
+        self._c_void_p_defined = True
+
+    _WINFUNCTYPE_defined = False
+    def need_WINFUNCTYPE(self):
+        if self._WINFUNCTYPE_defined:
+            return
+        print >> self.stream, "from ctypes import WINFUNCTYPE"
+        self._WINFUNCTYPE_defined = True
+
+    _CFUNCTYPE_defined = False
+    def need_CFUNCTYPE(self):
+        if self._CFUNCTYPE_defined:
+            return
+        print >> self.stream, "from ctypes import CFUNCTYPE"
+        self._CFUNCTYPE_defined = True
+
+    _POINTER_defined = False
+    def need_POINTER(self):
+        if self._POINTER_defined:
+            return
+        print >> self.stream, "from ctypes import POINTER"
+        self._POINTER_defined = True
+
     _functiontypes = 0
     _notfound_functiontypes = 0
     def Function(self, func):
@@ -443,7 +522,7 @@ class Generator(object):
         if dllname:
             self.generate(func.returns)
             self.generate_all(func.arguments)
-            args = [type_name(a) for a in func.arguments]
+            args = [self.type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
                 self.need_stdcall()
                 cc = "stdcall"
@@ -453,7 +532,7 @@ class Generator(object):
             print >> self.stream
             if self.use_decorators:
                 print >> self.stream, "@ %s(%s, %r, [%s])" % \
-                      (cc, type_name(func.returns), dllname, ", ".join(args))
+                      (cc, self.type_name(func.returns), dllname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
             print >> self.stream, "def %s(%s):" % (func.name, ", ".join(argnames))
@@ -461,7 +540,7 @@ class Generator(object):
 ##            print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
             if not self.use_decorators:
                 print >> self.stream, "%s = %s(%s, %r, [%s]) (%s)" % \
-                      (func.name, cc, type_name(func.returns), dllname, ", ".join(args), func.name)
+                      (func.name, cc, self.type_name(func.returns), dllname, ", ".join(args), func.name)
             print >> self.stream
             self._functiontypes += 1
         else:
@@ -576,10 +655,6 @@ def generate_code(xmlfile,
         items = todo
 
     gen = Generator(outfile, use_decorators=use_decorators)
-    # output header
-    print >> outfile, "from ctypes import Structure, Union, CFUNCTYPE, WINFUNCTYPE, POINTER"
-    print >> outfile, "from ctypes import sizeof, alignment, c_void_p, c_int"
-    print >> outfile
     loops = gen.generate_code(items,
                               known_symbols,
                               searched_dlls)
