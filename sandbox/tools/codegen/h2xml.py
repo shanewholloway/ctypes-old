@@ -1,7 +1,21 @@
 """h2xml - convert C include file(s) into an xml file by running gccxml."""
 import sys, os, tempfile
+import _winreg
 
-os.environ["PATH"] = r"c:\sf\buildgcc\bin\release"
+def _locate_gccxml():
+    for subkey in (r"Software\gccxml", r"Software\Kitware\GCC_XML"):
+        for root in (_winreg.HKEY_CURRENT_USER, _winreg.HKEY_LOCAL_MACHINE):
+            try:
+                hkey = _winreg.OpenKey(root, subkey, 0, _winreg.KEY_READ)
+            except WindowsError, detail:
+                if detail.errno != 2:
+                    raise
+            else:
+                return _winreg.QueryValueEx(hkey, "loc")[0] + r"\bin"
+
+loc = _locate_gccxml()
+if loc:
+    os.environ["PATH"] = loc
 
 ################################################################
 
