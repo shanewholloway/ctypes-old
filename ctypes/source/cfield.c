@@ -242,6 +242,25 @@ CField_dealloc(PyObject *self)
 	self->ob_type->tp_free((PyObject *)self);
 }
 
+static PyObject *
+CField_repr(CFieldObject *self)
+{
+	PyObject *result;
+	int bits = self->size >> 16;
+	int size = self->size & 0xFFFF;
+	char *name;
+
+	name = ((PyTypeObject *)self->proto)->tp_name;
+
+	if (bits)
+		result = PyString_FromFormat("<Field type=%s, ofs=%d, bits=%d>",
+					     name, self->offset, bits);
+	else
+		result = PyString_FromFormat("<Field type=%s, ofs=%d, size=%d>",
+					     name, self->offset, size);
+	return result;
+}
+
 PyTypeObject CField_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
@@ -253,7 +272,7 @@ PyTypeObject CField_Type = {
 	0,					/* tp_getattr */
 	0,					/* tp_setattr */
 	0,					/* tp_compare */
-	0,					/* tp_repr */
+	CField_repr,				/* tp_repr */
 	0,					/* tp_as_number */
 	0,					/* tp_as_sequence */
 	0,					/* tp_as_mapping */
@@ -264,7 +283,7 @@ PyTypeObject CField_Type = {
 	0,					/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
-	NULL,					/* tp_doc */
+	"Structure/Union member",		/* tp_doc */
 	(traverseproc)CField_traverse,		/* tp_traverse */
 	(inquiry)CField_clear,			/* tp_clear */
 	0,					/* tp_richcompare */

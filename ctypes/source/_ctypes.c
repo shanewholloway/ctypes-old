@@ -114,7 +114,8 @@ static PyObject *
 StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 {
 	PyTypeObject *result;
-	PyObject *dict;
+	PyObject *fields;
+	StgDictObject *dict;
 
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
@@ -126,22 +127,39 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 	if (PyDict_GetItemString(result->tp_dict, "_abstract_"))
 		return (PyObject *)result;
 
-	dict = StgDict_ForType((PyObject *)result, isStruct);
+	dict = (StgDictObject *)PyObject_CallObject((PyObject *)&StgDict_Type, NULL);
 	if (!dict) {
 		Py_DECREF(result);
 		return NULL;
 	}
-
 	/* replace the class dict by our updated stgdict, which holds info
 	   about storage requirements of the instances */
-	if (-1 == PyDict_Update(dict, result->tp_dict)) {
+	if (-1 == PyDict_Update((PyObject *)dict, result->tp_dict)) {
 		Py_DECREF(result);
-		Py_DECREF(dict);
+		Py_DECREF((PyObject *)dict);
 		return NULL;
 	}
 	Py_DECREF(result->tp_dict);
-	result->tp_dict = dict;
+	result->tp_dict = (PyObject *)dict;
 
+	fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
+	if (!fields) {
+		StgDictObject *basedict = PyType_stgdict((PyObject *)result->tp_base);
+
+		if (basedict == NULL)
+			return (PyObject *)result;
+		/* copy base dict */
+		if (-1 == StgDict_clone(dict, basedict)) {
+			Py_DECREF(result);
+			return NULL;
+		}
+		return (PyObject *)result;
+	}
+
+	if (-1 == PyObject_SetAttrString((PyObject *)result, "_fields_", fields)) {
+		Py_DECREF(result);
+		return NULL;
+	}
 	return (PyObject *)result;
 }
 
@@ -313,6 +331,34 @@ CDataType_traverse(PyTypeObject *self, visitproc visit, void *arg)
 	return PyType_Type.tp_traverse((PyObject *)self, visit, arg);
 }
 
+static int
+StructType_setattro(PyObject *self, PyObject *key, PyObject *value)
+{
+	/* XXX Should we disallow deleting _fields_? */
+	if (-1 == PyObject_GenericSetAttr(self, key, value))
+		return -1;
+	
+	if (value && PyString_Check(key) &&
+	    0 == strcmp(PyString_AS_STRING(key), "_fields_"))
+		return StructUnionType_update_stgdict(self, value, 1);
+	return 0;
+}
+
+
+static int
+UnionType_setattro(PyObject *self, PyObject *key, PyObject *value)
+{
+	/* XXX Should we disallow deleting _fields_? */
+	if (-1 == PyObject_GenericSetAttr(self, key, value))
+		return -1;
+	
+	if (PyString_Check(key) &&
+	    0 == strcmp(PyString_AS_STRING(key), "_fields_"))
+		return StructUnionType_update_stgdict(self, value, 0);
+	return 0;
+}
+
+
 static PyTypeObject StructType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
@@ -332,7 +378,7 @@ static PyTypeObject StructType_Type = {
 	0,					/* tp_call */
 	0,					/* tp_str */
 	0,					/* tp_getattro */
-	0,					/* tp_setattro */
+	StructType_setattro,			/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
@@ -375,7 +421,7 @@ static PyTypeObject UnionType_Type = {
 	0,					/* tp_call */
 	0,					/* tp_str */
 	0,					/* tp_getattro */
-	0,					/* tp_setattro */
+	UnionType_setattro,			/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
