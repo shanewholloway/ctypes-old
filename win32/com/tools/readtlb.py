@@ -282,9 +282,9 @@ class InterfaceReader(TypeInfoReader):
 
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
-##            self.baseinterface = name.value
             # XXX Sometimes this fails, because baseinterface is IDispatch
             # in an InterfaceReader 
+##            self.baseinterface = name.value
             assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
 
     def declaration(self):
@@ -451,6 +451,11 @@ class CoClassReader(TypeInfoReader):
         return "\n".join(l)
 
 HEADER = r"""
+##################################################################
+# NOTE: This is a GENERATED file. Please do not make changes,    #
+# they will probably be overwritten next time it is regenerated. #
+##################################################################
+
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT
 
@@ -472,15 +477,15 @@ class dispinterface(IDispatch):
     class __metaclass__(type(IDispatch)):
         def __setattr__(self, name, value):
             if name == '_dispmethods_':
-                protos = []
+##                protos = []
                 dispmap = {}
                 for dispid, mthname, proto in value:
-                    protos.append(proto)
+##                    protos.append(proto)
                     dispmap[dispid] = mthname
-                setattr(self, '_methods_', IDispatch._methods_ + protos)
+##                setattr(self, '_methods_', IDispatch._methods_ + protos)
+                setattr(self, '_methods_', IDispatch._methods_)
                 type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
             type(IDispatch).__setattr__(self, name, value)
-            
 
 def DISPMETHOD(dispid, restype, name, *argtypes):
     return dispid, name, STDMETHOD(HRESULT, name, *argtypes)
@@ -555,6 +560,9 @@ class TypeLibReader:
         print >> ofi, "# Generated from %s" % self.filename
         print >> ofi, HEADER
 
+        print >> ofi, "#" * 78
+        print >> ofi
+        print >> ofi, "# The Type Library"
         print >> ofi, "class %s:" % self.name
         if self.docstring:
             print >> ofi, "    %r" % str(self.docstring)
@@ -596,19 +604,12 @@ class TypeLibReader:
                 print >> ofi
                 print >> ofi, cls.declaration()
 
-if __name__ == '__main__':
+def main():
     import sys
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
-        path = r"fpanel.tlb"
-##        path = r"c:\windows\system32\shdocvw.dll"
-##        path = r"c:\tss5\bin\debug\ITInfo.dll"
-##        path = r"c:\tss5\bin\debug\Measurement.dll"
-##        path = r"c:\sms3a.tlb"
-##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
-##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
-
+        path = r"c:\windows\system32\shdocvw.dll"
         # None of these will work yet..., only very simple type libs
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 
@@ -620,6 +621,8 @@ if __name__ == '__main__':
     reader = TypeLibReader(unicode(path))
     stop = time.clock()
     print "# -*- python -*-"
-    print "# created from '%s' by '%s'" % (path, sys.argv[0])
-    print "# It took %s seconds" % (stop -start)
     reader.dump()
+    
+
+if __name__ == '__main__':
+    main()
