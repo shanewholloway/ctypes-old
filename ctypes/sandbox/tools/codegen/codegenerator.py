@@ -142,25 +142,58 @@ def type_name(t):
         return t.name
     return t.name
 
-def init_value(t, init):
-    if isinstance(t, typedesc.CvQualifiedType):
-        return init_value(t.typ, init)
-    if isinstance(t, typedesc.FundamentalType):
-        name = ctypes_names[t.name]
-        if name in ("c_double", "c_float"):
-            return float(init)
-        if "unsigned" in t.name:
-            return int(init, 16)
-        return int(init)
-    if isinstance(t, typedesc.PointerType):
-        # XXXXXXXXXXXXXXXXX
-        return "pointer(%s)" % init_value(t.typ, init)
-    raise "HALT"
+def decode_value(init):
+    # decode init value from gccxml
+    if init[0] == "0":
+        return int(init, 16) # hex integer
+    elif init[0] == "'":
+        return eval(init) # character
+    elif init[0] == '"':
+        return eval(init) # string
+    return int(init) # integer
 
-# Is this needed?
-##renames = {
-##    "POINTER(const(WCHAR))": "c_wchar_p",
-##    }
+def init_value(t, init):
+    tn = type_name(t)
+    if tn in ["c_ulonglong", "c_ulong", "c_uint", "c_ushort", "c_ubyte"]:
+        return decode_value(init)
+    elif tn in ["c_longlong", "c_long", "c_int", "c_short", "c_byte"]:
+        return decode_value(init)
+    elif tn in ["c_float", "c_double"]:
+        return float(init)
+    elif tn == "POINTER(c_char)":
+        if init[0] == '"':
+            value = eval(init)
+        else:
+            value = int(init, 16)
+        return value
+    elif tn == "POINTER(c_wchar)":
+        if init[0] == '"':
+            value = eval(init)
+        else:
+            value = int(init, 16)
+        if isinstance(value, str):
+            value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
+            value = value.decode("utf-16") # XXX Is this correct?
+        return value
+    elif tn == "c_void_p":
+        if init[0] == "0":
+            value = int(init, 16)
+        else:
+            value = int(init) # hm..
+        # Hm, ctypes represents them as SIGNED int
+        return value
+    elif tn == "c_char":
+        return decode_value(init)
+    elif tn == "c_wchar":
+        value = decode_value(init)
+        if isinstance(value, int):
+            return unichr(value)
+        return value
+    elif tn.startswith("POINTER("):
+        # Hm, POINTER(HBITMAP__) for example
+        return decode_value(init)
+    else:
+        raise ValueError, "cannot decode %s(%r)" % (tn, init)
 
 def get_real_type(tp):
     if type(tp) is typedesc.Typedef:
@@ -273,8 +306,15 @@ class Generator(object):
         if tp.init is None:
             # wtypes.h contains IID_IProcessInitControl, for example
             return
+        try:
+            v = init_value(tp.typ, tp.init)
+        except (TypeError, ValueError), detail:
+            print "Could not init", detail
+            return
         print >> self.stream, \
-              "%s = %s" % (tp.name, init_value(tp.typ, tp.init))
+              "%s = %r # %s" % (tp.name,
+                                init_value(tp.typ, tp.init),
+                                type_name(tp.typ))
 
     def EnumValue(self, tp):
         if tp in self.done:
@@ -497,7 +537,8 @@ def generate_code(xmlfile,
                   verbose=False,
                   use_decorators=False,
                   known_symbols=None,
-                  searched_dlls=None):
+                  searched_dlls=None,
+                  types=None):
     # expressions is a sequence of compiled regular expressions,
     # symbols is a sequence of names
     from gccxmlparser import parse
@@ -505,6 +546,9 @@ def generate_code(xmlfile,
 
     todo = []
 
+    if types:
+        items = [i for i in items if isinstance(i, types)]
+    
     if symbols:
         syms = set(symbols)
         for i in items:
