@@ -327,12 +327,17 @@ class VARIANT(Structure):
     def _set_value(self, value):
         oleaut32.VariantClear(byref(self))
         typ = type(value)
+        if typ is long:
+            # try to convert to int
+            value = int(value)
+            typ = type(value)
+
         if typ is int:
-            self.vt = VT_INT
-            self._.VT_INT = value
-        elif typ is float:
+            self.vt = VT_I4
+            self._.VT_I4 = value
+        elif typ in (float, long):
             self.vt = VT_R8
-            self._.VT_R8 = value
+            self._.VT_R8 = float(value)
         elif typ is str:
             self.vt = VT_BSTR
             self._.voidp = oleaut32.SysAllocString(unicode(value))
