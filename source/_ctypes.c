@@ -962,46 +962,8 @@ static PyGetSetDef WCharArray_getsets[] = {
 #endif
 
 /*
-  The next three functions copied from Python's typeobject.c.
-
-  They are used to attach methods, members, or getsets to a type *after* it
-  has been created: Arrays of characters have additional getsets to treat them
-  as strings.
+  Copied from Python's typeobject.c.
  */
-/*
-static int
-add_methods(PyTypeObject *type, PyMethodDef *meth)
-{
-	PyObject *dict = type->tp_dict;
-	for (; meth->ml_name != NULL; meth++) {
-		PyObject *descr;
-		descr = PyDescr_NewMethod(type, meth);
-		if (descr == NULL)
-			return -1;
-		if (PyDict_SetItemString(dict,meth->ml_name, descr) < 0)
-			return -1;
-		Py_DECREF(descr);
-	}
-	return 0;
-}
-
-static int
-add_members(PyTypeObject *type, PyMemberDef *memb)
-{
-	PyObject *dict = type->tp_dict;
-	for (; memb->name != NULL; memb++) {
-		PyObject *descr;
-		descr = PyDescr_NewMember(type, memb);
-		if (descr == NULL)
-			return -1;
-		if (PyDict_SetItemString(dict, memb->name, descr) < 0)
-			return -1;
-		Py_DECREF(descr);
-	}
-	return 0;
-}
-*/
-
 static int
 add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 {
@@ -1197,10 +1159,6 @@ static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
 static PyObject *
 c_wchar_p_from_param(PyObject *type, PyObject *value)
 {
-#if (PYTHON_API_VERSION < 1012)
-	if (!PyArg_ParseTuple(value, "OO", &type, &value))
-		return NULL;
-#endif
 	if (value == Py_None) {
 		Py_INCREF(Py_None);
 		return Py_None;
@@ -1250,10 +1208,6 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 static PyObject *
 c_char_p_from_param(PyObject *type, PyObject *value)
 {
-#if (PYTHON_API_VERSION < 1012)
-	if (!PyArg_ParseTuple(value, "OO", &type, &value))
-		return NULL;
-#endif
 	if (value == Py_None) {
 		Py_INCREF(Py_None);
 		return Py_None;
@@ -1304,10 +1258,6 @@ static PyObject *
 c_void_p_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *stgd;
-#if (PYTHON_API_VERSION < 1012)
-	if (!PyArg_ParseTuple(value, "OO", &type, &value))
-		return NULL;
-#endif
 
 	if (value == Py_None) {
 		Py_INCREF(Py_None);
@@ -1383,19 +1333,10 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 			"wrong type");
 	return NULL;
 }
-#if (PYTHON_API_VERSION >= 1012)
 
 static PyMethodDef c_void_p_method = { "from_param", c_void_p_from_param, METH_O };
 static PyMethodDef c_char_p_method = { "from_param", c_char_p_from_param, METH_O };
 static PyMethodDef c_wchar_p_method = { "from_param", c_wchar_p_from_param, METH_O };
-
-#else
-#error
-static PyMethodDef c_void_p_method = { "from_param", c_void_p_from_param, METH_VARARGS };
-static PyMethodDef c_char_p_method = { "from_param", c_char_p_from_param, METH_VARARGS };
-static PyMethodDef c_wchar_p_method = { "from_param", c_wchar_p_from_param, METH_VARARGS };
-
-#endif
 
 static PyObject *
 SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -1470,27 +1411,11 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		}
 			
 		if (ml) {
-#if (PYTHON_API_VERSION >= 1012)
 			PyObject *meth;
 			int x;
 			meth = PyDescr_NewClassMethod(result, ml);
 			if (!meth)
 				return NULL;
-#else
-#error
-			PyObject *meth, *func;
-			int x;
-			func = PyCFunction_New(ml, NULL);
-			if (!func)
-				return NULL;
-			meth = PyObject_CallFunctionObjArgs(
-				(PyObject *)&PyClassMethod_Type,
-				func, NULL);
-			Py_DECREF(func);
-			if (!meth) {
-				return NULL;
-			}
-#endif
 			x = PyDict_SetItemString(result->tp_dict,
 						 ml->ml_name,
 						 meth);
