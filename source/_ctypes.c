@@ -169,6 +169,9 @@ char *conversion_mode_errors = NULL;
 
 static PyObject *CData_AtAddress(PyObject *type, void *buf);
 
+/* Some simple types */
+static PyObject *CTYPE_c_char, *CTYPE_c_wchar, *CTYPE_c_void_p, *CTYPE_BSTR;
+
 static PyObject *
 generic_getfunc(void *ptr, unsigned size,
 		PyObject *type, CDataObject *src, int index)
@@ -1137,17 +1140,13 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	/* Special casing character arrays.
 	   A permanent annoyance: char arrays are also strings!
 	*/
-	/*
-	  What we really want to check here is if proto is c_char or c_wchar.
-	  XXX XXX XXX
-	 */
-	if (itemdict->getfunc == getentry("c")->getfunc) {
+	if (proto == CTYPE_c_char) {
 		if (-1 == add_getset(result, CharArray_getsets))
 			return NULL;
 		stgdict->getfunc = CharArray_getfunc;
 		stgdict->setfunc = CharArray_setfunc;
 #ifdef CTYPES_UNICODE
-	} else if (itemdict->getfunc == getentry("u")->getfunc) {
+	} else if (proto == CTYPE_c_wchar) {
 		if (-1 == add_getset(result, WCharArray_getsets))
 			return NULL;
 		stgdict->getfunc = WCharArray_getfunc;
@@ -1214,9 +1213,6 @@ _type_ attribute.
 */
 
 static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
-
-/* We need access to some simple types */
-static PyObject *c_char, *c_wchar, *c_void_p;
 
 static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
@@ -1322,7 +1318,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		}
 	}
 	stgd = PyObject_stgdict(value);
-	if (stgd && (stgd->itemtype == c_char || stgd->itemtype == c_wchar)) {
+	if (stgd && (stgd->itemtype == CTYPE_c_char || stgd->itemtype == CTYPE_c_wchar)) {
 		PyCArgObject *parg = new_CArgObject();
 		if (parg == NULL)
 			return NULL;
@@ -1419,39 +1415,43 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		switch (PyString_AS_STRING(proto)[0]) {
 		case 'z': /* c_char_p */
 			ml = &c_char_p_method;
-			if (c_char == NULL) {
+			if (CTYPE_c_char == NULL) {
 				PyErr_SetString(PyExc_RuntimeError,
 						"Need to define c_char before c_char_p");
 				return NULL; /* don't care about refcount leaks */
 			}
 			Py_XDECREF(stgdict->itemtype);
-			Py_INCREF(c_char);
-			stgdict->itemtype = c_char;
+			Py_INCREF(CTYPE_c_char);
+			stgdict->itemtype = CTYPE_c_char;
 			break;
 		case 'Z': /* c_wchar_p */
 			ml = &c_wchar_p_method;
-			if (c_wchar == NULL) {
+			if (CTYPE_c_wchar == NULL) {
 				PyErr_SetString(PyExc_RuntimeError,
 						"Need to define c_wchar before c_wchar_p");
 				return NULL; /* don't care about refcount leaks */
 			}
 			Py_XDECREF(stgdict->itemtype);
-			Py_INCREF(c_wchar);
-			stgdict->itemtype = c_wchar;
+			Py_INCREF(CTYPE_c_wchar);
+			stgdict->itemtype = CTYPE_c_wchar;
 			break;
 		case 'P': /* c_void_p */
 			ml = &c_void_p_method;
-			assert(c_void_p == NULL);
+			assert(CTYPE_c_void_p == NULL);
 			Py_INCREF(result);
-			c_void_p = (PyObject *)result;
+			CTYPE_c_void_p = (PyObject *)result;
 			break;
 		case 'c': /* c_char */
-			assert(c_char == NULL);
-			c_char = (PyObject *)result;
+			assert(CTYPE_c_char == NULL);
+			CTYPE_c_char = (PyObject *)result;
+			break;
+		case 'X': /* BSTR */
+			assert(CTYPE_BSTR == NULL);
+			CTYPE_BSTR = (PyObject *)result;
 			break;
 		case 'u': /* c_wchar */
-			assert(c_wchar == NULL);
-			c_wchar = (PyObject *)result;
+			assert(CTYPE_c_wchar == NULL);
+			CTYPE_c_wchar = (PyObject *)result;
 			break;
 		}
 			
@@ -1844,16 +1844,10 @@ CData_clear(CDataObject *self)
 	Py_CLEAR(self->b_objects);
 #ifdef MS_WIN32
 	if (self->b_base == NULL) {
-		static SETFUNC BSTR_set;
-		StgDictObject *dict = PyObject_stgdict((PyObject *)self);
-
-		if (!BSTR_set)
-			BSTR_set = getentry("X")->setfunc;
-
-		/* A hack, but it works.  If we own the memory (b_base is
-		   NULL), we also have to call SysFreeString.
+		/* If a BSTR instance owns the memory (b_base is NULL), we
+		   have to call SysFreeString.
 		*/
-		if (dict && dict->setfunc == BSTR_set) {
+		if (PyObject_IsInstance(self, CTYPE_BSTR)) {
 			if (*(BSTR *)self->b_ptr)
 				SysFreeString(*(BSTR *)self->b_ptr);
 		}
