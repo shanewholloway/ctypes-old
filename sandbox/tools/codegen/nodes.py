@@ -42,8 +42,9 @@ class Method(_HasArgs):
 class FundamentalType(object):
     def __init__(self, name, size, align):
         self.name = name
-        self.size = size
-        self.align = align
+        if name != "void":
+            self.size = int(size)
+            self.align = int(align)
         
     def __repr__(self):
         return "<FundamentalType(%s)>" % self.name
@@ -51,8 +52,8 @@ class FundamentalType(object):
 class PointerType(object):
     def __init__(self, typ, size, align):
         self.typ = typ
-        self.size = size
-        self.align = align
+        self.size = int(size)
+        self.align = int(align)
 
     def __repr__(self):
         return "<POINTER(%s)>" % self.typ
@@ -101,7 +102,7 @@ class _Struct_Union_Base(object):
 class Structure(_Struct_Union_Base):
     def __init__(self, name, align, members, bases, size, artificial=None):
         self.name = name
-        self.align = align
+        self.align = int(align)
         self.members = members
         self.bases = bases
         self.artificial = artificial
@@ -115,7 +116,7 @@ class Structure(_Struct_Union_Base):
 class Union(_Struct_Union_Base):
     def __init__(self, name, align, members, bases, size, artificial=None):
         self.name = name
-        self.align = align
+        self.align = int(align)
         self.members = members
         self.bases = bases
         self.artificial = artificial
@@ -141,8 +142,8 @@ class CvQualifiedType(object):
 class Enumeration(object):
     def __init__(self, name, size, align):
         self.name = name
-        self.size = size
-        self.align = align
+        self.size = int(size)
+        self.align = int(align)
         self.values = []
 
     def add_value(self, name, value):
