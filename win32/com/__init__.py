@@ -142,7 +142,7 @@ class _interface_meta(type(Structure)):
             restype = PROTO.__dict__["_restype_"]
             argtypes = PROTO.__dict__["_argtypes_"][1:]
             clientPROTO = WINFUNCTYPE(restype, *argtypes)
-            mth = new.instancemethod(clientPROTO(index), None, ptrclass)
+            mth = new.instancemethod(clientPROTO(index, name), None, ptrclass)
             setattr(ptrclass, name, mth)
             index += 1
 
