@@ -3457,6 +3457,20 @@ EXPORT int _testfunc_byval(point in, point *pout)
 
 #endif
 
+EXPORT double 
+integrate(double a, double b, double (*f)(double), long nstep)
+{
+	double x, sum=0.0, dx=(b-a)/(double)nstep;
+	printf("called with %f, %f, %p, %ld\n", a, b, f, nstep);
+	for(x=a+0.5*dx; (b-x)*(x-a)>0.0; x+=dx){
+		double result;
+		result = f(x);
+		printf("f(%f) -> %f\n", x, result);
+		sum += result;
+	}
+	return sum/(double)nstep;
+}
+
 /*
  Local Variables:
  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
