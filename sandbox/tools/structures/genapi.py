@@ -97,8 +97,7 @@ IRecordInfo = c_void_p
 
 class CodeGenerator(gccxmltools.Visitor):
 
-    def __init__(self, *args, **kw):
-        super(CodeGenerator, self).__init__(*args, **kw)
+    def __init__(self):
         self._env = {}
         self.try_code(HEADER)
 
@@ -160,7 +159,7 @@ class CodeGenerator(gccxmltools.Visitor):
             exec text in self._env
         except Exception, details:
             print "# --- %s: %s ---" % (details.__class__.__name__, details)
-            print "# " + "\n# ".join(text.splitlines())
+            print "##" + "\n##".join(text.splitlines())
         else:
             print text
 
@@ -198,14 +197,18 @@ if __name__ == "__main__":
     result = gccxmltools.main()
 
     p = DependencyResolver(result)
-    result, remaining = p.run()
+    resolved, unresolved = p.run()
 
-    cg = CodeGenerator(result)
-    cg.go()
-
-    for o in remaining:
-        print "#", o
-
-##    cg = CodeGenerator(result + list(remaining))
+##    cg = CodeGenerator(result)
 ##    cg.go()
+
+##    for o in remaining:
+##        print "#", o
+
+    cg = CodeGenerator()
+    cg.go(resolved)
+    print
+    print "################################################################"
+    print
+    cg.go(unresolved)
 
