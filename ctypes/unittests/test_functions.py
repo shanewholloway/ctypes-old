@@ -162,7 +162,7 @@ class FunctionTestCase(unittest.TestCase):
         f.restype = c_int
 
         class X(Structure):
-            _fields_ = [("y", "i")]
+            _fields_ = [("y", c_int)]
 
         self.assertRaises(TypeError, f, X()) #cannot convert parameter
 

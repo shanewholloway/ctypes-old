@@ -1,5 +1,22 @@
-from ctypes import windll, Structure, byref, GetLastError, WinError
+from ctypes import windll, Structure, byref, GetLastError, WinError, c_uint, c_char
 kernel32 = windll.kernel32
+
+from ctypes import Array
+
+# Not the recommended way...
+# But what IS the recommended way?
+def STRING(size):
+    class S(Array):
+        _type_ = c_char
+        _length_ = size
+        
+        def __str__(self):
+            return "".join(self).split("\0")[0]
+
+        def __repr__(self):
+            return repr(str(self))
+
+    return S
 
 class DStructure(Structure):
     _abstract_ = None # this is an abstract class
@@ -19,20 +36,20 @@ class DStructure(Structure):
         print
 
 class FILETIME(DStructure):
-    _fields_ = [("dwLowDateTime", "I"),
-                ("dwHighDateTime", "I")]
+    _fields_ = [("dwLowDateTime", c_uint),
+                ("dwHighDateTime", c_uint)]
 
 class WIN32_FIND_DATA(DStructure):
-    _fields_ = [("dwFileAttributes", "I"),
+    _fields_ = [("dwFileAttributes", c_uint),
                 ("ftCreationTime", FILETIME),
                 ("ftLastAccessTime", FILETIME),
                 ("ftLastWriteTime", FILETIME),
-                ("nFileSizeLow", "I"),
-                ("nFileSizeHigh", "I"),
-                ("dwReserved0", "I"),
-                ("dwReserved1", "I"),
-                ("cFileName", "260s"), # MAX_PATH = 260
-                ("cAlternateFileName", "14s")]
+                ("nFileSizeLow", c_uint),
+                ("nFileSizeHigh", c_uint),
+                ("dwReserved0", c_uint),
+                ("dwReserved1", c_uint),
+                ("cFileName", STRING(260)), #c_char * 260), # MAX_PATH = 260
+                ("cAlternateFileName", STRING(14))]
 
 
 ERROR_NO_MORE_FILES = 18

@@ -1,5 +1,26 @@
-from ctypes import windll, byref, Structure
+from ctypes import windll, byref, Structure, Array
 kernel32 = windll.kernel32
+
+from ctypes import c_ushort, c_ubyte, c_ulong, c_char
+
+BYTE = c_ubyte
+WORD = c_ushort
+DWORD = c_ulong
+
+# Not the recommended way...
+# But what IS the recommended way?
+def STRING(size):
+    class S(Array):
+        _type_ = c_char
+        _length_ = size
+        
+        def __str__(self):
+            return "".join(self).split("\0")[0]
+
+        def __repr__(self):
+            return repr(str(self))
+
+    return S
 
 class DStructure(Structure):
     _abstract_ = None
@@ -18,44 +39,44 @@ class DStructure(Structure):
         print
 
 class SYSTEM_INFO(DStructure):
-    _fields_ = [("wProcessorArchitecture", "h"),
-                ("wReserved", "h"),
-                ("dwPageSize", "i"),
-                ("lpMinimumApplicationAddress", "i"),
-                ("lpMaximumApplicationAddress", "i"),
-                ("dwActiveProcessorMask", "i"),
-                ("dwNumberOfProcessors", "i"),
-                ("dwProcessorType", "i"),
-                ("dwAllocationGranularity", "i"),
-                ("wProcessorLevel", "h"),
-                ("wProcessorRevision", "h")]
+    _fields_ = [("wProcessorArchitecture", WORD),
+                ("wReserved", WORD),
+                ("dwPageSize", DWORD),
+                ("lpMinimumApplicationAddress", DWORD),
+                ("lpMaximumApplicationAddress", DWORD),
+                ("dwActiveProcessorMask", DWORD),
+                ("dwNumberOfProcessors", DWORD),
+                ("dwProcessorType", DWORD),
+                ("dwAllocationGranularity", DWORD),
+                ("wProcessorLevel", WORD),
+                ("wProcessorRevision", WORD)]
 
 
 class SYSTEM_POWER_STATUS(DStructure):
-    _fields_ = [("ACLineStatus", "b"),
-                ("BatteryFlag", "b"),
-                ("BatteryLifePercent", "b"),
-                ("Reserved1", "b"),
-                ("BatteryLifeTime", "i"),
-                ("BatteryFullLifeTime", "i")]
+    _fields_ = [("ACLineStatus", BYTE),
+                ("BatteryFlag", BYTE),
+                ("BatteryLifePercent", BYTE),
+                ("Reserved1", BYTE),
+                ("BatteryLifeTime", DWORD),
+                ("BatteryFullLifeTime", DWORD)]
 
 class SYSTEMTIME(DStructure):
-    _fields_ = [("wYear", "h"),
-                ("wMonth", "h"),
-                ("wDayOfWeek", "h"),
-                ("wDay", "h"),
-                ("wHour", "h"),
-                ("wMinute", "h"),
-                ("wSecond", "h"),
-                ("wMilliSeconds", "h")]
+    _fields_ = [("wYear", WORD),
+                ("wMonth", WORD),
+                ("wDayOfWeek", WORD),
+                ("wDay", WORD),
+                ("wHour", WORD),
+                ("wMinute", WORD),
+                ("wSecond", WORD),
+                ("wMilliSeconds", WORD)]
     
 class OSVERSIONINFO(DStructure):
-    _fields_ = [("dwOSVersionInfoSize", "L"),
-                ("dwMajorVersion", "L"),
-                ("dwMinorVersion", "L"),
-                ("dwBuildNumber", "L"),
-                ("dwPlatformId", "L"),
-                ("szCSDVersion", "128s")]
+    _fields_ = [("dwOSVersionInfoSize", DWORD),
+                ("dwMajorVersion", DWORD),
+                ("dwMinorVersion", DWORD),
+                ("dwBuildNumber", DWORD),
+                ("dwPlatformId", DWORD),
+                ("szCSDVersion", STRING(128))]
 
 
 if __name__ == '__main__':

@@ -4,6 +4,12 @@ from ctypes import c_string, c_int, windll, sizeof, WinError, byref, c_char_p
 from ctypes import pointer, POINTER
 from ctypes import Structure
 
+from ctypes import c_ushort, c_ubyte, c_ulong, c_char
+
+BYTE = c_ubyte
+WORD = c_ushort
+DWORD = c_ulong
+
 def dump(data, indent=""):
     INDENT = "   " + indent
     print "%s%s:" % (indent, data.__class__.__name__)
@@ -18,19 +24,19 @@ def dump(data, indent=""):
     print
 
 class VS_FIXEDFILEINFO(Structure):
-    _fields_ = [("dwSignature", "L"), # will be 0xFEEF04BD
-                ("dwStrucVersion", "L"),
-                ("dwFileVersionMS", "L"),
-                ("dwFileVersionLS", "L"),
-                ("dwProductVersionMS", "L"),
-                ("dwProductVersionLS", "L"),
-                ("dwFileFlagsMask", "L"),
-                ("dwFileFlags", "L"),
-                ("dwFileOS", "L"),
-                ("dwFileType", "L"),
-                ("dwFileSubtype", "L"),
-                ("dwFileDateMS", "L"),
-                ("dwFileDateLS", "L")]
+    _fields_ = [("dwSignature", DWORD), # will be 0xFEEF04BD
+                ("dwStrucVersion", DWORD),
+                ("dwFileVersionMS", DWORD),
+                ("dwFileVersionLS", DWORD),
+                ("dwProductVersionMS", DWORD),
+                ("dwProductVersionLS", DWORD),
+                ("dwFileFlagsMask", DWORD),
+                ("dwFileFlags", DWORD),
+                ("dwFileOS", DWORD),
+                ("dwFileType", DWORD),
+                ("dwFileSubtype", DWORD),
+                ("dwFileDateMS", DWORD),
+                ("dwFileDateLS", DWORD)]
 
 def get_file_version(filename):
     verinfosize = windll.version.GetFileVersionInfoSizeA(filename, 0)
