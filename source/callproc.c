@@ -361,8 +361,7 @@ PyTypeObject PyCArg_Type = {
  */
 
 /*
- * Convert a single Python object into a 'C object' and store it in a
- * 'struct param'.  Return -1 on error (with exception set), 0 otherwise.
+ * Convert a single Python object into a PyCArgObject and return it.
  */
 static PyCArgObject *ConvParam(PyObject *obj, int index)
 {
