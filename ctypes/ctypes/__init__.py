@@ -8,11 +8,15 @@ if os.path.isfile(_magicfile):
     execfile(_magicfile)
 del os, _magicfile
 
-__version__ = "0.6.3"
+__version__ = "0.9.0"
 
 from _ctypes import Union, Structure, Array
 from _ctypes import _Pointer
 from _ctypes import CFuncPtr as _CFuncPtr
+from _ctypes import __version__ as _ctypes_version
+
+if __version__ != _ctypes_version:
+    raise Exception, ("Version number mismatch", __version__, _ctypes_version)
 
 import os as _os
 
