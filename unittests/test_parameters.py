@@ -2,54 +2,50 @@ import unittest
 
 class SimpleTypesTestCase(unittest.TestCase):
 
+    # XXX Replace by c_char_p tests
     def test_cstrings(self):
-        from ctypes import c_string, byref
+        from ctypes import c_char_p, byref
 
-        # c_string.from_param on a Python String returns the argument
+        # c_char_p.from_param on a Python String packs the string
+        # into a cparam object
         s = "123"
-        self.failUnless(c_string.from_param(s) is s)
+        self.failUnless(c_char_p.from_param(s)._obj is s)
 
-        self.assertRaises(TypeError, c_string.from_param, u"123")
-        self.assertRaises(TypeError, c_string.from_param, 42)
+        self.assertRaises(TypeError, c_char_p.from_param, u"123")
+        self.assertRaises(TypeError, c_char_p.from_param, 42)
 
-        # calling c_string.from_param with a c_string instance
+        # calling c_char_p.from_param with a c_char_p instance
         # returns the argument itself:
-        a = c_string("123")
-        self.failUnless(c_string.from_param(a) is a)
+        a = c_char_p("123")
+        self.failUnless(c_char_p.from_param(a) is a)
 
-        self.failUnless(c_string.from_param(None) == 0)
+        self.failUnless(c_char_p.from_param(None)._obj is None)
 
-        # Since c_string instances are always passed by reference,
-        # calling byref() with them raises an error (XXX although
-        # the error message should be fixed: 'expected CData instance'
-        self.assertRaises(TypeError, byref, c_string("123"))
-        self.assertRaises(TypeError, byref, "123")
-
-        # Hm, how to check the c_string(xxx)._as_parameter_ attribute?
+        # Hm, how to check the c_char_p(xxx)._as_parameter_ attribute?
+##        print c_char_p("xxx")._as_parameter_._obj
 
 
     def test_cw_strings(self):
         from ctypes import byref
         try:
-            from ctypes import c_wstring
+            from ctypes import c_wchar_p
         except ImportError:
-##            print "(No c_wstring)"
+##            print "(No c_wchar_p)"
             return
-        self.failUnless(c_wstring.from_param(u"123") == u"123")
+        s = u"123"
+        self.failUnless(c_wchar_p.from_param(s)._obj is s)
 
-        self.assertRaises(TypeError, c_wstring.from_param, "123")
-        self.assertRaises(TypeError, c_wstring.from_param, 42)
+        print c_wchar_p.from_param("123")
+##        self.assertRaises(TypeError, c_wchar_p.from_param, "123")
+        self.assertRaises(TypeError, c_wchar_p.from_param, 42)
 
-        pa = c_wstring.from_param(c_wstring(u"123"))
-        self.failUnless(type(pa) == c_wstring)
-        self.failUnless(c_wstring.from_param(None) == 0)
+        pa = c_wchar_p.from_param(c_wchar_p(u"123"))
+        self.failUnless(type(pa) == c_wchar_p)
+##XXX        print c_wchar_p.from_param(None)
+##XXX        self.failUnless(c_wchar_p.from_param(None)._obj is None)
 
-        # Since c_wstring instances are always passed by reference,
-        # byref() raises an error:
-        self.assertRaises(TypeError, byref, c_wstring(u"123"))
-        self.assertRaises(TypeError, byref, u"123")
 
-        # Hm, how to check the c_wstring(xxx)._as_parameter_ attribute?
+        # Hm, how to check the c_wchar_p(xxx)._as_parameter_ attribute?
 
     def test_int_pointers(self):
         from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer

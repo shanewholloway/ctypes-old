@@ -91,9 +91,17 @@ class CFuncPtrTestCase(unittest.TestCase):
 ##        strtok.argtypes = (c_char_p, c_char_p)
 ##        strtok.argtypes = (c_string, c_char_p)
 
-        s = "a\nb\nc"
+        def c_string(init):
+            size = len(init) + 1
+            return (c_char*size)(*init)
 
+        s = "a\nb\nc"
         b = c_string(s)
+
+##        b = (c_char * (len(s)+1))()
+##        b.value = s
+
+##        b = c_string(s)
         self.failUnless(strtok(b, "\n") == "a")
         self.failUnless(strtok(None, "\n") == "b")
         self.failUnless(strtok(None, "\n") == "c")
