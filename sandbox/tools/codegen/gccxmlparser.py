@@ -6,8 +6,25 @@ try:
     set
 except NameError:
     from sets import Set as set
+import re
 
 ################################################################
+
+def MAKE_NAME(name):
+    name = name.replace("$", "DOLLAR")
+    name = name.replace(".", "DOT")
+    if name.startswith("__"):
+        return "_X" + name
+    elif name[0] in "01234567879":
+        return "_" + name
+    return name
+
+WORDPAT = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+def CHECK_NAME(name):
+    if WORDPAT.match(name):
+        return name
+    return None
 
 class GCCXML_Handler(xml.sax.handler.ContentHandler):
     has_values = set(["Enumeration", "Function", "FunctionType",
@@ -18,17 +35,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         xml.sax.handler.ContentHandler.__init__(self, *args)
         self.context = []
         self.all = {}
-        self.artificial = []
         self.cpp_data = {}
-
-    def demangle(self, name):
-        if name.startswith("__"):
-            name = "_py_" + name
-        if name[:0] and name[0] in "0123456789":
-            name = "_%c" % name[0] + name
-        name = name.replace("$", "_")
-        name = name.replace(".", "_")
-        return  name
 
     def startElement(self, name, attrs):
         # find and call the handler for this element
@@ -113,7 +120,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         t.typ = self.all[t.typ]
 
     def Typedef(self, attrs):
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         typ = attrs["type"]
         return typedesc.Typedef(name, typ)
 
@@ -121,7 +128,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         t.typ = self.all[t.typ]
 
     def FundamentalType(self, attrs):
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         if name == "void":
             size = ""
         else:
@@ -169,7 +176,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     
     def Function(self, attrs):
         # name, returns, extern, attributes
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         returns = attrs["returns"]
         attributes = attrs.get("attributes", "").split()
         extern = attrs.get("extern")
@@ -191,7 +198,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def OperatorFunction(self, attrs):
         # name, returns, extern, attributes
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         returns = attrs["returns"]
         return typedesc.OperatorFunction(name, returns)
 
@@ -199,14 +206,14 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         func.returns = self.all[func.returns]
 
     def Constructor(self, attrs):
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         return typedesc.Constructor(name)
 
     def _fixup_Constructor(self, const): pass
 
     def Method(self, attrs):
         # name, virtual, pure_virtual, returns
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         returns = attrs["returns"]
         return typedesc.Method(name, returns)
 
@@ -224,22 +231,17 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def Enumeration(self, attrs):
         # id, name
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
+        # If the name isn't a valid Python identifier, create an unnamed enum
+        name = CHECK_NAME(name)
         size = attrs["size"]
         align = attrs["align"]
-        if attrs.get("artificial"):
-            # enum {} ENUM_NAME;
-            return typedesc.Enumeration(name, size, align)
-        else:
-            # enum tagENUM {};
-            enum = typedesc.Enumeration(None, size, align)
-            self.artificial.append(typedesc.Typedef(name, enum))
-            return enum
+        return typedesc.Enumeration(name, size, align)
 
     def _fixup_Enumeration(self, e): pass
 
     def EnumValue(self, attrs):
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
         value = attrs["init"]
         v = typedesc.EnumValue(name, value, self.context[-1])
         self.context[-1].add_value(v)
@@ -252,24 +254,13 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def Struct(self, attrs):
         # id, name, members
         name = attrs.get("name")
+        if name is None:
+            name = MAKE_NAME(attrs["mangled"])
         bases = attrs.get("bases", "").split()
         members = attrs.get("members", "").split()
-##        abstract = attrs.get("abstract", "")
         align = attrs["align"]
         size = attrs.get("size")
-        artificial = attrs.get("artificial")
-        if name is None:
-            name = self.demangle(attrs["mangled"]) # for debug only
-##        if abstract:
-##            return typedesc.Class(name, members, bases)
-##        else:
-        if artificial:
-            return typedesc.Structure(name, align, members, bases, size)
-        else:
-##            struct = typedesc.Structure(name, align, members, bases, size)
-            struct = typedesc.Structure(name, align, members, bases, size)
-            self.artificial.append(typedesc.Typedef(name, struct))
-            return struct
+        return typedesc.Structure(name, align, members, bases, size)
 
     def _fixup_Structure(self, s):
         s.members = [self.all[m] for m in s.members]
@@ -278,19 +269,19 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def Union(self, attrs):
         name = attrs.get("name")
+        if name is None:
+            name = MAKE_NAME(attrs["mangled"])
         bases = attrs.get("bases", "").split()
         members = attrs.get("members", "").split()
-##        abstract = attrs.get("abstract", "")
         align = attrs["align"]
         size = attrs.get("size")
-##        artificial = attrs.get("artificial")
-        if name is None:
-            name = self.demangle(attrs["mangled"]) # for debug only
         return typedesc.Union(name, align, members, bases, size)
 
     def Field(self, attrs):
         # name, type
-        name = self.demangle(attrs["name"])
+        name = attrs["name"]
+##        if name.startswith("__") and not name.endswith("__"):
+##            print "INVALID FIELD NAME", name
         typ = attrs["type"]
         bits = attrs.get("bits", None)
         offset = attrs.get("offset")
@@ -305,6 +296,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         pass
 
     def get_macros(self, text):
+        if text is None:
+            return
         text = "".join(text)
         # preprocessor definitions that look like macros with one or more arguments
         for m in text.splitlines():
@@ -314,6 +307,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
             self.all[name] = typedesc.Macro(name, args, body)
 
     def get_aliases(self, text, namespace):
+        if text is None:
+            return
         # preprocessor definitions that look like aliases:
         #  #define A B
         text = "".join(text)
@@ -325,14 +320,16 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
             self.all[name] = a
 
         for name, a in aliases.items():
-            # the value should be either in namespace...
+##            if name == "main":
+##                continue
             value = a.alias
+            # the value should be either in namespace...
             if value in namespace:
                 # set the type
                 a.typ = namespace[value]
             # or in aliases...
-            elif value in aliases:
-                a.typ = aliases[value]
+##            elif value in aliases:
+##                a.typ = aliases[value]
             # or unknown.
             else:
                 # not known
@@ -374,14 +371,12 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         self.get_aliases(self.cpp_data.get("aliases"), namespace)
 
         result = []
-        for i in self.artificial + self.all.values():
+        for i in self.all.values():
             if isinstance(i, interesting):
                 result.append(i)
 
 
         # todo: get cpp_data, and convert it into typedesc nodes.
-        # functions = self.cpp_data.get("functions")
-        # aliases = self.cpp_data.get("aliases")
 
         return result
 
