@@ -65,6 +65,7 @@ def main():
                       dest="verbose",
                       action="store_true",
                       default=False)
+
     parser.add_option("-D",
                       type="string",
                       action="callback",
@@ -79,6 +80,15 @@ def main():
                       callback=add_option,
                       help="macros to undefine",
                       metavar="defines")
+
+    parser.add_option("-I",
+                      type="string",
+                      action="callback",
+                      callback=add_option,
+                      dest="gccxml_options",
+                      help="include directories",
+                      metavar="defines")
+
     parser.add_option("-o",
                       dest="xml_file",
                       help="XML output filename",
