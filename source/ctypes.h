@@ -239,6 +239,9 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 extern void SetException(unsigned long code);
 #endif
 extern void Extend_Error_Info(char *fmt, ...);
+
+extern void PrepareResult(PyObject *restype, PyCArgObject *result);
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"

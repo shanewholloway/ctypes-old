@@ -63,9 +63,9 @@ staticforward THUNK AllocCallback(PyObject *callable,
 
 #endif
 
-static int __stdcall CallPythonObject(PyObject *callable,
-				      PyObject *converters,
-				      void **pArgs);
+static int __stdcall i_CallPythonObject(PyObject *callable,
+					PyObject *converters,
+					void **pArgs);
 
 static void
 PrintError(char *msg, ...)
@@ -87,14 +87,16 @@ PrintError(char *msg, ...)
  * Call the python object with all arguments
  *
  */
-static int __stdcall CallPythonObject(PyObject *callable,
-				       PyObject *converters, void **pArgs)
+static void _CallPythonObject(void *mem,
+			      char *format,
+			      PyObject *callable,
+			      PyObject *converters,
+			      void **pArgs)
 {
 	int i;
 	PyObject *result;
 	PyObject *arglist = NULL;
 	int nArgs;
-	int retcode = -1;
 #ifdef MS_WIN32
 	DWORD dwExceptionCode = 0;
 #endif
@@ -192,20 +194,56 @@ static int __stdcall CallPythonObject(PyObject *callable,
 		PyErr_Print();
 	} else {
 		if ((result != Py_None)
-		    && !PyArg_Parse(result, "i", &retcode))
+		    && !PyArg_Parse(result, format, mem))
 			PyErr_Print();
 	}
   Done:
 	Py_XDECREF(arglist);
-
+	
 #ifdef CTYPES_USE_GILSTATE
 	PyGILState_Release(state);
 #else
 	LeavePython();
 #endif
-
-	return retcode;
 }
+
+static int __stdcall i_CallPythonObject(PyObject *callable,
+					PyObject *converters,
+					void **pArgs)
+{
+	PyCArgObject result;
+	_CallPythonObject(&result.value, "i", callable, converters, pArgs);
+	return result.value.i;
+}
+
+static double __stdcall d_CallPythonObject(PyObject *callable,
+					   PyObject *converters,
+					   void **pArgs)
+{
+	PyCArgObject result;
+	_CallPythonObject(&result.value, "d", callable, converters, pArgs);
+	return result.value.d;
+}
+
+static float __stdcall f_CallPythonObject(PyObject *callable,
+					  PyObject *converters,
+					  void **pArgs)
+{
+	PyCArgObject result;
+	_CallPythonObject(&result.value, "f", callable, converters, pArgs);
+	return result.value.f;
+}
+
+#ifdef HAVE_LONG_LONG
+static PY_LONG_LONG __stdcall q_CallPythonObject(PyObject *callable,
+						 PyObject *converters,
+						 void **pArgs)
+{
+	PyCArgObject result;
+	_CallPythonObject(&result.value, "L", callable, converters, pArgs);
+	return result.value.q;
+}
+#endif
 
 #ifdef MS_WIN32
 
@@ -385,11 +423,44 @@ THUNK AllocFunctionCallback(PyObject *callable,
 			    PyObject *restype,
 			    int is_cdecl)
 {
+	PyCArgObject result;
+	DWORD func;
+	PrepareResult(restype, &result);
+	switch (result.tag) {
+		/* "bBhHiIlLqQdfP" */
+	case 'b':
+	case 'B':
+	case 'h':
+	case 'H':
+	case 'i':
+	case 'I':
+	case 'l':
+	case 'L':
+	case 'P':
+		/* Everything is an integer, only float, double, LONG_LONG is different */
+		func = (DWORD)i_CallPythonObject;
+		break;
+#ifdef HAVE_LONG_LONG
+	case 'q':
+	case 'Q':
+		func = (DWORD)q_CallPythonObject;
+		break;
+#endif
+	case 'd':
+		func = (DWORD)d_CallPythonObject;
+		break;
+	case 'f':
+		func = (DWORD)f_CallPythonObject;
+		break;
+	default:
+		PyErr_Format(PyExc_TypeError, "invalid restype %c", result.tag);
+		return NULL;
+	}
 	/* XXX restype -> CallPythonObject */
 	return AllocCallback(callable,
 			     nArgBytes,
 			     converters,
-			     (DWORD)CallPythonObject,
+			     func,
 			     is_cdecl);
 }
 #else /* ! MS_WIN32 */

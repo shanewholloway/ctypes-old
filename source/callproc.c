@@ -873,7 +873,7 @@ static int _call_function_pointer(int flags,
 /*
  * Fill out the format field of 'result', depending on 'restype'.
  */
-static void PrepareResult(PyObject *restype, PyCArgObject *result)
+void PrepareResult(PyObject *restype, PyCArgObject *result)
 {
 	StgDictObject *dict;
 
