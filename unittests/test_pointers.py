@@ -16,12 +16,12 @@ class PointersTestCase(unittest.TestCase):
         i = c_int(12345678)
 ##        func.argtypes = (POINTER(c_int),)
         address = func(byref(i))
-        self.failUnless(c_int.from_address(address).value == 12345678)
+        self.failUnlessEqual(c_int.from_address(address).value, 12345678)
 
         func.restype = POINTER(c_int)
         res = func(pointer(i))
-        self.failUnless(res.contents.value == 12345678)
-        self.failUnless(res[0] == 12345678)
+        self.failUnlessEqual(res.contents.value, 12345678)
+        self.failUnlessEqual(res[0], 12345678)
 
     def test_change_pointers(self):
         import _ctypes
@@ -33,18 +33,18 @@ class PointersTestCase(unittest.TestCase):
         func.argtypes = (POINTER(c_int),)
 
         res = func(pointer(i))
-        self.failUnless(res[0] == 87654)
-        self.failUnless(res.contents.value == 87654)
+        self.failUnlessEqual(res[0], 87654)
+        self.failUnlessEqual(res.contents.value, 87654)
 
         # C code: *res = 54345
         res[0] = 54345
-        self.failUnless(i.value == 54345)
+        self.failUnlessEqual(i.value, 54345)
 
         # C code:
         #   int x = 12321;
         #   res = &x
         res.contents = c_int(12321)
-        self.failUnless(i.value == 54345)
+        self.failUnlessEqual(i.value, 54345)
 
     def test_callbacks_with_pointers(self):
         # a function type receiving a pointer
@@ -108,9 +108,9 @@ class PointersTestCase(unittest.TestCase):
 
         pt = pointer(Table(1, 2, 3))
 
-        self.failUnless(pt.contents.a == 1)
-        self.failUnless(pt.contents.b == 2)
-        self.failUnless(pt.contents.c == 3)
+        self.failUnlessEqual(pt.contents.a, 1)
+        self.failUnlessEqual(pt.contents.b, 2)
+        self.failUnlessEqual(pt.contents.c, 3)
 
         pt.contents.c = 33
 
@@ -128,15 +128,16 @@ class PointersTestCase(unittest.TestCase):
                         ("next", lpcell)]
         SetPointerType(lpcell, cell)
 
+        # Make a structure containing a pointer to itself:
         c = cell()
         c.value = 42
         c.next = pointer(c)
-        # The following line: SystemError: bad argument to internal function
-##XXX        print c, c.next[0]
-##        print c.value, c.next[0]
-##        for i in range(8):
-##            c = c.next[0]
-##            print c.value
+
+        result = []
+        for i in range(8):
+            result.append(c.value)
+            c = c.next[0]
+        self.failUnlessEqual(result, [42] * 8)
     
 def get_suite():
     return unittest.makeSuite(PointersTestCase)

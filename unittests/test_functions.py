@@ -175,11 +175,11 @@ class FunctionTestCase(unittest.TestCase):
 
         # This on works...
         result = f(pointer(v))
-        self.failUnless(result.contents.value == v.value)
+        self.failUnlessEqual(result.contents.value, v.value)
 
         p = pointer(c_int(99))
         result = f(p)
-        self.failUnless(result.contents.value == 99)
+        self.failUnlessEqual(result.contents.value, 99)
 
         # We need to keep the pointer alive, otherwise the contents change:
         result = f(pointer(c_int(99)))
