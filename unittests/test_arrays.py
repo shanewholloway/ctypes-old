@@ -58,9 +58,9 @@ class ArrayTestCase(unittest.TestCase):
 
         self.failUnlessEqual(len(ca), 3)
 
-        # slicing is not supported:
+        # slicing is now supported, but not extended slicing (3-argument)!
         from operator import getslice, delitem
-        self.assertRaises(TypeError, getslice, ca, 0, 1)
+        self.assertRaises(TypeError, getslice, ca, 0, 1, -1)
 
         # cannot delete items
         self.assertRaises(TypeError, delitem, ca, 0)
