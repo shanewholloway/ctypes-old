@@ -102,4 +102,4 @@ class ObjectsTestCase(unittest.TestCase):
 ##XXX        print x.data._objects
 
 if __name__ == '__main__':
-    test()
+    unittest.main()
