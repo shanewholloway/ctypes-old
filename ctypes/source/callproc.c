@@ -444,6 +444,14 @@ static int _call_function_pointer(int flags,
 	printf("ffi_type_sint %p\n", &ffi_type_sint);
 	printf("ffi_type_sint32 %p\n", &ffi_type_sint32);
 */
+#if (SIZEOF_LONG_LONG == 8 && SIZEOF_LONG == 4)
+#undef ffi_type_ulong
+#define ffi_type_ulong ffi_type_uint32
+#define ffi_type_ulonglong ffi_type_uint64
+#undef ffi_type_slong
+#define ffi_type_slong ffi_type_sint32
+#define ffi_type_slonglong ffi_type_sint64
+#endif
 
 	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
 	values = (void **)alloca(argcount * sizeof(void *));
@@ -477,6 +485,12 @@ static int _call_function_pointer(int flags,
 		case 'L':
 			atypes[i] = &ffi_type_ulong;
 			break;
+		case 'q':
+			atypes[i] = &ffi_type_slonglong;
+			break;
+		case 'Q':
+			atypes[i] = &ffi_type_ulonglong;
+			break;
 		case 'z':
 		case 'Z':
 		case 'P':
@@ -496,8 +510,38 @@ static int _call_function_pointer(int flags,
 		values[i] = &parms[i]->value;
 	}
 	switch(res->tag) {
+	case 'c':
+		rtype = &ffi_type_schar;
+		break;
+	case 'b':
+		rtype = &ffi_type_sint8;
+		break;
+	case 'B':
+		rtype = &ffi_type_uint8;
+		break;
+	case 'h':
+		rtype = &ffi_type_sshort;
+		break;
+	case 'H':
+		rtype = &ffi_type_ushort;
+		break;
 	case 'i':
 		rtype = &ffi_type_sint;
+		break;
+	case 'I':
+		rtype = &ffi_type_uint;
+		break;
+	case 'l':
+		rtype = &ffi_type_slong;
+		break;
+	case 'L':
+		rtype = &ffi_type_ulong;
+		break;
+	case 'q':
+		rtype = &ffi_type_slonglong;
+		break;
+	case 'Q':
+		rtype = &ffi_type_ulonglong;
 		break;
 	case 'z':
 	case 'Z':
