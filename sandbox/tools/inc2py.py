@@ -67,6 +67,9 @@ Command line flags:
       program is doing, verbosity 2 additionally prints lines it could
       not parse.
 
+   -h
+      Display help, and quit.
+
    For a start (on windows), try this:
 
       inc2py.py -D _WIN32_WINNT=0x500 -c msvc71 -o windows.py windows.h
@@ -83,8 +86,9 @@ p_macro = re.compile(
   '([a-zA-Z0-9_]+)\(([_a-zA-Z][_a-zA-Z0-9]*)\)[\t ]+')
 
 # patterns to replace by a single blank (platform specific)
+# ignore type casts.  Sounds strange, but works.
+
 if sys.platform == "win32":
-    # ignore type casts.  Sounds strange, but works.
     ignores = r"""
     \(\s*HRESULT\s*\)
     \(\s*BYTE\s*\)
@@ -105,17 +109,21 @@ if sys.platform == "win32":
     \(\s*MCIDEVICEID\s*\)
     \(\s*HANDLE\s*\)
     \(\s*HWND\s*\)
+    \(\s*HKEY\s*\)
     \(\s*HCURSOR\s*\)
+    \(\s*HBITMAP\s*\)
     \(\s*HICON\s*\)
     \(\s*HDDEDATA\s*\)
+    \(\s*NTSTATUS\s*\)
     \(\s*int\s*\)
     \(\s*u_long\s*\)
+    \(\s*ULONG_PTR\s*\)
     \(\s*unsigned\s*long\s*\)
     """
 else:
     ignores = []
 
-ignores = map(re.compile, ignores.strip().splitlines())
+ignores = [re.compile(p.strip()) for p in ignores.strip().splitlines()]
 
 # a sequence of pattern / replacement pairs for macro bodies,
 # passed to re.sub
@@ -203,8 +211,11 @@ def get_cpp_symbols(options, verbose, *fnames):
 
 class IncludeParser(object):
 
-    def __init__(self, cpp_options=(), verbose=0):
-        self._env = {}
+    def __init__(self, cpp_options=(), verbose=0, env=None):
+        if env is None:
+            self._env = {}
+        else:
+            self._env = env
         self._statements = []
         self._errlines = []
         self._cpp_options = cpp_options
@@ -330,10 +341,9 @@ def main(args=sys.argv[1:]):
     py_file = None
     raw = 0
     try:
-        opts, files = getopt.getopt(args, "rvc:D:U:I:o:", ["compiler="])
-        if not files:
-            raise ValueError
-    except (getopt.GetoptError, ValueError):
+        opts, files = getopt.getopt(args, "hrvc:D:U:I:o:", ["compiler="])
+    except (getopt.GetoptError, ValueError), details:
+        print "Error:", details
         print >> sys.stderr, __doc__
         return 1
     for o, a in opts:
@@ -347,7 +357,15 @@ def main(args=sys.argv[1:]):
             verbose += 1
         elif o == "-r":
             raw = 1
+        elif o == "-h":
+            print >> sys.stderr, __doc__
+            return 0
 
+    if not files:
+        print "Error: no files to process"
+        print >> sys.stderr, __doc__
+        return 1
+    
     parser = IncludeParser(gccxml_options, verbose=verbose)
     parser.parse(*files)
     if py_file:
