@@ -459,7 +459,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	stgdict->size = sizeof(void *);
 	stgdict->align = getentry("P")->align;
-	stgdict->length = 1;
+	stgdict->length = 2;
 
 	proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
 	if (proto && -1 == PointerType_SetProto(stgdict, proto)) {
@@ -1606,24 +1606,19 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		memcpy(ptr,
 		       src->b_ptr,
 		       size);
-		/* If the target type is a pointer type, we have to return the
-		   source object complete, because the whole object incuding
-		   it's memory buffer must be kept.  Otherwise, we only return
-		   it's object list, the buffer is not needed.
-		*/
-		if (PointerTypeObject_Check(type)) {
-			Py_INCREF(value);
-			return value;
-		} else {
-			value = CData_GetList(src);
-			Py_INCREF(value);
-			return value;
-		}
+
+		if (PointerTypeObject_Check(type))
+			/* XXX */;
+
+		value = CData_GetList(src);
+		Py_INCREF(value);
+		return value;
 	}
 
 	if (PointerTypeObject_Check(type)
 	    && ArrayObject_Check(value)) {
 		StgDictObject *p1, *p2;
+		PyObject *keep;
 		p1 = PyObject_stgdict(value);
 		p2 = PyType_stgdict(type);
 
@@ -1635,15 +1630,17 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 			return NULL;
 		}
 		*(void **)ptr = src->b_ptr;
-		/* See comment above */
-		if (PointerTypeObject_Check(type)) {
-			Py_INCREF(value);
-			return value;
-		} else {
-			value = CData_GetList(src);
-			Py_INCREF(value);
-			return value;
-		}
+
+		keep = CData_GetList(src);
+		/*
+		  We are assigning an array object to a field which represents
+		  a pointer. This has the same effect as converting an array
+		  into a pointer. So, again, we have to keep the whole object
+		  pointed to (which is the array in this case) alive, and not
+		  only it's object list.  So we create a new list, containing
+		  the b_objects list PLUS the array itself, and return that!
+		*/
+		return Py_BuildValue("(OO)", keep, value);
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "incompatible types, %s instance instead of %s instance",
@@ -2850,12 +2847,18 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	*(void **)self->b_ptr = dst->b_ptr;
 
 	objects = CData_GetList(self);
-	keep = RepeatedList(value, PyList_GET_SIZE(CData_GetList(dst)));
-	/* We need the whole (sub)tree of the object we point to.
-	   But we need the object itself, too.
+
+	/* 
+	   A Pointer instance must keep a the value it points to alive.  So, a
+	   pointer instance has b_length set to 2 instead of 1, and we set
+	   'value' itself as the second item of the b_objects list, additionally.
 	*/
-	/* XXX Explain why this works (to myself, at least) */
-	/* XXX Need GC support to avoid immortal objects ? */
+	Py_INCREF(value);
+	if (-1 == PyList_SetItem(objects, 1, value))
+		return -1;
+
+	keep = CData_GetList(dst);
+	Py_INCREF(keep);
 	return PyList_SetItem(objects, 0, keep);
 }
 
