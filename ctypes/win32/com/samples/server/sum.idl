@@ -1,0 +1,34 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+/* a dual interface, derived from IDispatch */
+[
+	object,
+	dual,
+	uuid(6edc65bf-0cb7-4b0d-9e43-11c655e51ae9),
+	helpstring("IDualSum Interface"),
+	pointer_default(unique)
+	]
+interface IDualSum: IDispatch {
+	[id(100)] HRESULT Add(double a, double b, [out, retval] double *result);
+};
+
+/* The type library, containing all this */
+[
+	uuid(90810cb9-d427-48b6-81ff-92d4a2098b45),
+	version(1.0),
+	helpstring("Sum 1.0 Type Library")
+	]
+library SumLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(2e0504a1-1a23-443f-939d-869a6c731521),
+		helpstring("CSum Class")
+		]
+		/* a coclass, implementing this interface */
+		coclass CSum
+		{
+			[default] interface IDualSum;
+		}
+};
