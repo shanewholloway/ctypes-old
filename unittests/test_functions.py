@@ -335,8 +335,10 @@ class FunctionTestCase(unittest.TestCase):
             _fields_ = [("x", c_short),
                         ("y", c_short)]
         dll.ret_2h_func.restype = S2H
-        s2h = dll.ret_2h_func()
-        self.failUnlessEqual((s2h.x, s2h.y), (42, 24))
+        dll.ret_2h_func.argtypes = [S2H]
+        inp = S2H(99, 88)
+        s2h = dll.ret_2h_func(inp)
+        self.failUnlessEqual((s2h.x, s2h.y), (99*2, 88*3))
 
     if sys.platform == "win32":
         def test_struct_return_2H_stdcall(self):
@@ -345,8 +347,9 @@ class FunctionTestCase(unittest.TestCase):
                             ("y", c_short)]
 
             windll.s_ret_2h_func.restype = S2H
-            s2h = windll.s_ret_2h_func()
-            self.failUnlessEqual((s2h.x, s2h.y), (42, 24))
+            windll.s_ret_2h_func.argtypes = [S2H]
+            s2h = windll.s_ret_2h_func(S2H(99, 88))
+            self.failUnlessEqual((s2h.x, s2h.y), (99*2, 88*3))
 
     def test_struct_return_8H(self):
         class S8I(Structure):
@@ -359,9 +362,11 @@ class FunctionTestCase(unittest.TestCase):
                         ("g", c_int),
                         ("h", c_int)]
         dll.ret_8i_func.restype = S8I
-        s8i = dll.ret_8i_func()
+        dll.ret_8i_func.argtypes = [S8I]
+        inp = S8I(9, 8, 7, 6, 5, 4, 3, 2)
+        s8i = dll.ret_8i_func(inp)
         self.failUnlessEqual((s8i.a, s8i.b, s8i.c, s8i.d, s8i.e, s8i.f, s8i.g, s8i.h),
-                             (1, 2, 3, 4, 5, 6, 7, 8))
+                             (9*2, 8*3, 7*4, 6*5, 5*6, 4*7, 3*8, 2*9))
 
     if sys.platform == "win32":
         def test_struct_return_8H_stdcall(self):
@@ -375,9 +380,11 @@ class FunctionTestCase(unittest.TestCase):
                             ("g", c_int),
                             ("h", c_int)]
             windll.s_ret_8i_func.restype = S8I
-            s8i = windll.s_ret_8i_func()
+            windll.s_ret_8i_func.argtypes = [S8I]
+            inp = S8I(9, 8, 7, 6, 5, 4, 3, 2)
+            s8i = windll.s_ret_8i_func(inp)
             self.failUnlessEqual((s8i.a, s8i.b, s8i.c, s8i.d, s8i.e, s8i.f, s8i.g, s8i.h),
-                                 (1, 2, 3, 4, 5, 6, 7, 8))
+                                 (9*2, 8*3, 7*4, 6*5, 5*6, 4*7, 3*8, 2*9))
 
 if __name__ == '__main__':
     unittest.main()
