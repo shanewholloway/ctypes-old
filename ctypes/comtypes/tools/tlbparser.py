@@ -26,7 +26,7 @@ SCODE_type = typedesc.Typedef("SCODE", int_type)
 VARIANT_BOOL_type = typedesc.Typedef("VARIANT_BOOL", short_type)
 HRESULT_type = typedesc.Typedef("HRESULT", ulong_type)
 
-VARIANT_type = typedesc.Typedef("VARIANT", None)
+VARIANT_type = typedesc.Structure("VARIANT", align=64, members=[], bases=[], size=128)
 IDISPATCH_type = typedesc.Typedef("IDispatch", None)
 IUNKNOWN_type = typedesc.Typedef("IUnknown", None)
 SAFEARRAY_type = typedesc.Typedef("SAFEARRAY", None)
@@ -173,8 +173,8 @@ class TlbParser(object):
                 raise "NYI", fd.callconv
 
             func = typedesc.Function(func_name, returns, attributes, extern=1)
-            if doc is not None:
-                func.doc = doc
+            if func_doc is not None:
+                func.doc = str(func_doc)
             func.dllname = dllname
             self.items[func_name] = func
 
@@ -185,7 +185,7 @@ class TlbParser(object):
         # constants
         for i in range(ta.cVars):
             vd = tinfo.GetVarDesc(i)
-            name, var_dic = tinfo.GetDocumentation(vd.memid)[0:2]
+            name, var_doc = tinfo.GetDocumentation(vd.memid)[0:2]
             vt = vd._.lpvarValue[0].n1.n2.vt
             assert vd.varkind == automation.VAR_CONST
             # XXX Should be handled by VARIANT
@@ -320,6 +320,8 @@ class TlbParser(object):
                         default = var.n1.n2.n3.iVal
                     elif var.n1.n2.vt == automation.VT_BOOL:
                         default = bool(var.n1.n2.n3.boolVal)
+                    elif var.n1.n2.vt == automation.VT_R4:
+                        default = var.n1.n2.n3.fltVal
                     else:
                         raise "NYI", var.n1.n2.vt
                 else:
@@ -409,7 +411,8 @@ class TlbParser(object):
         #        version, control, hidden, and appobject
         coclass_name, doc = tinfo.GetDocumentation(-1)[0:2]
         coclass = typedesc.CoClass(coclass_name, str(ta.guid), self.idl_flags(ta.wTypeFlags))
-        coclass.doc = str(doc)
+        if doc is not None:
+            coclass.doc = str(doc)
         self.items[coclass_name] = coclass
         for i in range(ta.cImplTypes):
             hr = tinfo.GetRefTypeOfImplType(i)
@@ -417,6 +420,7 @@ class TlbParser(object):
             itf = self.parse_typeinfo(ti)
             flags = tinfo.GetImplTypeFlags(i)
             coclass.add_interface(itf, flags)
+        return coclass
 
     # TKIND_ALIAS = 6
     def ParseAlias(self, tinfo, ta):
@@ -494,20 +498,19 @@ coclass = typedesc.FundamentalType("CoClass", 32, 32) # fake for codegen
 def main():
     import sys
 
-    path = r"hnetcfg.dll"
+##    path = r"hnetcfg.dll"
 ##    path = r"simpdata.tlb"
 ##    path = r"nscompat.tlb"
 ##    path = r"mshtml.tlb"
 ##    path = r"stdole32.tlb"
 ##    path = "msscript.ocx"
-##    path = r"x.tlb"
-    path = r"shdocvw.dll"
+##    path = r"shdocvw.dll"
     
 ##    path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 ##    path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
-##    path = r"msi.dll"
+##    path = r"msi.dll" # DispProperty
 
-##    path = r"PICCLP32.OCX"
+##    path = r"PICCLP32.OCX" # DispProperty
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
 ##    path = r"MSHFLXGD.OCX"
@@ -520,7 +523,8 @@ def main():
 ##    # this has a IUnknown* default parameter
 ##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
     
-    path = r"c:\tss5\include\fpanel.tlb"
+##    path = r"c:\tss5\include\fpanel.tlb"
+    path = "auto.tlb"
     known_symbols = {}
 
     for name in ("comtypes.automation", "comtypes", "ctypes"):
