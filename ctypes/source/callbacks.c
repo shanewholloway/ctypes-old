@@ -127,14 +127,16 @@ void _AddTraceback(char *funcname, char *filename, int lineno)
  * slower.
  */
 static void
-TryAddRef(StgDictObject *dict, CDataObject *obj)
+TryAddRef(StgDictObject *dict, PyObject *obj)
 {
 	IUnknown *punk;
 
-	if (NULL == PyDict_GetItemString((PyObject *)dict, "_needs_com_addref_"))
+	if (!CDataObject_Check(obj))
 		return;
 
-	punk = *(IUnknown **)obj->b_ptr;
+	if (NULL == PyDict_GetItemString((PyObject *)dict, "_needs_com_addref_"))
+		return;
+	punk = *(IUnknown **)((CDataObject *)obj)->b_ptr;
 	if (punk)
 		punk->lpVtbl->AddRef(punk);
 	return;
@@ -196,29 +198,15 @@ static void _CallPythonObject(void *mem,
 				PrintError("create argument %d:\n", i);
 				goto Done;
 			}
+#ifdef MS_WIN32
+			TryAddRef(dict, v);
+#endif
 			PyTuple_SET_ITEM(arglist, i, v);
 			/* XXX XXX XX
 			   We have the problem that c_byte or c_short have dict->size of
 			   1 resp. 4, but these parameters are pushed as sizeof(int) bytes.
 			   BTW, the same problem occurrs when they are pushed as parameters
 			*/
-		} else if (dict) {
-			/* Hm, shouldn't we use CData_AtAddress() or something like that instead? */
-			CDataObject *obj = (CDataObject *)PyObject_CallFunctionObjArgs(cnv, NULL);
-			if (!obj) {
-				PrintError("create argument %d:\n", i);
-				goto Done;
-			}
-			if (!CDataObject_Check(obj)) {
-				Py_DECREF(obj);
-				PrintError("unexpected result of create argument %d:\n", i);
-				goto Done;
-			}
-			memcpy(obj->b_ptr, *pArgs, dict->size);
-			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
-#ifdef MS_WIN32
-			TryAddRef(dict, obj);
-#endif
 		} else {
 			PyErr_SetString(PyExc_TypeError,
 					"cannot build parameter");
