@@ -158,7 +158,73 @@ class StructureTestCase(unittest.TestCase):
                           ("b", "q")],
              "_pack_": -1}
         self.assertRaises(ValueError, type(Structure), "X", (Structure,), d)
+
+    def test_initializers(self):
+        class Person(Structure):
+            _fields_ = [("name", c_char*6),
+                        ("age", c_int)]
+
+        self.assertRaises(TypeError, Person, 42)
+        self.assertRaises(ValueError, Person, "asldkjaslkdjaslkdj")
+        self.assertRaises(TypeError, Person, "Name", "HI")
+
+    def test_nested_initializers(self):
+        # test initializing nested structures
+        class Phone(Structure):
+            _fields_ = [("areacode", c_char*6),
+                        ("number", c_char*12)]
+
+        class Person(Structure):
+            _fields_ = [("name", c_char * 12),
+                        ("phone", Phone),
+                        ("age", c_int)]
+
+        p = Person("Someone", ("1234", "5678"), 5)
+
+        self.failUnlessEqual(p.name, "Someone")
+        self.failUnlessEqual(p.phone.areacode, "1234")
+        self.failUnlessEqual(p.phone.number, "5678")
+        self.failUnlessEqual(p.age, 5)
+
+    def XXX_test_structures_with_wchar(self):
+        try:
+            c_wchar
+        except NameError:
+            return # no unicode
+
+        class PersonW(Structure):
+            _fields_ = [("name", c_wchar * 12),
+                        ("age", c_int)]
+
+        p = PersonW(u"Someone")
+        self.failUnlessEqual(p.name, "")
         
+
+    def test_init_errors(self):
+        class Phone(Structure):
+            _fields_ = [("areacode", c_char*6),
+                        ("number", c_char*12)]
+
+        class Person(Structure):
+            _fields_ = [("name", c_char * 12),
+                        ("phone", Phone),
+                        ("age", c_int)]
+
+        cls, msg = self.get_except(Person, "Someone", (1, 2))
+        self.failUnlessEqual(cls, TypeError)
+        self.failUnlessEqual(msg, "(Phone) expected string or Unicode object, int found")
+
+        cls, msg = self.get_except(Person, "Someone", ("a", "b", "c"))
+        self.failUnlessEqual(cls, ValueError)
+        self.failUnlessEqual(msg, "(Phone) too many initializers")
+
+
+    def get_except(self, func, *args):
+        try:
+            func(*args)
+        except Exception, detail:
+            return detail.__class__, str(detail)
+                
 
 def get_suite():
     return unittest.makeSuite(StructureTestCase)
