@@ -30,7 +30,7 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 
 if os.name == "nt":
-    extensions = [Extension("_ctypes",
+    extensions = [Extension("ctypes._ctypes",
                             export_symbols=["DllGetClassObject,PRIVATE",
                                             "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
@@ -43,7 +43,7 @@ else:
         kw["sources"].append("source/darwin/dlfcn_simple.c")
         extra_link_args.extend(['-read_only_relocs', 'warning'])
 
-    extensions = [Extension("_ctypes",
+    extensions = [Extension("ctypes._ctypes",
                             libraries=["ffi"],
                             include_dirs=include_dirs,
                             extra_link_args=extra_link_args,
@@ -143,23 +143,6 @@ class test(Command):
 
 # class test
 
-##from distutils.command import build_py
-
-## a class which will allow to distribute packages *and*
-## modules with one setup script, currently unused.
-##class my_build_py(build_py.build_py):
-##    def run (self):
-##        if not self.py_modules and not self.packages:
-##            return
-
-##        if self.py_modules:
-##            self.build_modules()
-##        if self.packages:
-##            self.build_packages()
-
-##        self.byte_compile(self.get_outputs(include_bytecode=0))
-##    # run ()
-
 options = {}
 if (hasattr(distutils.core, 'setup_keywords') and 
     'classifiers' in distutils.core.setup_keywords):
@@ -171,21 +154,38 @@ if (hasattr(distutils.core, 'setup_keywords') and
                   'Intended Audience :: Developers']
 
 
+from distutils.command import build_py
+
+class my_build_py(build_py.build_py):
+    def find_package_modules (self, package, package_dir):
+        """We extend distutils' build_py.find_package_modules() method
+        to include all modules found in the platform specific root
+        package directory into the 'ctypes' root package."""
+        import glob, sys
+        result = build_py.build_py.find_package_modules(self, package, package_dir)
+        if package == 'ctypes':
+            for pathname in glob.glob(os.path.join(sys.platform, "*.py")):
+                modname = os.path.basename(pathname)
+                result.append(('ctypes', modname, pathname))
+        return result
+
+
 if __name__ == '__main__':
     setup(name="ctypes",
           ext_modules = extensions,
-##          packages = ["ctcom"],
-          py_modules = ["ctypes"],
-          version="0.5.1",
+          package_dir = {'ctypes': 'lib', 'ctypes.com': 'win32/com'},
+          packages = ["ctypes", "ctypes.com"],
+
+          version="0.6.0",
           description="create and manipulate C data types in Python",
           long_description = __doc__,
           author="Thomas Heller",
           author_email="theller@python.net",
           license="MIT License",
           url="http://starship.python.net/crew/theller/ctypes.html",
-          platforms=["windows", "linux"],
+          platforms=["windows", "linux", "MacOS X"],
 
-          cmdclass = {'test': test},
+          cmdclass = {'test': test, 'build_py': my_build_py},
           **options
           )
 

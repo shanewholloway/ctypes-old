@@ -8,7 +8,7 @@ OtherCallback = ctypes.CALLBACK(ctypes.c_int, ctypes.c_int, ctypes.c_ulonglong)
 class RefcountTestCase(unittest.TestCase):
     def setUp(self):
         global dll
-        import _ctypes
+        from ctypes import _ctypes
         dll = ctypes.CDLL(_ctypes.__file__)
 
     def test_1(self):

@@ -12,7 +12,7 @@ class FunctionTestCase(unittest.TestCase):
 
     def setUp(self):
         global dll
-        import _ctypes
+        from ctypes import _ctypes
         dll = CDLL(_ctypes.__file__)
 
     def test_mro(self):
@@ -31,14 +31,14 @@ class FunctionTestCase(unittest.TestCase):
             pass
                 
 
-        from _ctypes import _Pointer
+        from ctypes._ctypes import _Pointer
         try:
             class X(object, _Pointer):
                 pass
         except TypeError:
             pass
 
-        from _ctypes import _SimpleCData
+        from ctypes._ctypes import _SimpleCData
         try:
             class X(object, _SimpleCData):
                 _type_ = "i"
