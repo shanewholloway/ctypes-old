@@ -380,6 +380,9 @@ extern void *MallocClosure(void);
 
 extern void _AddTraceback(char *, char *, int);
 
+extern PyObject *CTYPE_c_char_p, *CTYPE_c_char, *CTYPE_c_wchar_p,
+	*CTYPE_c_wchar, *CTYPE_c_void_p, *CTYPE_BSTR;
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
