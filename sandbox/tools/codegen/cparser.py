@@ -232,9 +232,10 @@ class IncludeParser(object):
 
         if self.options.xmlfile:
             f = open(self.options.xmlfile, "r+")
-            f.seek(-12, 2)
-            assert f.read() == "</GCC_XML>\n"
-            f.seek(-12, 2)
+            f.seek(-11, 2)
+            data = f.read()
+            assert data == "</GCC_XML>\n"
+            f.seek(-11, 2)
             f.flush()
 
             self.dump_as_cdata(f, functions, "functions")
