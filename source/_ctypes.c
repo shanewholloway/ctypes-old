@@ -879,6 +879,18 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 	return 0;
 }
 
+/* Array_getfunc is exactly the same as StructUnion_getfunc */
+static PyObject *
+Array_getfunc(void *ptr, unsigned size,
+	      PyObject *type, CDataObject *src, ...)
+{
+	if (type == NULL) {
+		PyErr_SetString(PyExc_SystemError,
+				"ctypes bug: Array_getfunc called with NULL type");
+		return NULL;
+	}
+	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
+}
 
 static PyObject *
 ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -916,6 +928,8 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		(PyObject *)&StgDict_Type, NULL);
 	if (!stgdict)
 		return NULL;
+
+	stgdict->getfunc = Array_getfunc;
 
 	itemdict = PyType_stgdict(proto);
 	if (!itemdict) {
@@ -1913,7 +1927,6 @@ CData_AtAddress(PyObject *type, void *buf)
 }
 
 static PyObject *
-//CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 CData_get(PyObject *type, GETFUNC getfunc, CDataObject *src,
 	  int index, int size, char *adr)
 {
@@ -3288,6 +3301,7 @@ static PyObject *
 Array_item(CDataObject *self, int index)
 {
 	int offset, size;
+	PyObject *itemtype;
 	StgDictObject *stgdict;
 
 	if (index < 0 || index >= self->b_length) {
@@ -3297,15 +3311,14 @@ Array_item(CDataObject *self, int index)
 	}
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	assert(stgdict);
-	/* Would it be clearer if we got the item size from
-	   stgdict->proto's stgdict?
-	*/
-	size = stgdict->size / stgdict->length;
+	itemtype = stgdict->proto;
+	stgdict = PyType_stgdict(itemtype);
+
+	size = stgdict->size;
 	offset = index * size;
 
-	return CData_get(stgdict->proto, stgdict->getfunc, self,
-			 index, size, self->b_ptr + offset);
+	return stgdict->getfunc(self->b_ptr + offset, size,
+				itemtype, self, index);
 }
 
 static PyObject *
