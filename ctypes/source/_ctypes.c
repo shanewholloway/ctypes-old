@@ -1329,6 +1329,18 @@ static PyMethodDef c_void_p_method = { "from_param", c_void_p_from_param, METH_O
 static PyMethodDef c_char_p_method = { "from_param", c_char_p_from_param, METH_O };
 static PyMethodDef c_wchar_p_method = { "from_param", c_wchar_p_from_param, METH_O };
 
+static int
+Simple_asparam(CDataObject *self, struct argument *pa)
+{
+	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
+	pa->ffi_type = &dict->ffi_type;
+	/* Hm, Aren't here any little/big endian issues? */
+	memcpy(&pa->value, self->b_ptr, self->b_size);
+	Py_INCREF(self);
+	pa->keep = self;
+	return 0;
+}
+
 static PyObject *
 SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -1370,6 +1382,7 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->size = fmt->pffi_type->size;
 	stgdict->setfunc = fmt->setfunc;
 	stgdict->getfunc = fmt->getfunc;
+	stgdict->asparam = Simple_asparam;
 	/* This consumes the refcount on proto which we have */
 	stgdict->proto = proto;
 
@@ -3598,35 +3611,9 @@ Simple_get_value(CDataObject *self)
 			     (PyObject *)self->ob_type, self, 0);
 }
 
-static PyObject *
-Simple_as_parameter(CDataObject *self)
-{
-	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
-	char *fmt = PyString_AsString(dict->proto);
-	PyCArgObject *parg;
-	struct fielddesc *fd;
-	
-	fd = getentry(fmt);
-	assert(fd);
-	
-	parg = new_CArgObject();
-	if (parg == NULL)
-		return NULL;
-	
-	parg->tag = fmt[0];
-	parg->pffi_type = fd->pffi_type;
-	Py_INCREF(self);
-	parg->obj = (PyObject *)self;
-	memcpy(&parg->value, self->b_ptr, self->b_size);
-	return (PyObject *)parg;	
-}
-
 static PyGetSetDef Simple_getsets[] = {
 	{ "value", (getter)Simple_get_value, (setter)Simple_set_value,
 	  "current value", NULL },
-	{ "_as_parameter_", (getter)Simple_as_parameter, NULL,
-	  "return a magic value so that this can be converted to a C parameter (readonly)",
-	  NULL },
 	{ NULL, NULL }
 };
 
