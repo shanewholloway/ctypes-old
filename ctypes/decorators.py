@@ -1,4 +1,4 @@
-'''
+"""
 This module implements decorators for native api function calls.
 
 stdcall(restype, dllname, argtypes[, logging=False])
@@ -8,22 +8,36 @@ The decorator functions are used like this:
 
 >>> from ctypes import *
 >>> # wrap the GetModuleFileNameA function
->>> @ stdcall(c_ulong, "kernel32", [c_ulong, POINTER(c_char), c_ulong])
+>>> @ stdcall(c_ulong, 'kernel32', [c_ulong, POINTER(c_char), c_ulong])
 ... def GetModuleFileNameA(handle=0):
 ...     buf = create_string_buffer(256)
-...     if 0 == _api_(handle, buf, sizeof(buf)):
+...     if 0 == GetModuleFileNameA._api_(handle, buf, sizeof(buf)):
 ...         raise WinError()
 ...     return buf.value
 >>>
 >>> sys.executable == GetModuleFileNameA()
 True
 >>>
-'''
+>>> @ cdecl(c_char_p, 'msvcrt', [c_char_p, c_int])
+... def strchr(string, c):
+...     'find a character in a string'
+...     return strchr._api_(string, c)
+>>> print strchr('abcdef', ord('x'))
+None
+>>> print strchr('abcdef', ord('c'))
+cdef
+>>>
+>>> @ cdecl(c_char_p, 'msvcrt', [c_char_p, c_int])
+... def strchr(string, c):
+...     'find a character in a string'
+...
+>>> print strchr('abcdef', ord('x'))
+None
+>>> print strchr('abcdef', ord('c'))
+cdef
+>>>
+"""
 import sys
-from opcode import opmap, HAVE_ARGUMENT, EXTENDED_ARG
-LOAD_GLOBAL = opmap["LOAD_GLOBAL"]
-LOAD_CONST = opmap["LOAD_CONST"]
-
 import ctypes
 
 LOGGING = False
@@ -44,88 +58,31 @@ def _create_func_codestring(func, doc=None):
     if varkw:
         raise TypeError, "function argument list cannot contain ** argument"
     if doc:
-        return "def %s%s:\n    %r\n    return _api_%s" % \
+        return "def %s%s:\n    %r\n    return %s._api_%s" % \
                (func.func_name,
                 inspect.formatargspec(args, varargs, varkw, defaults),
                 doc,
+                func.func_name,
                 inspect.formatargspec(args, varargs, varkw))
-    return "def %s%s:\n    return _api_%s" % \
+    return "def %s%s:\n    return %s._api_%s" % \
            (func.func_name,
             inspect.formatargspec(args, varargs, varkw, defaults),
+            func.func_name,
             inspect.formatargspec(args, varargs, varkw))
-
-VERBOSE = False # print opcodes replaced
-
-def _make_constants(f, **env):
-    # Replace 'LOAD_GLOBAL <name>' opcodes with 'LOAD_CONST <const>'
-    # opcodes, where <const> comes from the 'name' stored in env.
-    #
-    # based on Raymond Hettinger's recipe 'binding constants at compile time'
-    # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/277940
-    if len(f.func_code.co_code) == 4:
-        # Hacky way to detect an empty function body.
-        codestring = _create_func_codestring(f, f.__doc__)
-        d = {}
-        exec codestring in d
-        #print codestring
-        f = d[f.func_name]
-
-    co = f.func_code
-    newcode = map(ord, co.co_code)
-    newconsts = list(co.co_consts)
-    names = co.co_names
-    codelen = len(newcode)
-
-    i = 0
-    while i < codelen:
-        opcode = newcode[i]
-
-        if opcode == LOAD_GLOBAL:
-            oparg = newcode[i+1] + (newcode[i+2] << 8)
-            name = names[oparg]
-            if name in env:
-                value = env[name]
-                for pos, v in enumerate(newconsts):
-                    if v is value:
-                        break
-                else:
-                    pos = len(newconsts)
-                    newconsts.append(value)
-                newcode[i] = LOAD_CONST
-                newcode[i+1] = pos & 0xFF
-                newcode[i+2] = pos >> 8
-                if VERBOSE:
-                    print >> sys.stderr, "# _make_constants: %s --> %s" % (name, value)
-                
-        if opcode >= HAVE_ARGUMENT:
-            i += 3
-        else:
-            i += 1
-
-    codestr = ''.join(map(chr, newcode))
-    codeobj = type(co)(co.co_argcount, co.co_nlocals, co.co_stacksize,
-                       co.co_flags, codestr, tuple(newconsts), names,
-                       co.co_varnames, co.co_filename, co.co_name,
-                       co.co_firstlineno, co.co_lnotab, co.co_freevars,
-                       co.co_cellvars)
-
-    func = type(f)(codeobj, f.func_globals, f.func_name, f.func_defaults,
-                   f.func_closure)
-
-# for introspection?
-##    func._api_ = env["_api_"]
-    return func
 
 ################################################################
 
-def stdcall(restype, dllname, argtypes, logging=LOGGING):
+def stdcall(restype, dll, argtypes, logging=False):
     def decorate(func):
-        dll = getattr(ctypes.windll, dllname)
-        api = getattr(dll, func.func_name)
-        api.restype = restype
-        api.argtypes = argtypes
-        func = _make_constants(func, _api_=api)
-        if logging:
+        api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, dll)
+        if len(func.func_code.co_code) == 4:
+            # Hacky way to detect an empty function body.
+            codestring = _create_func_codestring(func, func.__doc__)
+            d = {}
+            exec codestring in d
+            func = d[func.func_name]
+        func._api_ = api
+        if logging or LOGGING:
             def f(*args):
                 result = func(*args)
                 print >> sys.stderr, "# function call: %s%s -> %s" % (func.func_name, args, result)
@@ -135,14 +92,17 @@ def stdcall(restype, dllname, argtypes, logging=LOGGING):
             return func
     return decorate
 
-def cdecl(restype, dllname, argtypes, logging=LOGGING):
+def cdecl(restype, dll, argtypes, logging=False):
     def decorate(func):
-        dll = getattr(ctypes.cdll, dllname)
-        api = getattr(dll, func.func_name)
-        api.restype = restype
-        api.argtypes = argtypes
-        func = _make_constants(func, _api_=api)
-        if logging:
+        api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, dll)
+        if len(func.func_code.co_code) == 4:
+            # Hacky way to detect an empty function body.
+            codestring = _create_func_codestring(func, func.__doc__)
+            d = {}
+            exec codestring in d
+            func = d[func.func_name]
+        func._api_ = api
+        if logging or LOGGING:
             def f(*args):
                 result = func(*args)
                 print >> sys.stderr, func.func_name, args, "->", result
