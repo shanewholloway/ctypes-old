@@ -73,6 +73,12 @@
 #include <dlfcn.h>
 #endif
 
+#define USE_LIBFFI
+
+#ifdef MS_WIN32
+#define alloca _alloca
+#endif
+
 #include <ffi.h>
 #include "ctypes.h"
 
@@ -243,6 +249,14 @@ void SetException(DWORD code, EXCEPTION_RECORD *pr)
 			break;
 		}
 	}
+}
+
+static DWORD HandleException(EXCEPTION_POINTERS *ptrs,
+			     DWORD *pdw, EXCEPTION_RECORD *record)
+{
+	*pdw = ptrs->ExceptionRecord->ExceptionCode;
+	*record = *ptrs->ExceptionRecord;
+	return EXCEPTION_EXECUTE_HANDLER;
 }
 
 static PyObject *
@@ -544,7 +558,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 }
 
 
-#ifndef MS_WIN32
+#ifdef USE_LIBFFI
 
 /*
  * libffi uses:
@@ -568,7 +582,12 @@ static int _call_function_pointer(int flags,
 	ffi_type **atypes;
 	void **values;
 	int i;
-
+	int cc;
+#ifdef MS_WIN32
+	int delta;
+	DWORD dwExceptionCode;
+	EXCEPTION_RECORD record;
+#endif
 	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
 	values = (void **)alloca(argcount * sizeof(void *));
 
@@ -587,8 +606,15 @@ static int _call_function_pointer(int flags,
 				"No ffi_type for result");
 		return -1;
 	}
-    
-	if (FFI_OK != ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
+	
+	cc = FFI_DEFAULT_ABI;
+#ifdef MS_WIN32
+	if ((flags & FUNCFLAG_CDECL) == 0)
+		cc = FFI_STDCALL;
+	dwExceptionCode = 0;
+#endif
+	if (FFI_OK != ffi_prep_cif(&cif,
+				   cc,
 				   argcount,
 				   res->pffi_type,
 				   atypes)) {
@@ -598,10 +624,50 @@ static int _call_function_pointer(int flags,
 	}
 
 	Py_BEGIN_ALLOW_THREADS
-	ffi_call(&cif, (void *)pProc, &res->value, values);
+#ifdef MS_WIN32
+#ifndef DEBUG_EXCEPTIONS
+	__try {
+#endif
+		delta =
+#endif
+			ffi_call(&cif, (void *)pProc, &res->value, values);
+#ifdef MS_WIN32
+#ifndef DEBUG_EXCEPTIONS
+	}
+	__except (HandleException(GetExceptionInformation(),
+				  &dwExceptionCode, &record)) {
+		;
+	}
+#endif
+#endif
 	Py_END_ALLOW_THREADS
-
+#ifdef MS_WIN32
+	if (dwExceptionCode) {
+		SetException(dwExceptionCode, &record);
+		return -1;
+	}
+	if (delta < 0) {
+		if (flags & FUNCFLAG_CDECL)
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure called with not enough "
+				     "arguments (%d bytes missing) "
+				     "or wrong calling convention",
+				     -delta);
+		else
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure probably called with not enough "
+				     "arguments (%d bytes missing)",
+				     -delta);
+		return -1;
+	} else if (delta > 0) {
+		PyErr_Format(PyExc_ValueError,
+			     "Procedure probably called with too many "
+			     "arguments (%d bytes in excess)",
+			     delta);
+		return -1;
+	}
 	return 0;
+#endif
 }
 #else
 #pragma optimize ("", off)
@@ -610,14 +676,6 @@ static int _call_function_pointer(int flags,
  */
 static void __stdcall push(void)
 {
-}
-
-static DWORD HandleException(EXCEPTION_POINTERS *ptrs,
-			     DWORD *pdw, EXCEPTION_RECORD *record)
-{
-	*pdw = ptrs->ExceptionRecord->ExceptionCode;
-	*record = *ptrs->ExceptionRecord;
-	return EXCEPTION_EXECUTE_HANDLER;
 }
 
 static int _call_function_pointer(int flags,
