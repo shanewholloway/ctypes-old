@@ -37,7 +37,6 @@ CField_FromDesc(PyObject *desc, int index,
 		int *psize, int *poffset, int *palign, int pack)
 {
 	CFieldObject *self;
-	PyObject *proto;
 	int size, align, length;
 	SETFUNC setfunc = NULL;
 	GETFUNC getfunc = NULL;
@@ -94,13 +93,12 @@ CField_FromDesc(PyObject *desc, int index,
 
 	size = dict->size;
 	length = dict->length;
-	proto = desc;
 
 	/*  Field descriptors for 'c_char * n' are be scpecial cased to
 	    return a Python string instead of an Array object instance...
 	*/
-	if (ArrayTypeObject_Check(proto)) {
-		StgDictObject *adict = PyType_stgdict(proto);
+	if (ArrayTypeObject_Check(desc)) {
+		StgDictObject *adict = PyType_stgdict(desc);
 		StgDictObject *idict;
 		if (adict && adict->proto) {
 			idict = PyType_stgdict(adict->proto);
@@ -123,8 +121,8 @@ CField_FromDesc(PyObject *desc, int index,
 	self->getfunc = getfunc;
 	self->index = index;
 
-	Py_XINCREF(proto);
-	self->fieldtype = proto;
+	Py_XINCREF(desc);
+	self->fieldtype = desc;
 
 	switch (fieldtype) {
 	case NEW_BITFIELD:
