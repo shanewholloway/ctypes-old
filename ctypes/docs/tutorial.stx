@@ -5,7 +5,7 @@ ctypes tutorial
 
   ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
 
-  This tutorial describes version 0.6.2 of 'ctypes'. There have been
+  This tutorial describes version 0.6.3 of 'ctypes'. There have been
   quite some changes to version 0.4.x, the most important are
   listed "here":changes.html.
 
@@ -14,7 +14,7 @@ ctypes tutorial
     'ctypes' exports the 'cdll', and on Windows also 'windll'
     and 'oledll' objects to load dynamic link libraries.
 
-    You can load libraries by accessing them as attributes of these
+    You load libraries by accessing them as attributes of these
     objects.  'cdll' loads libraries which export functions using the
     standard 'cdecl' calling convention, while 'windll' libraries call
     functions using the 'stdcall' calling convention. 'oledll' also
@@ -44,8 +44,8 @@ ctypes tutorial
        >>>
 
     This tutorial uses windows in its examples, however, functions
-    from the standard C library such as strchr, printf, and so on
-    should also work on Linux and other systems.
+    from the standard C library like 'strchr' and 'printf' should also
+    work on Linux and other systems.
 
   Accessing functions from loaded dlls
 
@@ -63,27 +63,27 @@ ctypes tutorial
           func = _StdcallFuncPtr(name, self)
       Attribute: function 'MyOwnFunction' not found
 
-    XXX ctypes version 0.6.2 and above raise AttributeErrors when a
-    symbol is not found in a dll, before ValueError was raised.
+    ctypes version 0.6.2 and above raise AttributeErrors when a symbol
+    is not found in a dll, before ValueError was raised.
 
-    Note that win32 system dlls like 'kernel32', 'user32', and others,
-    sometimes export ANSI as well as UNICODE versions of
-    functions. The UNICODE version is exported with an 'W' appended to
-    the name, while the ANSI version is exported with an 'A' appended
-    to the name. The win32 'GetModuleHandle' function, which returns a
-    *module handle* for a given module name, has these C prototypes,
-    and a C macro is used to expose one of them as GetModuleHandle
-    depending on whether UNICODE is defined or not::
+    Note that win32 system dlls like 'kernel32' and 'user32' often
+    export ANSI as well as UNICODE versions of a function. The UNICODE
+    version is exported with an 'W' appended to the name, while the
+    ANSI version is exported with an 'A' appended to the name. The
+    win32 'GetModuleHandle' function, which returns a *module handle*
+    for a given module name, has the following C prototype, and a
+    macro is used to expose one of them as 'GetModuleHandle' depending
+    on whether UNICODE is defined or not::
 
       /* ANSI version */
       HMODULE GetModuleHandleA(LPCSTR lpModuleName);
       /* UNICODE version */
       HMODULE GetModuleHandleW(LPCWSTR lpModuleName);
 
-    'windll' does not try to select on of them automatically, you must
-    load the version you need by specifying 'GetModuleHandleA' or
-    'GetModuleHandleW' explicitely, and call them with normal strings
-    or unicode strings respectively.
+    'windll' does not try to select one of them by magic, you must
+    access the version you need by specifying 'GetModuleHandleA' or
+    'GetModuleHandleW' explicitely, and then call it with normal
+    strings or unicode strings respectively.
 
     Sometimes, dlls export functions with names which aren't valid
     Python identifiers, like '"??2@YAPAXI@Z"'. In this case you have
@@ -175,13 +175,14 @@ ctypes tutorial
     |'c_ulonglong'|'unsigned __int64' or|long     |
     |        	  |'unsigned long long'|          |
     |---------------------------------------------|
-    |'c_char_p'	  |'char *'           |string     |
-    |        	  |(NUL terminated)   |           |
+    |'c_char_p'	  |'char *'           |string or  |
+    |        	  |(NUL terminated)   |'None'     |
     |---------------------------------------------|
-    |'c_wchar_p'  |'wchar_t *'        |unicode    |
-    |        	  |(NUL terminated)   |           |
+    |'c_wchar_p'  |'wchar_t *'        |unicode or |
+    |        	  |(NUL terminated)   |'None'     |
     |---------------------------------------------|
-    |'c_void_p'	  |'void *'           |integer    |
+    |'c_void_p'	  |'void *'           |integer or |
+    |        	  |                   |'None'     |
     |---------------------------------------------|
 
     All these types can be created by calling them with an optional
@@ -648,7 +649,7 @@ ctypes tutorial
 
   Incomplete Types
 
-    XXX This currently doesn't seem to work completely XXX
+    **Note:** This code actually works now with ctypes 0.6.3
 
     *Incomplete Types* are structures, unions or arrays whose members
     are not yet specified. In the 'ctypes' context, you can create
@@ -875,6 +876,15 @@ ctypes tutorial
 
     Yep, it worked!
 
+  A warning for callback functions
+
+    **Important Note**: 
+
+    Make sure you keep references to CFUNCTYPE objects as long as they
+    are used from C code. ctypes doesn't, and if you don't, they may
+    be garbage collected, crashing your program when a callback is
+    made.
+
   Accessing values exported from dlls
 
     Sometimes, a dll not only exports functions, it also exports
@@ -1006,10 +1016,11 @@ ctypes tutorial
 
     'long double' is not implemented.
 
-    You cannot pass structures to functions as arguments, and you
+<!--  no longer true:  You cannot pass structures to functions as arguments, and you
     cannot set them as return type (only pointers).
-
-    Callback functions implemented in Python can *only* return integers.
+-->
+<!-- no longer true?   Callback functions implemented in Python can *only* return integers.
+-->
 
 <!--
   Local Variables:
