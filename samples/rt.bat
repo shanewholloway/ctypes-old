@@ -17,5 +17,4 @@ REM @if "%1"=="-d" @set _exe=c:\sf\python\dist\src\PCBuild\python_d.exe
 %_exe% test_clib.py
 %_exe% test_argcount.py
 %_exe% test_strchr.py
-%_exe% test_funcresult.py
 %_exe% test_time.py
