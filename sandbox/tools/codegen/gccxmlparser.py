@@ -254,7 +254,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         name = attrs.get("name")
         bases = attrs.get("bases", "").split()
         members = attrs.get("members", "").split()
-        abstract = attrs.get("abstract", "")
+##        abstract = attrs.get("abstract", "")
         align = attrs["align"]
         size = attrs.get("size")
         artificial = attrs.get("artificial")
@@ -280,10 +280,10 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         name = attrs.get("name")
         bases = attrs.get("bases", "").split()
         members = attrs.get("members", "").split()
-        abstract = attrs.get("abstract", "")
+##        abstract = attrs.get("abstract", "")
         align = attrs["align"]
         size = attrs.get("size")
-        artificial = attrs.get("artificial")
+##        artificial = attrs.get("artificial")
         if name is None:
             name = self.demangle(attrs["mangled"]) # for debug only
         return typedesc.Union(name, align, members, bases, size)
@@ -301,11 +301,50 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     ################
 
+    def _fixup_Macro(self, m):
+        pass
+
+    def get_macros(self, text):
+        text = "".join(text)
+        # preprocessor definitions that look like macros with one or more arguments
+        for m in text.splitlines():
+            name, body = m.split(None, 1)
+            name, args = name.split("(", 1)
+            args = "(%s" % args
+            self.all[name] = typedesc.Macro(name, args, body)
+
+    def get_aliases(self, text, namespace):
+        # preprocessor definitions that look like aliases:
+        #  #define A B
+        text = "".join(text)
+        aliases = {}
+        for a in text.splitlines():
+            name, value = a.split(None, 1)
+            a = typedesc.Alias(name, value)
+            aliases[name] = a
+            self.all[name] = a
+
+        for name, a in aliases.items():
+            # the value should be either in namespace...
+            value = a.alias
+            if value in namespace:
+                # set the type
+                a.typ = namespace[value]
+            # or in aliases...
+            elif value in aliases:
+                a.typ = aliases[value]
+            # or unknown.
+            else:
+                # not known
+                print "skip %s = %s" % (name, value)
+
     def get_result(self):
         interesting = (typedesc.Typedef, typedesc.Enumeration, typedesc.EnumValue,
                        typedesc.Function, typedesc.Structure, typedesc.Union,
-                       typedesc.Variable)
-        result = []
+                       typedesc.Variable, typedesc.Macro, typedesc.Alias)
+
+        self.get_macros(self.cpp_data.get("functions"))
+
         remove = []
         for n, i in self.all.items():
             # link together all the nodes (the XML that gccxml generates uses this).
@@ -319,11 +358,26 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
                 if location:
                     fil, line = location.split(":")
                     i.location = self.all[fil].name, line
+
         for n in remove:
             del self.all[n]
+
+        # Now we can build the namespace.
+        namespace = {}
+        for i in self.all.values():
+            if not isinstance(i, interesting):
+                continue  # we don't want these
+            name = getattr(i, "name", None)
+            if name is not None:
+                namespace[name] = i
+
+        self.get_aliases(self.cpp_data.get("aliases"), namespace)
+
+        result = []
         for i in self.artificial + self.all.values():
             if isinstance(i, interesting):
                 result.append(i)
+
 
         # todo: get cpp_data, and convert it into typedesc nodes.
         # functions = self.cpp_data.get("functions")
