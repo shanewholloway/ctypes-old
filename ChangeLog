@@ -1,5 +1,8 @@
 2003-05-16  Thomas Heller  <theller@python.net>
 
+	* source\_ctypes.c: Fix some (but not all) problems with pointer
+	instance and types.
+	
 	* source\_ctypes.c: Make the restype atribute of functions readable.
 	VisualPython's debugger had problems if it was not.
 	Contributed by Nick Adams.
