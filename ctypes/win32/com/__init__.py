@@ -1,5 +1,5 @@
 from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
-     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, \
+     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wchar, \
      oledll, byref, sizeof, WINFUNCTYPE, SetPointerType, WinError, pointer
 
 from _ctypes import HRESULT
