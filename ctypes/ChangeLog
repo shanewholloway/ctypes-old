@@ -1,3 +1,7 @@
+2004-09-21  Thomas Heller  <theller@python.net>
+
+	*  (Message): Increased version number to 0.9.2.
+
 2004-09-16  Thomas Heller  <theller@python.net>
 
 	* (Message): ctypes 0.9.1 released.
