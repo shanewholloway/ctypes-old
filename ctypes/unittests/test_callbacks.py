@@ -9,11 +9,11 @@ class Callbacks(unittest.TestCase):
         return args[-1]
 
     def check_type(self, typ, arg):
-        PROTO = type(self).__dict__["functype"](typ, typ)
+        PROTO = self.functype.im_func(typ, typ)
         return PROTO(self.callback)(arg)
 
     def check_type_1(self, typ, arg):
-        PROTO = type(self).__dict__["functype"](typ, c_byte, typ)
+        PROTO = self.functype.im_func(typ, c_byte, typ)
         return PROTO(self.callback)(0, arg)
 
     ################
