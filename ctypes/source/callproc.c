@@ -661,6 +661,8 @@ static int _call_function_pointer(int flags,
 		return -1;
 	}
 #endif
+	if ((flags & FUNCFLAG_PYTHONAPI) && PyErr_Occurred())
+		return -1;
 	return 0;
 }
 
