@@ -474,6 +474,30 @@ EXPORT(S8I) ret_8i_func(S8I inp)
 	return inp;
 }
 
+EXPORT(HWND) my_GetDesktopWindow(void)
+{
+#ifdef MS_WIN32
+	return GetDesktopWindow();
+#else
+	return 42;
+#endif
+}
+
+EXPORT(int) my_GetWindowRect(HWND hwnd, RECT *prect)
+{
+#ifdef MS_WIN32
+	return GetWindowRect(hwnd, prect);
+#else
+	return hwnd == 0;
+#endif
+}
+
+EXPORT(int) TwoOutArgs(int a, int *pi, int b, int *pj)
+{
+	*pi = a;
+	*pj = b;
+}
+
 #ifdef MS_WIN32
 EXPORT(S2H) __stdcall s_ret_2h_func(S2H inp) { return ret_2h_func(inp); }
 EXPORT(S8I) __stdcall s_ret_8i_func(S8I inp) { return ret_8i_func(inp); }
