@@ -348,7 +348,7 @@ class FunctionTestCase(unittest.TestCase):
                         ("h", c_int)]
         dll.ret_8i_func.restype = S8I
         s8i = dll.ret_8i_func()
-        self.failUnlessEqual((s8i.a, s8i.b, s8i.c, s8i.d, s8i.e, s8i.f, s8i.g),
+        self.failUnlessEqual((s8i.a, s8i.b, s8i.c, s8i.d, s8i.e, s8i.f, s8i.g, s8i.h),
                              (1, 2, 3, 4, 5, 6, 7, 8))
 
 if __name__ == '__main__':
