@@ -82,11 +82,13 @@ class CFuncPtrTestCase(unittest.TestCase):
 
         WNDPROC_2 = WINFUNCTYPE(c_long, c_int, c_int, c_int, c_int)
 
-        # CFuncPtr subclasses are compared by identity, so this raises a TypeError:
-##        wndclass.lpfnWndProc = WNDPROC_2(wndproc)
-        self.assertRaises(TypeError, setattr, wndclass,
-                          "lpfnWndProc", WNDPROC_2(wndproc))
+        # This is no longer true, now that WINFUNCTYPE caches created types internally.
+        ## # CFuncPtr subclasses are compared by identity, so this raises a TypeError:
+        ## self.assertRaises(TypeError, setattr, wndclass,
+        ##                  "lpfnWndProc", WNDPROC_2(wndproc))
+        # instead:
 
+        self.failUnless(WNDPROC is WNDPROC_2)
         self.failUnlessEqual(wndclass.lpfnWndProc(1, 2, 3, 4), 10)
 
         f = wndclass.lpfnWndProc

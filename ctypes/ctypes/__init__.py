@@ -82,12 +82,17 @@ def c_buffer(init, size=None):
 ##                  DeprecationWarning, stacklevel=2)
     return create_string_buffer(init, size)
 
+_c_functype_cache = {}
 def CFUNCTYPE(restype, *argtypes):
-    class CFunctionType(_CFuncPtr):
-        _argtypes_ = argtypes
-        _restype_ = restype
-        _flags_ = _FUNCFLAG_CDECL
-    return CFunctionType
+    try:
+        return _c_functype_cache[(restype, argtypes)]
+    except KeyError:
+        class CFunctionType(_CFuncPtr):
+            _argtypes_ = argtypes
+            _restype_ = restype
+            _flags_ = _FUNCFLAG_CDECL
+        _c_functype_cache[(restype, argtypes)] = CFunctionType
+        return CFunctionType
 
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
@@ -95,12 +100,17 @@ if _os.name == "nt":
     from _ctypes import FUNCFLAG_HRESULT as _FUNCFLAG_HRESULT, \
          FUNCFLAG_STDCALL as _FUNCFLAG_STDCALL
 
+    _win_functype_cache = {}
     def WINFUNCTYPE(restype, *argtypes):
-        class WinFunctionType(_CFuncPtr):
-            _argtypes_ = argtypes
-            _restype_ = restype
-            _flags_ = _FUNCFLAG_STDCALL
-        return WinFunctionType
+        try:
+            return _win_functype_cache[(restype, argtypes)]
+        except KeyError:
+            class WinFunctionType(_CFuncPtr):
+                _argtypes_ = argtypes
+                _restype_ = restype
+                _flags_ = _FUNCFLAG_STDCALL
+            _win_functype_cache[(restype, argtypes)] = WinFunctionType
+            return WinFunctionType
 
 elif _os.name == "posix":
     from _ctypes import dlopen as _LoadLibrary
@@ -205,14 +215,17 @@ if _os.name == "nt":
 _pointer_type_cache = {}
 
 def POINTER(cls):
+    try:
+        return _pointer_type_cache[cls]
+    except KeyError:
+        pass
     if type(cls) is str:
         klass = type(_Pointer)("LP_%s" % cls,
                                (_Pointer,),
                                {})
         _pointer_type_cache[id(klass)] = klass
         return klass
-    klass = _pointer_type_cache.get(cls, None)
-    if klass is None:
+    else:
         name = "LP_%s" % cls.__name__
         klass = type(_Pointer)(name,
                                (_Pointer,),
@@ -339,3 +352,4 @@ if _os.name == "nt":
         if descr is None:
             descr = FormatError(code).strip()
         return WindowsError(code, descr)
+
