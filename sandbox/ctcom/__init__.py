@@ -6,6 +6,23 @@ ole32 = oledll.ole32
 from windows import *
 
 ################################################################
+
+class POINT(Structure):
+    _fields_ = [("x", c_uint),
+                ("y", c_uint)]
+
+    def __str__(self):
+        return "POINT {x: %d, y: %d}" % (self.x, self.y)
+
+class MSG(Structure):
+    _fields_ = [("hWnd", c_uint),
+                ("message", c_uint),
+                ("wParam", c_uint),
+                ("lParam", c_uint),
+                ("time", c_uint),
+                ("pt", POINT)]
+
+################################################################
 # COM data types
 #
 class GUID(Structure):
@@ -41,13 +58,20 @@ assert(sizeof(GUID) == 16)
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
 
-LCID = c_ulong
-DWORD = c_ulong
-WORD = c_ushort
-
 ################################################################
 # COM interface and pointer meta and baseclasses
 #
+
+def STDMETHOD(restype, name, *argtypes):
+    from ctypes import _CFuncPtr, FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
+    class X(_CFuncPtr):
+        _argtypes_ = argtypes
+        _restype_ = restype
+        _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
+    return name, X
+
+HRESULT = c_int # for now
+
 class _COMInterfaceMeta(type(Structure)):
     def __new__(self, name, bases, dict):
         # Hm, if we want a real type for the lpvtbl field, we should
@@ -95,14 +119,14 @@ class _COMPointerMeta(type(Structure)):
         dict["_has_methods_"] = 0
         return type(Structure).__new__(cls, name, bases, dict)
 
-def _make_commethod(index, argtypes, name):
-    # XXX move this to C code (subclass of DynFunction)
-    from _ctypes import call_commethod
-##    print "# make commethod %i (%s)" % (index, name), argtypes
-    argtypes = tuple([a.from_param for a in argtypes])
-    def func(self, *args):
-        return call_commethod(self, index, args, argtypes)
-    return func
+if 0:
+    def _make_commethod(index, proto, name):
+        # XXX move this to C code (subclass of CFuncPtr ?)
+        from _ctypes import call_commethod
+        argtypes = tuple([a.from_param for a in proto._argtypes_])
+        def func(self, *args):
+            return call_commethod(self, index, args, argtypes)
+        return func
 
 ################
 
@@ -123,8 +147,14 @@ class COMPointer(Structure):
             return Structure.__new__(cls, *args, **kw)
 ##        print "# creating methods for", cls
         index = 0
-        for name, argtypes in cls._interface_._get_methods():
-            mth = _make_commethod(index, argtypes, name)
+        for name, proto in cls._interface_._get_methods():
+            if 0:
+                mth = _make_commethod(index, proto, name)
+            else:
+                import new
+                callable = proto(index)
+                mth = new.instancemethod(callable, None, cls)
+
             setattr(cls, name, mth)
             index += 1
         cls._has_methods_ = 1
@@ -171,6 +201,19 @@ class PUNK(_Pointer):
 class IUnknown(COMInterface):
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
 
+##    _methods_ = [("QueryInterface", [REFIID, PPUNK]),
+##                 ("AddRef", []),
+##                 ("Release", [])]
+
+##    _methods_ = [("QueryInterface", STDMETHOD(REFIID, PPUNK)),
+##                 ("AddRef", STDMETHOD()),
+##                 ("Release", STDMETHOD())]
+
+    # IMO this one looks better than the second:
+    _methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, PPUNK),
+                 STDMETHOD(HRESULT, "AddRef"),
+                 STDMETHOD(HRESULT, "Release")]
+
 class IUnknownPointer(COMPointer):
     _interface_ = IUnknown
 
@@ -178,11 +221,6 @@ class IUnknownPointer(COMPointer):
         # This code handles all the COM refcounting...
         if self.this:
             self.Release()
-
-##IUnknown._methods_ = [("QueryInterface", [REFIID, POINTER(IUnknownPointer)]),
-IUnknown._methods_ = [("QueryInterface", [REFIID, PPUNK]),
-                      ("AddRef", []),
-                      ("Release", [])]
 
 ################################################################
 
@@ -272,6 +310,8 @@ def test(runperf=0):
     assert getrefcount(pic) == 2
     del p2
     assert getrefcount(pic) == 1
+
+    print "test OK"
 
 if __name__ == '__main__':
     test()
