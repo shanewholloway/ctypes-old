@@ -80,6 +80,14 @@ class FunctionTestCase(unittest.TestCase):
         result = f(0, 0, 0, 0, 0, 0)
         self.failUnlessEqual(result, u'\x00')
 
+    def test_voidresult(self):
+        f = dll._testfunc_v
+        f.restype = None
+        f.argtypes = [c_int, c_int, POINTER(c_int)]
+        result = c_int()
+        self.failUnlessEqual(None, f(1, 2, byref(result)))
+        self.failUnlessEqual(result.value, 3)
+
     def test_intresult(self):
         f = dll._testfunc_i_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]

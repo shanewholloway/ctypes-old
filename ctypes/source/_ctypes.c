@@ -1169,10 +1169,9 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_restype_");
 	if (ob) {
-		StgDictObject *dict = PyType_stgdict(ob);
-		if (!dict && !PyCallable_Check(ob)) {
+		if (ob != Py_None && !PyType_stgdict(ob) && !PyCallable_Check(ob)) {
 			PyErr_SetString(PyExc_TypeError,
-				"_restype_ must be a type or callable");
+				"_restype_ must be a type, a callable, or None");
 			return -1;
 		}
 		Py_INCREF(ob);
@@ -1828,10 +1827,9 @@ CFuncPtr_as_parameter(CDataObject *self)
 static int
 CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
 {
-	StgDictObject *dict = PyType_stgdict(ob);
-	if (!dict && !PyCallable_Check(ob)) {
+	if (ob != Py_None && !PyType_stgdict(ob) && !PyCallable_Check(ob)) {
 		PyErr_SetString(PyExc_TypeError,
-				"restype must be a type or callable");
+				"restype must be a type, a callable, or None");
 		return -1;
 	}
 	Py_XDECREF(self->restype);
@@ -3355,6 +3353,11 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
 #endif
 
 /* some functions handy for testing */
+
+DL_EXPORT(void) _testfunc_v(int a, int b, int *presult)
+{
+	*presult = a + b;
+}
 
 DL_EXPORT(int) _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
 {
