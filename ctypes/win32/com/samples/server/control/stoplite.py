@@ -97,6 +97,20 @@ class StopliteObject(COMObject):
         self.model = common.Stoplite()
         self.model.redraw = self._OnViewChange
 
+    if 0:
+        def QueryInterface(self, this, refiid, ppiunk):
+            # It is sometimes useful to see which interfaces are queried by a container...
+            from ctypes.com.server import dprint
+            result = super(StopliteObject, self).QueryInterface(this, refiid, ppiunk)
+            iid = refiid[0]
+            import _winreg
+            try:
+                itfname = _winreg.QueryValue(_winreg.HKEY_CLASSES_ROOT, "Interface\\%s" % iid)
+            except WindowsError:
+                itfname = iid
+            dprint("QI(%s)" % itfname, "->", hex(result))
+            return result
+
     def _OnViewChange(self, aspect=1, lindex=-1):
         # Call IAdviseSink::OnViewChange
         # DVASPECT_CONTENT = 1
@@ -113,7 +127,8 @@ class StopliteObject(COMObject):
         
     # IViewObject interface
 
-    def IViewObject2_SetAdvise(self, this, dwAspect, advf, AdvSink):
+    def IViewObject_SetAdvise(self, this, dwAspect, advf, AdvSink):
+        ##print "SetAdvise"
         # IViewObject::SetAdvise
         # Sets up a connection between the view object and an advise
         # sink so that the advise sink can receive notifications of
@@ -125,25 +140,26 @@ class StopliteObject(COMObject):
             self._advisesink = None
         return S_OK
 
-    def IViewObject2_GetAdvise(self, this, pdwAspect, padvf, ppAdvSink):
+    def IViewObject_GetAdvise(self, this, pdwAspect, padvf, ppAdvSink):
+        ##print "GetAdvise"
         return E_NOTIMPL
 
-    def IViewObject2_Draw(self, this, dwAspect, lindex, pvAspect,
+    def IViewObject_Draw(self, this, dwAspect, lindex, pvAspect,
                           ptd, hicTargetDev, hdcDraw, lprcBounds,
                           lprcWBounds, pfnContinue, dwContinue):
         # IViewObject::Draw
         self.model.Draw(hdcDraw, lprcBounds[0])
         return S_OK
 
-    def IViewObject2_GetColorSet(self, this, dwAspect, lindex, pvAspect,
+    def IViewObject_GetColorSet(self, this, dwAspect, lindex, pvAspect,
                                  ptd, hicTargetDev, ppColorSet):
-##        print "GetColorSet", bool(ptd), bool(ppColorSet)
+        ##print "GetColorSet", bool(ptd), bool(ppColorSet)
         return E_NOTIMPL
 
     # IViewObject2 interface
 
     def IViewObject2_GetExtent(self, this, dwAspect, lindex, ptd, lpsizel):
-##        print "IViewObject2::GetExtent"
+        ##print "IViewObject2::GetExtent"
         return E_NOTIMPL
 
 if __name__ == '__main__':
