@@ -397,6 +397,12 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 		   as parameters (they have to expose the '_as_parameter_'
 		   attribute)
 		*/
+		if (arg == 0)
+			goto error;
+		if (PyCArg_CheckExact(arg)) {
+			Py_DECREF(parm);
+			return (PyCArgObject *)arg;
+		}
 		if (PyInt_Check(arg)) {
 			parm->tag = 'i';
 			parm->value.i = PyInt_AS_LONG(arg);
@@ -404,15 +410,12 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 			parm->obj = obj;
 			return parm;
 		}
-		if (!arg || !PyCArg_CheckExact(arg)) {
-			Py_XDECREF(arg);
-			Py_DECREF(parm);
-			PyErr_Format(PyExc_TypeError,
-				     "Don't know how to convert parameter %d", index);
-			return NULL;
-		}
+	  error:
+		Py_XDECREF(arg);
 		Py_DECREF(parm);
-		return (PyCArgObject *)arg;
+		PyErr_Format(PyExc_TypeError,
+			     "Don't know how to convert parameter %d", index);
+		return NULL;
 	}
 }
 
