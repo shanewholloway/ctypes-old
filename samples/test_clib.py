@@ -1,24 +1,10 @@
 # Demonstrate some functions from the standard C library.
 
-from ctypes import cdll, POINTER, CFuncPtr, FUNCFLAG_CDECL
-
-import os
-
-if os.name == "nt":
-    from ctypes import FUNCFLAG_STDCALL
-else:
-    # The test funcions define __stdcall avay in C code.
-    FUNCFLAG_STDCALL = FUNCFLAG_CDECL
-
-from ctypes import c_char_p, c_double
-
-def CDECL_INT(*argtypes):
-    class F(CFuncPtr):
-        _flags_ = FUNCFLAG_CDECL
-        _argtypes_ = argtypes
-    return F
+from ctypes import cdll, POINTER, CALLBACK
 
 import os, sys
+from ctypes import c_char_p, c_double
+
 if os.name == "nt":
     libc = cdll.msvcrt
     printf = libc.printf
@@ -110,11 +96,11 @@ def test_sqrt():
 def test_qsort():
     import array, random
 
-    class CMPFUNC(CFuncPtr):
-        _argtypes_ = c_int, c_int
-        _flags_ = FUNCFLAG_CDECL
+##    class CMPFUNC(CFuncPtr):
+##        _argtypes_ = c_int, c_int
+##        _flags_ = FUNCFLAG_CDECL
 
-##    CMPFUNC = CDECL_INT(c_int, c_int)
+    CMPFUNC = CALLBACK(c_int, c_int, c_int)
 
     def compare(a, b):
         ad = c_int.from_address(a)
@@ -160,10 +146,12 @@ def test_qsort_1():
         bd = c_int.from_address(b)
         return cmp(ad.value, bd.value)
     
-    class CMPFUNC(CFuncPtr):
-        _argtypes_ = c_int, c_int
-        _flags_ = FUNCFLAG_CDECL
+##    class CMPFUNC(CFuncPtr):
+##        _argtypes_ = c_int, c_int
+##        _flags_ = FUNCFLAG_CDECL
 
+    CMPFUNC = CALLBACK(c_int, c_int, c_int)
+    
     libc.qsort(ia10,
                len(ia10),
                4,
@@ -199,9 +187,11 @@ def test_qsort_2():
         bd = c_int.from_address(b)
         return cmp(ad.value, bd.value)
     
-    class CMPFUNC(CFuncPtr):
-        _argtypes_ = c_int, c_int
-        _flags_ = FUNCFLAG_CDECL
+##    class CMPFUNC(CFuncPtr):
+##        _argtypes_ = c_int, c_int
+##        _flags_ = FUNCFLAG_CDECL
+
+    CMPFUNC = CALLBACK(c_int, c_int, c_int)
 
     libc.qsort(ia10,
                len(ia10),
@@ -234,9 +224,11 @@ def test_qsort_5():
         "the callback now receives pointers to c_int:"
         return cmp(a.contents.value, b.contents.value)
     
-    class CMPFUNC(CFuncPtr):
-        _argtypes_ = POINTER(c_int), POINTER(c_int)
-        _flags_ = FUNCFLAG_CDECL
+##    class CMPFUNC(CFuncPtr):
+##        _argtypes_ = POINTER(c_int), POINTER(c_int)
+##        _flags_ = FUNCFLAG_CDECL
+
+    CMPFUNC = CALLBACK(c_int, POINTER(c_int), POINTER(c_int))
 
     libc.qsort(ia10,
                len(ia10),

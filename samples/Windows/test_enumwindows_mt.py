@@ -18,15 +18,17 @@ Robin Becker
 ####### hacked to use multiple threads by Robin Becker
 # from Paul Moore via comp.lang.python
 import thread, time
-from ctypes import windll, CFuncPtr, c_string, c_int, FUNCFLAG_STDCALL
+from ctypes import windll, c_string, c_int, STDAPI
 user32 = windll.user32
 
 mutex = thread.allocate_lock()
 count = 0
 
-class EnumWindowsProc(CFuncPtr):
-    _argtypes_ = c_int, c_int
-    _flags_ = FUNCFLAG_STDCALL
+##class EnumWindowsProc(CFuncPtr):
+##    _argtypes_ = c_int, c_int
+##    _flags_ = FUNCFLAG_STDCALL
+
+EnumWindowsProc = STDAPI(c_int, c_int, c_int)
 
 def DisplayWindow(hwnd, lparam, where=None):
     title = c_string('\000' * 256)

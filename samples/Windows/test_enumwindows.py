@@ -1,10 +1,8 @@
 # from Paul Moore via comp.lang.python
-from ctypes import windll, CFuncPtr, c_string, c_int
+from ctypes import windll, c_string, c_int, STDAPI
 user32 = windll.user32
 
-class EnumWindowsProc(CFuncPtr):
-    _argtypes_ = c_int, c_int
-    _flags_ = 0
+EnumWindowsProc = STDAPI(c_int, c_int, c_int)
 
 def DisplayWindow(hwnd, lparam):
     title = c_string('\000' * 256)
