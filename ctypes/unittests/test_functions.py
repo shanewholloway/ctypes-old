@@ -188,9 +188,10 @@ class FunctionTestCase(unittest.TestCase):
         result = f(p)
         self.failUnlessEqual(result.contents.value, 99)
 
-        # We need to keep the pointer alive, otherwise the contents change:
+        # We need to keep the pointer alive, otherwise the contents MAY change:
         result = f(pointer(c_int(99)))
-        self.failIfEqual(result.contents.value, 99)
+        # This test is broken.  We cannot expect that the contents really change.
+        ##self.failIfEqual(result.contents.value, 99)
 
         # XXX But this not! WHY on earth?
         arg = byref(v)
