@@ -392,8 +392,8 @@ class StopliteObject(COMObject):
         return S_OK
 
     def _CreateControlWindow(self, hwndParent, rect):
-        WS_CHILD   = 0x40000000
-        WS_VISIBLE = 0x10000000
+        WS_CHILD   = 0x40000000L
+        WS_VISIBLE = 0x10000000L
         win_id = 0
         self._hwnd = windll.user32.CreateWindowExA(
             0,
@@ -421,7 +421,7 @@ OLEIVERB_INPLACEACTIVATE    = -5
 OLEIVERB_DISCARDUNDOSTATE   = -6
 OLEIVERB_PROPERTIES         = -7
 
-OLEOBJ_E_NOVERBS = 0x80040180
+OLEOBJ_E_NOVERBS = 0x80040180L
 
 OLECLOSE_SAVEIFDIRTY = 0
 OLECLOSE_NOSAVE = 1
