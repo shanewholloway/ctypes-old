@@ -57,7 +57,10 @@ class test(Command):
         self.test_prefix = 'test_'
         self.verbosity = 1
         if sys.platform == "win32":
-            self.test_dirs = r"unittests,unittests\com"
+            if os.path.isdir(r"comtypes\unittests"):
+                self.test_dirs = r"unittests,unittests\com,comtypes\unittests"
+            else:
+                self.test_dirs = r"unittests,unittests\com"
         else:
             self.test_dirs = "unittests"
 
