@@ -287,20 +287,8 @@ EXPORT(void) _py_func(void)
 {
 }
 
-PY_LONG_LONG last_tf_arg_s;
-unsigned PY_LONG_LONG last_tf_arg_u;
-
-PyObject *
-get_last_tf_arg_s(PyObject *self, PyObject *arg)
-{
-	return PyLong_FromLongLong(last_tf_arg_s);
-}
-
-PyObject *
-get_last_tf_arg_u(PyObject *self, PyObject *arg)
-{
-	return PyLong_FromUnsignedLongLong(last_tf_arg_u);
-}
+EXPORT(PY_LONG_LONG) last_tf_arg_s;
+EXPORT(unsigned PY_LONG_LONG) last_tf_arg_u;
 
 struct BITS {
 	int A: 1, B:2, C:3, D:4, E: 5, F: 6, G: 7, H: 8, I: 9;
@@ -355,8 +343,8 @@ DL_EXPORT(int) unpack_bitfields(struct BITS *bits, char name)
 }
 
 PyMethodDef module_methods[] = {
-	{"get_last_tf_arg_s", get_last_tf_arg_s, METH_NOARGS},
-	{"get_last_tf_arg_u", get_last_tf_arg_u, METH_NOARGS},
+//	{"get_last_tf_arg_s", get_last_tf_arg_s, METH_NOARGS},
+//	{"get_last_tf_arg_u", get_last_tf_arg_u, METH_NOARGS},
 	{"func_si", py_func_si, METH_VARARGS},
 	{"func", py_func, METH_NOARGS},
 	{ NULL, NULL, 0, NULL},

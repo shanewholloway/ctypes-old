@@ -7,10 +7,6 @@ from ctypes import *
 # These two functions report the argument in the last call to one of
 # the tf_? functions.
 
-from _ctypes_test import \
-     get_last_tf_arg_s as S, \
-     get_last_tf_arg_u as U
-
 def find_test_dll():
     import _ctypes_test
     return _ctypes_test.__file__
@@ -19,6 +15,11 @@ class CFunctions(unittest.TestCase):
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)
         self.dll = CDLL(find_test_dll())
+        global S, U
+        def S():
+            return c_longlong.in_dll(self.dll, "last_tf_arg_s").value
+        def U():
+            return c_ulonglong.in_dll(self.dll, "last_tf_arg_u").value
 
     def test_byte(self):
         self.dll.tf_b.restype = c_byte
