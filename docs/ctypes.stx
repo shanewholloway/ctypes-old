@@ -1,6 +1,7 @@
 The ctypes module
 
-    ctypes home :: "tutorial":ctypes/tutorial.html :: "reference":ctypes/reference.html :: "faq":ctypes/faq.html
+  ctypes home :: "tutorial":ctypes/tutorial.html ::
+  "reference":ctypes/reference.html :: "faq":ctypes/faq.html
 
   Overview
 
