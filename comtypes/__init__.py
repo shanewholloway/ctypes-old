@@ -101,10 +101,9 @@ class _cominterface_meta(type):
         return cls
 
     def __setattr__(self, name, value):
+        if name == "_methods_":
+            self._make_methods(value)
         type.__setattr__(self, name, value)
-        if name != "_methods_":
-            return
-        self._make_methods(value)
 
     def __get_baseinterface_methodcount(self):
         "Return the number of com methods in the base interfaces"
