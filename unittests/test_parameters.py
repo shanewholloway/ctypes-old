@@ -52,19 +52,18 @@ class SimpleTypesTestCase(unittest.TestCase):
         # Hm, how to check the c_wstring(xxx)._as_parameter_ attribute?
 
     def test_int_pointers(self):
-        from ctypes import c_int, c_long, POINTER, pointer
+        from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer
         LPINT = POINTER(c_int)
 
-        i = c_int(42)
-        l = c_long(420)
-
-        x = LPINT.from_param(pointer(i))        
+        x = LPINT.from_param(pointer(c_int(42)))
         self.failUnless(x.contents.value == 42)
-        self.failUnless(LPINT(i).contents.value == 42)
+        self.failUnless(LPINT(c_int(42)).contents.value == 42)
 
         self.failUnless(LPINT.from_param(None) == 0)
 
-        self.assertRaises(TypeError, LPINT.from_param, pointer(l))
+        self.assertRaises(TypeError, LPINT.from_param, pointer(c_long(42)))
+        self.assertRaises(TypeError, LPINT.from_param, pointer(c_uint(42)))
+        self.assertRaises(TypeError, LPINT.from_param, pointer(c_short(42)))
 
 ##    def test_performance(self):
 ##        check_perf()
