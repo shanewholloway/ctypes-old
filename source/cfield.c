@@ -438,7 +438,6 @@ static PyObject *
 b_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
-	assert(type);
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(char *)ptr = (char)SET(*(char *)ptr, (char)val, size);
@@ -458,7 +457,6 @@ static PyObject *
 B_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
-	assert(type);
 	if (get_ulong(value, &val) < 0)
 		return NULL;
 	*(unsigned char *)ptr = (unsigned char)SET(*(unsigned char*)ptr,
@@ -479,7 +477,6 @@ static PyObject *
 h_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
-	assert(type);
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(short *)ptr = (short)SET(*(short *)ptr, (short)val, size);
@@ -499,7 +496,6 @@ static PyObject *
 H_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
-	assert(type);
 	if (get_ulong(value, &val) < 0)
 		return NULL;
 	*(unsigned short *)ptr = (unsigned short)SET(*(unsigned short *)ptr,
@@ -524,7 +520,6 @@ static PyObject *
 i_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
-	assert(type);
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(int *)ptr = (int)SET(*(int *)ptr, (int)val, size);
@@ -545,7 +540,6 @@ i_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 static PyObject *
 vBOOL_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
-	assert(type);
 	switch (PyObject_IsTrue(value)) {
 	case -1:
 		return NULL;
@@ -573,7 +567,6 @@ static PyObject *
 I_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
-	assert(type);
 	if (get_ulong(value, &val) < 0)
 		return  NULL;
 	*(unsigned int *)ptr = (unsigned int)SET(*(unsigned int *)ptr, (unsigned int)val, size);
@@ -594,7 +587,6 @@ static PyObject *
 l_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	long val;
-	assert(type);
 	if (get_long(value, &val) < 0)
 		return NULL;
 	*(long *)ptr = (long)SET(*(long *)ptr, val, size);
@@ -614,7 +606,6 @@ static PyObject *
 L_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned long val;
-	assert(type);
 	if (get_ulong(value, &val) < 0)
 		return  NULL;
 	*(unsigned long *)ptr = (unsigned long)SET(*(unsigned long *)ptr, val, size);
@@ -635,7 +626,6 @@ static PyObject *
 q_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	PY_LONG_LONG val;
-	assert(type);
 	if (get_longlong(value, &val) < 0)
 		return NULL;
 	*(PY_LONG_LONG *)ptr = (PY_LONG_LONG)SET(*(PY_LONG_LONG *)ptr, val, size);
@@ -654,7 +644,6 @@ static PyObject *
 Q_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	unsigned PY_LONG_LONG val;
-	assert(type);
 	if (get_ulonglong(value, &val) < 0)
 		return NULL;
 	*(unsigned PY_LONG_LONG *)ptr = (unsigned PY_LONG_LONG)SET(*(unsigned PY_LONG_LONG *)ptr, val, size);
@@ -680,7 +669,6 @@ static PyObject *
 d_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	double x;
-	assert(type);
 	x = PyFloat_AsDouble(value);
 	if (x == -1 && PyErr_Occurred()) {
 		PyErr_Format(PyExc_TypeError,
@@ -702,7 +690,6 @@ static PyObject *
 f_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	float x;
-	assert(type);
 	x = (float)PyFloat_AsDouble(value);
 	if (x == -1 && PyErr_Occurred()) {
 		PyErr_Format(PyExc_TypeError,
@@ -737,7 +724,6 @@ O_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 static PyObject *
 O_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
-	assert(type);
 	*(PyObject **)ptr = value;
 	Py_INCREF(value);
 	return value;
@@ -747,7 +733,6 @@ O_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 static PyObject *
 c_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
-	assert(type);
 	if (!PyString_Check(value) || (1 != PyString_Size(value))) {
 		PyErr_Format(PyExc_TypeError,
 			     "one character string expected");
@@ -770,7 +755,6 @@ static PyObject *
 u_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	int len;
-	assert(type);
 	if (PyString_Check(value)) {
 		value = PyUnicode_FromEncodedObject(value,
 						    conversion_mode_encoding,
@@ -811,7 +795,6 @@ u_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 static PyObject *
 z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
-	assert(type);
 	if (value == Py_None) {
 		*(char **)ptr = NULL;
 		Py_INCREF(value);
@@ -856,7 +839,6 @@ z_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 static PyObject *
 Z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
-	assert(type);
 	if (value == Py_None) {
 		*(wchar_t **)ptr = NULL;
 		Py_INCREF(value);
@@ -936,7 +918,6 @@ static PyObject *
 BSTR_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	BSTR bstr;
-	assert(type);
 	/* convert value into a PyUnicodeObject or NULL */
 	if (Py_None == value) {
 		value = NULL;
@@ -996,7 +977,6 @@ static PyObject *
 P_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	void *v;
-	assert(type);
 	if (value == Py_None) {
 		*(void **)ptr = NULL;
 		_RET(value);
