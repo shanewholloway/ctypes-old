@@ -469,6 +469,11 @@ EXPORT(S8I) ret_8i_func(void)
 	return s8i;
 }
 
+#ifdef MS_WIN32
+EXPORT(S2H) __stdcall s_ret_2h_func(void) { return ret_2h_func(); }
+EXPORT(S8I) __stdcall s_ret_8i_func(void) { return ret_8i_func(); }
+#endif
+
 DL_EXPORT(void)
 init_ctypes_test(void)
 {
