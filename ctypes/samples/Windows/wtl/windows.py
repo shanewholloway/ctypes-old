@@ -1,4 +1,4 @@
-from ctypes import windll, cdll, Structure, pointer, WinError, sizeof, STDAPI
+from ctypes import windll, cdll, Structure, pointer, WinError, sizeof, WinFuncType
 from ctypes import c_char, c_ubyte, c_byte, c_ushort, c_short, c_uint, c_int, c_char_p
 
 WIN32_IE = 0x0550
@@ -18,7 +18,7 @@ def ValidHandle(value):
     else:
         return value
 
-WndProc = STDAPI(c_int, c_int, c_int, c_int, c_int)
+WndProc = WinFuncType(c_int, c_int, c_int, c_int, c_int)
     
 class WNDCLASSEX(Structure):
     _fields_ = [("cbSize", c_uint),
