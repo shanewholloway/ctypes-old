@@ -4,6 +4,8 @@
 *.tlb
 *.zip
 MANIFEST
+_ctypes.pyd
+_ctypes_d.pyd
 archive
 build
 dist
