@@ -1994,6 +1994,12 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		  only it's object list.  So we create a tuple, containing
 		  b_objects list PLUS the array itself, and return that!
 		*/
+
+		/* 
+		   I don't think the above really makes sense.  Since the
+		   array object already contains it's own b_objects if should
+		   be sufficient to return src here.
+		 */
 		return Py_BuildValue("(OO)", keep, value);
 	}
 	PyErr_Format(PyExc_TypeError,
