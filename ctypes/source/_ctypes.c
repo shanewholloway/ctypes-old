@@ -2018,9 +2018,10 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	if (1 == PyTuple_GET_SIZE(args) && PyInt_Check(PyTuple_GET_ITEM(args, 0))) {
 		CDataObject *ob;
-		ob = GenericCData_new(type, args, kwds);
+		ob = (CDataObject *)GenericCData_new(type, args, kwds);
+		/* XXX The following correctly gives a warning */
 		*(void **)ob->b_ptr = PyInt_AsLong(PyTuple_GET_ITEM(args, 0));
-		return ob;
+		return (PyObject *)ob;
 	}
 
 	if (!PyArg_ParseTuple(args, "O", &callable))
