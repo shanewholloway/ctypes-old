@@ -4069,9 +4069,16 @@ static int
 DynFunction_set_restype(DynFunctionObject *self, PyObject *value)
 {
 	if (PyString_Check(value)
-	    || PointerTypeObject_Check(value)
-	    || SimpleTypeObject_Check(value)
-	    || PyCallable_Check(value)) {
+	    || PointerTypeObject_Check(value)) {
+		Py_XDECREF(self->restype);
+		Py_INCREF(value);
+		self->restype = value;
+		return 0;
+	}
+	/* We allow callables, but NOT CData types, it would be too confusing */
+	if (PyCallable_Check(value)
+	    && !SimpleTypeObject_Check(value)
+	    && !CDataObject_Check(value)) {
 		Py_XDECREF(self->restype);
 		Py_INCREF(value);
 		self->restype = value;
