@@ -29,6 +29,16 @@ to install it.  If you want to run the unittests before, you should do
 
   python setup.py test
 
+To install from the binary windows installer, make sure you download
+the correct version depending on the Python version you use.
+
+For Python 2.2, you need
+    ctypes-0.4.0.win32-py2.2.exe
+
+For Python 2.3, you need
+    ctypes-0.4.0.win32-py2.3.exe 
+
+
 ----
 
 It provides classes which can be used to create complicated C data
