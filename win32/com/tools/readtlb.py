@@ -659,6 +659,10 @@ class TypeLibReader:
             elif kind.value == TKIND_MODULE:
                 rdr = ModuleReader(self, ti)
                 self.modules.append(rdr)
+            elif kind.value == TKIND_ALIAS:
+                assert 0
+            else:
+                assert 0
                 
         for iid in self.types:
             ti = self.types[iid]
@@ -781,7 +785,7 @@ def main():
 ##        path = r"..\samples\server\sum.tlb"
         path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
-##        path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
+        path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
 ##        path = r"c:\windows\system32\msi.dll"
 
 ## XXX Does definitely *not* work with the Excel type library
