@@ -1167,6 +1167,7 @@ PyMethodDef module_methods[] = {
 	{"dlclose", py_dl_close, METH_VARARGS, "dlclose a library"},
 	{"dlsym", py_dl_sym, METH_VARARGS, "find symbol in shared library"},
 #endif
+	{"alignment", align_func, METH_O},
 	{"sizeof", sizeof_func, METH_O},
 	{"byref", byref, METH_O},
 	{"addressof", addressof, METH_O},

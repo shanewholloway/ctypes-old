@@ -98,6 +98,7 @@ extern void FreeCallback(THUNK);
 extern PyMethodDef module_methods[];
 
 extern PyObject *sizeof_func(PyObject *self, PyObject *obj);
+extern PyObject *align_func(PyObject *self, PyObject *obj);
 extern PyObject *byref(PyObject *self, PyObject *obj);
 extern PyObject *addressof(PyObject *self, PyObject *obj);
 

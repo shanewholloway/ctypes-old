@@ -268,7 +268,8 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 {
 	StgDictObject *stgdict;
 	int len, offset, size, align, i;
-	int union_size;
+
+	int union_size, total_align;
 
 	if (!typedict)
 		return NULL;
@@ -295,9 +296,9 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 	size = 0;
 	align = 0;
 	union_size = 0;
+	total_align = 1;
 
 #define realdict ((PyObject *)&stgdict->dict)
-
 	for (i = 0; i < len; ++i) {
 		PyObject *name = NULL, *desc = NULL;
 		PyObject *pair = PySequence_GetItem(fields, i);
@@ -320,6 +321,9 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 					       &size, &offset, &align);
 			union_size = max(size, union_size);
 		}
+		assert(align > 0);
+		total_align = max(align, total_align);
+
 		if (!prop) {
 			Py_DECREF(pair);
 			Py_DECREF((PyObject *)stgdict);
@@ -335,11 +339,17 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 		Py_DECREF(prop);
 	}
 #undef realdict
-	if (isStruct)
-		stgdict->size = size;
-	else
-		stgdict->size = union_size;
-	stgdict->align = -1;
+
+	if (!isStruct)
+		size = union_size;
+
+	assert(align > 0);
+
+	/* Adjust the size according to the alignment requirements */
+	size = ((size + total_align - 1) / total_align) * total_align;
+
+	stgdict->size = size;
+	stgdict->align = total_align;
 	stgdict->length = len;
 	return (PyObject *)stgdict;
 }
@@ -652,7 +662,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!stgdict)
 		return NULL;
 	stgdict->size = sizeof(void *);
-	stgdict->align = -1;
+	stgdict->align = getentry("P")->align;
 	stgdict->length = 1;
 	Py_XINCREF(proto);
 	stgdict->proto = proto;
@@ -838,7 +848,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		itemlen = dict->length;
 
 		stgdict->size = itemsize * length;
-		stgdict->align = -1;
+		stgdict->align = itemalign;
 		stgdict->length = length;
 		Py_INCREF(proto);
 		stgdict->proto = proto;
@@ -855,7 +865,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 		stgdict->size = itemsize * length;
-		stgdict->align = -1;
+		stgdict->align = align;
 		stgdict->length = length;
 		stgdict->setfunc = field->setfunc;
 		stgdict->getfunc = field->getfunc;
@@ -970,7 +980,7 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	fmt = getentry(PyString_AS_STRING(proto));
 
-	stgdict->align = -1;
+	stgdict->align = fmt->align;
 	stgdict->length = 1;
 	stgdict->size = fmt->size;
 	stgdict->setfunc = fmt->setfunc;
@@ -3672,7 +3682,7 @@ CFunctionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!stgdict)
 		return NULL;
 	stgdict->size = sizeof(void *);
-	stgdict->align = -1;
+	stgdict->align = getentry("P")->align;
 	stgdict->length = 1;
 
 	/* create the new instance (which is a class,
@@ -4230,6 +4240,24 @@ sizeof_func(PyObject *self, PyObject *obj)
 		return NULL;
 	}
 	return PyInt_FromLong(((CDataObject *)obj)->b_size);
+}
+
+PyObject *
+align_func(PyObject *self, PyObject *obj)
+{
+	StgDictObject *dict;
+
+	dict = PyType_stgdict(obj);
+	if (dict)
+		return PyInt_FromLong(dict->align);
+
+	dict = PyObject_stgdict(obj);
+	if (dict)
+		return PyInt_FromLong(dict->align);
+
+	PyErr_SetString(PyExc_TypeError,
+			"no alignment info");
+	return NULL;
 }
 
 /*
