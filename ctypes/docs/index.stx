@@ -1,0 +1,112 @@
+The ctypes module
+
+  overview :: "tutorial":tutorial.html ::
+  "reference":reference.html :: "faq":faq.html
+
+  ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
+
+  Overview
+
+    'ctypes' is a Python package to create and manipulate C data types
+    in Python, and to call functions in dynamic link libraries/shared
+    dlls. It allows wrapping these libraries in pure Python.
+
+    It works on Windows, Linux and MacOS X (the latter two require
+    that your machine is supported by libffi).
+
+  News
+
+    **'ctypes' version 0.6.1 has been released**, and the
+    documentation has been updated. The changes are summarized
+    "here":ctypes/changes.html.
+
+  Testimonials
+
+    *I am using it and much prefer it to the calldll/windll
+    ... easy to use, well documented ...*  - Ben C
+
+    *Your ctypes stuff is awesome! Thanks so much for making
+    it. Almost every time I write a C extension it's so I can call
+    some Windows function - I don't know if I'll need to do that much
+    anymore and that makes me very happy. :)* - Dave Brueck
+
+    <!--
+    *Naive questioners who just want to get at a DLL with Python
+    probably are in search of ctypes.* - Dr. Dobb's Python-URL!
+    -->
+
+    *ctypes! With stuff like Pysco and Pyrex maturing, the main reason
+    I was still writing C extensions was to access various Windows
+    APIs (especially those not covered in the Win32 Python
+    extensions), but no longer - I may never write another "wrapper"
+    extension again and that makes me very, very happy. :)* - Dave
+    Brueck
+
+    *I like the idea of using ctypes for creating highly native
+    windows applications. So far I have been using wxPython, but that
+    library is so big that it adds 3-4 seconds latency to the startup
+    of the python :-), Also memory footprint is kind of huge.* - Henk Punt
+
+    *... and I just started using ctypes tonight. Good old
+    calldll/windll won't be in my toolkit much longer. :) It's a very
+    exciting time for Python. Between Psyco and ctypes, writing code
+    in C is becoming quite rare for me!* - Jimmy Retzlaff
+
+    *ctypes is very cool! Great piece of work.* - Just van Rossum
+
+  Old news
+
+    'ctypes' version 0.6.0 has been released, and the
+    documentation has been updated. The changes are summarized
+    "here":ctypes/changes.html.
+
+    There have been some (also incompatible) changes, but I'm quite
+    pleased with the result: ctypes is much more consistent than before.
+
+    A proof-of-concept COM framework has been implemented, and added
+    to the package. It is in an early stage, and I would like
+    experienced COM developers to look at it, and submit feedback.
+
+    Other changes are documented "here":ctypes/changes.html.
+
+    'ctypes' now works on Windows, Linux and MacOSX. Thanks
+    to *Robin Becker* and *Just van Rossum* for their help.
+
+    There is now a mailing list which should be used to discuss the
+    usage and further development of 'ctypes'.  More info can be found
+    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
+
+    'ctypes' Development now takes place on sourceforge's "ctypes
+    project page":http://sourceforge.net/projects/ctypes.
+
+    I've started a "FAQ":ctypes/faq.html which should be consulted
+    in case of problems.
+
+  Documentation
+
+    An extensive tutorial is included in the source distribution, but
+    also available "online":ctypes/tutorial.html. You should also read
+    the sample files in the source distribution.
+
+
+  Downloads
+
+    Recent releases can be downloaded in the "sourceforge files
+    section":http://sourceforge.net/project/showfiles.php?group_id=71702.
+
+    The source archives contain all the sources, the documentation you
+    are reading here, and sample files in a 'samples' subdirectory.
+    Looking at the sample files is highly recommended in addition to
+    reading the documentation.
+
+    The binary Windows distribution only everything except the
+    documentation, the unittests, and some example scripts.
+
+    These files are distributed under the "MIT license":LICENSE.txt.
+
+
+<!--
+	Local Variables:
+	compile-command: "make_html"
+	End:
+-->

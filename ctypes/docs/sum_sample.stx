@@ -1,8 +1,9 @@
 Implementing a COM server with 'ctypes'
 
-  "ctypes home":../ctypes.html :: "tutorial":../tutorial.html ::
-  "reference":reference.html :: "faq":faq.html ::
-  "COM":ctypes/com.html
+  "overview":overview.html :: "tutorial":tutorial.html ::
+  "reference":reference.html :: "faq":faq.html
+
+  ( Work in progress: "COM":com.html :: COM sample )
 
   **Warning: work in progress**
 
