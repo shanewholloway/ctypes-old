@@ -15,8 +15,10 @@ import os as _os
 if _os.name == "nt":
     from _ctypes import c_wstring
     from _ctypes import FormatError
+    from _ctypes import FUNCFLAG_STDCALL
 
 from _ctypes import FUNCFLAG_CDECL
+
 
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
