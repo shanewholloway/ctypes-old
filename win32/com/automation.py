@@ -1,4 +1,4 @@
-import datetime
+import datetime, array
 
 from ctypes import *
 from ctypes.wintypes import DWORD, WORD, LPOLESTR, LPCOLESTR, LCID
@@ -281,6 +281,10 @@ VARIANT_BOOL = c_short
 
 PVARIANT = POINTER("VARIANT")
 
+class SAFEARRAYBOUND(Structure):
+    _fields_ = [("cElements", c_ulong),
+                ("lLbound", c_long)]
+
 class VARIANT(Structure):
     class U(Union):
         _fields_ = [("VT_BOOL", c_short),
@@ -353,6 +357,30 @@ class VARIANT(Structure):
             self._.voidp = oleaut32.SysAllocStringLen(value, len(value))
         elif value is None:
             return
+        elif typ is array.array:
+            TYPECODE = {
+                "d": (VT_R8, c_double),
+                "f": (VT_R4, c_float),
+                "l": (VT_I4, c_long),
+                "i": (VT_INT, c_int),
+                "h": (VT_I2, c_short),
+                "b": (VT_I1, c_byte),
+                "I": (VT_UINT, c_uint),
+                "L": (VT_UI4, c_ulong),
+                "H": (VT_UI2, c_ushort),
+                "B": (VT_UI1, c_ubyte),
+                }
+            vt, itemklass = TYPECODE[value.typecode]
+            sab = SAFEARRAYBOUND(len(value), 0)
+            psa = oleaut32.SafeArrayCreate(vt, 1, byref(sab))
+            ix = c_long()
+            item = itemklass()
+            for index, v in enumerate(value):
+                ix.value = index
+                item.value = v
+                oleaut32.SafeArrayPutElement(psa, byref(ix), byref(item))
+            self._.VT_I4 = psa
+            self.vt = VT_ARRAY | vt
         elif typ is bool:
             self.vt = VT_BOOL
             self._.VT_BOOL = value and -1 or 0
@@ -440,6 +468,37 @@ class VARIANT(Structure):
             days = self._.VT_R8
             return datetime.timedelta(days=days) + self._com_null_date
             raise "NYI"
+        elif self.vt & VT_ARRAY:
+            TYPECODE = {
+                VT_R8: c_double,
+                VT_R4: c_float,
+                VT_I4: c_long,
+                VT_INT: c_int,
+                VT_I2: c_short,
+                VT_I1: c_byte,
+                VT_UI4: c_ulong,
+                VT_UINT: c_uint,
+                VT_UI2: c_ushort,
+                VT_UI1: c_ubyte,
+                }
+
+            # idea: use a LONG array (array.array('l')
+            # to specify indices?
+            # requires buffer support for function calls
+            psa = self._.VT_I4
+            dim = oleaut32.SafeArrayGetDim(psa)
+            assert dim == 1
+            lb, ub = c_long(), c_long()
+            oleaut32.SafeArrayGetLBound(psa, 1, byref(lb))
+            oleaut32.SafeArrayGetUBound(psa, 1, byref(ub))
+            ix = c_long()
+            data = TYPECODE[self.vt & ~VT_ARRAY]()
+            result = []
+            for i in range(lb.value, ub.value+1):
+                ix.value = i
+                oleaut32.SafeArrayGetElement(psa, byref(ix), byref(data))
+                result.append(data.value)
+            return result
         else:
             raise TypeError, "don't know how to convert typecode %d" % self.vt
         # not yet done:
@@ -493,7 +552,8 @@ class EXCEPINFO(Structure):
                 ("dwHelpContext", DWORD),
                 ("pvReserved", c_void_p),
                 ("pfnDeferredFillIn", c_int), # XXX
-                ("scode", SCODE)]
+##                ("scode", SCODE)]
+                ("scode", c_long)]
     def as_tuple(self):
         return (self.wCode, self.bstrSource, self.bstrDescription,
                 self.bstrHelpFile, self.dwHelpContext, self.scode)
