@@ -4,7 +4,7 @@
 #include "ctypes.h"
 
 
-#ifdef _DEBUG
+#ifdef Py_DEBUG
 #define MALLOC_CLOSURE_DEBUG
 #endif
 
@@ -27,42 +27,46 @@ typedef struct _tagpage {
 } PAGE;
 
 PAGE *start;
-unsigned int pagesize;
+unsigned int _pagesize;
+
+#define BLOCKSIZE _pagesize * 4
 
 static PAGE *get_page()
 {
 	PAGE *page;
 #ifdef MS_WIN32
-	if (!pagesize) {
+	if (!_pagesize) {
 		SYSTEM_INFO systeminfo;
 		GetSystemInfo(&systeminfo);
-		pagesize = systeminfo.dwPageSize;
+		_pagesize = systeminfo.dwPageSize;
 	}
 
 	page = (PAGE *)VirtualAlloc(NULL,
-				    pagesize,
+				    BLOCKSIZE,
 				    MEM_COMMIT,
 				    PAGE_EXECUTE_READWRITE);
 	if (page == NULL)
 		return NULL;
 #else
-	if (!pagesize) {
-		pagesize = sysconf(_SC_PAGESIZE);
+	if (!_pagesize) {
+		_pagesize = sysconf(_SC_PAGESIZE);
 	}
 	page = (PAGE *)mmap(NULL,
-			    pagesize,
+			    BLOCKSIZE,
 			    PROT_READ | PROT_WRITE | PROT_EXEC,
 			    MAP_PRIVATE | MAP_ANONYMOUS,
 			    -1,
 			    0);
 	if (page == (void *)MAP_FAILED)
 		return NULL;
-	memset(page, 0, pagesize);
+	memset(page, 0, BLOCKSIZE);
 #endif
-	page->count = (pagesize - sizeof(page)) / sizeof(ffi_closure);
+	page->count = (BLOCKSIZE - sizeof(page)) / sizeof(ffi_closure);
 
 #ifdef MALLOC_CLOSURE_DEBUG
-	page->count = 5;
+	printf("One BLOCK has %d closures\n", page->count);
+
+	page->count = 1;
 
 	printf("ALLOCATED page %p\n", page);
 #endif
@@ -75,7 +79,7 @@ static void free_page(PAGE *page)
 	if (0 == VirtualFree(page, 0, MEM_RELEASE))
 		Py_FatalError("ctypes: executable memory head corrupted");
 #else
-	if (-1 == munmap((void *)page, pagesize))
+	if (-1 == munmap((void *)page, BLOCKSIZE))
 		Py_FatalError("ctypes: executable memory head corrupted");
 #endif
 }
@@ -102,6 +106,13 @@ void FreeClosure(void *p)
 
   done:
 	if (page->used == 0) {
+		if (page == start && page->next == NULL) {
+			/* don't free the last page */
+#ifdef MALLOC_CLOSURE_DEBUG
+			printf("Don't free the very last page %p\n", page);
+#endif
+			return;
+		}
 		/* unlink the current page from the chain */
 		if (page->next)
 			page->next->prev = page->prev;
@@ -111,6 +122,8 @@ void FreeClosure(void *p)
 			start = page->next;
 			if (start)
 				start->prev = NULL;
+			else
+				Py_FatalError("ctypes: no free page left\n");
 		}
 
 		/* now, page can be freed */
