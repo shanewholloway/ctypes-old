@@ -1913,7 +1913,7 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 #ifdef MS_WIN32
 	address = (PPROC)GetProcAddress(handle, name);
 	if (!address) {
-		PyErr_Format(PyExc_ValueError,
+		PyErr_Format(PyExc_AttributeError,
 			     "function '%s' not found",
 			     name);
 		return NULL;
@@ -1921,7 +1921,7 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 #else
 	address = (PPROC)dlsym(handle, name);
 	if (!address) {
-		PyErr_Format(PyExc_ValueError,
+		PyErr_Format(PyExc_AttributeError,
 			     dlerror());
 		return NULL;
 	}
@@ -3383,6 +3383,33 @@ EXPORT void my_free(void *p)
 {
 	printf("my_free got %d\n", p);
 }
+
+typedef struct {
+	char *name;
+	char *value;
+} SPAM;
+
+typedef struct {
+	char *name;
+	int num_spams;
+	SPAM *spams;
+} EGG;
+
+SPAM my_spams[2] = {
+	{ "name1", "value1" },
+	{ "name2", "value2" },
+};
+
+EGG my_eggs[1] = {
+	{ "first egg", 1, my_spams }
+};
+
+EXPORT  int getSPAMANDEGGS(EGG **eggs)
+{
+	*eggs = my_eggs;
+	return 1;
+}
+
 /*
  Local Variables:
  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"

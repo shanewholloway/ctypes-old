@@ -283,6 +283,10 @@ class FunctionTestCase(unittest.TestCase):
 
         self.failUnless(13577625587 == f(1000000000000, cb))
 
+    def test_errors(self):
+        self.assertRaises(AttributeError, getattr, dll, "_xxx_yyy")
+        self.assertRaises(ValueError, c_int.in_dll, dll, "_xxx_yyy")
+
 def get_suite():
     return unittest.makeSuite(FunctionTestCase)
 

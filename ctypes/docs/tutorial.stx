@@ -61,7 +61,10 @@ ctypes tutorial
         File "<stdin>", line 1, in ?
         File "ctypes.py", line 239, in __getattr__
           func = _StdcallFuncPtr(name, self)
-      ValueError: function 'MyOwnFunction' not found
+      Attribute: function 'MyOwnFunction' not found
+
+    XXX ctypes version 0.6.2 and above raise AttributeErrors when a
+    symbol is not found in a dll, before ValueError was raised.
 
     Note that win32 system dlls like 'kernel32', 'user32', and others,
     sometimes export ANSI as well as UNICODE versions of
