@@ -1406,6 +1406,7 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	stgdict->size = sizeof(void *);
 	stgdict->setfunc = NULL;
 	stgdict->getfunc = NULL;
+	stgdict->ffi_type = ffi_type_pointer;
 
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_flags_");
 	if (!ob || !PyInt_Check(ob)) {
