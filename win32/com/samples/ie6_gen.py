@@ -8,27 +8,9 @@
 
 from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
-from ctypes.com.automation import IDispatch, BSTR, VARIANT
+from ctypes.com.automation import IDispatch, BSTR, VARIANT, \
+                                  dispinterface, DISPMETHOD
 
-class enum(c_int):
-    pass
-
-OLECMDID = enum
-OLECMDEXECOPT = enum
-
-class dispinterface(IDispatch):
-    class __metaclass__(type(IDispatch)):
-        def __setattr__(self, name, value):
-            if name == '_dispmethods_':
-                dispmap = {}
-                for dispid, mthname, proto in value:
-                    dispmap[dispid] = mthname
-                setattr(self, '_methods_', IDispatch._methods_)
-                type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
-            type(IDispatch).__setattr__(self, name, value)
-
-def DISPMETHOD(dispid, restype, name, *argtypes):
-    return dispid, name, STDMETHOD(HRESULT, name, *argtypes)
 
 ##############################################################################
 
@@ -42,7 +24,7 @@ class SHDocVw:
 
 ##############################################################################
 
-class CommandStateChangeConstants(enum):
+class CommandStateChangeConstants(c_int):
     """Constants for WebBrowser CommandStateChange"""
     _iid_ = GUID('{34A226E0-DF30-11CF-89A9-00A0C9054129}')
     CSC_UPDATECOMMANDS = -1
@@ -50,7 +32,7 @@ class CommandStateChangeConstants(enum):
     CSC_NAVIGATEBACK = 2
 
 
-class OLECMDID(enum):
+class OLECMDID(c_int):
     OLECMDID_OPEN = 1
     OLECMDID_NEW = 2
     OLECMDID_SAVE = 3
@@ -105,7 +87,7 @@ class OLECMDID(enum):
     OLECMDID_GETPRINTTEMPLATE = 52
 
 
-class OLECMDF(enum):
+class OLECMDF(c_int):
     OLECMDF_SUPPORTED = 1
     OLECMDF_ENABLED = 2
     OLECMDF_LATCHED = 4
@@ -114,14 +96,14 @@ class OLECMDF(enum):
     OLECMDF_DEFHIDEONCTXTMENU = 32
 
 
-class OLECMDEXECOPT(enum):
+class OLECMDEXECOPT(c_int):
     OLECMDEXECOPT_DODEFAULT = 0
     OLECMDEXECOPT_PROMPTUSER = 1
     OLECMDEXECOPT_DONTPROMPTUSER = 2
     OLECMDEXECOPT_SHOWHELP = 3
 
 
-class tagREADYSTATE(enum):
+class tagREADYSTATE(c_int):
     READYSTATE_UNINITIALIZED = 0
     READYSTATE_LOADING = 1
     READYSTATE_LOADED = 2
@@ -129,7 +111,7 @@ class tagREADYSTATE(enum):
     READYSTATE_COMPLETE = 4
 
 
-class SecureLockIconConstants(enum):
+class SecureLockIconConstants(c_int):
     """Constants for WebBrowser security icon notification"""
     _iid_ = GUID('{65507BE0-91A8-11D3-A845-009027220E6D}')
     secureLockIconUnsecure = 0
@@ -141,7 +123,7 @@ class SecureLockIconConstants(enum):
     secureLockIconSecure128Bit = 6
 
 
-class ShellWindowTypeConstants(enum):
+class ShellWindowTypeConstants(c_int):
     """Constants for ShellWindows registration"""
     _iid_ = GUID('{F41E6981-28E5-11D0-82B4-00A0C90C29C5}')
     SWC_EXPLORER = 0
@@ -150,7 +132,7 @@ class ShellWindowTypeConstants(enum):
     SWC_CALLBACK = 4
 
 
-class ShellWindowFindWindowOptions(enum):
+class ShellWindowFindWindowOptions(c_int):
     """Options for ShellWindows FindWindow"""
     _iid_ = GUID('{7716A370-38CA-11D0-A48B-00A0C90A8F39}')
     SWFO_NEEDDISPATCH = 1
