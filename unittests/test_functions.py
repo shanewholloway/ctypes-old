@@ -295,6 +295,34 @@ class FunctionTestCase(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, dll, "_xxx_yyy")
         self.assertRaises(ValueError, c_int.in_dll, dll, "_xxx_yyy")
 
+    def test_byval(self):
+        try:
+            cdll._testfunc_byval
+        except AttributeError:
+            return # not all systems support this
+
+        class POINT(Structure):
+            _fields_ = [("x", c_int), ("y", c_int)]
+
+        # without prototype
+        ptin = POINT(1, 2)
+        ptout = POINT()
+        # EXPORT int _testfunc_byval(point in, point *pout)
+        result = dll._testfunc_byval(ptin, byref(ptout))
+        got = result, ptout.x, ptout.y
+        expected = 3, 1, 2
+        self.failUnlessEqual(got, expected)
+
+        # with prototype
+        ptin = POINT(101, 102)
+        ptout = POINT()
+        dll._testfunc_byval.argtypes = (POINT, POINTER(POINT))
+        dll._testfunc_byval.restype = c_int
+        result = dll._testfunc_byval(ptin, byref(ptout))
+        got = result, ptout.x, ptout.y
+        expected = 203, 101, 102
+        self.failUnlessEqual(got, expected)
+
 def get_suite():
     return unittest.makeSuite(FunctionTestCase)
 
