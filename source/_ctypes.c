@@ -1377,7 +1377,15 @@ CData_FromBytes(PyObject *type, char *bytes, int length)
 {
 	CDataObject *obj;
 
-	obj = PyObject_CallFunctionObjArgs(type, NULL);
+	obj = (CDataObject *)PyObject_CallFunctionObjArgs(type, NULL);
+	if (obj == NULL)
+		return NULL;
+	if (!CDataObject_Check(obj)) {
+		Py_DECREF(obj);
+		PyErr_SetString(PyExc_TypeError,
+				"CDataObject expected");
+		return NULL;
+	}
 	if (length != obj->b_size) {
 		PyErr_Format(PyExc_ValueError,
 			     "needs %d bytes instead of %d",
