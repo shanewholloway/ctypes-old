@@ -1200,6 +1200,27 @@ PyTypeObject ArrayType_Type = {
 
 
 /******************************************************************/
+static PyObject *
+generic_from_param(PyObject *type, PyObject *value)
+{
+	StgDictObject *typedict = PyType_stgdict(type);
+	PyCArgObject *parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+	/* This makes function calls somewhat slower, imo, since a
+	   PyCArgObject is allocated for each argument.  When from_param will
+	   be a slot function in the stgdict, the signature can change and it
+	   can be made faster again.
+	*/
+	parg->pffi_type = &typedict->ffi_type;
+	parg->obj = typedict->setfunc(&parg->value, value, 0, type);
+	if (parg->obj == NULL) {
+		Py_DECREF(parg);
+		return NULL;
+	}
+	return (PyObject *)parg;
+}
+
 /*
   SimpleType_Type
 */
@@ -1211,25 +1232,6 @@ _type_ attribute.
 */
 
 static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
-
-static PyObject *
-string_ptr_from_param(PyObject *type, PyObject *value)
-{
-	StgDictObject *typedict = PyType_stgdict(type);
-	PyCArgObject *parg = new_CArgObject();
-	/* This makes function calls somewhat slower, imo, since a
-	   PyCArgObject is allocated for each argument.  When from_param will
-	   be a slot function in the stgdict, the signature can change and it
-	   can be made faster again.
-	*/
-	parg->pffi_type = &ffi_type_pointer;
-	parg->obj = typedict->setfunc(&parg->value, value, 0, type);
-	if (parg->obj == NULL) {
-		Py_DECREF(parg);
-		return NULL;
-	}
-	return (PyObject *)parg;
-}
 
 static PyObject *
 c_void_p_from_param(PyObject *type, PyObject *value)
@@ -1303,8 +1305,6 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 }
 
 static PyMethodDef c_void_p_method = { "from_param", c_void_p_from_param, METH_O };
-static PyMethodDef c_char_p_method = { "from_param", string_ptr_from_param, METH_O };
-static PyMethodDef c_wchar_p_method = { "from_param", string_ptr_from_param, METH_O };
 
 static int
 Simple_asparam(CDataObject *self, struct argument *pa)
@@ -1374,14 +1374,13 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
 
-	/* Install from_param class methods in ctypes base classes.
-	   Overrides the SimpleType_from_param generic method.
+	/* Install special from_param class methods in ctypes base classes.
+	   Overrides the generic_from_param generic method.
 	 */
 	ml = NULL;
 	if (result->tp_base == &Simple_Type) {
 		switch (PyString_AS_STRING(proto)[0]) {
 		case 'z': /* c_char_p */
-			ml = &c_char_p_method;
 			if (CTYPE_c_char == NULL) {
 				PyErr_SetString(PyExc_RuntimeError,
 						"Need to define c_char before c_char_p");
@@ -1394,7 +1393,6 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			CTYPE_c_char_p = (PyObject *)result;
 			break;
 		case 'Z': /* c_wchar_p */
-			ml = &c_wchar_p_method;
 			if (CTYPE_c_wchar == NULL) {
 				PyErr_SetString(PyExc_RuntimeError,
 						"Need to define c_wchar before c_wchar_p");
@@ -1461,28 +1459,9 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
   - if converters[i] is non-NULL: call it with the actual argument, use the result
   - if converters[i] is NULL: call argtypes[i]->setfunc with the actual argument, use the result
  */
-static PyObject *
-SimpleType_from_param(PyObject *type, PyObject *value)
-{
-	StgDictObject *dict;
-	PyCArgObject *parg;
-
-	parg = new_CArgObject();
-	if (parg == NULL)
-		return NULL;
-
-	dict = PyType_stgdict(type);
-	parg->pffi_type = &dict->ffi_type;
-	parg->obj = dict->setfunc(&parg->value, value, 0, type);
-	if (parg->obj == NULL) {
-		Py_DECREF(parg);
-		return NULL;
-	}
-	return (PyObject *)parg;
-}
 
 static PyMethodDef SimpleType_methods[] = {
-	{ "from_param", SimpleType_from_param, METH_O, from_param_doc },
+	{ "from_param", generic_from_param, METH_O, from_param_doc },
 	{ "from_address", CDataType_from_address, METH_O, from_address_doc },
 	{ "in_dll", CDataType_in_dll, METH_VARARGS, in_dll_doc},
 	{ NULL, NULL },
