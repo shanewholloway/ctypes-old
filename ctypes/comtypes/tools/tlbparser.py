@@ -233,7 +233,7 @@ class TlbParser(object):
             assert len(names) == fd.cParams + 1
             flags = self.func_flags(fd.wFuncFlags)
             flags += self.inv_kind(fd.invkind)
-            mth = typedesc.ComMethod(fd.invkind, func_name, returns, flags)
+            mth = typedesc.ComMethod(fd.memid, fd.invkind, func_name, returns, flags)
             mth.doc = func_doc
             for p in range(fd.cParams):
                 typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
@@ -542,6 +542,9 @@ if __name__ == "__main__":
 
     # This is interesting: It contains some functions with idl flags!
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\threadapi.tlb"
+
+    # Ha! hnetcfg.dll contains more than one typelib, they can be opened with
+    # hnetcfg.dll\2 and hnetcfg.dll\3
 
     known_symbols = {}
     for name in ("comtypes.automation", "comtypes", "ctypes"):

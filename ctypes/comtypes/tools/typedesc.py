@@ -2,20 +2,7 @@
 
 from ctypes.wrap.typedesc import *
 
-class ComMethod(object):
-    # custom COM method, parsed from typelib
-    def __init__(self, invkind, name, returns, idlflags):
-        self.invkind = invkind
-        self.name = name
-        self.returns = returns
-        self.idlflags = idlflags
-        self.arguments = []
-
-    def add_argument(self, typ, name, idlflags, default):
-        self.arguments.append((typ, name, idlflags, default))
-
-class DispMethod(object):
-    # dispatchable COM method, parsed from typelib
+class _Method(object):
     def __init__(self, dispid, invkind, name, returns, idlflags):
         self.dispid = dispid
         self.invkind = invkind
@@ -26,6 +13,25 @@ class DispMethod(object):
 
     def add_argument(self, typ, name, idlflags, default):
         self.arguments.append((typ, name, idlflags, default))
+
+
+class ComMethod(_Method):
+    # custom COM method, parsed from typelib
+    pass
+
+class DispMethod(object):
+    # dispatchable COM method, parsed from typelib
+    pass
+##    def __init__(self, dispid, invkind, name, returns, idlflags):
+##        self.dispid = dispid
+##        self.invkind = invkind
+##        self.name = name
+##        self.returns = returns
+##        self.idlflags = idlflags
+##        self.arguments = []
+
+##    def add_argument(self, typ, name, idlflags, default):
+##        self.arguments.append((typ, name, idlflags, default))
 
 class DispProperty(object):
     # dispatchable COM property, parsed from typelib
