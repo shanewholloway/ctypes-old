@@ -1216,12 +1216,12 @@ static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *typedict = PyType_stgdict(type);
+	PyCArgObject *parg = new_CArgObject();
 	/* This makes function calls somewhat slower, imo, since a
 	   PyCArgObject is allocated for each argument.  When from_param will
 	   be a slot function in the stgdict, the signature can change and it
 	   can be made faster again.
 	*/
-	parg = new_CArgObject();
 	parg->pffi_type = &ffi_type_pointer;
 	parg->obj = typedict->setfunc(&parg->value, value, 0, type);
 	if (parg->obj == NULL) {
