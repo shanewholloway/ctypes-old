@@ -62,6 +62,7 @@ class Generator(object):
         print "%s = %s" % (t.name, self.type_name(t.typ))
 
     def StructureHead(self, t):
+        assert t.struct.name is not None
         print "class %s(Structure):" % t.struct.name
         print "    pass"
 
@@ -148,6 +149,8 @@ class Generator(object):
             todo -= self.done
             if not todo:
                 return
+        if todo:
+            raise "Not enough loops???", (len(todo), todo)
 
 ################################################################
 
@@ -164,6 +167,9 @@ def find_names(names):
 def main():
     items = find_names(sys.argv[1:])
     gen = Generator()
+    print "from ctypes import *"
+    print "def STDMETHOD(*args): pass"
+    print "def c_const(x): return x"
     gen.generate(items)
 
 if __name__ == "__main__":
