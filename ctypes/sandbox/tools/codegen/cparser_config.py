@@ -23,6 +23,7 @@ __uuidof dllexport __int16 signed virtual dllimport __int32 sizeof
 void do __int64 static volatile double __leave static_cast wmain
 dynamic_cast long __stdcall while far near __forceinline __w64
 __noop""".split()
+C_KEYWORDS.append("long long")
 
 # defines we know that won't work
 # for windows.h
@@ -82,6 +83,7 @@ EXCLUDED_RE_win32 = r"""
 EXCLUDED_RE_linux = r"""
 ^__\w*$
 ^__attribute_\w*_$
+^_G_HAVE_ST_BLKSIZE$
 """.strip().split()
 
 if sys.platform == "win32":
