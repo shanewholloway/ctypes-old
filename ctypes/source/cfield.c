@@ -197,24 +197,6 @@ PyTypeObject CField_Type = {
 static int
 get_long(PyObject *v, long *p)
 {
-#if (PYTHON_API_VERSION < 1012)
-	long x;
-	if (!PyInt_Check(v) && !PyLong_Check(v)) {
-		PyErr_Format(PyExc_TypeError,
-			     "int expected instead of %s instance",
-			     v->ob_type->tp_name);
-		return -1;
-	}
-	x = PyInt_AsLong(v);
-	if (x == -1 && PyErr_Occurred()) {
-		if (PyErr_ExceptionMatches(PyExc_OverflowError))
-			PyErr_SetString(PyExc_ValueError,
-					"Value out of range");
-		return -1;
-	}
-	*p = x;
-	return 0;
-#else
 	long x;
 	if (!PyInt_Check(v) && !PyLong_Check(v)) {
 		PyErr_Format(PyExc_TypeError,
@@ -227,7 +209,6 @@ get_long(PyObject *v, long *p)
 		return -1;
 	*p = x;
 	return 0;
-#endif
 }
 
 /* Same, but handling unsigned long */
@@ -235,33 +216,6 @@ get_long(PyObject *v, long *p)
 static int
 get_ulong(PyObject *v, unsigned long *p)
 {
-#if (PYTHON_API_VERSION < 1012)
-	if (PyLong_Check(v)) {
-		unsigned long x = PyLong_AsUnsignedLong(v);
-		if (x == (unsigned long)(-1) && PyErr_Occurred()) {
-			if (PyErr_ExceptionMatches(PyExc_OverflowError))
-				PyErr_SetString(PyExc_ValueError,
-						"Value out of range");
-			return -1;
-		}
-		*p = x;
-		return 0;
-	} else if (PyInt_Check(v)) {
-		long x = PyInt_AsLong(v);
-		if (x < 0) {
-			PyErr_SetString(PyExc_ValueError,
-					"Value out of range");
-			return -1;
-		}
-		*p = x;
-		return 0;
-	} else {
-		PyErr_Format(PyExc_TypeError,
-			     "int expected instead of %s instance",
-			     v->ob_type->tp_name);
-		return -1;
-	}
-#else
 	unsigned long x;
 	if (!PyInt_Check(v) && !PyLong_Check(v)) {
 		PyErr_Format(PyExc_TypeError,
@@ -274,7 +228,6 @@ get_ulong(PyObject *v, unsigned long *p)
 		return -1;
 	*p = x;
 	return 0;
-#endif
 }
 
 #ifdef HAVE_LONG_LONG
@@ -285,27 +238,17 @@ static int
 get_longlong(PyObject *v, PY_LONG_LONG *p)
 {
 	PY_LONG_LONG x;
-
-	if (PyLong_Check(v)) {
-		x = PyLong_AsLongLong(v);
-		if (x == (PY_LONG_LONG)-1 && PyErr_Occurred()) {
-			if (PyErr_ExceptionMatches(PyExc_OverflowError))
-				PyErr_SetString(PyExc_ValueError,
-						"Value out of range");
-			return -1;
-		}
-		*p = x;
-		return 0;
-	} else if (PyInt_Check(v)) {
-		x = (PY_LONG_LONG)PyInt_AS_LONG(v);
-		*p = x;
-		return 0;
-	} else {
+	if (!PyInt_Check(v) && !PyLong_Check(v)) {
 		PyErr_Format(PyExc_TypeError,
 			     "int expected instead of %s instance",
 			     v->ob_type->tp_name);
 		return -1;
 	}
+	x = PyInt_AsUnsignedLongLongMask(v);
+	if (x == -1 && PyErr_Occurred())
+		return -1;
+	*p = x;
+	return 0;
 }
 
 /* Same, but handling native unsigned long long. */
@@ -313,39 +256,18 @@ get_longlong(PyObject *v, PY_LONG_LONG *p)
 static int
 get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 {
-	if (PyLong_Check(v)) {
-		unsigned PY_LONG_LONG x;
-		x = PyLong_AsUnsignedLongLong(v);
-		if (x == (unsigned PY_LONG_LONG)-1 && PyErr_Occurred()) {
-			/* The type is OK (has been checked before),
-			   so we convert OverflowError and
-			   'TypeError: can't convert negative long to unsigned'
-			   into ValueError
-			*/
-			if (PyErr_ExceptionMatches(PyExc_OverflowError)
-			    || PyErr_ExceptionMatches(PyExc_TypeError))
-				PyErr_SetString(PyExc_ValueError,
-						"Value out of range");
-			return -1;
-		}
-		*p = x;
-		return 0;
-	} else if (PyInt_Check(v)) {
-		long l;
-		l = PyInt_AS_LONG(v);
-		if (l < 0) {
-			PyErr_SetString(PyExc_ValueError,
-					"Value out of range");
-			return -1;
-		}
-		*p = (unsigned PY_LONG_LONG)l;
-		return 0;
-	} else {
+	unsigned PY_LONG_LONG x;
+	if (!PyInt_Check(v) && !PyLong_Check(v)) {
 		PyErr_Format(PyExc_TypeError,
 			     "int expected instead of %s instance",
 			     v->ob_type->tp_name);
 		return -1;
 	}
+	x = PyInt_AsUnsignedLongLongMask(v);
+	if (x == -1 && PyErr_Occurred())
+		return -1;
+	*p = x;
+	return 0;
 }
 
 #endif
@@ -512,11 +434,6 @@ h_set(void *ptr, PyObject *value, unsigned size)
 	long val;
 	if (get_long(value, &val) < 0)
 		return NULL;
-	if ((long)(short)val != val) {
-		PyErr_SetString(PyExc_ValueError,
-			     "Value out of range");
-		return NULL;
-	}
 	*(short *)ptr = (short)val;
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -535,11 +452,6 @@ H_set(void *ptr, PyObject *value, unsigned size)
 	unsigned long val;
 	if (get_ulong(value, &val) < 0)
 		return NULL;
-	if (val > 0xFFFF) {
-		PyErr_SetString(PyExc_ValueError,
-			     "Value out of range");
-		return NULL;
-	}
 	*(unsigned short *)ptr = (unsigned short)val;
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -558,11 +470,6 @@ b_set(void *ptr, PyObject *value, unsigned size)
 	long val;
 	if (get_long(value, &val) < 0)
 		return NULL;
-	if ((long)(char)val != val) {
-		PyErr_SetString(PyExc_ValueError,
-			     "Value out of range");
-		return NULL;
-	}
 	*(char *)ptr = (char)val;
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -581,11 +488,6 @@ B_set(void *ptr, PyObject *value, unsigned size)
 	unsigned long val;
 	if (get_ulong(value, &val) < 0)
 		return NULL;
-	if ((unsigned long)(unsigned char)val != val) {
-		PyErr_SetString(PyExc_ValueError,
-			     "Value out of range");
-		return NULL;
-	}
 	*(unsigned char *)ptr = (unsigned char)val;
 	Py_INCREF(Py_None);
 	return Py_None;
