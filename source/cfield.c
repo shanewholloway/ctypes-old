@@ -28,7 +28,7 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
    Can eventually be removed when ALL ctypes types supply their own setfunc.
 */
 static PyObject *
-_generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
+_generic_field_setfunc(void *ptr, PyObject *value, unsigned size,
 		       PyObject *type)
 {
 	/* inlined code from _CData_set() */
