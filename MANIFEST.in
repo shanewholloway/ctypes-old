@@ -1,9 +1,14 @@
 include MANIFEST MANIFEST.in LICENSE.txt NEWS.txt README*
 include source/*.c source/*.h
 include source/darwin/*.c source/darwin/*.h
+include ctypes/.CTYPES_DEVEL
+recursive-include source/gcc *
 
 include unittests/*.py
-include docs/*.html docs/*.css docs/*.stx
-include samples/rt samples/rt.bat
+include docs/*.html
+include docs/*.css
+include docs/*.stx
+
+include samples/rt
 recursive-include samples *.py
-recursive-include win32 *.py *.idl *.html *.cpp
+prune samples/Windows
