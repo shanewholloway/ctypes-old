@@ -123,8 +123,7 @@ class _cominterface_meta(type):
             raise AttributeError, "must define _iid_"
         vtbl_offset = self.__get_baseinterface_methodcount()
 
-        getters = {}
-        setters = {}
+        props = {}
 
         # create private low level, and public high level methods
         for i, item in enumerate(methods):
@@ -153,75 +152,75 @@ class _cominterface_meta(type):
             # Or does have '0' values?
             # Seems we loose then, at least for properties...
 
-            # The following code assumes that the docstrings for
-            # propget and propput are identical.
             if "propget" in idlflags:
                 assert name.startswith("_get_")
+                is_prop = True
                 nargs = len([flags for flags in paramflags
                              if flags[0] & 1])
-                propname = name[len("_get_"):]
-                getters[propname, doc, nargs] = func
-                is_prop = True
+                props.setdefault((name[len("_get_"):], nargs),
+                                 # fget, fset, doc
+                                 [None, None, doc])[0] = func
             elif "propput" in idlflags:
                 assert name.startswith("_set_")
-                nargs = len([flags for flags in paramflags
-                              if flags[0] & 1]) - 1
                 propname = name[len("_set_"):]
-                setters[propname, doc, nargs] = func
                 is_prop = True
+                nargs = len([flags for flags in paramflags
+                             if flags[0] & 1])
+                # One arg is the standard value putted, we don't count that.
+                props.setdefault((name[len("_set_"):], nargs-1),
+                                 # fget, fset, doc
+                                 [None, None, doc])[1] = func
 
             # We install the method in the class, except when it's a
-            # property accessor.  And we make sure we don't overwrite
-            # a property that's already present in the class.
+            # property.  And we make sure we don't overwrite something
+            # that's already present in the class.  Except when it
+            # starts with an underscore. Hm.
             if not is_prop:
                 if hasattr(self, name):
                     setattr(self, "_" + name, mth)
                 else:
                     setattr(self, name, mth)
 
-        # create public properties / attribute accessors
-        for item in set(getters.keys()) | set(getters.keys()):
-            name, doc, nargs = item
+        # create and attach the properties
+        for ((name, nargs), (fget, fset, doc)) in props.items():
             if nargs == 0:
-                prop = property(getters.get(item), setters.get(item), doc=doc)
+                prop = property(fget, fset, doc=doc)
             else:
-                # Hm, must be a descriptor where the __get__ method
-                # returns a bound object having __getitem__ and
-                # __setitem__ methods.
-                prop = named_property(getters.get(item), setters.get(item), doc=doc)
-            # Again, we should not overwrite class attributes that are
-            # already present.
+                # Hm, we must create a descriptor where the __get__
+                # method returns a bound object having __getitem__
+                # and/or __setitem__ methods.
+                prop = named_property(fget, fset, doc=doc)
             if hasattr(self, name):
                 setattr(self, "_" + name, prop)
             else:
                 setattr(self, name, prop)
 
 class bound_named_property(object):
-    def __init__(self, getter, setter, im_inst):
+    def __init__(self, fget, fset, im_inst):
         self.im_inst = im_inst
-        self.getter = getter
-        self.setter = setter
+        self.fget = fget
+        self.fset = fset
 
     def __getitem__(self, index):
-        if self.getter is None:
+        if self.fget is None:
             raise TypeError("unsubscriptable object")
-        return self.getter(self.im_inst, index)
+        return self.fget(self.im_inst, index)
 
     def __setitem__(self, index, value):
-        if self.setter is None:
+        if self.fset is None:
             raise TypeError("object does not support item assignment")
-        self.setter(self.im_inst, index, value)
+        self.fset(self.im_inst, index, value)
 
 class named_property(object):
-    def __init__(self, getter, setter, doc):
-        self.getter = getter
-        self.setter = setter
+    def __init__(self, fget, fset, doc):
+        self.fget = fget
+        self.fset = fset
         self.doc = doc
 
     def __get__(self, im_inst, im_class=None):
         if im_inst is None:
             return self
-        return bound_named_property(self.getter, self.setter, im_inst)
+        return bound_named_property(self.fget, self.fset, im_inst)
 
 # metaclass for COM interface pointer classes
 class _compointer_meta(type(c_void_p), _cominterface_meta):
