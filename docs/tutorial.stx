@@ -1,38 +1,12 @@
-The ctypes module
+The ctypes module, version 0.6
 
   "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
 
-  (Intro missing)
+  This tutorial describes version 0.6 of 'ctypes'. There have been
+  quite some changes to previous versions, the most important are
+  listed "here":changes.html.
 
-<!--
-  XXX Move this...
-
-  "'ctypes'":../ctypes.html is a Python module allowing to create and
-  manipulate C data types in Python. These can then be passed to
-  C-functions loaded from dynamic link libraries.
-
-  For background information about the C data types, see also
-  "Standard C Types":http://www-ccs.ucsd.edu/c/types.html at UCSD
-  (external link).
-
-  For details about common operations on these types, see "ctypes
-  reference":reference.html
-
-  Purpose
-
-    The purpose of this module is to be a greatly enhanced and much
-    more complete replacement of Sam Rushing's calldll/npstruct/windll
-    modules. 'ctypes' is not based on Sam's work, it has different
-    roots.
-
-
-  Requirements
-
-    Internally 'ctypes' makes heavy use of the new type system
-    introduced in Python 2.2, so it will not work in earlier versions.
--->
-
-  Loading dynamic link libraries into Python
+  Loading dynamic link libraries
 
     'ctypes' exports the 'cdll', and on Windows also 'windll'
     and 'oledll' objects to load dynamic link libraries.
@@ -53,7 +27,7 @@ The ctypes module
       >>> print cdll.msvcrt
       <CDLL 'msvcrt', handle 78000000 at 80b010>
 
-  Retrieving functions from loaded dlls
+  Accessing functions from loaded dlls
 
     Functions are (lazily) exposed as attributes of dlls::
 
@@ -150,7 +124,7 @@ The ctypes module
     'ctypes' defines a number of primitive C compatible data types :
 
     |---------------------------------------------|
-    |  ctype      |C type             |Python type|
+    |ctypes' type |C type             |Python type|
     |=============================================|
     |'c_char'     |'char'             |character  |
     |---------------------------------------------|
@@ -177,13 +151,12 @@ The ctypes module
     |        	  |'unsigned long long'|          |
     |---------------------------------------------|
     |'c_char_p'	  |'char *'           |string     |
-    |        	  |(zero terminated)  |           |
+    |        	  |(NUL terminated)   |           |
     |---------------------------------------------|
     |'c_wchar_p'  |'wchar_t *'        |unicode    |
-    |        	  |(zero terminated)  |           |
+    |        	  |(NUL terminated)   |           |
     |---------------------------------------------|
-    |'c_voidp'	  |'void *'           |integer    |
-    |        	  |(zero terminated)  |           |
+    |'c_void_p'	  |'void *'           |integer    |
     |---------------------------------------------|
 
     All these types can be created by calling them with an optional initial value
@@ -209,10 +182,9 @@ The ctypes module
       -99
 
     Note that assigning a new value to instances of the pointer types
-    'c_char_p', 'c_wchar_p', and 'c_void_p' change the memory
-    locations they point to, not the contents of this memory block
-    they point to (of course not, because Python strings are
-    immutable)::
+    'c_char_p', 'c_wchar_p', and 'c_void_p' change the *memory
+    location* they point to, *not the contents* of the memory block
+    (of course not, because Python strings are immutable)::
 
       >>> s = "Hello, World"
       >>> c_s = c_char_p(s)
@@ -224,13 +196,33 @@ The ctypes module
       >>> print s                 # first string is unchanged
       Hello, World      
 
-    Python strings are immutable, so ctypes provides a function to
-    allocate a mutable memory block which can be used to::
+    You must be careful, however, not to pass them to functions
+    expecting pointers to mutable memory. If you need mutable memory
+    blocks, ctypes has a c_buffer function which creates these in
+    various ways.  The current buffer contents can be accessed (or
+    changed) with the raw property, if you want to access it as zero
+    terminated string, use the 'string' attribute::
 
-      >>> from ctypes import c_buffer
-      >>> c_buffer(3)
+      >>> from ctypes import c_buffer, sizeof
+      >>> p = c_buffer(3)      # create a 3 byte buffer, initialized to NUL bytes
+      >>> print sizeof(p), repr(p.raw)
+      3 '\x00\x00\x00'
+      >>> p = c_buffer("Hello")      # create a buffer containing a NUL terminated string
+      >>> print sizeof(p), repr(p.raw)
+      6 'Hello\x00'
+      >>> print repr(p.value)
+      'Hello'
+      >>> p = c_buffer("Hello", 10)  # create a 10 byte buffer
+      >>> print sizeof(p), repr(p.raw)
+      10 'Hello\x00\x00\x00\x00\x00'
+      >>> p.value = "Hi"      
+      >>> print sizeof(p), repr(p.raw)
+      10 'Hi\x00lo\x00\x00\x00\x00\x00'
+      >>>
 
-  Calling functions
+    **XXX MARKER**
+
+  Calling functions, continued
 
     Note that printf prints to the real standard output channel, *not*
     to 'sys.stdout', so these examples will only work at the console
