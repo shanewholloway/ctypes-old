@@ -1376,7 +1376,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 	if (PyCArg_CheckExact(value)) {
 		/* byref(c_xxx()) */
 		PyCArgObject *a = (PyCArgObject *)value;
-		if (a->tag == 'P') {
+		if (a->pffi_type == &ffi_type_pointer) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -2803,9 +2803,9 @@ _get_one(PyObject *obj)
   replace with a _from_outparam_ slot call.
 */
 	if (dict-> proto && PyString_CheckExact(dict->proto)) {
-		char *tag = PyString_AS_STRING(dict->proto);
+		char *fmt = PyString_AS_STRING(dict->proto);
 		/* simple data type, but no pointer */
-		if (tag[0] == 'P') {
+		if (fmt[0] == 'P') {
 			Py_INCREF(result);
 			return result;
 		}
