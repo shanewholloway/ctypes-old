@@ -1345,12 +1345,14 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	  int index, int offset, int size)
 {
 	CDataObject *mem;
+
 	if (!CDataObject_Check(src)) {
 		PyErr_SetString(PyExc_TypeError,
 				"not a ctype instance");
 		return NULL;
 	}
 	mem = (CDataObject *)src;
+
 	if (type)
 		return CData_FromBaseObj(type, src, index, offset);
 	else
@@ -2122,8 +2124,6 @@ Array_item(CDataObject *self, int index)
 static int
 Array_ass_item(CDataObject *self, int index, PyObject *value)
 {
-	CDataObject *mem;
-	PyObject *objects;
 	int size, offset;
 	StgDictObject *stgdict;
 
@@ -2142,44 +2142,8 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
 
-	if (stgdict->proto) {
-		/* Hm. Do we need this? Isn't the above check sufficient? */
-		if (!CDataObject_Check(value)) {
-			StgDictObject *dict;
-			dict = PyType_stgdict(stgdict->proto);
-			if (dict && dict->setfunc) {
-				value = dict->setfunc(self->b_ptr + offset,
-						      value, size);
-				if (value == 0)
-					return -1;
-			} else {
-				PyErr_SetString(PyExc_TypeError,
-						"CData object expected");
-				return -1;
-			}
-		} else if (PyObject_IsInstance(value, stgdict->proto)) {
-			/* copy into buffer */
-			mem = (CDataObject *)value; /* checked above */
-			memcpy(self->b_ptr + offset, mem->b_ptr, size);
-			Py_INCREF(value); /* keep this ref */
-		} else {
-			PyErr_SetString(PyExc_TypeError,
-					"wrong type");
-			return -1;
-		}
-		/* now 'value' is to keep */
-	} else {
-		value = stgdict->setfunc(self->b_ptr + offset, value, size);
-		if (!value)
-			return -1;
-		/* No Py_INCREF(), setfunc returns a new reference */
-	}
-
-	objects = CData_GetList(self);
-	if (!objects)
-		return -1;
-	/* Consumes the 'value' refcount */
-	return PyList_SetItem(objects, index, value);
+	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
+			 index, offset, size);
 }
 
 static int
