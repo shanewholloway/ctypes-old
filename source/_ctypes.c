@@ -2291,6 +2291,12 @@ _validate_paramflags(PyTypeObject *type, PyObject *paramflags)
 	if (paramflags == NULL || dict->argtypes == NULL)
 		return 1;
 
+	if (!PyTuple_Check(paramflags)) {
+		PyErr_SetString(PyExc_TypeError,
+				"paramflags must be a tuple or None");
+		return 0;
+	}
+
 	len = PyTuple_GET_SIZE(paramflags);
 	if (len != PyTuple_GET_SIZE(dict->argtypes)) {
 		PyErr_SetString(PyExc_ValueError,
@@ -2304,7 +2310,7 @@ _validate_paramflags(PyTypeObject *type, PyObject *paramflags)
 		char *name;
 		PyObject *defval;
 		PyObject *typ;
-		if (!PyArg_ParseTuple(item, "i|sO", &flag, &name, &defval)) {
+		if (!PyArg_ParseTuple(item, "i|zO", &flag, &name, &defval)) {
 			PyErr_SetString(PyExc_TypeError,
 			       "paramflags must be a sequence of (int [,string [,value]]) tuples");
 			return 0;
@@ -2344,8 +2350,10 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	void *handle;
 	PyObject *paramflags = NULL;
 
-	if (!PyArg_ParseTuple(args, "sO|O!", &name, &dll, &PyTuple_Type, &paramflags))
+	if (!PyArg_ParseTuple(args, "sO|O", &name, &dll, &paramflags))
 		return NULL;
+	if (paramflags == Py_None)
+		paramflags = NULL;
 
 	obj = PyObject_GetAttrString(dll, "_handle");
 	if (!obj)
@@ -2412,8 +2420,10 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	char *name = NULL;
 	PyObject *paramflags = NULL;
 
-	if (!PyArg_ParseTuple(args, "is|O!", &index, &name, &PyTuple_Type, &paramflags))
+	if (!PyArg_ParseTuple(args, "is|O", &index, &name, &paramflags))
 		return NULL;
+	if (paramflags == Py_None)
+		paramflags = NULL;
 
 	if (!_validate_paramflags(type, paramflags))
 		return NULL;
@@ -2646,7 +2656,7 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 		int flag;
 		char *name = NULL;
 		PyObject *defval = NULL;
-		if (!PyArg_ParseTuple(item, "i|sO", &flag, &name, &defval)) {
+		if (!PyArg_ParseTuple(item, "i|zO", &flag, &name, &defval)) {
 			/* Hm. Either we should raise a more specific error
 			   here, or we should validate the paramflags tuple
 			   when it is set */

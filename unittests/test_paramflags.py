@@ -45,6 +45,28 @@ class Test(unittest.TestCase):
         # TypeError: output parameter 1 not a pointer type: c_long
         self.failUnlessRaises(TypeError, lambda: proto("TwoOutArgs", dll, ((2,),)))
 
+        # These are correct
+        proto = CFUNCTYPE(c_int, POINTER(c_int))
+        proto("TwoOutArgs", dll,
+              ((1,),)
+              )
+        proto("TwoOutArgs", dll,
+              ((1, "paramname"),)
+              )
+        proto("TwoOutArgs", dll,
+              ((1, "paramname", 'DefaultVal'),)
+              )
+        # We CAN pass None instead of the paramflags tuple
+        proto("TwoOutArgs", dll, None)
+        # and we CAN pass None instead of the parameter names
+        proto("TwoOutArgs", dll,
+              ((1, None),)
+              )
+        proto("TwoOutArgs", dll,
+              ((1, None, 'DefaultVal'),)
+              )
+
+
     def test_usage_sample(self):
         import _ctypes_test
         dll = CDLL(_ctypes_test.__file__)
@@ -132,6 +154,67 @@ class Test(unittest.TestCase):
         self.assertRaises(TypeError, lambda: func(a=1, b=3))
         # TypeError: required argument 'p2' is missing
         self.assertRaises(TypeError, lambda: func(a=1, b=3, p1=3))
+
+def get_inout_args_func():
+    """
+    Error messages may be somewhat confusing, when parameters are
+    missing.  This example shows how the error messsages differ from
+    normal Python functions.  The reason is the way arguments are
+    processed when paramflags are present, and named arguments are
+    used.
+
+    We construct two functions having the same signature:
+    
+    >>> def p(a, b, c, d): return a+c, b+d
+    >>> f = get_inout_args_func()
+    >>> f(a=1, b=3) # ctypes function
+    Traceback (most recent call last):
+      ...
+    TypeError: required argument 'p1' missing
+    >>> p(a=1, b=3) # normal python function
+    Traceback (most recent call last):
+      ...
+    TypeError: p() takes exactly 4 non-keyword arguments (2 given)
+    >>>
+    >>> f(1, 2)
+    Traceback (most recent call last):
+      ...
+    TypeError: required argument 'b' missing
+    >>> f(1, 2, 3, 4)
+    (3, 7)
+    >>> f(x=1, y=2)
+    Traceback (most recent call last):
+      ...
+    TypeError: required argument 'a' missing
+    >>> p(x=1, y=2)
+    Traceback (most recent call last):
+      ...
+    TypeError: p() got an unexpected keyword argument 'x'
+    >>>
+
+    >>> f("x", "y")
+    Traceback (most recent call last):
+      ...
+    TypeError: int expected instead of str instance
+HU?
+    >>> f(a=1, b="y", p1=3, p2=4)
+    Traceback (most recent call last):
+      ...
+    ArgumentError: argument 3: exceptions.TypeError: int expected instead of str instance
+HU?
+    >>> f(a=1, b=2, p1="3", p2=4)
+    Traceback (most recent call last):
+      ...
+    ArgumentError: argument 3: exceptions.TypeError: int expected instead of str instance
+    >>>
+    """
+    import _ctypes_test
+    dll = CDLL(_ctypes_test.__file__)
+    # void TwoOutArgs([in] int a, [in, out] int *p1, [in] int b, [in, out] int *p2);
+    proto = CFUNCTYPE(None, c_int, POINTER(c_int), c_int, POINTER(c_int))
+    func = proto("TwoOutArgs", dll, ((1, "a"), (3, "p1"), (1, "b"), (3, "p2")))
+    return func
+
 
 if __name__ == "__main__":
     unittest.main()
