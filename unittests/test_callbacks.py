@@ -105,17 +105,28 @@ else:
 
 ################################################################
 
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
+
 class SampleCallbacksTestCase(unittest.TestCase):
 
     def test_integrate(self):
         # Derived from some then non-working code, posted by David Foster
-        import _ctypes_test
+        dll = CDLL(find_test_dll())
 
         # The function prototype called by 'integrate': double func(double);
         CALLBACK = CFUNCTYPE(c_double, c_double)
 
         # The integrate function itself, exposed from the _ctypes_test dll
-        integrate = CDLL(_ctypes_test.__file__).integrate
+        integrate = dll.integrate
         integrate.argtypes = (c_double, c_double, CALLBACK, c_long)
         integrate.restype = c_double
 

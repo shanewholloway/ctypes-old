@@ -8,6 +8,17 @@ from ctypes.com.automation import BSTR
 # So we must start UN-initialized!
 ole32.CoUninitialize()
 
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
+
 class MallocSpyTest(unittest.TestCase):
     def setUp(self):
         self.expect = None
@@ -55,15 +66,13 @@ class MallocSpyTest(unittest.TestCase):
         self.expect = 0
 
     def test_GetString_C(self):
-        import _ctypes_test
-
         # GetString is this function, implemented in C:
         #
         # EXPORT(void) GetString(BSTR *pbstr)
         # {
         #         *pbstr = SysAllocString(L"Goodbye!");
         # }
-        GetString = cdll[_ctypes_test.__file__].GetString
+        GetString = CDLL(find_test_dll()).GetString
 
         # XXX Explain why we cannot create b outside the loop!
         # And why we cannot do anything against this :-)

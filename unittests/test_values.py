@@ -4,12 +4,21 @@ A testcase which accesses *values* in a dll.
 
 import unittest
 from ctypes import *
-import _ctypes_test
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
 
 class ValuesTestCase(unittest.TestCase):
 
     def test_an_integer(self):
-        ctdll = CDLL(_ctypes_test.__file__)
+        ctdll = CDLL(find_test_dll())
         an_integer = c_int.in_dll(ctdll, "an_integer")
         x = an_integer.value
         self.failUnlessEqual(x, ctdll.get_an_integer())
@@ -17,7 +26,7 @@ class ValuesTestCase(unittest.TestCase):
         self.failUnlessEqual(x*2, ctdll.get_an_integer())
 
     def test_undefined(self):
-        ctdll = CDLL(_ctypes_test.__file__)
+        ctdll = CDLL(find_test_dll())
         self.assertRaises(ValueError, c_int.in_dll, ctdll, "Undefined_Symbol")
 
 import sys

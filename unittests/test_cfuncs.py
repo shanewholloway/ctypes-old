@@ -1,11 +1,21 @@
 import unittest
 from ctypes import *
-import _ctypes_test
+
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
 
 class CFunctions(unittest.TestCase):
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)
-        self.dll = CDLL(_ctypes_test.__file__)
+        self.dll = CDLL(find_test_dll())
 
     def test_byte(self):
         self.dll.tf_b.restype = c_byte
@@ -126,7 +136,7 @@ else:
 
         def __init__(self, *args):
             unittest.TestCase.__init__(self, *args)
-            self.dll = stdcall_dll(_ctypes_test.__file__)
+            self.dll = stdcall_dll(find_test_dll())
 
 if __name__ == '__main__':
     unittest.main()
