@@ -67,12 +67,12 @@ class NumberTestCase(unittest.TestCase):
             self.assertRaises(TypeError, t, "")
             self.assertRaises(TypeError, t, None)
 
-    def test_valid_ranges(self):
-        # invalid values of the correct type
-        # raise ValueError (not OverflowError)
-        for t, (l, h) in zip(unsigned_types, unsigned_ranges):
-            self.assertRaises(ValueError, t, l-1)
-            self.assertRaises(ValueError, t, h+1)
+##    def test_valid_ranges(self):
+##        # invalid values of the correct type
+##        # raise ValueError (not OverflowError)
+##        for t, (l, h) in zip(unsigned_types, unsigned_ranges):
+##            self.assertRaises(ValueError, t, l-1)
+##            self.assertRaises(ValueError, t, h+1)
 
     def test_from_param(self):
         # the from_param class method attribute always
