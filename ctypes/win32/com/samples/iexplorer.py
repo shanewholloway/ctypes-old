@@ -30,9 +30,9 @@ def pump_messages():
 # calls this method.  If no method is found, a warning is printed
 # containing the method name and the argument tuple.
 #
-# The only method we implement here is the OnQuit method which is
-# called when the Browser is closed, we use it to post q QuitMessage
-# to ourself so that the message loop terminates.
+# We have to at least implement the OnQuit method which is called when
+# the Browser is closed, we use it to post q QuitMessage to ourself so
+# that the message loop terminates.
 
 class DWebBrowserEvents2Impl(dispinterface_EventReceiver):
     _com_interfaces_ = [DWebBrowserEvents2]
@@ -43,6 +43,22 @@ class DWebBrowserEvents2Impl(dispinterface_EventReceiver):
     def OnQuit(self, this, *args):
         print "OnQuit", self, this, args
         windll.user32.PostQuitMessage(0)
+
+    def BeforeNavigate2(self, this, pDisp, URL, Flags, TargetFrameName,
+                        PostData, Headers, Cancel):
+        print "BeforeNavigate2", pDisp, URL.value, Flags.value, \
+              TargetFrameName.value, Headers.value, Cancel.value
+##        if URL.value == "http://www.python.org/download/":
+##            Cancel.value = True
+##            print "CANCEL!!!"
+
+    def NavigateComplete2(self, this, pDisp, URL):
+        print "NavigateComplete2", URL.value
+
+    def FileDownload(self, this, spam, cancel):
+        print "FileDownload", this, spam, cancel
+##        cancel.value = True
+##        print "FileDownload canceled", cancel
 
 ################################################################
 
