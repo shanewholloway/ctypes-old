@@ -230,6 +230,11 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 extern int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	  int index, int size, char *ptr);
+
+#ifdef MS_WIN32
+extern void SetException(unsigned long code);
+#endif
+extern void Extend_Error_Info(char *fmt, ...);
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"

@@ -42,7 +42,7 @@ static char *FormatError(DWORD code)
 	return (char *)lpMsgBuf;
 }
 
-static void SetException(DWORD code)
+void SetException(DWORD code)
 {
 	char *lpMsgBuf;
 	lpMsgBuf = FormatError(code);
@@ -928,12 +928,27 @@ static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
 					     result->value.i);
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	PyErr_SetString(PyExc_TypeError,
 			"Bug: cannot convert result");
 	return NULL; /* to silence the compiler */
+}
+
+void Extend_Error_Info(char *fmt, ...)
+{
+	va_list vargs;
+	PyObject *tp, *v, *tb, *s;
+
+	va_start(vargs, fmt);
+	s = PyString_FromFormatV(fmt, vargs);
+	va_end(vargs);
+	if (!s)
+		return;
+
+	PyErr_Fetch(&tp, &v, &tb);
+
+	PyString_ConcatAndDel(&s, v);
+
+	PyErr_Restore(tp, s, tb);
 }
 
 /*
@@ -992,17 +1007,23 @@ PyObject *_CallProc(PPROC pProc,
 			arg = PyObject_CallFunctionObjArgs(converter,
 							   arg,
 							   NULL);
-			if (arg == NULL)
+			if (arg == NULL) {
+				Extend_Error_Info("while constructing argument %d:\n", i+1);
 				goto error;
+			}
 
 			*pp = ConvParam(arg, i+1);
 			Py_DECREF(arg);
-			if (!*pp)
-				goto error; /* leaking ? */
+			if (!*pp) {
+				Extend_Error_Info("while constructing argument %d:\n", i+1);
+				goto error;
+			}
 		} else {
 			*pp = ConvParam(arg, i+1);
-			if (!*pp)
+			if (!*pp) {
+				Extend_Error_Info("while constructing argument %d:\n", i+1);
 				goto error; /* leaking ? */
+			}
 		}
 	}
 
