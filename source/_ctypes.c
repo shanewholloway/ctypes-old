@@ -119,6 +119,18 @@ char *conversion_mode_errors = NULL;
 
 static PyObject *CData_AtAddress(PyObject *type, void *buf);
 
+static PyObject *
+generic_getfunc(void *ptr, unsigned size,
+		PyObject *type, CDataObject *src, ...)
+{
+	if (type == NULL) {
+		PyErr_SetString(PyExc_SystemError,
+				"ctypes bug: generic_getfunc called with NULL type");
+		return NULL;
+	}
+	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
+}
+
 
 /******************************************************************/
 /*
@@ -127,18 +139,6 @@ static PyObject *CData_AtAddress(PyObject *type, void *buf);
   tp_dict member with a new instance of StgDict, and initializes the C
   accessible fields somehow.
 */
-
-static PyObject *
-StructUnion_getfunc(void *ptr, unsigned size,
-		    PyObject *type, CDataObject *src, ...)
-{
-	if (type == NULL) {
-		PyErr_SetString(PyExc_SystemError,
-				"ctypes bug: StructUnion_getfunc called with NULL type");
-		return NULL;
-	}
-	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
-}
 
 static PyObject *
 StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
@@ -173,7 +173,7 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 	result->tp_dict = (PyObject *)dict;
 
 	/* XXX Allow overriding. __c_to_python__? */
-	dict->getfunc = StructUnion_getfunc;
+	dict->getfunc = generic_getfunc;
 
 	fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
 	if (!fields) {
@@ -529,18 +529,6 @@ PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 }
 
 static PyObject *
-Pointer_getfunc(void *ptr, unsigned size,
-		PyObject *type, CDataObject *src, ...)
-{
-	if (type == NULL) {
-		PyErr_SetString(PyExc_SystemError,
-				"ctypes bug: Pointer_getfunc called with NULL type");
-		return NULL;
-	}
-	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
-}
-
-static PyObject *
 PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	PyTypeObject *result;
@@ -585,7 +573,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
 
-	stgdict->getfunc = Pointer_getfunc;
+	stgdict->getfunc = generic_getfunc;
 
 	return (PyObject *)result;
 }
@@ -896,18 +884,6 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 }
 
 static PyObject *
-Array_getfunc(void *ptr, unsigned size,
-	      PyObject *type, CDataObject *src, ...)
-{
-	if (type == NULL) {
-		PyErr_SetString(PyExc_SystemError,
-				"ctypes bug: Array_getfunc called with NULL type");
-		return NULL;
-	}
-	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
-}
-
-static PyObject *
 CharArray_getfunc(char *ptr, unsigned size,
 		  PyObject *type, CDataObject *src, ...)
 {
@@ -1001,7 +977,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
 
-	stgdict->getfunc = Array_getfunc;
+	stgdict->getfunc = generic_getfunc;
 	/* Special casing character arrays.
 	   A permanent annoyance: char arrays are also strings!
 	*/
@@ -1558,7 +1534,7 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	stgdict->length = 1;
 	stgdict->size = sizeof(void *);
 	stgdict->setfunc = NULL;
-	stgdict->getfunc = NULL;
+	stgdict->getfunc = generic_getfunc;
 	stgdict->ffi_type = ffi_type_pointer;
 
 	ob = PyDict_GetItemString((PyObject *)stgdict, "_flags_");
@@ -3380,6 +3356,7 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 	stgdict = PyObject_stgdict((PyObject *)self);
 	proto = stgdict->proto;
 	itemdict = PyType_stgdict(proto);
+	/* XXX can we use our own getfunc? */
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = (char *)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
@@ -3913,6 +3890,7 @@ Pointer_slice(CDataObject *self, int ilow, int ihigh)
 	stgdict = PyObject_stgdict((PyObject *)self);
 	proto = stgdict->proto;
 	itemdict = PyType_stgdict(proto);
+	/* XXX can we use out own getfunc? */
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = *(char **)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
