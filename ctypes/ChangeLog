@@ -1,3 +1,17 @@
+2005-03-17  Thomas Heller  <theller@python.net>
+
+	* ctypes.wrap.h2xml script: Added two command line options to
+	include preprocessor symbols into the xml file (the was the
+	default before), and to not delete temporary files which may help
+	locating problems in the compilation.  The latter was suggested by
+	'Bryan' on the ctypes-users list.
+
+	Expanded the default excluded symbols list on Windows, so that
+	'limits.h' can be processed.
+
+	'h2xml.py' can now read preprocessor symbol names to exclude from
+	a local configuration file 'h2xml.cfg' inb the current directory.
+
 2005-03-16  Thomas Heller  <theller@python.net>
 
 	* ctypes\source\_ctyopes.c: Subclasses of c_char_p, c_wchar_p, and
