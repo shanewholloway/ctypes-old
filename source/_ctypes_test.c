@@ -1,5 +1,13 @@
 #include <Python.h>
 
+/*
+  Backwards compatibility:
+  Python2.2 used LONG_LONG instead of PY_LONG_LONG
+*/
+#if defined(HAVE_LONG_LONG) && !defined(PY_LONG_LONG)
+#define PY_LONG_LONG LONG_LONG
+#endif
+
 #ifdef MS_WIN32
 #include <windows.h>
 #endif
