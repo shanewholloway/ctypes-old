@@ -26,16 +26,6 @@
 #
 # refcount leaks!
 #
-#
-# A problem in the com metaclass:
-#
-# ITask derives from IScheduledWorkItems.
-#
-# When ITask._methods_ = [...] is executed BEFORE
-# IScheduledWorkItems._methods_ = [...], the COM methods will get the
-# wrong vtable indexes!
-#
-# Not sure how to solve that.
 
 from ctypes import *
 from comtypes import IUnknown
@@ -434,7 +424,7 @@ if __name__ == "__main__":
     print scheduler.Enum()
     print scheduler.Enum().Clone()
 
-    for i in range (5000):
+    for i in range (50):
         for item in scheduler:
             pass # leaks 10 refs per loop
 
