@@ -16,6 +16,9 @@ The ctypes module
 
   News
 
+    Yasushi Masuda has translated the docs into
+    "japanese":http://www.python.jp/pub/doc_jp/contrib/ctypes/.
+
     Bradley Schatz has started porting 'ctypes' to 'java'. The code is
     already in
     "CVS":http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/ctypes/ctypes-java/,
