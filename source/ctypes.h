@@ -50,6 +50,8 @@ extern PyTypeObject CWString_Type;
 #define CWString_CheckExact(v)		((v)->ob_type == &CWString_Type)
 #define CWString_Check(v)		PyObject_TypeCheck(v, &CWString_Type)
 
+extern PyTypeObject CFunctionType_Type;
+
 extern int
 PyType_stginfo(PyTypeObject *self, int *psize, int *palign, int *plength);
 
