@@ -1,6 +1,13 @@
+2004-01-30  Thomas Heller  <theller@python.net>
+
+	* (Repository): Added STATUS.txt, which describes the state of the
+	libffi integration.  Added bench.bat, a batch file using the
+	timeit module to make it easier to check the speed of some simple
+	operations.
+
 2004-01-20  Thomas Heller  <theller@python.net>
 
-	* source\_ctypes.c: Moved the test functions into a seaparate
+	* source\_ctypes.c: Moved the test functions into a separate
 	Python extension module _ctypes_test.c.  Setup-script and
 	unittests updated.
 
