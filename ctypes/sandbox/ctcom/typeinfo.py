@@ -1,12 +1,58 @@
-from ctcom import IUnknown, COMPointer, GUID, LCID, REFIID, REFGUID, PPUNK
+from ctcom import IUnknown, COMPointer, GUID, LCID, REFIID, REFGUID, PPUNK, PUNK, WORD
 
 from ctypes import Structure, Union, POINTER, byref, oledll, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp
 
 oleaut32 = oledll.oleaut32
 
-################
+################################################################
+# Interfaces declarations
+#
+def _mth(*args):
+    return args
 
+# fake
+from ctcom import IUnknownPointer
+ITypeCompPointer = IUnknownPointer
+ITypeComp = IUnknown
+
+LPOLESTR = c_wchar_p
+
+HREFTYPE = c_ulong
+
+class ITypeInfo(IUnknown):
+    _iid_ = GUID("{00020401-0000-0000-C000-000000000046}")
+                 
+class ITypeInfoPointer(COMPointer):
+    _interface_ = ITypeInfo
+
+class ITypeLib(IUnknown):
+    _iid_ = GUID("{00020402-0000-0000-C000-000000000046}")
+
+class ITypeLibPointer(IUnknownPointer):
+    _interface_ = ITypeLib
+
+class IDispatch(IUnknown):
+    _iid_ = GUID("{00020400-0000-0000-C000-000000000046}")
+
+class IDispatchPointer(COMPointer):
+    _interface_ = IDispatch
+
+################################################################
+# constants
+#
+TKIND_ENUM = 0
+TKIND_RECORD = 1
+TKIND_MODULE = 2
+TKIND_INTERFACE = 3
+TKIND_DISPATCH = 4
+TKIND_COCLASS = 5
+TKIND_ALIAS = 6
+TKIND_UNION = 7
+
+################################################################
+# typeinfo, typelib and automation data types
+#
 DISPID = c_long
 MEMBERID = DISPID
 TYPEKIND = c_int # enum
@@ -39,19 +85,9 @@ class BSTR(Union):
 # XXX BUG: Crashed hard when _ptr set to 0
 ##            self._ptr = 0
 
-class TLIBATTR(Structure):
-    _fields_ = [("guid", GUID),
-                ("lcid", "L"),
-                ("syskind", "i"),
-                ("wMajorVersionNum", "H"),
-                ("wMinorVersionNum", "H"),
-                ("wLibFlags", "H")]
-
 #fake it, in reality it's a union having 16 bytes
 class VARIANT(Structure):
     class U(Union):
-        # from automation import IDispatchPointer
-        IDispatchPointer = c_int
         _fields_ = [("bVal", "B"),
                     ("iVal", "h"),
                     ("lVal", "l"),
@@ -60,6 +96,7 @@ class VARIANT(Structure):
                     ("boolVal", "i"),
                     ("strVal", "Z"), # XXX ???
                     # ...
+                    ("pUnkVal", IUnknownPointer),
                     ("pDispVal", IDispatchPointer),
                     ]
 
@@ -81,6 +118,32 @@ class VARIANT(Structure):
                                    0, vt)
         return getattr(var._, field)
 
+class DISPPARAMS(Structure):
+    _fields_ = [("rgvarg", POINTER(VARIANT)),
+                ("rgdispidNamedArgs", POINTER(DISPID)),
+                ("cArgs", "I"),
+                ("cNamedArgs", "I")]
+
+# c:/vc98/include/oaidl.h
+
+class EXCEPINFO(Structure):
+    _fields_ = [("wCode", "H"),
+                ("wReserved", "H"),
+                ("bstrSource", BSTR),
+                ("bstrDescription", BSTR),
+                ("bstrHelpFile", BSTR),
+                ("dwHelpContext", "L"),
+                ("pvReserved", "P"),
+                ("pfnDeferredFillIn", "P"),
+                ("scode", "L")]
+
+class TLIBATTR(Structure):
+    _fields_ = [("guid", GUID),
+                ("lcid", "L"),
+                ("syskind", "i"),
+                ("wMajorVersionNum", "H"),
+                ("wMinorVersionNum", "H"),
+                ("wLibFlags", "H")]
 
 class PARAMDESCEX(Structure):
     _fields_ = [("cBytes", "L"),
@@ -162,93 +225,50 @@ class FUNCDESC(Structure):
 LPFUNCDESC = POINTER(FUNCDESC)
 
 ################################################################
-# Interfaces
-#
+# The interfaces COM methods
 
-def _mth(*args):
-    return args
-
-# fake
-from ctcom import IUnknownPointer
-ITypeCompPointer = IUnknownPointer
-ITypeComp = IUnknown
-
-LPOLESTR = c_wchar_p
-
-HREFTYPE = c_ulong
-
-class ITypeInfo(IUnknown):
-    _iid_ = GUID("{00020401-0000-0000-C000-000000000046}")
-                 
-class ITypeInfoPointer(COMPointer):
-    _interface_ = ITypeInfo
-
-class ITypeLib(IUnknown):
-    _iid_ = GUID("{00020402-0000-0000-C000-000000000046}")
-
-class ITypeLibPointer(IUnknownPointer):
-    _interface_ = ITypeLib
-
-################
-
-ITypeInfo._methods_ = [("GetTypeAttr", _mth(POINTER(LPTYPEATTR))),
-                       ("GetTypeComp", _mth(POINTER(ITypeCompPointer))),
-                       ("GetFuncDesc", _mth(c_uint,  POINTER(POINTER(FUNCDESC)))),
-                       ("GetVarDesc", _mth(c_uint, POINTER(POINTER(VARDESC)))),
-                       ("GetNames", _mth(MEMBERID, POINTER(BSTR), c_uint, POINTER(c_uint))),
-                       ("GetRefTypeOfImplType", _mth(c_uint, POINTER(HREFTYPE))),
-                       ("GetImplTypeFlags", _mth(c_uint, POINTER(c_int))),
-                       ("GetIDsOfNames", _mth(POINTER(LPOLESTR), c_uint, POINTER(c_int))),
-                       ("Invoke", _mth()), # XXX
-                       ("GetDocumentation", _mth(MEMBERID, POINTER(BSTR), POINTER(BSTR),
+ITypeInfo._methods_ = [("GetTypeAttr", (POINTER(LPTYPEATTR),)),
+                       ("GetTypeComp", (POINTER(ITypeCompPointer),)),
+                       ("GetFuncDesc", (c_uint,  POINTER(POINTER(FUNCDESC)))),
+                       ("GetVarDesc", (c_uint, POINTER(POINTER(VARDESC)))),
+                       ("GetNames", (MEMBERID, POINTER(BSTR), c_uint, POINTER(c_uint))),
+                       ("GetRefTypeOfImplType", (c_uint, POINTER(HREFTYPE))),
+                       ("GetImplTypeFlags", (c_uint, POINTER(c_int))),
+                       ("GetIDsOfNames", (POINTER(LPOLESTR), c_uint, POINTER(c_int))),
+                       ("Invoke", (PUNK, MEMBERID, WORD, POINTER(DISPPARAMS),
+                                   POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint))),
+                       ("GetDocumentation", (MEMBERID, POINTER(BSTR), POINTER(BSTR),
                                                  POINTER(c_ulong), POINTER(BSTR))),
-                       ("GetDllEntry", _mth(MEMBERID, c_int, POINTER(BSTR), POINTER(BSTR),
+                       ("GetDllEntry", (MEMBERID, c_int, POINTER(BSTR), POINTER(BSTR),
                                             POINTER(c_ushort))),
-                       ("GetRefTypeInfo", _mth(HREFTYPE, POINTER(ITypeInfoPointer))),
-                       ("AddressOfMember", _mth(MEMBERID, c_int, POINTER(c_voidp))),
-                       ("CreateInstance", _mth(c_voidp, REFIID, PPUNK)),
-                       ("GetMops", _mth(MEMBERID, POINTER(BSTR))),
-                       ("GetContainingTypeLib", _mth(POINTER(ITypeLibPointer), POINTER(c_uint))),
-                       ("ReleaseTypeAttr", _mth(LPTYPEATTR)),
-                       ("ReleaseFuncDesc", _mth(LPFUNCDESC)),
-                       ("ReleaseVarDesc", _mth(LPVARDESC))]
+                       ("GetRefTypeInfo", (HREFTYPE, POINTER(ITypeInfoPointer))),
+                       ("AddressOfMember", (MEMBERID, c_int, POINTER(c_voidp))),
+                       ("CreateInstance", (c_voidp, REFIID, PPUNK)),
+                       ("GetMops", (MEMBERID, POINTER(BSTR))),
+                       ("GetContainingTypeLib", (POINTER(ITypeLibPointer), POINTER(c_uint))),
+                       ("ReleaseTypeAttr", (LPTYPEATTR,)),
+                       ("ReleaseFuncDesc", (LPFUNCDESC,)),
+                       ("ReleaseVarDesc", (LPVARDESC,))]
 
-
-################
-
-ITypeLib._methods_ = [("GetTypeInfoCount", _mth()),
-                      ("GetTypeInfo", _mth(c_uint, POINTER(ITypeInfoPointer))),
-                      ("GetTypeInfoType", _mth(c_int, POINTER(TYPEKIND))),
-                      ("GetTypeInfoOfGuid", _mth(REFGUID, POINTER(ITypeInfoPointer))),
-                      ("GetLibAttr", _mth(POINTER(TLIBATTR))),
-                      ("GetTypeComp", _mth(POINTER(ITypeComp))),
-                      ("GetDocumentation", _mth(c_int, POINTER(BSTR), POINTER(BSTR),
+ITypeLib._methods_ = [("GetTypeInfoCount", ()),
+                      ("GetTypeInfo", (c_uint, POINTER(ITypeInfoPointer))),
+                      ("GetTypeInfoType", (c_int, POINTER(TYPEKIND))),
+                      ("GetTypeInfoOfGuid", (REFGUID, POINTER(ITypeInfoPointer))),
+                      ("GetLibAttr", (POINTER(TLIBATTR),)),
+                      ("GetTypeComp", (POINTER(ITypeComp),)),
+                      ("GetDocumentation", (c_int, POINTER(BSTR), POINTER(BSTR),
                                                 POINTER(c_ulong), POINTER(BSTR))),
-                      ("IsName", _mth(c_wchar_p, c_ulong, c_int)),
-                      ("FindName", _mth(c_wchar_p, c_ulong, POINTER(ITypeInfoPointer),
+                      ("IsName", (c_wchar_p, c_ulong, c_int)),
+                      ("FindName", (c_wchar_p, c_ulong, POINTER(ITypeInfoPointer),
                                         POINTER(MEMBERID), POINTER(c_uint))),
-                      ("ReleaseTLibAttr", _mth(POINTER(TLIBATTR)))]
+                      ("ReleaseTLibAttr", (POINTER(TLIBATTR),))]
 
-################
-
-TKIND_ENUM = 0
-TKIND_RECORD = 1
-TKIND_MODULE = 2
-TKIND_INTERFACE = 3
-TKIND_DISPATCH = 4
-TKIND_COCLASS = 5
-TKIND_ALIAS = 6
-TKIND_UNION = 7
-
-
-##class IDispatch(IUnknown):
-##    _iid_ = GUID("{00020400-0000-0000-C000-000000000046}")
-##    _methods_ = [("GetTypeInfoCount", (POINTER(c_uint),)),
-##                 ("GetTypeInfo", (c_int, LCID, POINTER(ITypeInfoPointer))),
-##                 ("GetIDsOfNames", (REFIID, POINTER(c_wchar_p), c_int, LCID, POINTER(DISPID)))]
-    
-##class IDispatchPointer(COMPointer):
-##    _interface_ = IDispatch
+IDispatch._methods_ = [("GetTypeInfoCount", (POINTER(c_uint),)),
+                       ("GetTypeInfo", (c_uint, LCID, POINTER(ITypeInfoPointer))),
+                       ("GetIDsOfNames", (REFIID, POINTER(c_wchar_p), c_uint,
+                                          LCID, POINTER(DISPID))),
+                       ("Invoke", (DISPID, REFIID, LCID, WORD, POINTER(DISPPARAMS),
+                                   POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint)))]
 
 ################################################################
 # functions
