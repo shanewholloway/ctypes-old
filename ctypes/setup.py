@@ -263,6 +263,8 @@ class my_build_ext(build_ext.build_ext):
             ext.include_dirs.append(inc_dir)
             ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
             ext.library_dirs.append(lib_dir)
+            # guesswork, for 64-bit platforms
+            ext.library_dirs.append(lib_dir + '64')
 
         if not self.force and os.path.isfile(os.path.join(lib_dir, "libffi.a")):
             return
