@@ -1,3 +1,15 @@
+2004-08-27  Thomas Heller  <theller@python.net>
+
+	* ctypes: Accept integer addresses, uncode strings, and strings in
+	the c_char_p and c_wchar_p constructor and as c_char_p and
+	c_wchar_p fields in Structures.  strings are automatically decoded
+	to unicode, and unicode is automatically encoded in strings if
+	needed.
+
+	Integer addresses are *not* accepted in function parameter lists,
+	they must before be converted to c_char_p or c_wchar_p.
+
+
 2004-08-26  Thomas Heller  <theller@python.net>
 
 	* source\callproc.c: Implemented Py_INCREF and Py_DECREF as

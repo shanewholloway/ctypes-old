@@ -22,7 +22,19 @@ Overview
 
 Changes in 0.9.1
 
+  ctypes 0.9.1 should be fully compatible again with Gary Bishop's
+  readline module which is also used by IPython.
+
   ctypes changes
+
+    It is now possible to create strings or unicode strings if you
+    have the integer address by calling c_char_p(address) or
+    c_wchar_p(address).  Integers can also be assigned to structure
+    fields of type c_char_p and c_wchar_p.
+
+    c_char_p and c_wchar_p both accept strings and unicode strings -
+    if needed they are encoded or decoded using 'strict' error
+    handling.
 
     The _ctypes.call_function function, although private and
     deprecated, has been put back in - it is used by Gary Bishop's
@@ -50,9 +62,9 @@ Changes in 0.9.1
   ctypes.com changes
 
     ctypes now caches the types that WINFUNCTYPE and CFUNCTYPE
-    creates, to avoid creation of a lot of similar classes. This makes
-    importing files containing a lot of COM interfaces (like the ones
-    that the readtlb tool generates) a lot (10 x) faster.
+    creates, to avoid unneeeded creation of classes. This
+    makes importing files containing a lot of COM interfaces (like the
+    ones that the readtlb tool generates) a lot (10 x) faster.
 
     COM servers now print a short usage message when they are run
     without the /regserver or /unregserver flag.
@@ -60,13 +72,11 @@ Changes in 0.9.1
     VARIANT does now handle the COM DATE type (VT_DATE) as Python
     datetime.
 
-    VARIANT now handles integers and longs - if longs are too large
-    they are stored as doubles (VT_R8). Integers are now stored as
-    VT_I4 instead of VT_INT.
+    VARIANT now handles integers and longs correctly - if longs are
+    too large they are stored as doubles (VT_R8). Integers are now
+    stored as VT_I4 instead of VT_INT.
 
-
-    Detailed changelogs are in CVS (well, sometimes I forget to update
-    them):
+    Detailed changelogs are in CVS:
     
   <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD>
 
