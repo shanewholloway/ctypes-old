@@ -4,15 +4,15 @@ class GetoptError(Exception):
 def w_getopt(args, options):
     """A getopt for Windows.
 
-    Options may be preceeded by either '-' or '/', the option
-    names can have more than one letter (/tlb or -RegServer),
-    and the option names are case insensitive.
+    Options may start with either '-' or '/', the option names may
+    have more than one letter (/tlb or -RegServer), and option names
+    are case insensitive.
 
     Returns two elements, just as getopt.getopt.  The first is a list
-    of (option, value) pairs as getopt.getopt does, but there is no
-    '-' or '/' prefix to the option name, and the option name is
-    always lower case.
-    The second is the list of arguments which do not belong to an option.
+    of (option, value) pairs in the same way getopt.getopt does, but
+    there is no '-' or '/' prefix to the option name, and the option
+    name is always lower case.  The second is the list of arguments
+    which do not belong to an option.
     """
     opts = []
     while args and args[0][:1] in "/-":
@@ -38,14 +38,18 @@ if __name__ == "__main__":
 
     class TestCase(unittest.TestCase):
         def test_1(self):
-            opts, args = w_getopt("-embedding /RegServer /UnregSERVER".split(),
-                                "regserver unregserver embedding".split())
+            args = "-embedding /RegServer /UnregSERVER spam blabla".split()
+            opts, args = w_getopt(args,
+                                  "regserver unregserver embedding".split())
             self.assertEqual(opts,
-                             [('embedding', ''), ('regserver', ''), ('unregserver', '')])
-            self.assertEqual(args, [])
+                             [('embedding', ''),
+                              ('regserver', ''),
+                              ('unregserver', '')])
+            self.assertEqual(args, ["spam", "blabla"])
 
         def test_2(self):
-            opts, args = w_getopt("/TLB Hello.Tlb HELLO.idl".split(), ["tlb:"])
+            args = "/TLB Hello.Tlb HELLO.idl".split()
+            opts, args = w_getopt(args, ["tlb:"])
             self.assertEqual(opts, [('tlb', 'Hello.Tlb')])
             self.assertEqual(args, ['HELLO.idl'])
 
