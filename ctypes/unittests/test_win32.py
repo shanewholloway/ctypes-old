@@ -7,26 +7,26 @@ if sys.platform == "win32":
 
     class WindowsTestCase(unittest.TestCase):
         def test_callconv_1(self):
-            "Call functions with the wrong number of arguments, or the wrong calling convention"
-            GetModuleHandle = windll.kernel32.GetModuleHandleA
+            # Testing stdcall function
 
+            IsWindow = windll.user32.IsWindow
             # ValueError: Procedure probably called with not enough arguments (4 bytes missing)
-            self.assertRaises(ValueError, GetModuleHandle)
+            self.assertRaises(ValueError, IsWindow)
 
             # This one should succeeed...
-            self.failUnless(GetModuleHandle(None))
+            self.failUnlessEqual(0, IsWindow(0))
 
             # ValueError: Procedure probably called with too many arguments (8 bytes in excess)
-            self.assertRaises(ValueError, GetModuleHandle, 0, 0, 0)
+            self.assertRaises(ValueError, IsWindow, 0, 0, 0)
 
         def test_callconv_2(self):
-            "Call functions with the wrong number of arguments, or the wrong calling convention"
-            GetModuleHandleA = cdll.kernel32.GetModuleHandleA
+            # Calling stdcall function as cdecl
+
+            IsWindow = cdll.user32.IsWindow
 
             # ValueError: Procedure called with not enough arguments (4 bytes missing)
             # or wrong calling convention
-            self.assertRaises(ValueError, GetModuleHandleA, None)
-            self.assertRaises(ValueError, GetModuleHandleA)
+            self.assertRaises(ValueError, IsWindow, None)
 
         def test_SEH(self):
             """Call functions with invalid arguments, and make sure that access violations
