@@ -68,7 +68,7 @@ class RefcountTestCase(unittest.TestCase):
         
         # and now it must be gone again
         gc.collect()
-        self.failUnless(grc(func) == 2)
+        self.failUnlessEqual(grc(func), 2)
 
         f = OtherCallback(func)
 

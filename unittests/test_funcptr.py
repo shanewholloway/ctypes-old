@@ -40,8 +40,8 @@ class CFuncPtrTestCase(unittest.TestCase):
         s = StdCallback(func)
         c = CdeclCallback(func)
 
-        self.failUnless(s(1, 2) == 3)
-        self.failUnless(c(1, 2) == 3)
+        self.failUnlessEqual(s(1, 2), 3)
+        self.failUnlessEqual(c(1, 2), 3)
         self.assertRaises(TypeError, s, 1, 2, 3)
         self.assertRaises(TypeError, c, 1, 2, 3)
 
