@@ -210,13 +210,28 @@ static PyMemberDef CField_members[] = {
 	{ NULL },
 };
 
+static int
+CField_clear(CFieldObject *self)
+{
+	Py_XDECREF(self->proto);
+	self->proto = NULL;
+	return 0;
+}
+
+static void
+CField_dealloc(PyObject *self)
+{
+	CField_clear((CFieldObject *)self);
+	self->ob_type->tp_free((PyObject *)self);
+}
+
 PyTypeObject CField_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
 	"_ctypes.CField",				/* tp_name */
 	sizeof(CFieldObject),			/* tp_basicsize */
 	0,					/* tp_itemsize */
-	0,					/* tp_dealloc */
+	CField_dealloc,				/* tp_dealloc */
 	0,					/* tp_print */
 	0,					/* tp_getattr */
 	0,					/* tp_setattr */
@@ -234,7 +249,7 @@ PyTypeObject CField_Type = {
 	Py_TPFLAGS_DEFAULT,			/* tp_flags */
 	NULL,					/* tp_doc */
 	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(inquiry)CField_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
