@@ -116,6 +116,7 @@ static int __stdcall CallPythonObject(PyObject *callable,
 		PrintError("PyTuple_New()");
 		goto Done;
 	}
+
 	for (i = 0; i < nArgs; ++i) {
 		/* Note: new reference! */
 		PyObject *cnv = PySequence_GetItem(converters, i);
@@ -134,7 +135,12 @@ static int __stdcall CallPythonObject(PyObject *callable,
 				goto Done;
 			}
 			PyTuple_SET_ITEM(arglist, i, v);
-			pArgs += dict->size / sizeof(int);
+			/* XXX XXX XX
+			   We have the problem that c_byte or c_short have dict->size of
+			   1 resp. 4, but these parameters are pushed as sizeof(int) bytes.
+			   BTW, the same problem occurrs when they are pushed as parameters
+			*/
+			pArgs += (dict->size + sizeof(int) - 1) / sizeof(int);
 			continue;
 		}
 
@@ -151,7 +157,8 @@ static int __stdcall CallPythonObject(PyObject *callable,
 				goto Done;
 			}
 			memcpy(obj->b_ptr, pArgs, dict->size);
-			pArgs += dict->size / sizeof(int);
+			/* XXX See above */
+			pArgs += (dict->size + sizeof(int) - 1) / sizeof(int);
 			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
 		} else {
 			PyErr_SetString(PyExc_TypeError,
@@ -716,6 +723,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvRes)
 
 /*
  Local Variables:
- compile-command: "python setup.py build -g && python setup.py build install --home ~"
+ compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
  End:
 */
