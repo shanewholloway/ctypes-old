@@ -66,7 +66,7 @@ class SimpleTypesTestCase(unittest.TestCase):
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_short(42)))
 
     def test_array_pointers(self):
-        from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer
+        from ctypes import c_short, c_uint, c_int, c_long, POINTER
         INTARRAY = c_int * 3
         ia = INTARRAY()
         self.failUnless(len(ia) == 3)
@@ -92,12 +92,12 @@ def run_test(rep, msg, func, arg=None):
     from time import clock
     if arg is not None:
         start = clock()
-        for i in items:
+        for _ in items:
             func(arg); func(arg); func(arg); func(arg); func(arg)
         stop = clock()
     else:
         start = clock()
-        for i in items:
+        for _ in items:
             func(); func(); func(); func(); func()
         stop = clock()
     print "%15s: %.2f us" % (msg, ((stop-start)*1e6/5/rep))
@@ -105,7 +105,7 @@ def run_test(rep, msg, func, arg=None):
 
 def check_perf():
     # Convert 5 objects into parameters, using different approaches
-    from ctypes import c_int, POINTER, pointer, byref
+    from ctypes import c_int
 
     REP = 1000000
 
