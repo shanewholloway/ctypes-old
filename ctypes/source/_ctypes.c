@@ -3508,6 +3508,6 @@ EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG)
 #endif
 /*
  Local Variables:
- compile-command: "python ../setup.py -q build install --home ~"
+ compile-command: "cd .. && python setup.py -q build test install --home ~"
  End:
 */
