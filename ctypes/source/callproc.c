@@ -702,7 +702,7 @@ static int _call_function_pointer(int flags,
 /*
  * Convert the C value in result into an instance described by restype
  */
-static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, void *result)
+static PyObject *GetResult(PyObject *restype, void *result)
 {
 	StgDictObject *dict;
 
@@ -720,6 +720,23 @@ static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, void *result)
 		/* There is no Python api to set the pointer value, so we
 		   create an empty (NULL) pointer, and modify it afterwards.
 		*/
+		pd = (CDataObject *)PyObject_CallFunctionObjArgs(restype, NULL);
+		if (!pd)
+			return NULL;
+		if (!CDataObject_Check(pd)) {
+			Py_DECREF(pd);
+			PyErr_SetString(PyExc_TypeError,
+					"BUG: restype call did not return a CDataObject");
+			return NULL;
+		}
+		/* Even better would be to use the buffer interface */
+		memcpy(pd->b_ptr, result, pd->b_size);
+		return (PyObject *)pd;
+	}
+
+	if (StructTypeObject_Check(restype)) {
+		CDataObject *pd;
+
 		pd = (CDataObject *)PyObject_CallFunctionObjArgs(restype, NULL);
 		if (!pd)
 			return NULL;
@@ -847,9 +864,10 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *restype)
 {
 	int i, n, argcount, argtype_count;
-	struct argument result;
+	void *resbuf;
 	struct argument *args, *pa;
 	ffi_type **atypes;
+	ffi_type *rtype;
 	void **avalues;
 	PyObject *retval = NULL;
 
@@ -906,13 +924,8 @@ PyObject *_CallProc(PPROC pProc,
 		}
 	}
 
-	/* XXX If we have a structure as return value, the storage area that
-	   'result.value' provides may not be large enough.  We should
-	   probably create the result value (an instance of the structure
-	   type) before the call, and use the instance's memory buffer as the
-	   storage area.
-	 */
-	result.ffi_type = GetType(restype);
+	rtype = GetType(restype);
+	resbuf = alloca(max(rtype->size, sizeof(ffi_arg)));
 
 	avalues = (void **)alloca(sizeof(void *) * argcount);
 	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
@@ -925,18 +938,18 @@ PyObject *_CallProc(PPROC pProc,
 	}
 
 	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes,
-					 result.ffi_type, &result.value, argcount))
+					 rtype, resbuf, argcount))
 		goto cleanup;
 
 #ifdef MS_WIN32
 	if (flags & FUNCFLAG_HRESULT) {
-		if (result.value.i & 0x80000000)
-			retval = PyErr_SetFromWindowsErr(result.value.i);
+		if (*(int *)resbuf & 0x80000000)
+			retval = PyErr_SetFromWindowsErr(*(int *)resbuf);
 		else
-			retval = PyInt_FromLong(result.value.i);
+			retval = PyInt_FromLong(*(int *)resbuf);
 	} else
 #endif
-		retval = GetResult(restype, result.ffi_type, &result.value);
+		retval = GetResult(restype, resbuf);
   cleanup:
 	for (i = 0; i < argcount; ++i)
 		Py_XDECREF(args[i].keep);
