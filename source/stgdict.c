@@ -148,6 +148,27 @@ _get_packing(PyObject *type)
 	return pack;
 }
 
+static PyObject *
+_get_fields(PyObject *type, int *plen)
+{
+	PyObject *fields;
+	fields = PyObject_GetAttrString(type, "_fields_");
+	if (!fields) {
+		PyErr_SetString(PyExc_AttributeError,
+				"class must define a '_fields_' attribute");
+		return NULL;
+	}
+
+	*plen = PySequence_Length(fields);
+	if (*plen == -1) {
+		PyErr_SetString(PyExc_AttributeError,
+				"'_fields_' must be a sequence of pairs");
+		Py_DECREF(fields);
+		return NULL;
+	}
+	return fields;
+}
+
 /*
   Retrieve the (optional) _pack_ attribute from a type, the _fields_ attribute,
   and create an StgDictObject.  Used for Structure and Union subclasses.
@@ -167,20 +188,9 @@ StgDict_ForType(PyObject *type, int isStruct)
 	if (pack == -1)
 		return NULL;
 
-	fields = PyObject_GetAttrString(type, "_fields_");
-	if (!fields) {
-		PyErr_SetString(PyExc_AttributeError,
-				"class must define a '_fields_' attribute");
+	fields = _get_fields(type, &len);
+	if (fields == NULL)
 		return NULL;
-	}
-
-	len = PySequence_Length(fields);
-	if (len == -1) {
-		PyErr_SetString(PyExc_AttributeError,
-				"'_fields_' must be a sequence of pairs");
-		Py_DECREF(fields);
-		return NULL;
-	}
 
 	stgdict = (StgDictObject *)PyObject_CallObject(
 		(PyObject *)&StgDict_Type, NULL);
