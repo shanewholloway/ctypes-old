@@ -752,23 +752,6 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		return (PyObject *)pd;
 	}
 
-	if (StructTypeObject_Check(restype)) {
-		CDataObject *pd;
-
-		pd = (CDataObject *)PyObject_CallFunctionObjArgs(restype, NULL);
-		if (!pd)
-			return NULL;
-		if (!CDataObject_Check(pd)) {
-			Py_DECREF(pd);
-			PyErr_SetString(PyExc_TypeError,
-					"BUG: restype call did not return a CDataObject");
-			return NULL;
-		}
-		/* Even better would be to use the buffer interface */
-		memcpy(pd->b_ptr, result, pd->b_size);
-		return (PyObject *)pd;
-	}
-
 	if (dict && dict->getfunc) {
 		PyObject *retval = dict->getfunc(result, dict->size,
 						 restype, NULL, 0);
