@@ -2290,8 +2290,6 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	if (PyString_Check(init)) {
 		PyString_AsStringAndSize(init, &data, &size);
-	} else if (init == Py_None) {
-		size = 0;
 	} else {
 		PyErr_SetString(PyExc_TypeError,
 				"string or None expected");
@@ -2306,17 +2304,11 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_objects = NoneList(0);
 	obj->b_length = 0;
 
-	if (size) {
-		obj->b_ptr = PyMem_Malloc(size+1);
-		obj->b_size = size+1;
-		obj->b_needsfree = 1;
-		memcpy(obj->b_ptr, data, size);
-		obj->b_ptr[size] = '\0';
-	} else {
-		obj->b_ptr = NULL;
-		obj->b_size = 0;
-		obj->b_needsfree = 0;
-	}
+	obj->b_ptr = PyMem_Malloc(size+1);
+	obj->b_size = size+1;
+	obj->b_needsfree = 1;
+	memcpy(obj->b_ptr, data, size);
+	obj->b_ptr[size] = '\0';
 	return (PyObject *)obj;
 }
 
