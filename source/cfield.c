@@ -282,10 +282,30 @@ PyTypeObject CField_Type = {
   Accessor functions
 */
 
-/* Derived from Modules/structmodule.c:
-   Helper routine to get a Python integer and raise the appropriate error
-   if it isn't one */
+/* Derived from Modules/structmodule.c: Helper routines to get a Python
+   integer and raise the appropriate error if it isn't one.
+*/
 
+/*
+  We should change get_long and friends to accept c_int() and other integer
+  like instances as well.  When we have done that, and also changed the other
+  ..._get functions to accept instances of their type, the _from_param methods
+  in ctypes.c can replaced by calls to ..._get().
+
+  One possibility would be to call their getfunc, which returns an PyIntObject
+  or PyLongObject.
+
+  Hm, the problem is what to pass for 'size'. Maybe zero, but c_get() asserts
+  that size is 1. The assertion is probably wrong. The result from c_get will
+  not be accepted here anyway because we accept only ints or longs.
+
+  I should clarify what the site parameter for getfunc means.  For integer
+  like types, it specifies bitfield size for structure fields in the third and
+  fourth byte.  See the GET_BITFIELD() macro.
+
+  For c_char and c_wchar arrays, it specifies the number of characters - see
+  _ctypes.c::CharArray_getfunc.
+*/
 static int
 get_long(PyObject *v, long *p)
 {
@@ -393,7 +413,7 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 /*****************************************************************
  * The setter methods return an object which must be kept alive, to keep the
  * data valid which has been stored in the memory block.  The ctypes object
- * instance inserts this object into its 'b_objects' list.
+ * instance inserts this object into its 'b_objects' dictionary.
  *
  * For simple Python types like integers or characters, there is nothing that
  * has to been kept alive, so Py_None is returned in these cases.  But this
@@ -741,7 +761,6 @@ c_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 static PyObject *
 c_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
-	assert(size == 1);
 	return PyString_FromStringAndSize((char *)ptr, 1);
 }
 
@@ -784,7 +803,6 @@ u_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 static PyObject *
 u_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
-	assert(size = sizeof(wchar_t));
 	return PyUnicode_FromWideChar((wchar_t *)ptr, 1);
 }
 
