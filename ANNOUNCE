@@ -1,5 +1,4 @@
-
-ctypes 0.9.0 released
+NOT YET! ctypes 0.9.1 released
 =====================
 
 Overview
@@ -15,6 +14,19 @@ Overview
     also run on other systems, provided that libffi supports this
     platform.
 
+
+Changes in 0.9.1
+
+    Array and pointer instances now support slicing, for pointer only
+    getslice is implemented (setslice is too dangerous, probably).
+    Slices are accepted or returned as lists of the elements, except
+    for character and unicode character pointer and arrays, where
+    strings resp. unicode strings are used - much more convenient.
+
+
+
+ctypes 0.9.0 released
+=====================
 
 Changes in 0.9.0
 
