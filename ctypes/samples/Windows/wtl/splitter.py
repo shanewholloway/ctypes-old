@@ -1,10 +1,29 @@
+## 	   Copyright (c) 2003 Henk Punt
+
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal in the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+
+## The above copyright notice and this permission notice shall be
+## included in all copies or substantial portions of the Software.
+
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+## NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+## LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+## OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
+
 from windows import *
 from wtl import *
-from ctypes import c_ushort, pointer
+import ctypes
 import gdi
 
-BrushPatternArray = c_ushort * 8
-    
 class Splitter(Window):
     _class_ws_style_ = WS_CHILD | WS_VISIBLE
     _class_ws_ex_style_ = 0
@@ -19,11 +38,11 @@ class Splitter(Window):
 
         self.hcursor = LoadCursor(NULL, IDC_SIZEWE)
 
-        brushPat = BrushPatternArray()
+        brushPat = (c_ushort * 8)()
         for i in range(8):
             brushPat[i] = (0x5555 << (i & 1))
 
-        hbitmap = gdi.CreateBitmap(8, 8, 1, 1, pointer(brushPat))
+        hbitmap = gdi.CreateBitmap(8, 8, 1, 1, byref(brushPat))
         if hbitmap:
             self.brush = gdi.CreatePatternBrush(hbitmap)
             DeleteObject(hbitmap)
@@ -38,9 +57,8 @@ class Splitter(Window):
                           SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOREDRAW|SWP_NOSIZE)
         self.views[index] = ctrl
         
-    def OnSize(self, wParam, lParam):
-        cx, cy = LOWORD(lParam), HIWORD(lParam)
-        self.Layout(cx, cy)
+    def OnSize(self, event):
+        apply(self.Layout, event.size)
         
     def Layout(self, cx, cy):
         wr = self.windowRect
@@ -61,8 +79,8 @@ class Splitter(Window):
         EndDeferWindowPos(hdwp)
         
 
-    def OnLeftButtonDown(self, wParam, lParam):        
-        x, y = GET_XY_LPARAM(lParam)
+    def OnLeftButtonDown(self, event):        
+        x, y = event.position
         self.dragOffset = x - self.splitPos
         if self.IsOverSplitter(x, y):
             self.SetCapture()        
@@ -74,9 +92,9 @@ class Splitter(Window):
         else:
             return 0
         
-    def OnLeftButtonUp(self, wParam, lParam):
+    def OnLeftButtonUp(self, event):
         if GetCapture() == self.handle:
-            x, y = GET_XY_LPARAM(lParam)
+            x, y = event.position
             x, y = self.Clamp(x, y)
             ReleaseCapture()
             self.PatBlt(0, x, 0)
@@ -92,9 +110,9 @@ class Splitter(Window):
 
         return x, y
     
-    def OnMouseMove(self, wParam, lParam):
-        if wParam & MK_LBUTTON and GetCapture() == self.handle:
-            x, y = GET_XY_LPARAM(lParam)
+    def OnMouseMove(self, event):
+        if event.wParam & MK_LBUTTON and GetCapture() == self.handle:
+            x, y = event.position
             x, y = self.Clamp(x, y)        
             self.PatBlt(self.splitPos, x, 1)
             
@@ -117,14 +135,14 @@ class Splitter(Window):
         self.splitPos = newPos
         
 
-    def OnSetCursor(self, wParam, lParam):
+    def OnSetCursor(self, event):
         x, y = GET_XY_LPARAM(GetMessagePos())
         pt = POINT(x, y)
         self.ScreenToClient(pt)
         if self.IsOverSplitter(pt.x, pt.y):
             SetCursor(self.hcursor)
 
-    def OnCaptureChanged(self, wParam, lParam):
+    def OnCaptureChanged(self, event):
         #TODO?
         #self.PatBlt(0, self.splitPos, 0)
         pass

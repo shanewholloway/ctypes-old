@@ -23,7 +23,7 @@ class Form(form.Form):
         self.bitmapdc = gdi.CreateCompatibleDC(NULL)
         gdi.SelectObject(self.bitmapdc, self.bitmap.handle)
         
-    def OnPaint(self, wParam, lParam):
+    def OnPaint(self, event):
         ps = PAINTSTRUCT()
         hdc = self.BeginPaint(ps)
         

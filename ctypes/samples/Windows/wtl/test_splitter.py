@@ -38,8 +38,8 @@ class Form(form.Form):
         self.splitter.Add(0, self.child1)
         self.splitter.Add(1, self.child2)
 
-    def OnSize(self, wParam, lParam):
-        cx, cy = LOWORD(lParam), HIWORD(lParam)
+    def OnSize(self, event):
+        cx, cy = event.size
         self.splitter.MoveWindow(0, 0, cx, cy, TRUE)
 
     _msg_map_ = MSG_MAP([MSG_HANDLER(WM_SIZE, OnSize),

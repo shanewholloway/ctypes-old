@@ -1,3 +1,24 @@
+## 	   Copyright (c) 2003 Henk Punt
+
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal in the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+
+## The above copyright notice and this permission notice shall be
+## included in all copies or substantial portions of the Software.
+
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+## NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+## LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+## OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
+
 from windows import *
 from wtl import *
 import atl
@@ -33,41 +54,42 @@ class NoteBook(comctl.TabControl):
             child.MoveWindow(rc.left, rc.top, rc.width, rc.height, TRUE)
             
     def GetChildAt(self, index):
-        item = self.GetItem(index, TCIF_PARAM)
-        return instanceFromHandle(item.lParam)
+        if index >= 0:
+            item = self.GetItem(index, TCIF_PARAM)
+            return instanceFromHandle(item.lParam)
+        else:
+            return None
         
     def AddTab(self, index, title, child):
-        item = TCITEM()
+        item = comctl.TCITEM()
         item.mask = TCIF_TEXT | TCIF_PARAM
         item.pszText = title
         item.lParam = handle(child)
         self.InsertItem(index, item)
         self._ResizeChild(child)
 
-    def OnSelChange(self, wParam, lParam, nmhdr):
-        print "onselchange!"
+    def OnSelChange(self, event):
         #new current tab
         child = self.GetChildAt(self.GetCurSel())
         if child:
             self._ResizeChild(child)
             child.ShowWindow(SW_SHOW)
 
-    def OnSelChanging(self, wParam, lParam, nmhdr):
-        print "onselchangng!"
+    def OnSelChanging(self, event):
         #current tab changing
         child = self.GetChildAt(self.GetCurSel())
         if child:
             child.ShowWindow(SW_HIDE)
         
-    def OnSize(self, wParam, lParam):
-        self.Invalidate() #slight flicker at tabs, but keeps artificats from showing up
-        #maybe only invalidate areas not covert by child
+    def OnSize(self, event):
+        self.Invalidate() #slight flicker at tabs, but keeps artifacts from showing up
+        #maybe only invalidate areas not covered by child
         child = self.GetChildAt(self.GetCurSel())
         self._ResizeChild(child)
-        return (0, 0)
+        event.handled = 0
 
-    def OnEraseBackground(self, wParam, lParam):
-        return (0, 0)
+    def OnEraseBackground(self, event):
+        event.handled = 0
 
     _msg_map_ = MSG_MAP([MSG_HANDLER(WM_SIZE, OnSize),
                          MSG_HANDLER(WM_ERASEBKGND, OnEraseBackground)])

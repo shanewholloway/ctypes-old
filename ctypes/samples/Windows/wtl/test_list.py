@@ -29,10 +29,10 @@ class MyForm(form.Form):
             self.ctrl.InsertRow(i, ["blaat %d" % i, "blaat col2 %d" % i])
     
         
-    def OnSize(self, wParam, lParam):
-        cx, cy = LOWORD(lParam), HIWORD(lParam)
-        self.ctrl.MoveWindow(0,0,cx,cy,TRUE)
-        return (1, 0)
+    def OnSize(self, event):
+        cx, cy = event.size
+        self.ctrl.MoveWindow(0, 0, cx, cy, TRUE)
+        
 
     _msg_map_ = MSG_MAP([MSG_HANDLER(WM_SIZE, OnSize),
                          CHAIN_MSG_MAP(form.Form._msg_map_)])

@@ -24,11 +24,11 @@ class MyForm(form.Form):
         
         form.Form.__init__(self, menu = self.menu, title = "Python")      
 
-    def OnNew(self, wParam, lParam, code):
+    def OnNew(self, event):
         newForm = MyForm()
         newForm.ShowWindow()
 
-    def OnExit(self, wParam, lParam, code):
+    def OnExit(self, event):
         self.DestroyWindow()
         
     _msg_map_ = MSG_MAP([CMD_HANDLER(ID_NEW, OnNew),

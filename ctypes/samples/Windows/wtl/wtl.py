@@ -1,10 +1,30 @@
+## 	   Copyright (c) 2003 Henk Punt
+
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal in the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+
+## The above copyright notice and this permission notice shall be
+## included in all copies or substantial portions of the Software.
+
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+## NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+## LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+## OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
+
 from windows import *
 from gdi import *
 from ctypes import *
 
 import weakref
 
-#hndlMap = {} #maps windows handles to instances of disposable
 hndlMap = weakref.WeakValueDictionary()
 
 def globalWndProc(hWnd, nMsg, wParam, lParam):
@@ -12,7 +32,8 @@ def globalWndProc(hWnd, nMsg, wParam, lParam):
     handle its own msgs, therefore is a mapping maintained from hWnd to window instance"""
     #if nMsg == WM_SIZE:
     #    print "WM_SIZE", hWnd, hndlMap.get(hWnd, None)
-    #print "gwp: ", hWnd, nMsg, wParam, lParam, hndlMap.get(hWnd, None)
+    #if nMsg == WM_NOTIFY:
+    #    print "gwp: ", hWnd, nMsg, wParam, lParam, hndlMap.get(hWnd, None)
     
 
     handled = 0
@@ -45,6 +66,28 @@ def instanceFromHandle(handle):
 def instanceOrHandle(handle):
     return hndlMap.get(handle, handle)
 
+class Event(object):
+    def __init__(self, hWnd, nMsg, wParam, lParam):
+        self.hWnd = hWnd
+        self.nMsg = nMsg
+        self.lParam = lParam
+        self.wParam = wParam
+        self.handled = 0
+        
+    def getSize(self):
+        return LOWORD(self.lParam), HIWORD(self.lParam)
+
+    size = property(getSize, None, None, "")
+
+    def getPosition(self):
+        return GET_XY_LPARAM(self.lParam)
+
+    position = property(getPosition, None, None, "")
+
+    def __str__(self):
+        return "<event hWnd: %d, nMsg: %d, lParam: %d, wParam: %d>" % (self.hWnd, self.nMsg,
+                                                                       self.lParam, self.wParam)
+    
 class MSG_MAP(object):
     def __init__(self, entries):
         self._msg_map_ = {}
@@ -56,23 +99,28 @@ class MSG_MAP(object):
     def Dispatch(self, receiver, hWnd, nMsg, wParam, lParam):
         handler = self._msg_map_.get(nMsg, None)
         if handler:
-            res = handler(receiver, hWnd, nMsg, wParam, lParam)
-            if res == None:
-                return (1, 0) #assume handled and result = 0
+            event = Event(hWnd, nMsg, wParam, lParam)
+            event.handled = 1
+            result = handler(receiver, event)
+            if result == None:
+                return (event.handled, 0)
             else:
-                return res
+                return (event.handled, result)
         else:
             for msgMap in self._chained_:
-                res = msgMap.Dispatch(receiver, hWnd, nMsg, wParam, lParam)
-                if res:
-                    handled, res = res
+                result = msgMap.Dispatch(receiver, hWnd, nMsg, wParam, lParam)
+                if result:
+                    handled, result = result
                     if handled:
-                        return (handled, res)
+                        return (handled, result)
 
         #nobody handled msg
         return (0, 0)
 
-                 
+    def DispatchMSG(self, receiver, msg):
+        return self.Dispatch(receiver, msg.hWnd, msg.message,
+                             msg.wParam, msg.lParam)
+        
 class MSG_HANDLER(object):
     def __init__(self, msg, handler):
         self.msg, self.handler = msg, handler
@@ -80,8 +128,8 @@ class MSG_HANDLER(object):
     def __install__(self, msgMap):
         msgMap._msg_map_[self.msg] = self
 
-    def __call__(self, receiver, hWnd, nMsg, wParam, lParam):
-        return self.handler(receiver, wParam, lParam)
+    def __call__(self, receiver, event):
+        return self.handler(receiver, event)
 
 class CHAIN_MSG_MAP(object):
     def __init__(self, msgMap):
@@ -91,14 +139,16 @@ class CHAIN_MSG_MAP(object):
         msgMap._chained_.append(self.msgMap)
 
 class NTF_MAP(dict):
-    def __call__(self, receiver, hWnd, nMsg, wParam, lParam):
-        nmhdr = NMHDR.from_address(lParam)
+    def __call__(self, receiver, event):
+        nmhdr = NMHDR.from_address(int(event.lParam))
         handler = self.get(str(nmhdr.code), None)
         if handler:
-            return handler(receiver, hWnd, nMsg, wParam, lParam, nmhdr)
+            event.nmhdr = nmhdr
+            return handler(receiver, event)
         else:
-            return (0, 0)
-        
+            event.handled = 0
+            return 0
+    
 class NTF_HANDLER(object):
     def __init__(self, code, handler):
         self.code, self.handler = code, handler
@@ -107,17 +157,19 @@ class NTF_HANDLER(object):
         notifMap = msgMap._msg_map_.setdefault(WM_NOTIFY, NTF_MAP())
         notifMap[str(self.code)] = self
 
-    def __call__(self, receiver, hWnd, nMsg, wParam, lParam, nmhdr):
-        return self.handler(receiver, wParam, lParam, nmhdr)
+    def __call__(self, receiver, event):
+        return self.handler(receiver, event)
 
 class CMD_MAP(dict):
-    def __call__(self, receiver, hWnd, nMsg, wParam, lParam):
-        code = LOWORD(wParam)
+    def __call__(self, receiver, event):
+        code = LOWORD(event.wParam)
         handler = self.get(str(code), None)
         if handler:
-            return handler(receiver, hWnd, nMsg, wParam, lParam, code)
+            event.code = code
+            return handler(receiver, event)
         else:
-            return (0, 0)
+            event.handled = 0
+            return 0
 
 class CMD_HANDLER(object):
     def __init__(self, id, handler):
@@ -127,8 +179,8 @@ class CMD_HANDLER(object):
         cmdMap = msgMap._msg_map_.setdefault(WM_COMMAND, CMD_MAP())
         cmdMap[str(self.id)] = self
 
-    def __call__(self, receiver, hWnd, nMap, wParam, lParam, code):
-        return self.handler(receiver, wParam, lParam, code)
+    def __call__(self, receiver, event):
+        return self.handler(receiver, event)
     
 class disposable(object):
     def __init__(self, handle):
@@ -153,7 +205,9 @@ class disposable(object):
         print '__del__', self, self.m_handle
         self.dispose()
 
-rcDefault = RECT(top = -2147483648, left = -2147483648,
+
+RCMAX = 0x80000000l
+RCDEFAULT = RECT(top = RCMAX, left = RCMAX,
                  bottom = 0, right = 0)    
 
 hInstance = GetModuleHandle(NULL)
@@ -167,6 +221,7 @@ class Window(disposable):
     _class_background_ = GetStockObject(WHITE_BRUSH)
     _class_style_ = 0
     _class_clip_children_and_siblings = 1
+
     
     _msg_map_ = MSG_MAP([])
     
@@ -175,7 +230,7 @@ class Window(disposable):
                  exStyle = None,
                  parent = None,
                  menu = None,
-                 rcPos = rcDefault,
+                 rcPos = RCDEFAULT,
                  orStyle = None,
                  orExStyle = None,
                  nandStyle = None,
@@ -194,7 +249,7 @@ class Window(disposable):
             Window.cls.hIcon = handle(self._class_icon_)
             Window.cls.hIconSm = handle(self._class_icon_sm_)
             Window.cls.hCursor = LoadCursor(NULL, IDC_ARROW)
-            atom = RegisterClassEx(pointer(Window.cls))
+            atom = RegisterClassEx(byref(Window.cls))
         else:
             wndClass = self._class_
 
@@ -217,12 +272,13 @@ class Window(disposable):
         if nandStyle:
             style &= ~nandStyle
             
-        if rcPos.left == -2147483648:
-            nWidth = -2147483648
+        if rcPos.left == RCMAX:
+            nWidth = RCMAX
         else:
             nWidth = rcPos.right - rcPos.left
-        if rcPos.top == -2147483648:
-            nHeight = -2147483648
+            
+        if rcPos.top == RCMAX:
+            nHeight = RCMAX
         else:
             nHeight = rcPos.bottom - rcPos.top
 
@@ -247,6 +303,12 @@ class Window(disposable):
 
     def __dispose__(self):
         DestroyWindow(self.handle)
+
+    def PostMessage(self, nMsg, wParam = 0, lParam = 0):
+        return PostMessage(self.handle, nMsg, wParam, lParam)
+
+    def SendMessage(self, nMsg, wParam = 0, lParam = 0):
+        return SendMessage(self.handle, nMsg, wParam, lParam)
 
     def SubClass(self, newWndProc):
         return SetWindowLong(self.handle, GWL_WNDPROC, newWndProc)
@@ -273,7 +335,7 @@ class Window(disposable):
         InvalidateRect(self.handle, NULL, bErase)
 
     def InvalidateRect(self, rc, bErase = TRUE):
-        InvalidateRect(self.handle, pointer(rc), bErase)
+        InvalidateRect(self.handle, byref(rc), bErase)
 
     def GetDCEx(self, hrgnClip, flags):
         return GetDCEx(self.handle, hrgnClip, flags)
@@ -282,17 +344,17 @@ class Window(disposable):
         ReleaseDC(self.handle, hdc)
         
     def BeginPaint(self, paintStruct):
-        return BeginPaint(self.handle, pointer(paintStruct))
+        return BeginPaint(self.handle, byref(paintStruct))
 
     def EndPaint(self, paintStruct):
-        return EndPaint(self.handle, pointer(paintStruct))
+        return EndPaint(self.handle, byref(paintStruct))
         
     def DestroyWindow(self):
         DestroyWindow(self.handle)
 
     def GetClientRect(self):
         rc = RECT()
-        GetClientRect(self.handle, pointer(rc))
+        GetClientRect(self.handle, byref(rc))
         return rc
 
     clientRect = property(GetClientRect, None, None, "")
@@ -302,14 +364,17 @@ class Window(disposable):
     
     def GetWindowRect(self):
         rc = RECT()
-        GetWindowRect(self.handle, pointer(rc))
+        GetWindowRect(self.handle, byref(rc))
         return rc
 
     windowRect = property(GetWindowRect, None, None, "")
 
     def ScreenToClient(self, point):
-        ScreenToClient(self.handle, pointer(point))
-                       
+        ScreenToClient(self.handle, byref(point))
+
+    def ClientToScreen(self, point):
+        ClientToScreen(self.handle, byref(point))
+        
     def SetRedraw(self, bRedraw):
         SendMessage(self.handle, WM_SETREDRAW, bRedraw, 0)
 
@@ -355,7 +420,10 @@ class MenuBase(object):
     
     def EnableMenuItem(self, uIDEnableItem, uEnable):
         EnableMenuItem(self.handle, uIDEnableItem, uEnable)
-        
+
+    def GetSubMenu(self, id):
+        return instanceFromHandle(GetSubMenu(self.handle, id))
+    
 class Menu(MenuBase, disposable):
     def __init__(self):
         disposable.__init__(self, CreateMenu())
@@ -369,12 +437,15 @@ class PopupMenu(MenuBase, disposable):
         
     def __dispose__(self):
         DestroyMenu(self.handle)
-    
+
+    def TrackPopupMenuEx(self, uFlags, x, y, wnd, lptpm):
+        TrackPopupMenuEx(self.handle, uFlags, x, y, handle(wnd), lptpm)
+        
 class Bitmap(disposable):
     def __init__(self, path):
         disposable.__init__(self, LoadImage(NULL, path, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE))
         bm = BITMAP()
-        GetObject(self.handle, sizeof(bm), pointer(bm))
+        GetObject(self.handle, sizeof(bm), byref(bm))
         self.m_width, self.m_height = bm.bmWidth, bm.bmHeight
 
     def __dispose__(self):
@@ -411,7 +482,7 @@ class MessageLoop:
         
     def Run(self):
         msg = MSG()
-        lpmsg = pointer(msg)
+        lpmsg = byref(msg)
         while GetMessage(lpmsg, 0, 0, 0):
             if not self.PreTranslateMessage(msg):
                 TranslateMessage(lpmsg)

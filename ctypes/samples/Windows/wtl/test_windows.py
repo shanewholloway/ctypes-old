@@ -23,7 +23,7 @@ cls.hIconSm = LoadIcon(0, IDI_APPLICATION)
 cls.hCursor = LoadCursor(0, IDC_ARROW)
 
 
-atom = RegisterClassEx(pointer(cls))
+atom = RegisterClassEx(byref(cls))
 hWnd = CreateWindowEx(0,
                       WND_CLASS_NAME,
                       "Test Window",
@@ -42,7 +42,7 @@ ShowWindow(hWnd, SW_SHOW)
 UpdateWindow(hWnd)
 
 msg = MSG()
-lpmsg = pointer(msg)
+lpmsg = byref(msg)
 
 while GetMessage(lpmsg, 0, 0, 0):
     TranslateMessage(lpmsg)

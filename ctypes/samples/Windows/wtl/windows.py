@@ -1,6 +1,27 @@
-from ctypes import windll, cdll, Structure, pointer, WinError, sizeof, WinFuncType
-from ctypes import c_char, c_ubyte, c_byte, c_ushort, c_short, c_uint, c_int, c_char_p
+## 	   Copyright (c) 2003 Henk Punt
 
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal in the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+
+## The above copyright notice and this permission notice shall be
+## included in all copies or substantial portions of the Software.
+
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+## NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+## LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+## OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
+
+from ctypes import *
+
+#TODO auto ie/comctl detection
 WIN32_IE = 0x0550
 
 #TODO: auto unicode selection,
@@ -10,42 +31,65 @@ WIN32_IE = 0x0550
 #  CreateWindowEx = windll.user32.CreateWindowExA
 #etc, etc
 
-#TODO split common ctrl stuff into commctrl.py
 
-def ValidHandle(value):
-    if value == 0:
-        raise WinError()
-    else:
-        return value
+DWORD = c_ulong
+HANDLE = c_ulong
+UINT = c_uint
+BOOL = c_int
+HWND = HANDLE
+HINSTANCE = HANDLE
+HICON = HANDLE
+HDC = HANDLE
+HCURSOR = HANDLE
+HBRUSH = HANDLE
+HMENU = HANDLE
+HBITMAP = HANDLE
+ULONG_PTR = DWORD
+INT = c_int
+LPCTSTR = c_char_p
+LPTSTR = c_char_p
+WORD = c_ushort
+LPARAM = c_ulong
+WPARAM = c_uint
+LPVOID = c_voidp
+LONG = c_ulong
+BYTE = c_byte
+TCHAR = c_char_p
+DWORD_PTR = c_ulong #TODO what is this exactly?
+INT_PTR = c_ulong  #TODO what is this exactly?
+COLORREF = c_ulong
 
-WndProc = WinFuncType(c_int, c_int, c_int, c_int, c_int)
-    
+WndProc = WinFuncType(c_int, HWND, UINT, WPARAM, LPARAM)
+
+CBTProc = WinFuncType(c_int, c_int, c_int, c_int)
+MessageProc = CBTProc
+
 class WNDCLASSEX(Structure):
-    _fields_ = [("cbSize", c_uint),
-                ("style",  c_uint),
+    _fields_ = [("cbSize", UINT),
+                ("style",  UINT),
                 ("lpfnWndProc", WndProc),
-                ("cbClsExtra", c_int),
-                ("cbWndExtra", c_int),
-                ("hInstance", c_uint),
-                ("hIcon", c_uint),
-                ("hCursor", c_uint),
-                ("hbrBackground", c_uint),
-                ("lpszMenuName", c_char_p),
-                ("lpszClassName", c_char_p),
-                ("hIconSm", c_uint)]
+                ("cbClsExtra", INT),
+                ("cbWndExtra", INT),
+                ("hInstance", HINSTANCE),
+                ("hIcon", HICON),
+                ("hCursor", HCURSOR),
+                ("hbrBackground", HBRUSH),
+                ("lpszMenuName", LPCTSTR),
+                ("lpszClassName", LPCTSTR),
+                ("hIconSm", HICON)]
 
 class POINT(Structure):
-    _fields_ = [("x", c_uint),
-                ("y", c_uint)]
+    _fields_ = [("x", LONG),
+                ("y", LONG)]
 
     def __str__(self):
         return "POINT {x: %d, y: %d}" % (self.x, self.y)
 
 class RECT(Structure):
-    _fields_ = [("left", c_int),
-                ("top", c_int),
-                ("right", c_int),
-                ("bottom", c_int)]
+    _fields_ = [("left", LONG),
+                ("top", LONG),
+                ("right", LONG),
+                ("bottom", LONG)]
 
     def __str__(self):
         return "RECT {left: %d, top: %d, right: %d, bottom: %d}" % (self.left, self.top,
@@ -60,157 +104,72 @@ class RECT(Structure):
         return self.right - self.left
 
     width = property(getWidth, None, None, "")
+
+    def getSize(self):
+        return self.width, self.height
+
+    size = property(getSize, None, None, "")
     
 class MSG(Structure):
-    _fields_ = [("hWnd", c_uint),
-                ("message", c_uint),
-                ("wParam", c_uint),
-                ("lParam", c_uint),
-                ("time", c_uint),
+    _fields_ = [("hWnd", HWND),
+                ("message", UINT),
+                ("wParam", WPARAM),
+                ("lParam", LPARAM),
+                ("time", DWORD),
                 ("pt", POINT)]
 
+    def __str__(self):
+        return "MSG {%d %d %d %d %d %s}" % (self.hWnd, self.message, self.wParam, self.lParam,
+                                            self.time, str(self.pt))
+        
 class ACCEL(Structure):
-    _fields_ = [("fVirt", c_byte),
-                ("key", c_short),
-                ("cmd", c_short)]
+    _fields_ = [("fVirt", BYTE),
+                ("key", WORD),
+                ("cmd", WORD)]
     
 class CREATESTRUCT(Structure):
-    _fields_ = [("lpCreateParams", c_uint),
-                ("hInstance", c_uint),
-                ("hMenu", c_uint),
-                ("hwndParent", c_uint),
-                ("cx", c_int),
-                ("cy", c_int),
-                ("x", c_int),
-                ("y", c_int),
-                ("style", c_uint),
-                ("lpszName", c_char_p),
-                ("lpszClass", c_char_p),
-                ("dwExStyle", c_uint)]
-
-class INITCOMMONCONTROLSEX(Structure):
-    _fields_ = [("dwSize", c_uint),
-                ("dwICC", c_uint)]
-
-class REBARINFO(Structure):
-    _fields_ = [("cbSize", c_uint),
-                ("fMask", c_uint),
-                ("himl", c_uint)]
-
-class REBARBANDINFO(Structure):
-    _fields_ = [("cbSize", c_uint),
-                ("fMask", c_int),
-                ("fStyle", c_int),
-                ("clrFore", c_uint),
-                ("clrBack", c_uint),
-                ("lpText", c_char_p),
-                ("cch", c_uint),
-                ("iImage", c_int),
-                ("hwndChild", c_uint),
-                ("cxMinChild", c_int),
-                ("cyMinChild", c_int),
-                ("cx", c_int),
-                ("hbmBack", c_uint),
-                ("wID", c_uint),
-                ("cyChild", c_uint),
-                ("cyMaxChild", c_uint),
-                ("cyIntegral", c_uint),
-                ("cxIdeal", c_uint),
-                ("lParam", c_uint),
-                ("cxHeader", c_uint)]
+    _fields_ = [("lpCreateParams", LPVOID),
+                ("hInstance", HINSTANCE),
+                ("hMenu", HMENU),
+                ("hwndParent", HWND),
+                ("cx", INT),
+                ("cy", INT),
+                ("x", INT),
+                ("y", INT),
+                ("style", LONG),
+                ("lpszName", LPCTSTR),
+                ("lpszClass", LPCTSTR),
+                ("dwExStyle", DWORD)]
 
 
-class TBBUTTON(Structure):
-    _fields_ = [("iBitmap", c_int),
-                ("idCommand", c_int),
-                ("fsState", c_ubyte),
-                ("fsStyle", c_ubyte),
-                ("bReserved", c_char * 2),
-                ("dwData", c_uint),
-                ("iString", c_uint)]
-
-class TBBUTTONINFO(Structure):
-    _fields_ = [("cbSize", c_uint),
-                ("dwMask", c_uint),
-                ("idCommand", c_int),
-                ("iImage", c_int),
-                ("fsState", c_ubyte),
-                ("fsStyle", c_ubyte),
-                ("cx", c_ushort),
-                ("lParam", c_uint),
-                ("pszText", c_char_p),
-                ("cchText", c_int)]
 
 class NMHDR(Structure):
-    _fields_ = [("hwndFrom", c_uint),
-                ("idFrom", c_uint),
-                ("code", c_uint)]
+    _fields_ = [("hwndFrom", HWND),
+                ("idFrom", UINT),
+                ("code", UINT)]
 
 class PAINTSTRUCT(Structure):
-    _fields_ = [("hdc", c_uint),
-                ("fErase", c_int),
+    _fields_ = [("hdc", HDC),
+                ("fErase", BOOL),
                 ("rcPaint", RECT),
-                ("fRestore", c_int),
-                ("fIncUpdate", c_int),
+                ("fRestore", BOOL),
+                ("fIncUpdate", BOOL),
                 ("rgbReserved", c_char * 32)]
 
-class TVITEMEX(Structure):
-    _fields_ = [("mask", c_uint),
-                ("hItem", c_uint),
-                ("state", c_uint),
-                ("stateMask", c_uint),
-                ("pszText", c_char_p),
-                ("cchTextMax", c_int),
-                ("iImage", c_int),
-                ("iSelectedImage", c_int),
-                ("cChildren", c_int),
-                ("lParam", c_uint),
-                ("iIntegral", c_int)]
-
-class TVINSERTSTRUCT(Structure):
-    _fields_ = [("hParent", c_int),
-                ("hInsertAfter", c_int),
-                ("itemex", TVITEMEX)]
-
-class TCITEM(Structure):
-    _fields_ = [("mask", c_uint),
-                ("dwState", c_uint),
-                ("dwStateMask", c_uint),
-                ("pszText", c_char_p),
-                ("cchTextMax", c_int),
-                ("iImage", c_int),
-                ("lParam", c_uint)]
     
-TVIF_TEXT    = 1
-
-TVI_ROOT     = 0xFFFF0000
-TVI_FIRST    = 0xFFFF0001
-TVI_LAST     = 0xFFFF0002
-TVI_SORT     = 0xFFFF0003
-
-TV_FIRST = 0x1100
-TVM_INSERTITEMA =     TV_FIRST
-TVM_INSERTITEMW =    (TV_FIRST+50)
-TVM_INSERTITEM = TVM_INSERTITEMA
-TVM_SETIMAGELIST =    (TV_FIRST+9)
-
-
-TVS_HASBUTTONS =       1
-TVS_HASLINES = 2
-TVS_LINESATROOT =      4
-TVS_EDITLABELS  =      8
-TVS_DISABLEDRAGDROP =  16
-TVS_SHOWSELALWAYS =   32
-TVS_CHECKBOXES =  256
-TVS_TOOLTIPS = 128
-TVS_RTLREADING = 64
-TVS_TRACKSELECT = 512
-TVS_FULLROWSELECT = 4096
-TVS_INFOTIP = 2048
-TVS_NONEVENHEIGHT = 16384
-TVS_NOSCROLL  = 8192
-TVS_SINGLEEXPAND  =1024
-TVS_NOHSCROLL   =     0x8000
+class MENUITEMINFO(Structure):
+    _fields_ = [("cbSize", UINT),
+                ("fMask", UINT),
+                ("fType", UINT),
+                ("fState", UINT),                
+                ("wID", UINT),
+                ("hSubMenu", HMENU),
+                ("hbmpChecked", HBITMAP),
+                ("hbmpUnchecked", HBITMAP),
+                ("dwItemData", ULONG_PTR),
+                ("dwTypeData", LPTSTR),                
+                ("cch", UINT),
+                ("hbmpItem", HBITMAP)]
 
 def LOWORD(dword):
     return dword & 0x0000ffff
@@ -247,11 +206,44 @@ WM_GETFONT =49
 WM_SETCURSOR = 32
 WM_CAPTURECHANGED = 533
 WM_ERASEBKGND = 20
+WM_MENUSELECT = 287
+WM_CANCELMODE = 31
+WM_NCCREATE = 129
+WM_NCDESTROY = 130
+WM_SIZE = 5
+WM_NOTIFY = 78
+WM_MOVE = 3
+WM_USER = 1024
+WM_SYSKEYDOWN = 260
+WM_SYSKEYUP = 261
+
+VK_DOWN = 40
+VK_LEFT = 37
+VK_RIGHT = 39
 
 CS_HREDRAW = 2
 CS_VREDRAW = 1
 WHITE_BRUSH = 0
 
+MIIM_STATE= 1
+MIIM_ID= 2
+MIIM_SUBMENU =4
+MIIM_CHECKMARKS= 8
+MIIM_TYPE= 16
+MIIM_DATA= 32
+MIIM_STRING= 64
+MIIM_BITMAP= 128
+MIIM_FTYPE =256
+
+MFT_BITMAP= 4
+MFT_MENUBARBREAK =32
+MFT_MENUBREAK= 64
+MFT_OWNERDRAW= 256
+MFT_RADIOCHECK= 512
+MFT_RIGHTJUSTIFY= 0x4000
+MFT_SEPARATOR =0x800
+MFT_RIGHTORDER= 0x2000L
+MFT_STRING = 0
 
 WS_BORDER	= 0x800000
 WS_CAPTION	= 0xc00000
@@ -290,32 +282,6 @@ WS_EX_STATICEDGE = 0x20000
 WS_EX_CLIENTEDGE = 512
 WS_EX_OVERLAPPEDWINDOW   =     0x300
 WS_EX_APPWINDOW    =   0x40000
-WM_NCCREATE = 129
-WM_NCDESTROY = 130
-WM_SIZE = 5
-WM_NOTIFY = 78
-WM_MOVE = 3
-
-SBS_BOTTOMALIGN = 4
-SBS_HORZ = 0
-SBS_LEFTALIGN = 2
-SBS_RIGHTALIGN = 4
-SBS_SIZEBOX = 8
-SBS_SIZEBOXBOTTOMRIGHTALIGN = 4
-SBS_SIZEBOXTOPLEFTALIGN = 2
-SBS_SIZEGRIP = 16
-SBS_TOPALIGN = 2
-SBS_VERT = 1
-
-RBS_VARHEIGHT = 512
-
-CCS_NODIVIDER =	64
-CCS_NOPARENTALIGN = 8
-CCS_NORESIZE = 4
-CCS_TOP = 1
-
-
-CBS_DROPDOWN = 2
 
 MF_ENABLED    =0
 MF_GRAYED     =1
@@ -350,7 +316,6 @@ MF_HILITE =    128
 MF_UNHILITE =  0
  
 
-WM_USER = 1024
 RB_SETBARINFO = WM_USER + 4
 RB_GETBANDCOUNT = WM_USER +  12
 RB_INSERTBANDA = WM_USER + 1
@@ -369,51 +334,26 @@ RBBIM_BACKGROUND = 128
 RBBIM_ID = 256
 RBBIM_IDEALSIZE = 0x00000200
 
-
-RBBS_BREAK = 1
-RBBS_FIXEDSIZE = 2
-RBBS_CHILDEDGE = 4
-RBBS_HIDDEN = 8
-RBBS_NOVERT = 16
-RBBS_FIXEDBMP = 32
-RBBS_VARIABLEHEIGHT = 64
-RBBS_GRIPPERALWAYS = 128
-RBBS_NOGRIPPER = 256
-
-RBS_TOOLTIPS = 256
-RBS_VARHEIGHT = 512
-RBS_BANDBORDERS = 1024
-RBS_FIXEDORDER = 2048
-
-RBS_REGISTERDROP = 4096
-RBS_AUTOSIZE = 8192
-RBS_VERTICALGRIPPER = 16384
-RBS_DBLCLKTOGGLE = 32768
-
-TBSTYLE_FLAT = 2048
-TBSTYLE_LIST = 4096
-TBSTYLE_DROPDOWN = 8
-TBSTYLE_TRANSPARENT = 0x8000
-TBSTYLE_REGISTERDROP = 0x4000
-TBSTYLE_BUTTON = 0x0000
-TBSTYLE_AUTOSIZE = 0x0010
-    
-TB_BUTTONSTRUCTSIZE = WM_USER+30
-TB_ADDBUTTONS       = WM_USER+20
-TB_INSERTBUTTONA    = WM_USER + 21
-TB_INSERTBUTTON     = WM_USER + 21
-TB_BUTTONCOUNT      = WM_USER + 24
-TB_GETITEMRECT      = WM_USER + 29
-TB_SETBUTTONINFOW  =  WM_USER + 64
-TB_SETBUTTONINFOA  =  WM_USER + 66
-TB_SETBUTTONINFO   =  TB_SETBUTTONINFOA
-TB_SETIMAGELIST    =  WM_USER + 48
-TB_SETDRAWTEXTFLAGS =  WM_USER + 70
+TPM_CENTERALIGN =4
+TPM_LEFTALIGN =0
+TPM_RIGHTALIGN= 8
+TPM_LEFTBUTTON= 0
+TPM_RIGHTBUTTON= 2
+TPM_HORIZONTAL= 0
+TPM_VERTICAL= 64
+TPM_TOPALIGN= 0
+TPM_VCENTERALIGN= 16
+TPM_BOTTOMALIGN= 32
+TPM_NONOTIFY= 128
+TPM_RETURNCMD= 256
 
 TBIF_TEXT = 0x00000002
 
 DT_NOPREFIX   =      0x00000800
 DT_HIDEPREFIX =      1048576
+
+WH_CBT       =  5
+WH_MSGFILTER =  (-1)
 
 I_IMAGENONE = -2
 TBSTATE_ENABLED = 4
@@ -458,7 +398,6 @@ MK_SHIFT      = 4
 MK_CONTROL    = 8
 MK_MBUTTON    = 16
 
-#commctl:
 ILC_COLOR = 0
 ILC_COLOR4 = 4
 ILC_COLOR8 = 8
@@ -473,6 +412,9 @@ IMAGE_BITMAP = 0
 IMAGE_ICON = 1
 
 LR_LOADFROMFILE = 16
+LR_VGACOLOR = 0x0080
+LR_LOADMAP3DCOLORS = 4096
+LR_LOADTRANSPARENT = 32
 
 LVSIL_NORMAL = 0
 LVSIL_SMALL  = 1
@@ -523,8 +465,19 @@ def GET_XY_LPARAM(lParam):
     y = HIWORD(lParam)
     return x, y 
 
+def GET_POINT_LPARAM(lParam):
+    x, y = GET_XY_LPARAM(lParam)
+    return POINT(x, y)
+
 FCONTROL = 8
 FVIRTKEY = 1
+
+def ValidHandle(value):
+    if value == 0:
+        raise WinError()
+    else:
+        return value
+
 
 GetModuleHandle = windll.kernel32.GetModuleHandleA
 PostQuitMessage= windll.user32.PostQuitMessage
@@ -558,7 +511,6 @@ CreatePopupMenu = windll.user32.CreatePopupMenu
 DestroyMenu = windll.user32.DestroyMenu
 AppendMenu = windll.user32.AppendMenuA
 EnableMenuItem = windll.user32.EnableMenuItem
-InitCommonControlsEx = windll.comctl32.InitCommonControlsEx
 SendMessage = windll.user32.SendMessageA
 PostMessage = windll.user32.PostMessageA
 GetClientRect = windll.user32.GetClientRect
@@ -577,6 +529,8 @@ SetCapture = windll.user32.SetCapture
 GetCapture = windll.user32.GetCapture
 ReleaseCapture = windll.user32.ReleaseCapture
 ScreenToClient = windll.user32.ScreenToClient
+ClientToScreen = windll.user32.ClientToScreen
+
 GetMessagePos = windll.user32.GetMessagePos
 BeginDeferWindowPos = windll.user32.BeginDeferWindowPos
 DeferWindowPos = windll.user32.DeferWindowPos
@@ -584,7 +538,24 @@ EndDeferWindowPos = windll.user32.EndDeferWindowPos
 CreateAcceleratorTable = windll.user32.CreateAcceleratorTableA
 DestroyAcceleratorTable = windll.user32.DestroyAcceleratorTable
 TranslateAccelerator = windll.user32.TranslateAccelerator
-ImageList_Create = windll.comctl32.ImageList_Create
-ImageList_Destroy = windll.comctl32.ImageList_Destroy
-ImageList_AddMasked = windll.comctl32.ImageList_AddMasked
+
+
+ExpandEnvironmentStrings = windll.kernel32.ExpandEnvironmentStringsA
+GetModuleHandle = windll.kernel32.GetModuleHandleA
+GetModuleHandle.restype = ValidHandle
+LoadLibrary = windll.kernel32.LoadLibraryA
+LoadLibrary.restype = ValidHandle
+
+TrackPopupMenuEx = windll.user32.TrackPopupMenuEx
+
+GetMenuItemCount = windll.user32.GetMenuItemCount
+GetMenuItemInfo = windll.user32.GetMenuItemInfoA
+GetMenuItemInfo.restype = ValidHandle
+GetSubMenu = windll.user32.GetSubMenu
+
+SetWindowsHookEx = windll.user32.SetWindowsHookExA
+CallNextHookEx = windll.user32.CallNextHookEx
+UnhookWindowsHookEx = windll.user32.UnhookWindowsHookEx
+
+GetCurrentThreadId = windll.kernel32.GetCurrentThreadId
 
