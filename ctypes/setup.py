@@ -322,7 +322,7 @@ kw["sources"] = ["source/_ctypes.c",
                  "source/callproc.c",
                  "source/stgdict.c",
                  "source/cfield.c",
-                 "source/exec_malloc.c"]
+                 "source/malloc_closure.c"]
 
 # common header file
 kw["depends"] = ["source/ctypes.h"]

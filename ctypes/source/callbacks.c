@@ -252,7 +252,7 @@ static void closure_fcn(ffi_cif *cif,
 
 void FreeCallback(THUNK thunk)
 {
-	FreeExecMem(*(void **)thunk);
+	FreeClosure(*(void **)thunk);
 	PyMem_Free(thunk);
 }
 
@@ -273,7 +273,12 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyErr_NoMemory();
 		return NULL;
 	}
-	p->pcl = MallocExecMem(sizeof(ffi_closure));
+	p->pcl = MallocClosure();
+	if (p->pcl == NULL) {
+		PyMem_Free(p);
+		PyErr_NoMemory();
+		return NULL;
+	}
 
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
