@@ -1,76 +1,126 @@
-ctypes is a ffi (Foreign Function Interface) package for Python.
+Overview
 
-It allows to call functions exposed from dlls/shared libraries and has
-extensive facilities to create, access and manipulate simpole and
-complicated C data types transparently from Python - in other words:
-wrap libraries in pure Python.
+    ctypes is a ffi (Foreign Function Interface) package for Python.
 
-ctypes runs on Windows, MacOS X, Linux, Solaris.
+    It allows to call functions exposed from dlls/shared libraries and
+    has extensive facilities to create, access and manipulate simpole
+    and complicated C data types transparently from Python - in other
+    words: wrap libraries in pure Python.
 
-On Windows, ctypes contains (the beginning of) a COM framework mainly
-targetted to use and implement custom COM interfaces.
+    ctypes runs on Windows, MacOS X, Linux, Solaris.
 
-----
-
-ctypes requires Python 2.2 or higher, since it makes intensive use of the
-new type system.
-
-For all platforms except Windows you'll need a very recent version of
-libffi which supports your processor.
-
-----
-
-Unfortunately libffi is in a very sad state, there seem to be no
-official releases recent enough to be used with ctypes (libffi-1.20 is
-too old!).
-
-Currently libffi is maintained in the GCC CVS tree. Ronald Oussoren
-has kindly assembled a snapshot of libffi taken from the GCC CVS
-repository which works with this release, it is available for download
-from the ctypes download page
-http://sourceforge.net/project/showfiles.php?group_id=71702.
-
-----
-
-To install ctypes from source, unpack the distribution,
-enter the ctypes-0.6.x directory, and enter
-
-  python setup.py install --help
-
-to see the options available, then
-
-  python setup.py install [options]
-
-to install it.  If you want to run the unittests before, you should do
-
-  python setup.py test
-
-To install from the binary windows installer, make sure you download
-the correct version depending on the Python version you use.
-
-For Python 2.2, you need
-    ctypes-0.6.x.win32-py2.2.exe
-
-For Python 2.3, you need
-    ctypes-0.6.x.win32-py2.3.exe 
+    On Windows, ctypes contains (the beginning of) a COM framework
+    mainly targetted to use and implement custom COM interfaces.
 
 
-----
+News
 
-On Windows, ctypes uses win32 structured exception handling, to make
-it as safe as possible, although it should be pretty clear that it's
-easy to crash the Python interpreter with it.
+    ctypes now uses the same code base and libffi on all platforms.
+    For easier installation, the libffi sources are now included in
+    the source distribution.
 
-The source distribution contains an extensive, although inclomplete,
-tutorial (which you can also read online), as well as example scripts
-demonstrating the use.
 
-----
+Requirements
 
-Current version: 0.6.2
+    ctypes 0.9 requires Python 2.3 or higher, since it makes intensive
+    use of the new type system.
 
-Homepage: http://starship.python.net/crew/theller/ctypes.html
+    ctypes uses libffi, which is copyright Red Hat, Inc.  Complete
+    license see below.
 
-License: MIT
 
-Platforms: Windows, linux, MacOS X, solaris
+Installation
+
+    Windows
+
+        On Windows, it is the easiest to download the executable
+        installer for your Python version and execute this.
+
+    Installation from source
+
+        To install ctypes from source, unpack the distribution, enter
+        the ctypes-0.9.0 directory, and enter
+
+            python setup.py build
+
+	This will build a static version of libffi, and then the
+	Python extension modules.  A C compiler is required.
+
+	To run the builtin unittests, enter
+
+	    python setup.py test
+
+        There may still be some problems on certain platforms, and the
+        tests may crash Python with a segfault - for this reason the
+        unittests are run in separate processes.
+
+	To install ctypes, enter
+
+            python setup.py install --help
+
+        to see the avaibable options, and finally
+
+	    python setup.py install [options]
+
+
+Additional notes
+
+    On Windows, ctypes uses win32 structured exception handling, to
+    make it as safe as possible, although it should be pretty clear
+    that it's easy to crash the Python interpreter with it.
+
+    The source distribution contains an extensive, although
+    inclomplete, tutorial (which you can also read online), as well as
+    example scripts demonstrating the use.
+
+    Current version: 0.9.0
+
+    Homepage: http://starship.python.net/crew/theller/ctypes.html
+
+
+ctypes license
+
+  Copyright (c) 2000, 2001, 2002, 2003, 2004 Thomas Heller
+
+  Permission is hereby granted, free of charge, to any person
+  obtaining a copy of this software and associated documentation files
+  (the "Software"), to deal in the Software without restriction,
+  including without limitation the rights to use, copy, modify, merge,
+  publish, distribute, sublicense, and/or sell copies of the Software,
+  and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+  BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+  ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+libffi license
+
+  libffi - Copyright (c) 1996-2003  Red Hat, Inc.
+
+  Permission is hereby granted, free of charge, to any person
+  obtaining a copy of this software and associated documentation files
+  (the ``Software''), to deal in the Software without restriction,
+  including without limitation the rights to use, copy, modify, merge,
+  publish, distribute, sublicense, and/or sell copies of the Software,
+  and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT.  IN NO EVENT SHALL CYGNUS SOLUTIONS BE LIABLE FOR
+  ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+  CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
