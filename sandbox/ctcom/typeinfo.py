@@ -1,7 +1,12 @@
 from ctcom import IUnknown, COMPointer, GUID, LCID, REFIID, REFGUID, PPUNK, PUNK, WORD
 
 from ctypes import Structure, Union, POINTER, byref, oledll, \
-     c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp
+     c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
+     c_float, c_double
+
+from ctypes import sizeof
+
+from windows import *
 
 oleaut32 = oledll.oleaut32
 
@@ -69,8 +74,8 @@ MEMBERID = DISPID
 TYPEKIND = c_int # enum
 
 class BSTR(Union):
-    _fields_ = [("_ptr", "i"),
-                ("value", "Z")]
+    _fields_ = [("_ptr", c_int),
+                ("value", c_wchar_p)]
 
     def __init__(self, text=None):
         if text is not None:
@@ -96,25 +101,32 @@ class BSTR(Union):
 # XXX BUG: Crashed hard when _ptr set to 0
 ##            self._ptr = 0
 
+assert(sizeof(BSTR) == 4)
+
+# VARTYPE is unsigned short!
+VARTYPE = c_ushort
+SCODE = DWORD
+
+
 #fake it, in reality it's a union having 16 bytes
 class VARIANT(Structure):
     class U(Union):
-        _fields_ = [("bVal", "B"),
-                    ("iVal", "h"),
-                    ("lVal", "l"),
-                    ("fltVal", "f"),
-                    ("dblVal", "d"),
-                    ("boolVal", "i"),
-                    ("strVal", "Z"), # XXX ???
+        _fields_ = [("bVal", c_byte),
+                    ("iVal", c_int),
+                    ("lVal", c_long),
+                    ("fltVal", c_float),
+                    ("dblVal", c_double),
+                    ("boolVal", c_int),
+                    ("strVal", c_wchar_p), # XXX ???
                     # ...
                     ("pUnkVal", IUnknownPointer),
                     ("pDispVal", IDispatchPointer),
                     ]
 
-    _fields_ = [("vt", "H"),
-                ("wReserved1", "H"),
-                ("wReserved2", "H"),
-                ("wReserved3", "H"),
+    _fields_ = [("vt", VARTYPE),
+                ("wReserved1", c_ushort),
+                ("wReserved2", c_ushort),
+                ("wReserved3", c_ushort),
                 ("_", U)]
 
     def __repr__(self):
@@ -128,112 +140,132 @@ class VARIANT(Structure):
         oleaut32.VariantChangeType(byref(var), byref(self),
                                    0, vt)
         return getattr(var._, field)
+assert(sizeof(VARIANT) == 16)
 
 class DISPPARAMS(Structure):
     _fields_ = [("rgvarg", POINTER(VARIANT)),
                 ("rgdispidNamedArgs", POINTER(DISPID)),
-                ("cArgs", "I"),
-                ("cNamedArgs", "I")]
+                ("cArgs", c_uint),
+                ("cNamedArgs", c_uint)]
+assert(sizeof(DISPPARAMS) == 16)
 
 # c:/vc98/include/oaidl.h
 
 class EXCEPINFO(Structure):
-    _fields_ = [("wCode", "H"),
-                ("wReserved", "H"),
+    _fields_ = [("wCode", c_ushort),
+                ("wReserved", c_ushort),
                 ("bstrSource", BSTR),
                 ("bstrDescription", BSTR),
                 ("bstrHelpFile", BSTR),
-                ("dwHelpContext", "L"),
-                ("pvReserved", "P"),
-                ("pfnDeferredFillIn", "P"),
-                ("scode", "L")]
+                ("dwHelpContext", DWORD),
+                ("pvReserved", c_voidp),
+                ("pfnDeferredFillIn", c_int), # XXX
+                ("scode", SCODE)]
+assert(sizeof(EXCEPINFO) == 32)
+
+LCID = c_ulong
+SYSKIND = c_int # enu
+HREFTYPE = c_ulong
 
 class TLIBATTR(Structure):
     _fields_ = [("guid", GUID),
-                ("lcid", "L"),
-                ("syskind", "i"),
-                ("wMajorVersionNum", "H"),
-                ("wMinorVersionNum", "H"),
-                ("wLibFlags", "H")]
+                ("lcid", LCID),
+                ("syskind", SYSKIND),
+                ("wMajorVersionNum", WORD),
+                ("wMinorVersionNum", WORD),
+                ("wLibFlags", WORD)]
+assert(sizeof(TLIBATTR) == 32)
 
 class PARAMDESCEX(Structure):
-    _fields_ = [("cBytes", "L"),
+    _fields_ = [("cBytes", c_ulong),
                 ("varDefaultValue", VARIANT)]
+assert(sizeof(PARAMDESCEX) == 24)
     
 class PARAMDESC(Structure):
     _fields_ = [("pPARAMDescEx", POINTER(PARAMDESCEX)),
-                ("wPARAMFlags", "H")]
+                ("wPARAMFlags", WORD)]
+assert sizeof(PARAMDESC) == 8
 
 LPTYPEDESC = POINTER("TYPEDESC")
-
-# VARTYPE is unsigned short!
 
 class TYPEDESC(Structure):
     class U(Union):
         _fields_ = [("lptdesc", LPTYPEDESC),
 ##                    ("lpadesc", POINTER(ARRAYDESC)),
-                    ("hreftype", "L")]    
+                    ("hreftype", HREFTYPE)]
     _fields_ = [("u", U),
-                ("vt", "H")]
+                ("vt", VARTYPE)]
+assert(sizeof(TYPEDESC) == 8), sizeof(TYPEDESC)
 
 LPTYPEDESC.set_type(TYPEDESC)
 
 class IDLDESC(Structure):
-    _fields_ = [("dwReserved", "L"),
-                ("wIDLFlags", "H")]
+    _fields_ = [("dwReserved", c_ulong),
+                ("wIDLFlags", c_ushort)]
+assert(sizeof(IDLDESC) == 8)
 
 class TYPEATTR(Structure):
     _fields_ = [("guid", GUID),
-                ("lcid", "i"),
-                ("dwReserved", "L"),
-                ("memidConstructor", "l"),
-                ("memidDestructor", "l"),
-                ("lpstrSchema", "Z"),
-                ("cbSizeInstance", "L"),
-                ("typekind", "i"),
-                ("cFuncs", "H"),
-                ("cVars", "H"),
-                ("cImplTypes", "H"),
-                ("cbSizeVft", "H"),
-                ("cbAlignment", "H"),
-                ("wTypeFlags", "H"),
-                ("wMajorVerNum", "H"),
-                ("wMinorVerNum", "H"),
+                ("lcid", LCID),
+                ("dwReserved", c_ulong),
+                ("memidConstructor", MEMBERID),
+                ("memidDestructor", MEMBERID),
+                ("lpstrSchema", c_wchar_p),
+                ("cbSizeInstance", c_ulong),
+                ("typekind", TYPEKIND),
+                ("cFuncs", c_ushort),
+                ("cVars", c_ushort),
+                ("cImplTypes", c_ushort),
+                ("cbSizeVft", c_ushort),
+                ("cbAlignment", c_ushort),
+                ("wTypeFlags", c_ushort),
+                ("wMajorVerNum", c_ushort),
+                ("wMinorVerNum", c_ushort),
                 ("tdescAlias", TYPEDESC),
                 ("idldescType", IDLDESC),
                 ]
 LPTYPEATTR = POINTER(TYPEATTR)
+assert(sizeof(TYPEATTR) == 76)
 
 class ELEMDESC(Structure):
     _fields_ = [("tdesc", TYPEDESC),
                 ("paramdesc", PARAMDESC)]
-                
+assert(sizeof(ELEMDESC) == 16)
+
+VARKIND = c_int # enum
+
 class VARDESC(Structure):
     class U(Union):
-        _fields_ = [("oInst", "L"),
+        _fields_ = [("oInst", c_ulong),
                     ("lpvarValue", POINTER(VARIANT))]
-    _fields_ = [("memid", "I"),
-                ("strSchema", "Z"),
+    _fields_ = [("memid", MEMBERID),
+                ("strSchema", c_wchar_p),
                 ("u", U),
                 ("elemdescVar", ELEMDESC),
-                ("wVarFlags", "H"),
-                ("varkind", "I")]
+                ("wVarFlags", c_ushort),
+                ("varkind", VARKIND)]
 LPVARDESC = POINTER(VARDESC)
+assert(sizeof(VARDESC) == 36)
+
+FUNCKIND = c_int # enum
+INVKIND = c_int # enum
+CALLCONV = c_int # enum
 
 class FUNCDESC(Structure):
-    _fields_ = [("memid", "l"),
-                ("lprgscode", "i"),
+    _fields_ = [("memid", MEMBERID),
+                ("lprgscode", POINTER(SCODE)),
                 ("lprgelemdescParam", POINTER(ELEMDESC)),
-                ("funckind", "i"),
-                ("invkind", "i"),
-                ("callconv", "i"),
-                ("cParams", "h"),
-                ("cParamsOpt", "h"),
-                ("oVft", "h"),
-                ("cScodes", "h"),
+                ("funckind", FUNCKIND),
+                ("invkind", INVKIND),
+                ("callconv", CALLCONV),
+                ("cParams", c_short),
+                ("cParamsOpt", c_short),
+                ("oVft", c_short),
+                ("cScodes", c_short),
                 ("elemdescFunc", ELEMDESC),
-                ("wFuncFlags", "H")]
+                ("wFuncFlags", WORD)]
 LPFUNCDESC = POINTER(FUNCDESC)
+assert(sizeof(FUNCDESC) == 52), sizeof(FUNCDESC)
 
 ################################################################
 # The interfaces COM methods
