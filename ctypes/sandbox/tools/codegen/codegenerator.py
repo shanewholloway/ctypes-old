@@ -1,7 +1,10 @@
 # Create ctypes wrapper code for abstract type descriptions.
 # Type descriptions are collections of typedesc instances.
 
-# $Log"
+# $Log$
+# Revision 1.49  2005/02/04 08:14:29  theller
+# Oops.
+#
 #
 
 import typedesc, sys
