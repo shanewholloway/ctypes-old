@@ -87,7 +87,8 @@ def inproc_find_class(clsid):
 def DllGetClassObject(rclsid, riid, ppv):
     Logger.install()
 
-    print "DllGetClassObject %s" % ((rclsid, riid, ppv),)
+    if __debug__:
+        dprint("DllGetClassObject %s" % ((rclsid, riid, ppv),))
 
     # This function is called by C code, and receives C integers as
     # parameters. rcslid is a pointer to the CLSID for the coclass we
@@ -122,10 +123,12 @@ g_locks = 0
 def DllCanUnloadNow():
     # XXX TODO: Read about inproc server refcounting in Don Box
     if g_locks:
-        dprint("* DllCanUnloadNow -> S_FALSE", _active_objects)
+        if __debug__:
+            dprint("* DllCanUnloadNow -> S_FALSE", _active_objects)
         return S_FALSE
     else:
-        dprint("* DllCanUnloadNow -> S_OK")
+        if __debug__:
+            dprint("* DllCanUnloadNow -> S_OK", _active_objects)
         return S_OK
     # Hm Call ole32.CoUnitialize here?
 
@@ -155,13 +158,11 @@ class InprocClassFactory(_ClassFactory):
 
     def AddRef(self, this):
         self._refcnt += 1
-##        dprint("AddRef", self, self._refcnt)
 ##?##        self._factory.LockServer(None, 1)
         return self._refcnt
 
     def Release(self, this):
         self._refcnt -= 1
-##        dprint("Release", self, self._refcnt)
 ##?##        self._factory.LockServer(None, 0)
         return self._refcnt
 
@@ -171,7 +172,8 @@ class InprocClassFactory(_ClassFactory):
             g_locks += 1
         else:
             g_locks -= 1
-        dprint("LockServer", fLock, g_locks)
+        if __debug__:
+            dprint("LockServer", fLock, g_locks)
             
 ################################################################
 #
