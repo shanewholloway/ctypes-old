@@ -105,8 +105,7 @@ class MallocSpy(COMObject):
     def release_all(self, warn=1):
         active = self.active_blocks()
         if active:
-            m = POINTER(IMalloc)()
-            ole32.CoGetMalloc(1, byref(m))
+            m = CoGetMalloc()
             if warn:
                 print "%d Allocated Memory Blocks:" % len(active)
                 for block, size in active.items():
@@ -114,6 +113,11 @@ class MallocSpy(COMObject):
                     print "\t%d bytes at %08X" % (size, block), didalloc
             for block, size in active.items():
                 m.Free(c_voidp(block))
+
+def CoGetMalloc():
+    m = POINTER(IMalloc)()
+    ole32.CoGetMalloc(1, byref(m))
+    return m
 
 ################################################################
 
