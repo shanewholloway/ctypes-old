@@ -1,5 +1,7 @@
-build
-dist
+
 *.pyc
 *.pyo
-
+build
+buildsum
+dist
+distsum
