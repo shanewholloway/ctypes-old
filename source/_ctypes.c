@@ -1535,9 +1535,10 @@ CFuncPtr_get_argtypes(CFuncPtrObject *self)
 }
 
 static PyGetSetDef CFuncPtr_getsets[] = {
-	{ "restype", NULL, CFuncPtr_set_restype,
+	{ "restype", NULL, (setter)CFuncPtr_set_restype,
 	  "specify the result type", NULL },
-	{ "argtypes", CFuncPtr_get_argtypes, CFuncPtr_set_argtypes,
+	{ "argtypes", (getter)CFuncPtr_get_argtypes,
+	  (setter)CFuncPtr_set_argtypes,
 	  "specify the argument types", NULL },
 	{ "_as_parameter_", (getter)CFuncPtr_as_parameter, NULL,
 	  "return a magic value so that this can be converted to a C parameter (readonly)",
