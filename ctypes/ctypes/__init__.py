@@ -154,10 +154,11 @@ class c_char_p(_SimpleCData):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 
-class c_voidp(_SimpleCData):
+class c_void_p(_SimpleCData):
     _type_ = "P"
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.value)
+c_voidp = c_void_p # backwards compatibility (to a bug)
 
 if _os.name == "nt":
     class c_wchar_p(_SimpleCData):
