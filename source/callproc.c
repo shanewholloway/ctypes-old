@@ -176,13 +176,15 @@ _CallProc(PPROC pProc,
 	ffi_type **atypes;
 	ffi_type *rtype = &ffi_type_sint;
 
-	int delta;
 	void *presult;
 
 	StgDictObject *stgdict;
 	PyObject *result = NULL;
-#if defined(_MSC_VER) && !defined(DEBUG_EXCEPTIONS)
+#ifdef _MSC_VER
+	int delta;
+#ifndef DEBUG_EXCEPTIONS
 	DWORD dwExceptionCode = 0;
+#endif
 #endif
 
 	stgdict = PyType_stgdict(restype);
@@ -217,11 +219,14 @@ _CallProc(PPROC pProc,
 		ppargs[i] = &arguments[i].value;
 	}
 
+#ifdef MS_WIN32
 	if (flags & FUNCFLAG_CDECL)
 		abi = FFI_SYSV;
 	else
 		abi = FFI_STDCALL;
-
+#else
+	abi = FFI_DEFAULT_ABI;
+#endif
 	if (FFI_OK != ffi_prep_cif(&cif,
 				   abi,
 				   argcount,
@@ -246,7 +251,7 @@ _CallProc(PPROC pProc,
 	}
 # endif
 #else
-	ffi_call(&cif, (void *)pProc, presult, values);
+	ffi_call(&cif, (void *)pProc, presult, ppargs);
 #endif
 	Py_END_ALLOW_THREADS
 
