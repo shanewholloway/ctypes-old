@@ -1,4 +1,4 @@
-# nodes.py - classes representing C type descriptions
+# typedesc.py - classes representing C type descriptions
 try:
     set
 except NameError:
