@@ -16,8 +16,26 @@
 #define PY_LONG_LONG LONG_LONG
 #endif
 
-typedef struct tagCDataObject CDataObject;
 typedef int (*THUNK)(void);
+
+/* A default buffer in CDataObject, which can be used for small C types.  If
+this buffer is too small, PyMem_Malloc will be called to create a larger one,
+and this one is not used.
+
+Making CDataObject a variable size object would be a better solution, but more
+difficult in the presence of CFuncPtrObject.  Maybe later.
+*/
+union value {
+		char c[16];
+		short s;
+		int i;
+		long l;
+		float f;
+		double d;
+#ifdef HAVE_LONG_LONG
+		PY_LONG_LONG ll;
+#endif
+};
 
 /*
   Hm. Are there CDataObject's which do not need the b_objects member?  In
@@ -25,17 +43,18 @@ typedef int (*THUNK)(void);
   b_objects is not present/unused b_length is unneeded as well.
 */
 
-struct tagCDataObject {
+typedef struct tagCDataObject {
 	PyObject_HEAD
 	char *b_ptr;		/* pointer to memory block */
 	int  b_needsfree;	/* need _we_ free the memory? */
-	CDataObject *b_base;	/* pointer to base object or NULL */
+	struct tagCDataObject *b_base;	/* pointer to base object or NULL */
 	int b_size;		/* size of memory block in bytes */
 	int b_length;		/* number of references we need */
 	int b_index;		/* index of this object into base's
 				   b_object list */
 	PyObject *b_objects;	/* list of references we need to keep */
-};
+	union value b_value;
+} CDataObject;
 
 typedef struct {
 	/* First part identical to tagCDataObject */
@@ -48,6 +67,7 @@ typedef struct {
 	int b_index;		/* index of this object into base's
 				   b_object list */
 	PyObject *b_objects;	/* list of references we need to keep */
+	union value b_value;
 	/* end of tagCDataObject, additional fields follow */
 
 	THUNK thunk;
