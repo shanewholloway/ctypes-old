@@ -270,6 +270,9 @@ class Generator(object):
         if tp in self.done:
             return
         self.done.add(tp)
+        if tp.init is None:
+            # wtypes.h contains IID_IProcessInitControl, for example
+            return
         print >> self.stream, \
               "%s = %s" % (tp.name, init_value(tp.typ, tp.init))
 
