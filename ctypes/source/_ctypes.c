@@ -2411,7 +2411,6 @@ static PyTypeObject Simple_Type = {
 /*
   Pointer_Type
 */
-
 static PyObject *
 Pointer_item(CDataObject *self, int index)
 {
@@ -2590,6 +2589,26 @@ static PySequenceMethods Pointer_as_sequence = {
 	0,			/* intargfunc sq_inplace_repeat; */
 };
 
+static int
+Pointer_nonzero(CDataObject *self)
+{
+	return *(void **)self->b_ptr != NULL;
+}
+
+static PyNumberMethods Pointer_as_number = {
+	0, /* nb_add */
+	0, /* nb_subtract */
+	0, /* nb_multiply */
+	0, /* nb_divide */
+	0, /* nb_remainder */
+	0, /* nb_divmod */
+	0, /* nb_power */
+	0, /* nb_negative */
+	0, /* nb_positive */
+	0, /* nb_absolute */
+	(inquiry)Pointer_nonzero, /* nb_nonzero */
+};
+
 static PyTypeObject Pointer_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -2602,7 +2621,7 @@ static PyTypeObject Pointer_Type = {
 	0,					/* tp_setattr */
 	0,					/* tp_compare */
 	0,					/* tp_repr */
-	0,					/* tp_as_number */
+	&Pointer_as_number,			/* tp_as_number */
 	&Pointer_as_sequence,			/* tp_as_sequence */
 	0,					/* tp_as_mapping */
 	0,					/* tp_hash */
@@ -3441,9 +3460,6 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
  	char **cpp;
 	IUnknown *pIunk = *(IUnknown **)(arg->b_ptr);
 	IDispatch *pIDisp = (IDispatch *)(arg->b_ptr);
-#ifdef _DEBUG
-	int x;
-#endif
  	dp = (DISPPARAMS *)arg->b_ptr;
  	va = (VARIANT *)arg->b_ptr;
  	p = (OLECHAR FAR * FAR *)arg->b_ptr;
