@@ -1,11 +1,15 @@
 import unittest
-from ctypes import windll, POINTER, byref
-from comtypes import IUnknown
+from ctypes import windll, POINTER, byref, HRESULT
+from comtypes import IUnknown, STDMETHOD
+
+def method_count(interface):
+    return sum([len(base.__dict__.get("_methods_", ()))
+                for base in interface.__mro__])
 
 class BasicTest(unittest.TestCase):
     def test_IUnknown(self):
         from comtypes import IUnknown
-        self.failUnlessEqual(IUnknown._nummethods_, 3)
+        self.failUnlessEqual(method_count(IUnknown), 3)
 
     def test_release(self):
         POINTER(IUnknown)()
@@ -38,13 +42,19 @@ class BasicTest(unittest.TestCase):
         
     def test_derived(self):
 
+        self.failUnlessEqual(method_count(IUnknown), 3)
+
         class IMyInterface(IUnknown):
             pass
 
-        self.failUnlessEqual(IMyInterface._nummethods_, 3)
+        self.failUnlessEqual(method_count(IMyInterface), 3)
 
         IMyInterface._methods_ = []
-        self.failUnlessEqual(IMyInterface._nummethods_, 3)
+        self.failUnlessEqual(method_count(IMyInterface), 3)
+
+        IMyInterface._methods_ = [
+            STDMETHOD(HRESULT, "Blah", [])]
+        self.failUnlessEqual(method_count(IMyInterface), 4)
 
     def test_mro(self):
         mro = POINTER(IUnknown).__mro__
@@ -54,6 +64,38 @@ class BasicTest(unittest.TestCase):
 
         # the IUnknown class has the actual methods:
         self.failUnless(IUnknown.__dict__.get("QueryInterface"))
+
+##    def test_identity(self):
+##        p = POINTER(IUnknown)()
+####        p[0]
+##        windll.oleaut32.CreateTypeLib(1, u"blabla", byref(p))
+
+##        p = p.QueryInterface(IUnknown)
+##        other = p.QueryInterface(IUnknown)
+
+##        print other == p
+##        print other is p
+##        print "A"
+##        print "?", p[0]
+##        print "B"
+####        p[0] = 42
+##        print "C"
+##        print dir(p)
+##        from ctypes import cast, c_int
+##        print cast(other, c_int).value
+##        print cast(p, c_int).value
+
+##        x = POINTER(IUnknown)()
+##        windll.oleaut32.CreateTypeLib(1, u"blabla_2", byref(x))
+##        x = x.QueryInterface(IUnknown)
+
+##        print cast(x, c_int).value
+
+##        print "D"
+##        del p
+##        print "E"
+##        del other
+##        print "F"
 
 if __name__ == "__main__":
     unittest.main()
