@@ -268,9 +268,12 @@ class CDLL:
         _restype_ = c_int # default, can be overridden in instances
 
     _handle = 0
-    def __init__(self, name, LoadLibrary=_LoadLibrary):
+    def __init__(self, name, handle=None):
         self._name = name
-        self._handle = LoadLibrary(self._name)
+        if handle is None:
+            self._handle = _LoadLibrary(self._name)
+        else:
+            self._handle = handle
 
     def __repr__(self):
         return "<%s '%s', handle %x at %x>" % \
@@ -297,11 +300,6 @@ class PyDLL(CDLL):
     class _CdeclFuncPtr(_CFuncPtr):
         _flags_ = _FUNCFLAG_CDECL | _FUNCFLAG_PYTHONAPI
         _restype_ = c_int # default, can be overridden in instances
-
-if _os.name == "nt":
-    pythonapi = PyDLL("python%s%s" % sys.version_info[:2])
-else:
-    pythonapi = PyDLL(None)
 
 if _os.name ==  "nt":
         
@@ -348,6 +346,13 @@ class _DLLS:
 
 cdll = _DLLS(CDLL)
 pydll = _DLLS(PyDLL)
+
+if _os.name == "nt":
+    pythonapi = PyDLL("python dll", sys.dllhandle)
+else:
+    pythonapi = PyDLL(None)
+
+
 if _os.name == "nt":
     windll = _DLLS(WinDLL)
     oledll = _DLLS(OleDLL)
