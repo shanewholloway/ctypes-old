@@ -16,19 +16,43 @@ The ctypes module
 
   News
 
-    **'ctypes' version 0.9.1 has been released (Sept 14, 2004).**
+    **'ctypes' version 0.9.2 has been released (Oct 28, 2004).**
 
-    ctypes can now call Python API functions (without releasing the
-    global interpreter lock).
+    Fixed several bugs and memory leaks.
 
-    Slicing is now supported for array and pointer instances.
+    'ctypes' is now tested on Windows, Linux (x86 and x86_64), OpenBSD
+    and Mac OS X.
 
-    Several bugfixes.
+    Implemented some helper functions: 'memmove', 'memset', 'string_at', 'wstring_at'.
+    The former act as their C library counterpart, the latter two allow
+    to read a zero-terminated (wide) strings at a certain address.
+
+    Implemented a 'cast(cobj, ctype)' function, which creates a new object
+    of the specified ctype from an existing object.
+
+    'ctypes' now explicitely allocates executable memory for the callbacks
+    it creates, this makes it work correctly on platforms where
+    executing data is normally forbidden (OpenBSD, Win XP SP2 on AMD 64).
+
+    Fixed the unicode handling on non-windows platforms.
+
+    Bit fields in structures and unions are now implemented.
+    For a bit field, one would specify the width in bits as the third
+    part in the '_fields_' list like this::
+
+	class BitFieldSample(Structure):
+	    _fields_ = [("anInt", c_int),
+			("aBitField", c_int, 3)]
+
+    POINTER(None) now returns c_void_p.  This change was made for easier
+    code generation, and makes sense since 'None' is the ctypes way to
+    spell 'void'.
+
 
     Detailed changelogs are in CVS (well, sometimes I forget to update
     them):
     
-    "ANNOUNCE":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ANNOUNCE?rev=release_0_9_1
+    "ANNOUNCE":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ANNOUNCE?rev=release_0_9_2
 
     "ChangeLog":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD
 
