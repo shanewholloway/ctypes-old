@@ -162,6 +162,10 @@ def pointer(inst):
 
 ################################################################
 
+class _CdeclFuncPtr(CFuncPtr):
+    _flags_ = FUNCFLAG_CDECL
+    _restype_ = c_int # default, can be overridden in instances
+
 class CDLL:
     _handle = 0
     def __init__(self, name, LoadLibrary=_LoadLibrary):
@@ -175,7 +179,7 @@ class CDLL:
     def __getattr__(self, name):
         if name[:2] == '__' and name[-2:] == '__':
             raise AttributeError, name
-        func = _DynFunction(name, self, FUNCFLAG_CDECL)
+        func = _CdeclFuncPtr(name, self)
         setattr(self, name, func)
         return func
 
@@ -185,19 +189,27 @@ class CDLL:
         self._handle = 0
 
 if _os.name ==  "nt":
+    class _StdcallFuncPtr(CFuncPtr):
+        _flags_ = FUNCFLAG_STDCALL
+        _restype_ = c_int # default, can be overridden in instances
+        
     class WinDLL(CDLL):
         def __getattr__(self, name):
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
-            func = _DynFunction(name, self)
+            func = _StdcallFuncPtr(name, self)
             setattr(self, name, func)
             return func
+
+    class _OlecallFuncPtr(CFuncPtr):
+        _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
+        _restype_ = c_int # needed, but unused
 
     class OleDLL(CDLL):
         def __getattr__(self, name):
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
-            func = _DynFunction(name, self, FUNCFLAG_HRESULT)
+            func = _OlecallFuncPtr(name, self)
             setattr(self, name, func)
             return func
 
