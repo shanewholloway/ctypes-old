@@ -35,7 +35,8 @@ class AxWindow(wtl.Window):
         kwargs['title'] = ctrlId
         apply(wtl.Window.__init__, (self,) + args, kwargs)        
 
-import COM
+from ctypes.com import IUnknown
+from ctypes.com.ole import IOleInPlaceActiveObject
 
 class AxWebControl(AxWindow):
     _class_ws_style_ = AxWindow._class_ws_style_ | WS_HSCROLL | WS_VSCROLL
@@ -44,17 +45,21 @@ class AxWebControl(AxWindow):
         kwargs['ctrlId'] = url
         apply(AxWindow.__init__, (self,) + args, kwargs)
 
-        pUnk = COM.IUnknownPointer()
+        pUnk = pointer(IUnknown())
         AtlAxGetControl(self.handle, byref(pUnk))
-
-        pOle = COM.IOleInPlaceActiveObjectPointer()
-        pUnk.QueryInterface(byref(COM.IOleInPlaceActiveObject._iid_),
+        pOle = pointer(IOleInPlaceActiveObject())
+        pUnk.QueryInterface(byref(IOleInPlaceActiveObject._iid_),
                             byref(pOle))
         self.pOle = pOle
 
         #global msg loop filter needed, see PreTranslateMessage
         wtl.GetMessageLoop().AddFilter(self) #TODO remove on destroy
         
+        self.cleanup = wtl.GetMessageLoop().RemoveFilter
+
+    def __del__(self):
+        self.cleanup(self)
+
     #filter needed to make 'del' and other accel keys work
     #within IE control. @see http://www.microsoft.com/mind/0499/faq/faq0499.asp
     def PreTranslateMessage(self, msg):
@@ -67,8 +72,7 @@ class AxWebControl(AxWindow):
                 parent = GetParent(int(parent))
                 if parent == self.handle:
                     #yes its a child of mine
-                    lpmsg = byref(msg)
-                    if self.pOle.TranslateAccelerator(lpmsg) == 0:
+                    if self.pOle.TranslateAccelerator(byref(msg)) == 0:
                         #translation has happened
                         return 1
                     

@@ -111,17 +111,20 @@ class RECT(Structure):
 
     size = property(getSize, None, None, "")
     
-class MSG(Structure):
-    _fields_ = [("hWnd", HWND),
-                ("message", UINT),
-                ("wParam", WPARAM),
-                ("lParam", LPARAM),
-                ("time", DWORD),
-                ("pt", POINT)]
+##class MSG(Structure):
+##    _fields_ = [("hWnd", HWND),
+##                ("message", UINT),
+##                ("wParam", WPARAM),
+##                ("lParam", LPARAM),
+##                ("time", DWORD),
+##                ("pt", POINT)]
 
-    def __str__(self):
-        return "MSG {%d %d %d %d %d %s}" % (self.hWnd, self.message, self.wParam, self.lParam,
-                                            self.time, str(self.pt))
+##    def __str__(self):
+##        return "MSG {%d %d %d %d %d %s}" % (self.hWnd, self.message, self.wParam, self.lParam,
+##                                            self.time, str(self.pt))
+
+#Hack: we need to use the same MSG type as ctypes.com.ole uses!
+from ctypes.wintypes import MSG
 
 class ACCEL(Structure):
     _fields_ = [("fVirt", BYTE),
