@@ -95,6 +95,12 @@ class Registrar:
             except WindowsError, detail:
                 if detail.errno != 2:
                     raise
+        if hasattr(self._cls, "_typelib_"):
+            if main_is_frozen():
+                unregister_typelib(sys.executable)
+            else:
+                lib = self._cls._typelib_
+                unregister_typelib(lib.path)
 
     def register(self):
         table = self.build_table()
@@ -105,45 +111,48 @@ class Registrar:
             else:
                 handle = root
             _winreg.SetValueEx(handle, name, None, _winreg.REG_SZ, value)
+        if hasattr(self._cls, "_typelib_"):
+            if main_is_frozen():
+                register_typelib(sys.executable)
+            else:
+                lib = self._cls._typelib_
+                register_typelib(lib.path)
 
-def register_typelib():
-    if main_is_frozen():
-        from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
-        try:
-            LoadTypeLibEx(sys.executable, REGKIND_REGISTER)
-            print "Registered Typelib", sys.executable
-        except:
-            import traceback
-            traceback.print_exc()
+def register_typelib(path):
+    from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
+    try:
+        LoadTypeLibEx(path, REGKIND_REGISTER)
+##        print "Registered Typelib", path
+    except:
+        import traceback
+        traceback.print_exc()
 
-def unregister_typelib():
-    if main_is_frozen():
-        from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx, TLIBATTR, oleaut32
-        from ctypes.com import GUID
-        from ctypes import byref, POINTER
-        try:
-            tlib = LoadTypeLibEx(sys.executable, REGKIND_REGISTER)
-            pta = POINTER(TLIBATTR)()
-            tlib.GetLibAttr(byref(pta))
-            ta = pta.contents
-            libid = str(ta.guid)
-            lcid = ta.lcid
-            syskind = ta.syskind
-            wMajorVerNum = ta.wMajorVerNum
-            wMinorVerNum = ta.wMinorVerNum
-            tlib.ReleaseTLibAttr(pta)
+def unregister_typelib(path):
+    from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx, TLIBATTR, oleaut32
+    from ctypes.com import GUID
+    from ctypes import byref, POINTER
+    try:
+        tlib = LoadTypeLibEx(path, REGKIND_REGISTER)
+        pta = POINTER(TLIBATTR)()
+        tlib.GetLibAttr(byref(pta))
+        ta = pta.contents
+        libid = str(ta.guid)
+        lcid = ta.lcid
+        syskind = ta.syskind
+        wMajorVerNum = ta.wMajorVerNum
+        wMinorVerNum = ta.wMinorVerNum
+        tlib.ReleaseTLibAttr(pta)
 
-            oleaut32.UnRegisterTypeLib(byref(GUID(libid)), wMajorVerNum,
-                                       wMinorVerNum, lcid, syskind)
-            print "Unregistered Typelib", libid, (wMajorVerNum, wMinorVerNum)
-        except:
-            import traceback
-            traceback.print_exc()
+        oleaut32.UnRegisterTypeLib(byref(GUID(libid)), wMajorVerNum,
+                                   wMinorVerNum, lcid, syskind)
+##        print "Unregistered Typelib", libid, (wMajorVerNum, wMinorVerNum)
+    except:
+        import traceback
+        traceback.print_exc()
 
 def register(*classes):
     for cls in classes:
         cls._get_registrar().register()
-    register_typelib()
     
 def unregister(*classes):
     for cls in classes:
