@@ -2074,6 +2074,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 	converters = self->converters ? self->converters : dict->converters;
 
 #ifdef MS_WIN32
+	/* It's a COM method */
 	if (self->index) {
 		CDataObject *this;
 		this = (CDataObject *)PyTuple_GetItem(args, 0);
