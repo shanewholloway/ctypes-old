@@ -6,7 +6,7 @@ import comtypes.automation.typeinfo
 ################################################################
 
 def get_type(ti, tdesc):
-    # Return an (approximate) ctype for a typedesc
+    # Return a ctypes type for a typedesc
     if tdesc.vt == 26:
         return ctypes.POINTER(get_type(ti, tdesc._.lptdesc[0]))
     if tdesc.vt == 29:
@@ -30,7 +30,7 @@ def param_info(ti, ed):
     return flags, typ
 
 def method_proto(name, ti, fd):
-    # return resulttype, argtypes, paramflags for a com method
+    # return a function prototype with parmflags: an instance of COMMETHODTYPE
     assert fd.funckind == comtypes.automation.typeinfo.FUNC_PUREVIRTUAL, fd.funckind # FUNC_PUREVIRTUAL
     assert fd.callconv == comtypes.automation.typeinfo.CC_STDCALL, fd.callconv
 ##    names = ti.GetNames(fd.memid, fd.cParams + 1)
@@ -46,11 +46,14 @@ def method_proto(name, ti, fd):
     return proto
 
 def get_custom_interface(comobj, typeinfo=None):
+    # Hm, IDispatch? or IUnknown? or what?
     if typeinfo is None:
         typeinfo = comobj.GetTypeInfo()
     ta = typeinfo.GetTypeAttr()
     if ta.typekind == comtypes.automation.typeinfo.TKIND_INTERFACE:
-        # everything ok
+        # correct typeinfo, still need to QI for this interface
+        ta = typeinfo.GetTypeAttr()
+        comobj = comobj.QueryInterface(comtypes.automation.IDispatch, ta.guid)
         return comobj, typeinfo
     if ta.typekind == comtypes.automation.typeinfo.TKIND_DISPATCH:
         # try to get the dual interface portion from a dispatch interface
@@ -67,10 +70,13 @@ def get_custom_interface(comobj, typeinfo=None):
     raise TypeError, "could not get custom interface"
 
 PDisp = ctypes.POINTER(comtypes.automation.IDispatch)
+PUnk = ctypes.POINTER(comtypes.IUnknown)
 
 def _wrap(obj):
     if isinstance(obj, PDisp):
         return _Dynamic(obj)
+##    if isinstance(obj, PUnk):
+##        return _Dynamic(obj)
     return obj
 
 def _unwrap(obj):
