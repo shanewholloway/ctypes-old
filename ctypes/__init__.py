@@ -185,7 +185,7 @@ class c_void_p(_SimpleCData):
 c_voidp = c_void_p # backwards compatibility (to a bug)
 
 # This cache maps types to pointers to them.
-from _ctypes import _pointer_type_cache
+_pointer_type_cache = {}
 
 def POINTER(cls):
     try:
