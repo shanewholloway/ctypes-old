@@ -1,7 +1,7 @@
 ##from comtypes import _automation as automation
 import comtypes.automation as automation
 import comtypes.typeinfo as typeinfo
-import typedesc
+import comtypes.tools.typedesc as typedesc
 
 ################################
 def PTR(typ):
@@ -64,7 +64,7 @@ COMTYPES = {
     automation.VT_VOID: typedesc.FundamentalType("void", 0, 0), # 24
     automation.VT_HRESULT: HRESULT_type, # 25
     # This is wrong.  We must create separate SAFEARRAY(type) things.
-#    automation.VT_SAFEARRAY: SAFEARRAY_type, # 27
+    automation.VT_SAFEARRAY: SAFEARRAY_type, # 27
     automation.VT_LPSTR: PTR(char_type), # 30
     automation.VT_LPWSTR: PTR(wchar_t_type), # 31
 }
@@ -114,7 +114,7 @@ class TlbParser(object):
         elif tdesc.vt == automation.VT_SAFEARRAY:
             # SAFEARRAY(long), see Don Box pp.331f
             print "SAFEARRAY", tdesc._.lptdesc[0].vt
-            raise "HALT"
+##XXX##            raise "HALT"
             return SAFEARRAY_type        
 
         # VT_SAFEARRAY ???
@@ -352,7 +352,6 @@ class TlbParser(object):
     def idl_flags(self, flags):
         # map TYPEFLAGS values to idl attributes
         NAMES = {typeinfo.TYPEFLAG_FAPPOBJECT: "appobject",
-                 # typeinfo.TYPEFLAG_FCANCREATE:
                  typeinfo.TYPEFLAG_FLICENSED: "licensed",
                  # typeinfo.TYPEFLAG_FPREDECLID:
                  typeinfo.TYPEFLAG_FHIDDEN: "hidden",
@@ -367,7 +366,10 @@ class TlbParser(object):
                  typeinfo.TYPEFLAG_FREVERSEBIND: "reversebind",
                  typeinfo.TYPEFLAG_FPROXY: "proxy",
                  }
-        return [NAMES[bit] for bit in NAMES if bit & flags]
+        NEGATIVE_NAMES = {typeinfo.TYPEFLAG_FCANCREATE: "noncreatable"}
+
+        return [NAMES[bit] for bit in NAMES if bit & flags] + \
+               [NEGATIVE_NAMES[bit] for bit in NEGATIVE_NAMES if (bit & flags == 0)]
     
     def var_flags(self, flags):
         NAMES = {typeinfo.VARFLAG_FREADONLY: "readonly",
@@ -483,8 +485,9 @@ class TlbParser(object):
         return self.items
 
 ################################################################
+# XXX ONLY FOR TESTING!
 
-def main():
+if __name__ == "__main__":
     import sys
 ## these do NOT work:
     # XXX infinite loop?
@@ -506,7 +509,7 @@ def main():
 ##    path = r"hnetcfg.dll"
 ##    path = r"simpdata.tlb"
 ##    path = r"nscompat.tlb"
-##    path = r"stdole32.tlb"
+##    path = r"stdole32.tlb" # IEnumVARIANT
 
 ##    path = r"shdocvw.dll"
     
@@ -514,6 +517,8 @@ def main():
 ##    path = r"PICCLP32.OCX" # DispProperty
 ##    path = r"MSHFLXGD.OCX" # DispProperty, propputref
 ##    path = r"scrrun.dll" # propput AND propputref on IDictionary::Item
+
+    # This is interesting: It contains some functions with idl flags!
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\threadapi.tlb"
 
     known_symbols = {}
@@ -527,14 +532,10 @@ def main():
     p = TlbParser(path)
     items = p.parse()
 
-    from codegenerator import Generator
 
+    from comtypes.tools.codegenerator import Generator
     gen = Generator(sys.stdout,
                     use_decorators=True,
                     known_symbols=known_symbols,
-##                    searched_dlls=None,
                     )
     gen.generate_code(items.values())
-
-if __name__ == "__main__":
-    main()
