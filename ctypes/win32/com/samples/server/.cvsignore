@@ -5,3 +5,5 @@ build
 buildsum
 dist
 distsum
+sum.spec
+temp
