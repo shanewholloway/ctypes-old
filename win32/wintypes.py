@@ -4,6 +4,9 @@ DWORD = c_ulong
 WORD = c_ushort
 BYTE = c_byte
 
+ULONG = c_ulong
+LONG = c_long
+
 LARGE_INTEGER = c_longlong
 ULARGE_INTEGER = c_ulonglong
 
