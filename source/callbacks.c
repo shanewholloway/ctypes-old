@@ -95,9 +95,6 @@ static void _CallPythonObject(void *mem,
 	PyObject *result;
 	PyObject *arglist = NULL;
 	int nArgs;
-#ifdef MS_WIN32
-	DWORD dwExceptionCode = 0;
-#endif
 
 #ifdef CTYPES_USE_GILSTATE
 	PyGILState_STATE state = PyGILState_Ensure();
