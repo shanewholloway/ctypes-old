@@ -83,7 +83,7 @@ class IncludeParser(object):
         finally:
             os.remove(fname)
 
-    def get_defines(self, include_file):
+    def get_defines(self, include_files):
         """'Compile' an include file with gccxml, and return a
         dictionary of preprocessor definitions.  Empty and compiler
         internal definitions are not included."""
@@ -92,7 +92,8 @@ class IncludeParser(object):
         predefined = [line.split(None, 1)[0]
                       for line in lines]
         # all definitions
-        lines = self.compile_and_dump(['#include "%s"' % include_file])
+        code = ['#include "%s"' % fname for fname in include_files]
+        lines = self.compile_and_dump(code)
         defined = [line.split(None, 1)
                    for line in lines]
         # remove empty and compiler internal definitions
@@ -142,9 +143,10 @@ class IncludeParser(object):
 
     ################################################################
 
-    def find_types(self, include_file, defines):
+    def find_types(self, include_files, defines):
         source = []
-        source.append('#include "%s"' % include_file)
+        for fname in include_files:
+            source.append('#include "%s"' % fname)
         source.append("#define DECLARE(sym) template <typename T> T symbol_##sym(T) {}")
         source.append("#define DEFINE(sym) symbol_##sym(sym)")
         for name in defines:
@@ -181,9 +183,10 @@ class IncludeParser(object):
                     types[name] = typ
         return types
 
-    def create_final_xml(self, include_file, types):
+    def create_final_xml(self, include_files, types):
         source = []
-        source.append('#include "%s"' % include_file)
+        for fname in include_files:
+            source.append('#include "%s"' % fname)
         for name, value in types.iteritems():
             source.append("const %s cpp_sym_%s = %s;" % (types[name], name, name))
         fname = self.options.xmlfile
@@ -214,7 +217,7 @@ class IncludeParser(object):
 
     ################################################################
 
-    def parse(self, include_file, options):
+    def parse(self, include_files, options):
         """Main method.
 
         The options object must have these attribuites:
@@ -225,7 +228,7 @@ class IncludeParser(object):
 
         if options.verbose:
             print >> sys.stderr, "finding definitions ..."
-        defines = self.get_defines(include_file)
+        defines = self.get_defines(include_files)
         if options.verbose:
             print >> sys.stderr, "%d found" % len(defines)
 
@@ -237,13 +240,13 @@ class IncludeParser(object):
         if options.verbose:
             print >> sys.stderr, "finding definitions types ..."
             # invoke C++ template magic
-        types = self.find_types(include_file, defines)
+        types = self.find_types(include_files, defines)
         if options.verbose:
             print >> sys.stderr, "found %d types ..." % len(types)
 
         if options.verbose:
             print >> sys.stderr, "creating xml output file ..."
-        self.create_final_xml(include_file, types)
+        self.create_final_xml(include_files, types)
 
         # Include additional preprecessor definitions into the XML file.
 
