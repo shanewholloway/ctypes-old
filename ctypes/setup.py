@@ -99,7 +99,7 @@ class test(Command):
                               [''])
 
             self.announce("\t%s" % (self.test_prefix+case))
-            TEST.test(verbose=0)
+            TEST.test(verbose=self.verbose)
 
         # restore sys.path
         sys.path = old_path[:]
