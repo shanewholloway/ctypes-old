@@ -4,11 +4,26 @@ A testcase which accesses *values* in a dll.
 
 import unittest
 from ctypes import *
+import _ctypes
 
-pydll = cdll.python22
+pydll = None
 
 class ValuesTestCase(unittest.TestCase):
-    """A doc string"""
+
+    def test_an_integer(self):
+        ctdll = CDLL(_ctypes.__file__)
+        an_integer = c_int.in_dll(ctdll, "an_integer")
+        x = an_integer.value
+        self.failUnlessEqual(x, ctdll.get_an_integer())
+        an_integer.value *= 2
+        self.failUnlessEqual(x*2, ctdll.get_an_integer())
+
+    def test_undefined(self):
+        ctdll = CDLL(_ctypes.__file__)
+        self.assertRaises(ValueError, c_int.in_dll, ctdll, "Undefined_Symbol")
+
+class Win_ValuesTestCase(unittest.TestCase):
+    """This test only works when python itself is a dll/shared library"""
 
     def test_optimizeflag(self):
         """This test accesses the Py_OptimizeFlag intger, which is
@@ -57,50 +72,20 @@ class ValuesTestCase(unittest.TestCase):
     def test_undefined(self):
         self.assertRaises(ValueError, c_int.in_dll, pydll, "Undefined_Symbol")
 
-##    def test_function_pointer(self):
-##        # A C function type of no arguments, which returns an integer
-##        HOOKFUNC = CFUNCTYPE(c_int)
-
-##        hook_ptr = HOOKFUNC.in_dll(pydll, "PyOS_InputHook")
-
-##        def my_hook():
-##            print "*hook called*"
-##            return 0
-
-##        c_hook = HOOKFUNC(my_hook)
-
-##        print hex(addressof(c_hook))
-
-##        hook_ptr.contents = c_hook
-
-##    def test_function_pointer_2(self):
-##        HOOKFUNC = CFUNCTYPE(c_int)
-
-##        class X(Structure):
-##            _fields_ = [("func", HOOKFUNC)]
-
-##        hook_ptr = X.in_dll(pydll, "PyOS_InputHook")
-
-##        def my_hook():
-##            print "*hook called*"
-##            return 0
-
-##        c_hook = HOOKFUNC(my_hook)
-
-##        hook_ptr.func = c_hook
-##        raw_input()
-
-##    def test_func_ptr_3(self):
-##        f = pydll.PyOS_InputHook
-
-##        print dir(f)
-
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
     runner.run(get_suite())
 
 def get_suite():
-    return unittest.makeSuite(ValuesTestCase)
+    import sys
+    name = "python%s%s" % sys.version_info[:2]
+    global pydll
+    try:
+        pydll = getattr(cdll, name)
+    except:
+        return unittest.makeSuite(ValuesTestCase)
+    return unittest.TestSuite((unittest.makeSuite(ValuesTestCase),
+                               unittest.makeSuite(Win_ValuesTestCase)))
 
 if __name__ == '__main__':
     unittest.main()
