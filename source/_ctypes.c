@@ -2052,9 +2052,6 @@ _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 		       src->b_ptr,
 		       size);
 
-		if (PointerTypeObject_Check(type))
-			/* XXX */;
-
 		value = GetKeepedObjects(src);
 		Py_INCREF(value);
 		return value;
@@ -2063,10 +2060,10 @@ _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 	if (PointerTypeObject_Check(type)
 	    && ArrayObject_Check(value)) {
 		StgDictObject *p1, *p2;
-		PyObject *keep;
 		p1 = PyObject_stgdict(value);
 		p2 = PyType_stgdict(type);
 
+		/* Should probably use issubclass instead of == ... */
 		if (p1->proto != p2->proto) {
 			PyErr_Format(PyExc_TypeError,
 				     "incompatible types, %s instance instead of %s instance",
@@ -2075,23 +2072,11 @@ _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 			return NULL;
 		}
 		*(void **)ptr = src->b_ptr;
-
-		keep = GetKeepedObjects(src);
-		/*
-		  We are assigning an array object to a field which represents
-		  a pointer. This has the same effect as converting an array
-		  into a pointer. So, again, we have to keep the whole object
-		  pointed to (which is the array in this case) alive, and not
-		  only it's object list.  So we create a tuple, containing
-		  b_objects list PLUS the array itself, and return that!
+		/* We are assigning an array object to a field representing a
+		   pointer.  We need to keep the array object alive, not only
+		   its b_objects.
 		*/
-
-		/* 
-		   I don't think the above really makes sense.  Since the
-		   array object already contains it's own b_objects if should
-		   be sufficient to return src here.
-		 */
-		return Py_BuildValue("(OO)", keep, value);
+		return (PyObject *)src;
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "incompatible types, %s instance instead of %s instance",
