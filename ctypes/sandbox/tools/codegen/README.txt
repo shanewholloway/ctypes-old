@@ -2,7 +2,7 @@
  README: ctypes code generation
 ===============================
 
-.. _REST quickref: http://docutils.sourceforge.net/docs/user/rst/quickstart.html
+.. _REST quickref (only for the editor): http://docutils.sourceforge.net/docs/user/rst/quickstart.html
 
 This document describes the ctypes code generator.  The generator
 converts declarations in C header files into executable Python code:
