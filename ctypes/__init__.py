@@ -17,6 +17,8 @@ from _ctypes import __version__ as _ctypes_version
 
 from _ctypes import ArgumentError
 
+from struct import calcsize as _calcsize
+
 if __version__ != _ctypes_version:
     raise Exception, ("Version number mismatch", __version__, _ctypes_version)
 
@@ -113,16 +115,6 @@ class c_ushort(_SimpleCData):
     def __repr__(self):
         return "c_ushort(%d)" % self.value
 
-class c_int(_SimpleCData):
-    _type_ = "i"
-    def __repr__(self):
-        return "c_int(%d)" % self.value
-
-class c_uint(_SimpleCData):
-    _type_ = "I"
-    def __repr__(self):
-        return "c_uint(%d)" % self.value
-    
 class c_long(_SimpleCData):
     _type_ = "l"
     def __repr__(self):
@@ -133,6 +125,21 @@ class c_ulong(_SimpleCData):
     def __repr__(self):
         return "c_ulong(%d)" % self.value
     
+if _calcsize("i") == _calcsize("l"):
+    # if int and long have the same size, make c_int an alias for c_long
+    c_int = c_long
+    c_uint = c_ulong
+else:
+    class c_int(_SimpleCData):
+        _type_ = "i"
+        def __repr__(self):
+            return "c_int(%d)" % self.value
+
+    class c_uint(_SimpleCData):
+        _type_ = "I"
+        def __repr__(self):
+            return "c_uint(%d)" % self.value
+
 class c_float(_SimpleCData):
     _type_ = "f"
     def __repr__(self):
@@ -142,19 +149,24 @@ class c_double(_SimpleCData):
     _type_ = "d"
     def __repr__(self):
         return "%s(%f)" % (self.__class__.__name__, self.value)
-    
-class c_longlong(_SimpleCData):
-    _type_ = "q"
-    def __repr__(self):
-        return "c_longlong(%s)" % self.value
 
-class c_ulonglong(_SimpleCData):
-    _type_ = "Q"
-    def __repr__(self):
-        return "c_ulonglong(%s)" % self.value
-##    def from_param(cls, val):
-##        return ('d', float(val), val)
-##    from_param = classmethod(from_param)
+if _calcsize("l") == _calcsize("q"):
+    # if long and long long have the same size, make c_longlong an alias for c_long
+    c_longlong = c_long
+    c_ulonglong = c_ulong
+else:
+    class c_longlong(_SimpleCData):
+        _type_ = "q"
+        def __repr__(self):
+            return "c_longlong(%s)" % self.value
+
+    class c_ulonglong(_SimpleCData):
+        _type_ = "Q"
+        def __repr__(self):
+            return "c_ulonglong(%s)" % self.value
+    ##    def from_param(cls, val):
+    ##        return ('d', float(val), val)
+    ##    from_param = classmethod(from_param)
 
 class c_ubyte(_SimpleCData):
     _type_ = "B"

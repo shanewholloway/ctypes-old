@@ -120,8 +120,9 @@ class BitFieldTest(unittest.TestCase):
         result = self.fail_fields(("a", c_void_p, 1))
         self.failUnlessEqual(result, (TypeError, 'bit fields not allowed for type c_void_p'))
 
-        result = self.fail_fields(("a", POINTER(c_int), 1))
-        self.failUnlessEqual(result, (TypeError, 'bit fields not allowed for type LP_c_int'))
+        if c_int != c_long:
+            result = self.fail_fields(("a", POINTER(c_int), 1))
+            self.failUnlessEqual(result, (TypeError, 'bit fields not allowed for type LP_c_int'))
 
         result = self.fail_fields(("a", c_char, 1))
         self.failUnlessEqual(result, (TypeError, 'bit fields not allowed for type c_char'))

@@ -2,7 +2,12 @@
 
 	* (Message): The _fields_ attribute is now handled correctly in
 	Structure sub-subclasses.  It is extended instead of replaced.
-	
+
+	if 'sizeof(int) == sizeof(long)', c_int/c_uint are now aliases for
+	c_long/c_ulong, and if 'sizeof(long) == sizeof(long long)',
+	c_longlong/c_ulonglong are now aliases now for c_long/c_ulong.
+
+
 2004-12-01  Thomas Heller  <theller@python.net>
 
 	* The annoying pointer bug has been fixed.
