@@ -17,6 +17,10 @@ class CallbacksTestCase(unittest.TestCase):
 
     def test_stdcall_callback(self):
         import _ctypes_test
+        try:
+            WINFUNCTYPE
+        except NameError:
+            WINFUNCTYPE = CFUNCTYPE
         CALLBACK = WINFUNCTYPE(c_int, c_int, c_int)
         e_func = CDLL(_ctypes_test.__file__)._testfunc_stdcall_callback_i_iif
 
