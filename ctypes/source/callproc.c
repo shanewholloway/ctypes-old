@@ -1218,23 +1218,97 @@ call_cdeclfunction(PyObject *self, PyObject *args)
 	return result;
 }
 
-static char alignment_doc[] =
-"alignment(C type) -> integer\n"
-"alignment(C instance) -> integer\n"
-"Return the alignment requirements of a C instance";
+/*****************************************************************
+ * functions
+ */
 static char sizeof_doc[] =
 "sizeof(C type) -> integer\n"
 "sizeof(C instance) -> integer\n"
 "Return the size in bytes of a C instance";
 
+static PyObject *
+sizeof_func(PyObject *self, PyObject *obj)
+{
+	StgDictObject *dict;
+
+	dict = PyType_stgdict(obj);
+	if (dict)
+		return PyInt_FromLong(dict->size);
+
+	if (CDataObject_Check(obj))
+		return PyInt_FromLong(((CDataObject *)obj)->b_size);
+	PyErr_SetString(PyExc_TypeError,
+			"this type has no size");
+	return NULL;
+}
+
+static char alignment_doc[] =
+"alignment(C type) -> integer\n"
+"alignment(C instance) -> integer\n"
+"Return the alignment requirements of a C instance";
+
+static PyObject *
+align_func(PyObject *self, PyObject *obj)
+{
+	StgDictObject *dict;
+
+	dict = PyType_stgdict(obj);
+	if (dict)
+		return PyInt_FromLong(dict->align);
+
+	dict = PyObject_stgdict(obj);
+	if (dict)
+		return PyInt_FromLong(dict->align);
+
+	PyErr_SetString(PyExc_TypeError,
+			"no alignment info");
+	return NULL;
+}
+
 static char byref_doc[] =
 "byref(C instance) -> byref-object\n"
 "Return a pointer lookalike to a C instance, only usable\n"
 "as function argument";
+
+/*
+ * We must return something which can be converted to a parameter,
+ * but still has a reference to self.
+ */
+static PyObject *
+byref(PyObject *self, PyObject *obj)
+{
+	PyCArgObject *parg;
+	if (!CDataObject_Check(obj)) {
+		PyErr_SetString(PyExc_TypeError,
+				"expected CData instance");
+		return NULL;
+	}
+
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+
+	parg->tag = 'P';
+	parg->pffi_type = &ffi_type_pointer;
+	Py_INCREF(obj);
+	parg->obj = obj;
+	parg->value.p = ((CDataObject *)obj)->b_ptr;
+	return (PyObject *)parg;
+}
+
 static char addressof_doc[] =
 "addressof(C instance) -> integer\n"
 "Return the address of the C instance internal buffer";
 
+static PyObject *
+addressof(PyObject *self, PyObject *obj)
+{
+	if (CDataObject_Check(obj))
+		return PyInt_FromLong((long)((CDataObject *)obj)->b_ptr);
+	PyErr_SetString(PyExc_TypeError,
+			"invalid type");
+	return NULL;
+}
 
 static PyObject *
 My_PyObj_FromPtr(PyObject *self, PyObject *args)
@@ -1266,6 +1340,12 @@ My_Py_DECREF(PyObject *self, PyObject *arg)
 
 #ifdef CTYPES_UNICODE
 
+static char set_conversion_mode_doc[] =
+"FormatError(encoding, errors) -> (previous-encoding, previous-errors)\n\
+\n\
+Set the encoding and error handling ctypes uses when converting\n\
+between unicode and strings.  Returns the previous values.\n";
+
 static PyObject *
 set_conversion_mode(PyObject *self, PyObject *args)
 {
@@ -1287,12 +1367,6 @@ set_conversion_mode(PyObject *self, PyObject *args)
 	strcpy(conversion_mode_errors, mode);
 	return result;
 }
-
-static char set_conversion_mode_doc[] =
-"FormatError(encoding, errors) -> (previous-encoding, previous-errors)\n\
-\n\
-Set the encoding and error handling ctypes uses when converting\n\
-between unicode and strings.  Returns the previous values.\n";
 #endif
 
 static char cast_doc[] =
