@@ -6,20 +6,20 @@ class StringArrayTestCase(unittest.TestCase):
         BUF = c_char * 4
 
         buf = BUF("a", "b", "c")
-        self.failUnless(buf.value == "abc")
-        self.failUnless(buf.raw == "abc\000")
+        self.failUnlessEqual(buf.value, "abc")
+        self.failUnlessEqual(buf.raw, "abc\000")
 
         buf.value = "ABCD"
-        self.failUnless(buf.value == "ABCD")
-        self.failUnless(buf.raw == "ABCD")
+        self.failUnlessEqual(buf.value, "ABCD")
+        self.failUnlessEqual(buf.raw, "ABCD")
 
         buf.value = "x"
-        self.failUnless(buf.value == "x")
-        self.failUnless(buf.raw == "x\000CD")
+        self.failUnlessEqual(buf.value, "x")
+        self.failUnlessEqual(buf.raw, "x\000CD")
 
         buf[1] = "Z"
-        self.failUnless(buf.value == "xZCD")
-        self.failUnless(buf.raw == "xZCD")
+        self.failUnlessEqual(buf.value, "xZCD")
+        self.failUnlessEqual(buf.raw, "xZCD")
 
         self.assertRaises(ValueError, setattr, buf, "value", "aaaaaaaa")
         self.assertRaises(TypeError, setattr, buf, "value", 42)
@@ -63,16 +63,16 @@ else:
             BUF = c_wchar * 4
 
             buf = BUF(u"a", u"b", u"c")
-            self.failUnless(buf.value == u"abc")
+            self.failUnlessEqual(buf.value, u"abc")
 
             buf.value = u"ABCD"
-            self.failUnless(buf.value == u"ABCD")
+            self.failUnlessEqual(buf.value, u"ABCD")
 
             buf.value = u"x"
-            self.failUnless(buf.value == u"x")
+            self.failUnlessEqual(buf.value, u"x")
 
             buf[1] = u"Z"
-            self.failUnless(buf.value == u"xZCD")
+            self.failUnlessEqual(buf.value, u"xZCD")
 
 class StringTestCase(unittest.TestCase):
     def XX_test_basic_strings(self):
@@ -80,24 +80,24 @@ class StringTestCase(unittest.TestCase):
 
         # Cannot call len on a c_string any longer
         self.assertRaises(TypeError, len, cs)
-        self.failUnless(sizeof(cs) == 7)
+        self.failUnlessEqual(sizeof(cs), 7)
 
         # The value property is the string up to the first terminating NUL.
-        self.failUnless(cs.value == "abcdef")
-        self.failUnless(c_string("abc\000def").value == "abc")
+        self.failUnlessEqual(cs.value, "abcdef")
+        self.failUnlessEqual(c_string("abc\000def").value, "abc")
 
         # The raw property is the total buffer contents:
-        self.failUnless(cs.raw == "abcdef\000")
-        self.failUnless(c_string("abc\000def").raw == "abc\000def\000")
+        self.failUnlessEqual(cs.raw, "abcdef\000")
+        self.failUnlessEqual(c_string("abc\000def").raw, "abc\000def\000")
 
         # We can change the value:
         cs.value = "ab"
-        self.failUnless(cs.value == "ab")
-        self.failUnless(cs.raw == "ab\000\000\000\000\000")
+        self.failUnlessEqual(cs.value, "ab")
+        self.failUnlessEqual(cs.raw, "ab\000\000\000\000\000")
 
         cs.raw = "XY"
-        self.failUnless(cs.value == "XY")
-        self.failUnless(cs.raw == "XY\000\000\000\000\000")
+        self.failUnlessEqual(cs.value, "XY")
+        self.failUnlessEqual(cs.raw, "XY\000\000\000\000\000")
 
         self.assertRaises(TypeError, c_string, u"123")
 
