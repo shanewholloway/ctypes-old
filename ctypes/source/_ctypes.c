@@ -1806,12 +1806,12 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *restype;
 	PyObject *converters;
+	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 #ifdef MS_WIN32
 	IUnknown *piunk = NULL;
 	void *pProc;
 #endif
 
-	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	assert(dict); /* if not, it's a bug */
 	restype = self->restype ? self->restype : dict->restype;
 	converters = self->converters ? self->converters : dict->converters;
@@ -1826,7 +1826,13 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 		/* there should be more checks? No, in Python*/
-		piunk = (IUnknown *)*(void **)this->b_ptr;
+		/* First arg is an pointer to an interface instance */
+		if (!this->b_ptr || *(void **)this->b_ptr == NULL) {
+			PyErr_SetString(PyExc_ValueError,
+					"NULL pointer access");
+			return NULL;
+		}
+		piunk = *(IUnknown **)this->b_ptr;
 		pProc = ((void **)piunk->lpVtbl)[self->index - 0x1000];
 	}
 #endif
@@ -3513,18 +3519,8 @@ EXPORT char * _testfunc_p_p(void *s)
 
 #ifndef MS_WIN32
 # define __stdcall /* */
-#else
-
-EXPORT void *_testfunc_piunk(IUnknown FAR *punk)
-{
-	IDispatch FAR *pdisp = (IDispatch FAR *)punk;
-#ifdef _DEBUG
-	_asm int 3;
 #endif
-	return NULL;
-}
 
-#endif
 typedef struct {
 	int (*c)(int, int);
 	int (__stdcall *s)(int, int);
@@ -3541,6 +3537,14 @@ EXPORT int _testfunc_deref_pointer(int *pi)
 {
 	return *pi;
 }
+
+#ifdef MS_WIN32
+EXPORT int _testfunc_piunk(IUnknown FAR *piunk)
+{
+	piunk->lpVtbl->AddRef(piunk);
+	return piunk->lpVtbl->Release(piunk);
+}
+#endif
 
 #ifdef HAVE_LONG_LONG
 EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
@@ -3578,6 +3582,6 @@ EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG)
 #endif
 /*
  Local Variables:
- compile-command: "cd .. && python setup.py -q build test install --home ~"
+ compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
  End:
 */
