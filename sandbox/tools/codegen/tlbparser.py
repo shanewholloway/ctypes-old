@@ -25,12 +25,15 @@ BSTR_type = typedesc.Typedef("BSTR", PTR(wchar_t_type))
 SCODE_type = typedesc.Typedef("SCODE", int_type)
 VARIANT_BOOL_type = typedesc.Typedef("VARIANT_BOOL", short_type)
 HRESULT_type = typedesc.Typedef("HRESULT", ulong_type)
-VARIANT_type = typedesc.Typedef("VARIANT", None) # 128 , 32 ?
+
+VARIANT_type = typedesc.Typedef("VARIANT", None) #
+IDISPATCH_type = typedesc.Typedef("IDispatch", None) #
+IUNKNOWN_type = typedesc.Typedef("IUnknown", None) #
 # faked COM data types
 
 CURRENCY_type = float_type # wrong
-DATE_type = double_type
-DECIMAL_type = double_type # wrong - it's a 12 byte structure
+DATE_type = double_type # not toally wrong...
+DECIMAL_type = double_type # wrong - it's a 12 byte structure (or was it 16 bytes?)
 
 COMTYPES = {
     automation.VT_I2: short_type, # 2
@@ -38,16 +41,13 @@ COMTYPES = {
     automation.VT_R4: float_type, # 4
     automation.VT_R8: double_type, # 5
     automation.VT_CY: CURRENCY_type, # 6
-
     automation.VT_DATE: DATE_type, # 7
     automation.VT_BSTR: BSTR_type, # 8
-
-    automation.VT_DISPATCH: PTR(int_type), # 9 XXXX
-
+    automation.VT_DISPATCH: PTR(IDISPATCH_type), # 9
     automation.VT_ERROR: SCODE_type, # 10
     automation.VT_BOOL: VARIANT_BOOL_type, # 11
     automation.VT_VARIANT: VARIANT_type, # 12
-    automation.VT_UNKNOWN: PTR(int_type), # 13 XXX
+    automation.VT_UNKNOWN: PTR(IUNKNOWN_type), # 13
     automation.VT_DECIMAL: DECIMAL_type, # 14
 
     automation.VT_I1: char_type, # 16
@@ -76,11 +76,11 @@ COMTYPES = {
 #automation.VT_ARRAY = 8192 # enum VARENUM
 #automation.VT_BYREF = 16384 # enum VARENUM
 
-known_symbols = {"VARIANT": "comtypes",
+known_symbols = {#"VARIANT": "comtypes",
                  "None": "XXX",
                  }
 
-for name in ("comtypes", "ctypes"):
+for name in ("comtypes.automation", "comtypes", "ctypes"):
     mod = __import__(name)
     for submodule in name.split(".")[1:]:
         mod = getattr(mod, submodule)
@@ -92,7 +92,7 @@ for name in ("comtypes", "ctypes"):
 class TlbParser(object):
 
     def __init__(self, path):
-        self.tlib = automation.LoadTypeLibEx(path)
+        self.tlib = automation.LoadTypeLibEx(path, regkind=automation.REGKIND_REGISTER)
         self.items = {}
 
     def make_type(self, tdesc, tinfo):
@@ -174,7 +174,7 @@ class TlbParser(object):
             fd = tinfo.GetFuncDesc(i)
             dllname, func_name, ordinal = tinfo.GetDllEntry(fd.memid, fd.invkind)
 ##            func_doc = tinfo.GetDocumentation(fd.memid)[1]
-            assert 0 == fd.cParamsOpt # ?
+            assert 0 == fd.cParamsOpt # XXX
             returns = self.make_type(fd.elemdescFunc.tdesc, tinfo)
 
             if fd.callconv == automation.CC_CDECL:
@@ -191,11 +191,6 @@ class TlbParser(object):
             for i in range(fd.cParams):
                 argtype = self.make_type(fd.lprgelemdescParam[i].tdesc, tinfo)
                 func.add_argument(argtype)
-
-        # constants are disabled for now, we need VARIANT
-        # functionality to create them, and codegenerator fixes also.
-        # But then, constants are not really common in typelibs.
-        return
 
         # constants
         for i in range(ta.cVars):
@@ -225,15 +220,15 @@ class TlbParser(object):
         if ta.cImplTypes:
             hr = tinfo.GetRefTypeOfImplType(0)
             tibase = tinfo.GetRefTypeInfo(hr)
-            bases = [self.parse_typeinfo(tibase)]
+            base = self.parse_typeinfo(tibase)
         else:
-            bases = []
+            base = None
         members = []
-        itf = typedesc.Structure(itf_name,
-                                 align=32,
-                                 members=members,
-                                 bases=bases,
-                                 size=32)
+        itf = typedesc.ComInterface(itf_name,
+                                    members=members,
+                                    base=base,
+                                    iid=str(ta.guid),
+                                    wTypeFlags=ta.wTypeFlags)
         self.items[itf_name] = itf
 
         assert ta.cVars == 0, "vars on an Interface?"
@@ -242,23 +237,36 @@ class TlbParser(object):
             fd = tinfo.GetFuncDesc(i)
             func_name = tinfo.GetDocumentation(fd.memid)[0]
             returns = self.make_type(fd.elemdescFunc.tdesc, tinfo)
-            mth = typedesc.Method(func_name, returns)
-##            assert fd.cParamsOpt == 0, "optional parameters not yet implemented"
-##            print "CUST %s::%s" % (itf_name, func_name),
+            names = tinfo.GetNames(fd.memid, fd.cParams+1)
+            names.append("rhs")
+            names = names[:fd.cParams + 1]
+            assert len(names) == fd.cParams + 1
+            mth = typedesc.ComMethod(fd.invkind, func_name, returns, fd.wFuncFlags)
+            assert fd.cParamsOpt == 0, "optional parameters not yet implemented"
             for p in range(fd.cParams):
-##                print fd.lprgelemdescParam[p]._.paramdesc.wParamFlags,
                 typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
-                mth.add_argument(typ)
-##            print
+                name = names[p+1]
+                flags = fd.lprgelemdescParam[p]._.paramdesc.wParamFlags
+                if flags & automation.PARAMFLAG_FHASDEFAULT:
+                    var = fd.lprgelemdescParam[p]._.paramdesc.pparamdescex[0].varDefaultValue
+                    if var.n1.n2.vt == automation.VT_BSTR:
+                        default = var.n1.n2.n3.bstrVal
+                    elif var.n1.n2.vt == automation.VT_I4:
+                        default = var.n1.n2.n3.iVal
+                    elif var.n1.n2.vt == automation.VT_BOOL:
+                        default = bool(var.n1.n2.n3.boolVal)
+                    else:
+                        raise "NYI", var.n1.n2.vt
+                else:
+                    default = None
+                mth.add_argument(typ, name, flags, default)
             itf.members.append(mth)
 
-        itf.iid = ta.guid
         return itf
 
     # TKIND_DISPATCH = 4
     def ParseDispatch(self, tinfo, ta):
         itf_name, doc = tinfo.GetDocumentation(-1)[0:2]
-##        print itf_name
         assert ta.cImplTypes == 1
 
         hr = tinfo.GetRefTypeOfImplType(0)
@@ -281,14 +289,12 @@ class TlbParser(object):
             basemethods = 7
             assert ta.cFuncs >= 7, "where are the IDispatch methods?"
 
-        assert ta.cVars == 0, "properties on interface not yet implemented"
         for i in range(ta.cVars):
             vd = tinfo.GetVarDesc(i)
-##            assert vd.varkind == automation.VAR_DISPATCH
+            assert vd.varkind == automation.VAR_DISPATCH
             var_name = tinfo.GetDocumentation(vd.memid)[0]
-            print "VAR", itf_name, tinfo.GetDocumentation(vd.memid)[0], vd.varkind
             typ = self.make_type(vd.elemdescVar.tdesc, tinfo)
-            mth = typedesc.DispProperty(vd.memid, vd.varkind, var_name, typ)
+            mth = typedesc.DispProperty(vd.memid, vd.varkind, var_name, typ, vd.wVarFlags)
             itf.members.append(mth)
 
         for i in range(basemethods, ta.cFuncs):
@@ -298,8 +304,11 @@ class TlbParser(object):
             names = tinfo.GetNames(fd.memid, fd.cParams+1)
             names.append("rhs")
             names = names[:fd.cParams + 1]
-            assert len(names) == fd.cParams + 1
-            mth = typedesc.DispMethod(fd.memid, fd.invkind, func_name, returns)
+            assert len(names) == fd.cParams + 1 # function name first, then parameter names
+            mth = typedesc.DispMethod(fd.memid, fd.invkind, func_name, returns, fd.wFuncFlags)
+            doc = tinfo.GetDocumentation(fd.memid)[1]
+            if doc is not None:
+                mth.doc = str(doc)
             for p in range(fd.cParams):
                 typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
                 name = names[p+1]
@@ -319,10 +328,21 @@ class TlbParser(object):
                 mth.add_argument(typ, name, flags, default)
             itf.members.append(mth)
 
-        itf.iid = ta.guid
         return itf
-        
+
     # TKIND_COCLASS = 5
+    def ParseCoClass(self, tinfo, ta):
+        # possible ta.wTypeFlags: helpstring, helpcontext, licensed,
+        #        version, control, hidden, and appobject
+        coclass_name = tinfo.GetDocumentation(-1)[0]
+        coclass = typedesc.CoClass(coclass_name, str(ta.guid), ta.wTypeFlags)
+        self.items[coclass_name] = coclass
+        for i in range(ta.cImplTypes):
+            hr = tinfo.GetRefTypeOfImplType(i)
+            ti = tinfo.GetRefTypeInfo(hr)
+            itf = self.parse_typeinfo(ti)
+            flags = tinfo.GetImplTypeFlags(i)
+            coclass.add_interface(itf, flags)
 
     # TKIND_ALIAS = 6
     def ParseAlias(self, tinfo, ta):
@@ -376,14 +396,14 @@ class TlbParser(object):
             return self.ParseInterface(tinfo, ta)
         elif tkind == automation.TKIND_DISPATCH: # 4
             return self.ParseDispatch(tinfo, ta)
-        # TKIND_COCLASS = 5
+        elif tkind == automation.TKIND_COCLASS: # 5
+            return self.ParseCoClass(tinfo, ta)
         elif tkind == automation.TKIND_ALIAS: # 6
             return self.ParseAlias(tinfo, ta)
         elif tkind == automation.TKIND_UNION: # 7
             return self.ParseUnion(tinfo, ta)
         else:
-##            raise "NYI", tkind
-            print "NYI", tkind
+            raise "NYI", tkind
 
     ################################################################
 
@@ -398,13 +418,14 @@ class TlbParser(object):
 def main():
     import sys
 
-    path = r"hnetcfg.dll"
+##    path = r"hnetcfg.dll"
 ##    path = r"simpdata.tlb"
 ##    path = r"nscompat.tlb"
 ##    path = r"mshtml.tlb"
-##    path = r"stdole32.tlb"
+    path = r"stdole32.tlb"
 ##    path = r"c:\tss5\include\MeasurementModule.tlb"
 ##    path = r"c:\tss5\include\fpanel.tlb"
+##    path = "msscript.ocx"
 ##    path = r"x.tlb"
 ##    path = r"shdocvw.dll"
     
@@ -418,12 +439,12 @@ def main():
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
 ##    path = r"MSHFLXGD.OCX"
-##    path = r"scrrun.dll"
+    path = r"scrrun.dll"
 ##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\threadapi.tlb"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
 
-##    path = "mytlb.tlb"
+    path = "mytlb.tlb"
     
     p = TlbParser(path)
     items = p.parse()
