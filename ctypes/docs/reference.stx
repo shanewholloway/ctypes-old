@@ -5,6 +5,10 @@ ctypes reference
 
   ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
 
+  Note
+
+    This reference is probably not worth it's name, so incomplete it is.
+
   Common operations on ctypes instances
 
     'sizeof(obj) -> integer'
