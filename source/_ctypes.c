@@ -1917,7 +1917,6 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 	PyObject *cobj;
 	PyObject *mem;
 	PyObject *args, *kw;
-	CDataObject *cd;
 
 	if (base && !CDataObject_Check(base)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -1935,22 +1934,37 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 	mem = PyObject_Call(type, args, kw);
 	Py_DECREF(kw);
 	Py_DECREF(args);
-	if (mem == NULL)
-		return NULL;
-			    
-	/* XXX cobj will be invalid once we leave this function! */
+	/* the pointer in it points to memory local to this func. */
 	assert(cobj->ob_refcnt == 1);
 	Py_DECREF(cobj);
-
-	cd = (CDataObject *)mem;
 
 	return mem;
 }
 
-PyObject *
+/* We cannot call CData_FromBaseObj, because we have no base object.  So, we
+   create an empty instance, free the memory it contains, and fill in the
+   memory pointer afterwards.
+*/
+static PyObject *
 CData_AtAddress(PyObject *type, void *buf)
 {
-	return CData_FromBaseObj(type, NULL, 0, buf);
+	CDataObject *pd;
+
+	pd = (CDataObject *)PyObject_CallFunctionObjArgs(type, NULL);
+	if (!pd)
+		return NULL;
+	if (!CDataObject_Check(pd)) {
+		Py_DECREF(pd);
+		PyErr_SetString(PyExc_TypeError,
+				"BUG: type call did not return a CDataObject");
+		return NULL;
+	}
+	if (pd->b_needsfree) {
+		pd->b_needsfree = 0;
+		PyMem_Free(pd->b_ptr);
+	}
+	pd->b_ptr = buf;
+	return (PyObject *)pd;
 }
 
 /*
@@ -2151,9 +2165,10 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			obj->b_objects = NULL;
 			obj->b_length = length;
 			
-			obj->b_ptr = spec->adr;
 			obj->b_size = size;
-			obj->b_needsfree = 0;
+			obj->b_ptr = PyMem_Malloc(size);
+			obj->b_needsfree = 1;
+			memcpy(obj->b_ptr, spec->adr, size);
 		}
 		/* don't pass this to tp_init! */
 		if (-1 == PyDict_DelItemString(kwds, "_basespec_")) {
