@@ -815,6 +815,19 @@ z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		Py_INCREF(str);
 		return str;
 	}
+	/* Pointer to a single character.  Not sure if this makes sense, since
+	   c_char_p should be used to represent a pointer to a zero terminated
+	   string.
+	*/
+	if (PyCArg_CheckExact(value)) {
+		/* byref(c_char instance) */
+		PyCArgObject *carg = (PyCArgObject *)value;
+		if (PyObject_IsInstance(carg->obj, CTYPE_c_char)) {
+			*(char **)ptr = ((CDataObject *)carg->obj)->b_ptr;
+			Py_INCREF(value);
+			return value;
+		}
+	}
 	/* Do we want to allow c_wchar_p also, with conversion? */
 	if (PyObject_IsInstance(value, CTYPE_c_char_p)) {
 		*(char **)ptr = *(char **)(((CDataObject *)value)->b_ptr);
@@ -869,6 +882,19 @@ Z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		*(wchar_t **)ptr = *(wchar_t **)(((CDataObject *)value)->b_ptr);
 		Py_INCREF(value);
 		return value;
+	}
+	/* Pointer to a single character.  Not sure if this makes sense, since
+	   c_char_p should be used to represent a pointer to a zero terminated
+	   string.
+	*/
+	if (PyCArg_CheckExact(value)) {
+		/* byref(c_char instance) */
+		PyCArgObject *carg = (PyCArgObject *)value;
+		if (PyObject_IsInstance(carg->obj, CTYPE_c_wchar)) {
+			*(wchar_t **)ptr = (wchar_t *)((CDataObject *)carg->obj)->b_ptr;
+			Py_INCREF(value);
+			return value;
+		}
 	}
 	if (ArrayObject_Check(value)) {
 		PyObject *itemtype = PyObject_stgdict(value)->itemtype;

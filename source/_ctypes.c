@@ -1216,17 +1216,11 @@ static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *typedict = PyType_stgdict(type);
-	PyCArgObject *parg;
-
-	if (PyCArg_CheckExact(value)) {
-		/* byref(c_char(...)) */
-  		PyCArgObject *a = (PyCArgObject *)value;
-		if (PyObject_IsInstance(a->obj, typedict->itemtype)) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
-	/* Call setfunc */
+	/* This makes function calls somewhat slower, imo, since a
+	   PyCArgObject is allocated for each argument.  When from_param will
+	   be a slot function in the stgdict, the signature can change and it
+	   can be made faster again.
+	*/
 	parg = new_CArgObject();
 	parg->pffi_type = &ffi_type_pointer;
 	parg->obj = typedict->setfunc(&parg->value, value, 0, type);
