@@ -513,8 +513,11 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	nArgs = PySequence_Size(converters);
 	p = (ffi_info *)PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
+	if (p == NULL) {
+		PyErr_NoMemory();
+		return NULL;
+	}
 
-	/* Check for NULL */
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
 		PrepareResult(restype, &cResult);
@@ -523,13 +526,24 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	}
 
 	PrepareResult(restype, &cResult);
-	/* XXX Check for FFI_OK */
+
 	result = ffi_prep_cif(&p->cif, FFI_DEFAULT_ABI, nArgs,
 			      cResult.pffi_type,
 			      &p->atypes[0]);
+	if (result != FFI_OK) {
+		PyErr_Format(PyExc_RuntimeError,
+			     "ffi_prep_cif failed with %d", result);
+		PyMem_Free(p);
+		return NULL;
+	}
 
-	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
+	if (result != FFI_OK) {
+		PyErr_Format(PyExc_RuntimeError,
+			     "ffi_prep_closure failed with %d", result);
+		PyMem_Free(p);
+		return NULL;
+	}
 
 	switch (cResult.tag) {
 		/* "bBhHiIlLqQdfP" */
