@@ -182,18 +182,12 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 	   XXX Remove this in ctypes 1.0!
 	*/
 	int use_broken_old_ctypes_semantics;
-	PyObject *py_use_broken_old_ctypes_semantics;
 
 	if (fields == NULL)
 		return 0;
 
-	py_use_broken_old_ctypes_semantics = \
-		PyObject_GetAttrString(type, "_use_broken_old_ctypes_structure_semantics_");
-	if (py_use_broken_old_ctypes_semantics) {
-		use_broken_old_ctypes_semantics = 1;
-		Py_DECREF(py_use_broken_old_ctypes_semantics);
-	} else
-		PyErr_Clear();
+	use_broken_old_ctypes_semantics = \
+		PyObject_HasAttrString(type, "_use_broken_old_ctypes_structure_semantics_");
 
 	isPacked = PyObject_GetAttrString(type, "_pack_");
 	if (isPacked) {
