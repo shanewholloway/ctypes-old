@@ -167,7 +167,8 @@ class EnumReader(TypeInfoReader):
     def declaration(self):
         l = []
         l.append("class %s(enum):" % self.name)
-        l.append('    """%s"""' % self.docstring)
+        if self.docstring:
+            l.append('    """%s"""' % self.docstring)
         l.append("    _iid_ = GUID('%s')" % self.guid)
         for name, value in self.items:
             l.append('    %s = %s' % (name, value))
@@ -213,7 +214,7 @@ class RecordReader(TypeInfoReader):
         for name, value, oInst in self.fields:
             l.append('        (%r, %s),' % (str(name), value))
         l.append("      ]")
-        l.append("assert(sizeof(%s) == %d" % (self.name, self.size))
+        l.append("assert(sizeof(%s) == %d)" % (self.name, self.size))
         for name, value, oInst in self.fields:
             l.append("assert(%s.%s.offset == %d)" % (self.name, name, oInst))
         l.append("")
@@ -280,7 +281,8 @@ class InterfaceReader(TypeInfoReader):
     def declaration(self):
         l = []
         l.append("class %s(%s):" % (self.name, self.baseinterface))
-        l.append('    """%s"""' % self.docstring)
+        if self.docstring:
+            l.append('    """%s"""' % self.docstring)
         l.append("    _iid_ = GUID('%s')" % self.guid)
         l.append("")
         return "\n".join(l)
@@ -330,7 +332,7 @@ class InterfaceReader(TypeInfoReader):
         self.ti.ReleaseTypeAttr(pta)
 
         l = []
-        l.append("%s._methods_ = [" % self.name)
+        l.append("%s._methods_ = %s._methods_ + [" % (self.name, self.baseinterface))
         for m in methods:
             l.append('    (%s),' % m.declaration())
         l.append("]")
@@ -384,7 +386,8 @@ class CoClassReader(TypeInfoReader):
     def declaration(self):
         l = []
         l.append("class %s(COMObject):" % self.name)
-        l.append('    """%s"""' % self.docstring)
+        if self.docstring:
+            l.append('    """%s"""' % self.docstring)
         l.append("    _regclsid_ = %r" % self.guid)
 
         interfaces = ", ".join(self.interfaces)
@@ -402,7 +405,7 @@ from ctypes.com.typeinfo import IDispatch, BSTR
 
 from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
-     c_float, c_double
+     c_float, c_double, Structure, byref, sizeof
 
 class COMObject:
     # later this class will be used to create COM objects.
@@ -481,7 +484,8 @@ class TypeLibReader:
         print >> ofi, HEADER
 
         print >> ofi, "class %s:" % self.name
-        print >> ofi, "    %r" % str(self.docstring)
+        if self.docstring:
+            print >> ofi, "    %r" % str(self.docstring)
         print >> ofi, "    guid = GUID('%s')" % self.guid
         print >> ofi, "    version = (%d, %d)" % (self.wMajorVerNum, self.wMinorVerNum)
         print >> ofi, "    flags = 0x%X" % self.wLibFlags
@@ -525,8 +529,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
-        path = r"c:\tss5\bin\debug\ITInfo.dll"
-        path = r"c:\tss5\bin\debug\Measurement.dll"
+        path = r"c:\windows\system32\shdocvw.dll"
+##        path = r"c:\tss5\bin\debug\ITInfo.dll"
+##        path = r"c:\tss5\bin\debug\Measurement.dll"
 ##        path = r"c:\sms3a.tlb"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
