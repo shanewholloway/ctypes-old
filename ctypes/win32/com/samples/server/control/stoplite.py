@@ -1,64 +1,9 @@
 from ctypes import *
 from ctypes.wintypes import DWORD, HANDLE, HWND
-from ctypes.com import COMObject, IUnknown, GUID, STDMETHOD, HRESULT
+from ctypes.com import COMObject, IUnknown, GUID, STDMETHOD, HRESULT, ole32
 from ctypes.com.server import CLSCTX_INPROC_SERVER, CLSCTX_LOCAL_SERVER
-
-################################################################
-
-class RECTL(Structure):
-    _fields_ = [("left", c_long),
-                ("top", c_long),
-                ("right", c_long),
-                ("bottom", c_long)]
-
-    def _get_height(self):
-        return self.bottom - self.top
-    height = property(_get_height)
-
-class SIZEL(Structure):
-    _fields_ = [("cx", c_long),
-                ("cy", c_long)]
-
-HDC = HANDLE
-
-################################################################
-
-# Fakes:
-void = c_int
-FORMATETC = c_int
-STGMEDIUM = c_int
-IMoniker = c_int
-DVTARGETDEVICE = c_int
-LOGPALETTE = c_int
-
-class IAdviseSink(IUnknown):
-    _iid_ = GUID("{0000010F-0000-0000-C000-000000000046}")
-    _methods_ = IUnknown._methods_ + [
-        STDMETHOD(void, "OnDataChange", POINTER(FORMATETC), POINTER(STGMEDIUM)),
-        STDMETHOD(void, "OnViewChange", DWORD, c_long),
-        STDMETHOD(void, "OnRename", POINTER(IMoniker)),
-        STDMETHOD(void, "OnSave"),
-        STDMETHOD(void, "OnClose")]
-
-class IViewObject(IUnknown):
-    _iid_ = GUID("{0000010D-0000-0000-C000-000000000046}")
-    _methods_ = IUnknown._methods_ + [
-        STDMETHOD(HRESULT, "Draw", DWORD, c_long, c_void_p,
-                  POINTER(DVTARGETDEVICE), HDC, HDC, POINTER(RECTL),
-                  POINTER(RECTL), c_void_p, DWORD),
-        STDMETHOD(HRESULT, "GetColorSet", DWORD, c_long, c_void_p,
-                  POINTER(DVTARGETDEVICE), HDC, POINTER(POINTER(LOGPALETTE))),
-        STDMETHOD(HRESULT, "Freeze", DWORD, c_long, c_void_p, POINTER(DWORD)),
-        STDMETHOD(HRESULT, "Unfreeze", DWORD),
-        STDMETHOD(HRESULT, "SetAdvise", DWORD, DWORD, POINTER(IAdviseSink)),
-        STDMETHOD(HRESULT, "GetAdvise", POINTER(DWORD), POINTER(DWORD),
-                  POINTER(POINTER(IAdviseSink)))]
-
-class IViewObject2(IViewObject):
-    _iid_ = GUID("{00000127-0000-0000-C000-000000000046}")
-    _methods_ = IViewObject._methods_ + [
-        STDMETHOD(HRESULT, "GetExtent", DWORD, c_long,
-                  POINTER(DVTARGETDEVICE), POINTER(SIZEL))]
+from ctypes.com.ole import IViewObject2
+from ctypes.com.persist import IPersist, IPersistPropertyBag
 
 ################################################################
 from ctypes.com.register import Registrar
@@ -84,7 +29,7 @@ class StopliteObject(COMObject):
     _reg_clsid_ = "{36AEA23B-0DF4-45CD-8667-ED4B8DF5F73C}"
 
     _reg_clsctx_ = CLSCTX_INPROC_SERVER
-    _com_interfaces_ = [IViewObject2]
+    _com_interfaces_ = [IViewObject2, IPersistPropertyBag]
 
     def _get_registrar(self):
         return ControlRegistrar(self)
@@ -125,6 +70,7 @@ class StopliteObject(COMObject):
         if self._advisesink:
             self._advisesink.OnClose()
         
+    ################################
     # IViewObject interface
 
     def IViewObject_SetAdvise(self, this, dwAspect, advf, AdvSink):
@@ -156,11 +102,44 @@ class StopliteObject(COMObject):
         ##print "GetColorSet", bool(ptd), bool(ppColorSet)
         return E_NOTIMPL
 
+    ################################
     # IViewObject2 interface
 
     def IViewObject2_GetExtent(self, this, dwAspect, lindex, ptd, lpsizel):
         ##print "IViewObject2::GetExtent"
         return E_NOTIMPL
+
+    ################################
+    # IPersist interface
+
+    def IPersist_GetClassID(self, this, pClassID):
+        # IPersist::GetClassID
+        ole32.CLSIDFromString(unicode(self._reg_clsid_), pClassID)
+        return S_OK
+
+    ################################
+    # IPersistPropertyBag interface
+
+    def IPersistPropertyBag_InitNew(self, this):
+        return S_OK
+
+    def _load_property(self, name, pPropBag, pErrorLog):
+        from ctypes.com.server import dprint
+        from ctypes.com.automation import VARIANT
+        var = VARIANT()
+        try:
+            pPropBag.Read(name, byref(var), pErrorLog)
+        except Exception, details:
+            dprint("ERROR", details)
+        return var.get_value()
+
+    def IPersistPropertyBag_Load(self, this, pPropBag, pErrorLog):
+        from ctypes.com.server import dprint
+        pPropBag.AddRef()
+        val = self._load_property("digits", pPropBag, pErrorLog)
+        self.model._interval = val
+        dprint("IPersistPropertyBag Loaded digits", val)
+        return S_OK
 
 if __name__ == '__main__':
     from ctypes.com.server import UseCommandLine
