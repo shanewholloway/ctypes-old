@@ -548,21 +548,37 @@ static int _call_function_pointer(int flags,
 	   __cdecl functions leave this to the caller.
 	*/
 	for (i = argcount-1; i >= 0; --i) {
+		float f;
+
 		switch(parms[i]->tag) {
 		case 'c':
 			push(parms[i]->value.c);
 			argbytes += sizeof(int);
 			break;
+		case 'b':
+		case 'h':
 		case 'i':
+		case 'B':
+		case 'H':
+		case 'I':
 			push(parms[i]->value.i);
 			argbytes += sizeof(int);
+			break;
+		case 'l':
+		case 'L':
+			push(parms[i]->value.l);
+			argbytes += sizeof(long);
 			break;
 		case 'q':
 			push(parms[i]->value.l);
 			argbytes += sizeof(LONG_LONG);
 			break;
 		case 'f':
-			push(parms[i]->value.f);
+			/* Cannot use push(parms[i]->value.f) here, because
+			   the C compiler would promote it to a double
+			*/
+			f = parms[i]->value.f;
+			_asm push f;
 			argbytes += sizeof(float);
 			break;
 		case 'd':
