@@ -2,6 +2,10 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.7  2005/03/22 12:08:09  theller
+# Some general cleanup, and make generate_code (which does all the
+# filtering) a method.
+#
 # Revision 1.6  2005/03/16 07:51:19  theller
 # _COMMETHOD_defined was never set to True.
 #
@@ -489,7 +493,6 @@ class Generator(object):
             else:
                 # ctypes.com needs baseclass methods listed as well
                 if body.struct.bases:
-                    basename = body.struct.bases[0].name
                     print >> self.stream, "%s._methods_ = %s._methods + [" % \
                           (body.struct.name, body.struct.bases[0].name)
                 else:
@@ -638,7 +641,7 @@ class Generator(object):
         for item in items:
             self.generate(item)
 
-    def generate_code(self, items):
+    def generate_module(self, items):
         print >> self.imports, "from ctypes import *"
         items = set(items)
         loops = 0
@@ -675,59 +678,49 @@ class Generator(object):
         print >> stream, "# Total symbols: %5d" % total
         print >> stream, "###########################"
 
-################################################################
 
-def generate_code(xmlfile,
-                  outfile,
-                  expressions=None,
-                  symbols=None,
-                  verbose=False,
-                  use_decorators=False,
-                  known_symbols=None,
-                  searched_dlls=None,
-                  types=None):
-    # expressions is a sequence of compiled regular expressions,
-    # symbols is a sequence of names
-    from gccxmlparser import parse
-    items = parse(xmlfile)
+    def generate_code(self,
+                      items,
+                      expressions=None,
+                      symbols=None,
+                      verbose=False,
+                      types=None,
+                      ):
 
-    # filter symbols to generate
-    todo = []
+        # filter symbols to generate
+        todo = []
 
-    if types:
-        items = [i for i in items if isinstance(i, types)]
-    
-    if symbols:
-        syms = set(symbols)
-        for i in items:
-            if i.name in syms:
-                todo.append(i)
-                syms.remove(i.name)
+        if types:
+            items = [i for i in items if isinstance(i, types)]
 
-        if syms:
-            print "symbols not found", list(syms)
-
-    if expressions:
-        for i in items:
-            for s in expressions:
-                if i.name is None:
-                    continue
-                match = s.match(i.name)
-                # we only want complete matches
-                if match and match.group() == i.name:
+        if symbols:
+            syms = set(symbols)
+            for i in items:
+                if i.name in syms:
                     todo.append(i)
-                    break
-    if symbols or expressions:
-        items = todo
+                    syms.remove(i.name)
 
-    ################
-    gen = Generator(outfile,
-                    use_decorators=use_decorators,
-                    known_symbols=known_symbols,
-                    searched_dlls=searched_dlls)
+            if syms:
+                print "symbols not found", list(syms)
 
-    loops = gen.generate_code(items)
-    if verbose:
-        gen.print_stats(sys.stderr)
-        print >> sys.stderr, "needed %d loop(s)" % loops
+        if expressions:
+            for i in items:
+                for s in expressions:
+                    if i.name is None:
+                        continue
+                    match = s.match(i.name)
+                    # we only want complete matches
+                    if match and match.group() == i.name:
+                        todo.append(i)
+                        break
+        if symbols or expressions:
+            items = todo
 
+        ################
+
+        loops = self.generate_module(items)
+        if verbose:
+            self.print_stats(sys.stderr)
+            print >> sys.stderr, "needed %d loop(s)" % loops
+
+### EOF ###
