@@ -1992,6 +1992,17 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 				"argument must be callable");
 		return NULL;
 	}
+
+	if (kwds && PyDict_GetItemString(kwds, "options")) {
+		/* XXX XXX This gives the possibility to pass additional
+		   options.  For COM method *implementations*, we would
+		   probably want different behaviour than in 'normal' callback
+		   functions: return a HRESULT if an exception occurrs in the
+		   callback, and print the traceback not only on the console,
+		   but also to OutputDebugString() or something like that.
+		 */
+	}
+
 	dict = PyType_stgdict((PyObject *)type);
 	/* XXXX Fails if we do: 'CFuncPtr(lambda x: x)' */
 	if (!dict || !dict->argtypes) {
