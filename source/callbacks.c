@@ -276,10 +276,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
 
-/* The following should be changed.  cResult is no longer really used, we
-   should probably store and use the GETFUNC of the restype's stgdict above in
-   ffi_info. Or something like that.
-*/
+// XXX The following is no longer needed, or???
 	PrepareResult(restype, &cResult);
 	switch (cResult.tag) {
 		/* "bBhHiIlLqQdfP" */

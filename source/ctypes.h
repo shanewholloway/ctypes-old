@@ -128,10 +128,11 @@ typedef PyObject *(* GETFUNC)(void *, unsigned size);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 
 struct fielddesc {
-	char code;
-	SETFUNC setfunc;
-	GETFUNC getfunc;
-	ffi_type *tp;
+    char code;
+    int size;
+    int align;
+    SETFUNC setfunc;
+    GETFUNC getfunc;
 };
 
 typedef struct {
