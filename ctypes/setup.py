@@ -162,7 +162,12 @@ class test(Command):
         # and build a TestSuite from them.
         test_suites = []
         for case in self.test_suffixes:
-            mod = __import__(os.path.splitext(self.test_prefix + case)[0])
+            try:
+                mod = __import__(os.path.splitext(self.test_prefix + case)[0])
+            except Exception, detail:
+                print "Could not import", self.test_prefix + case
+                print "\t", detail
+                continue
             for name in dir(mod):
                 if name.startswith("_"):
                     continue
