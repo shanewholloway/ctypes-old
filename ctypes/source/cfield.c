@@ -821,6 +821,7 @@ c_set(void *ptr, PyObject *value, unsigned size, ...)
 static PyObject *
 c_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
+	assert(size == 1);
 	return PyString_FromStringAndSize((char *)ptr, 1);
 }
 
@@ -863,6 +864,7 @@ u_set(void *ptr, PyObject *value, unsigned size, ...)
 static PyObject *
 u_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 {
+	assert(size = sizeof(wchar_t));
 	return PyUnicode_FromWideChar((wchar_t *)ptr, 1);
 }
 
