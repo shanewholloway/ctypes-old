@@ -376,4 +376,4 @@ else:
     if _os.name == "nt":
         set_conversion_mode("mbcs", "ignore")
     else:
-        set_coversion_mode("ascii", "strict")
+        set_conversion_mode("ascii", "strict")
