@@ -713,7 +713,7 @@ static int _call_function_pointer(int flags,
 /*
  * Convert the C value in result into an instance described by restype
  */
-static PyObject *GetResult(PyObject *restype, void *result)
+static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 {
 	StgDictObject *dict;
 
@@ -767,7 +767,7 @@ static PyObject *GetResult(PyObject *restype, void *result)
 		/* This hack is needed for big endian machines.
 		   Is there another way?
 		 */
-		PyObject *retval, *checker;
+		PyObject *retval;
 		char c;
 		short s;
 		int i;
@@ -799,13 +799,13 @@ static PyObject *GetResult(PyObject *restype, void *result)
 		}
 		if (retval == NULL)
 			return NULL;
-		checker = PyObject_GetAttrString(restype, "_check_retval_");
-		if (checker == NULL) {
-			PyErr_Clear();
+		if (checker == NULL)
 			return retval;
-		} else {
-			PyObject *v = PyObject_CallFunctionObjArgs(checker, retval, NULL);
-			Py_DECREF(checker);
+		{
+			PyObject *v;
+			v = PyObject_CallFunctionObjArgs(checker, retval, NULL);
+			if (v == NULL)
+				_AddTraceback("GetResult", __FILE__, __LINE__-2);
 			Py_DECREF(retval);
 			return v;
 		}
@@ -873,7 +873,8 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *argtypes, /* misleading name: This is a method,
 					   not a type (the .from_param class
 					   nethod) */
-		    PyObject *restype)
+		    PyObject *restype,
+		    PyObject *checker)
 {
 	int i, n, argcount, argtype_count;
 	void *resbuf;
@@ -961,7 +962,7 @@ PyObject *_CallProc(PPROC pProc,
 			retval = PyInt_FromLong(*(int *)resbuf);
 	} else
 #endif
-		retval = GetResult(restype, resbuf);
+		retval = GetResult(restype, resbuf, checker);
   cleanup:
 	for (i = 0; i < argcount; ++i)
 		Py_XDECREF(args[i].keep);
@@ -1074,7 +1075,8 @@ call_commethod(PyObject *self, PyObject *args)
 			    pIunk,
 			    FUNCFLAG_HRESULT, /* flags */
 			    argtypes, /* self->argtypes */
-			    NULL); /* self->restype */
+			    NULL, /* self->restype */
+			    NULL); /* checker */
 	return result;
 }
 
@@ -1188,7 +1190,8 @@ call_function(PyObject *self, PyObject *args)
 			    NULL,
 			    0, /* flags */
 			    NULL, /* self->argtypes */
-			    NULL); /* self->restype */
+			    NULL, /* self->restype */
+			    NULL); /* checker */
 	return result;
 }
 
@@ -1215,7 +1218,8 @@ call_cdeclfunction(PyObject *self, PyObject *args)
 			    NULL,
 			    FUNCFLAG_CDECL, /* flags */
 			    NULL, /* self->argtypes */
-			    NULL); /* self->restype */
+			    NULL, /* self->restype */
+			    NULL); /* checker */
 	return result;
 }
 
