@@ -613,6 +613,20 @@ class TypeLibReader:
                 print >> ofi
                 print >> ofi, itf.declaration()
 
+        # The following is an attempt to fix problems with a structure
+        # containing another structure but it does not work. Probably
+        # the simplistic approach to output the datatypes in the same
+        # order they appear in the TLB is too naive.
+        
+##        datatypes = self.enums + self.records
+##        if datatypes:
+##            print >> ofi
+##            print >> ofi, "#" * 78
+##            datatypes.sort(lambda a, b: cmp(a._order, b._order))
+##            for tp in datatypes:
+##                print >> ofi
+##                print >> ofi, tp.declaration()
+
         if self.interfaces:
             print >> ofi
             print >> ofi, "#" * 78
