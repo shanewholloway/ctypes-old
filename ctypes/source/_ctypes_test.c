@@ -352,6 +352,7 @@ EXPORT(PY_LONG_LONG) tf_bq(char x, PY_LONG_LONG c) { return c; }
 EXPORT(unsigned PY_LONG_LONG) tf_bQ(char x, unsigned PY_LONG_LONG c) { return c; }
 EXPORT(float) tf_bf(char x, float c) { return c; }
 EXPORT(double) tf_bd(char x, double c) { return c; }
+EXPORT(void) tv_i(int i) { return; }
 
 #ifdef MS_WIN32
 EXPORT(char) __stdcall s_tf_bb(char x, char c) { return c; }
@@ -366,6 +367,7 @@ EXPORT(PY_LONG_LONG) __stdcall s_tf_bq(char x, PY_LONG_LONG c) { return c; }
 EXPORT(unsigned PY_LONG_LONG) __stdcall s_tf_bQ(char x, unsigned PY_LONG_LONG c) { return c; }
 EXPORT(float) __stdcall s_tf_bf(char x, float c) { return c; }
 EXPORT(double) __stdcall s_tf_bd(char x, double c) { return c; }
+EXPORT(void) __stdcall s_tv_i(int i) { return; }
 #endif
 
 /********/
