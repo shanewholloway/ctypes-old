@@ -41,6 +41,11 @@ typedef struct {
 
 	THUNK thunk;
 	PyObject *callable;
+
+	/* These two fields will override the ones in the type's stgdict if
+	   they are set */
+	PyObject *converters;
+	PyObject *restype;
 } CFuncPtrObject;
 
 extern PyObject *CData_GetList(CDataObject *mem);
@@ -96,6 +101,7 @@ extern PyTypeObject Array_Type;
 extern PyTypeObject PointerType_Type;
 extern PyTypeObject Pointer_Type;
 
+#define ArrayTypeObject_Check(v)	PyObject_TypeCheck(v, &ArrayType_Type)
 #define ArrayObject_Check(v)		PyObject_TypeCheck(v, &Array_Type)
 #define PointerObject_Check(v)		PyObject_TypeCheck(v, &Pointer_Type)
 #define PointerTypeObject_Check(v)	PyObject_TypeCheck(v, &PointerType_Type)

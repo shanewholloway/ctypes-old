@@ -85,39 +85,47 @@ class CFuncPtrTestCase(unittest.TestCase):
 
         self.failUnless(f(10, 11, 12, 13) == 46)
 
-
-    # non-working tests
-
-    def _test_prototypes(self):
-        func = windll.kernel32.GetModuleHandleA
-
-        self.failUnless(func.restype == None)
-        self.failUnless(func.argtypes == None)
-
-        func.restype = c_int
-        self.failUnless(func.restype == c_int)
-
-        func.argtypes = (c_char_p,)
-        self.failUnless(func.argtypes == (c_char_p,))
-
-    def _test_prototypes_2(self):
-        class X(CFuncPtr):
-            _flags_ = 0
+    def test_dllfunctions(self):
+        class WINAPI(CFuncPtr):
             _restype_ = c_int
-            _argtypes_ = c_int, c_int
+            _flags_ = FUNCFLAG_STDCALL
 
-        def func(*args):
-            return len(args)
+        class STDAPI(CFuncPtr):
+            _restype_ = c_int
+            _flags_ = FUNCFLAG_CDECL
+            
+        def NoNullHandle(value):
+            if not value:
+                raise WinError()
+            return value
 
-        x = X(func)
+        f = WINAPI("GetModuleHandleA", windll.kernel32)
+        f.argtypes = (c_char_p,)
+        f.restype = NoNullHandle
 
-        self.failUnless(x.argtypes == (c_int, c_int))
-        self.failUnless(x.restype == c_int)
+        import sys
+        self.failUnless(f("python22") == sys.dllhandle)
 
-        # For CFuncPtr subclasses, argtypes and restype are readonly
-        self.assertRaises(AttributeError, setattr, x, "argtypes", ())
-        self.assertRaises(AttributeError, setattr, x, "restype", c_int)
+        strchr = STDAPI("strchr", cdll.msvcrt)
+        strchr.restype = c_char_p
+        strchr.argtypes = (c_char_p, c_char)
+        self.failUnless(strchr("abcdefghi", "b") == "bcdefghi")
+        self.failUnless(strchr("abcdefghi", "x") == None)
 
+        strtok = STDAPI("strtok", cdll.msvcrt)
+        strtok.restype = c_char_p
+        # Neither of this does work
+##        strtok.argtypes = (c_char_p, c_char_p)
+##        strtok.argtypes = (c_string, c_char_p)
+
+        s = "a\nb\nc"
+
+        b = c_string(s)
+        self.failUnless(strtok(b, "\n") == "a")
+        self.failUnless(strtok(None, "\n") == "b")
+        self.failUnless(strtok(None, "\n") == "c")
+        self.failUnless(strtok(None, "\n") == None)
+        
 def get_suite():
     return unittest.makeSuite(CFuncPtrTestCase)
 
