@@ -1,0 +1,27 @@
+import unittest
+from comtypes import GUID
+
+class Test(unittest.TestCase):
+    def test(self):
+        self.failUnlessEqual(GUID(), GUID())
+        self.failUnlessEqual(GUID("{00000000-0000-0000-C000-000000000046}"),
+                             GUID("{00000000-0000-0000-C000-000000000046}"))
+
+        self.failUnlessEqual(str(GUID("{0002DF01-0000-0000-C000-000000000046}")),
+                             "{0002DF01-0000-0000-C000-000000000046}")
+        self.failUnlessEqual(repr(GUID("{0002DF01-0000-0000-C000-000000000046}")),
+                             'GUID("{0002DF01-0000-0000-C000-000000000046}")')
+
+        self.assertRaises(WindowsError, GUID, "abc")
+        self.assertRaises(WindowsError, GUID.from_progid, "abc")
+
+        self.assertRaises(WindowsError, lambda guid: guid.progid(),
+                          GUID("{00000000-0000-0000-C000-000000000046}"))
+
+        self.failUnlessEqual(GUID.from_progid("InternetExplorer.Application"),
+                             GUID("{0002DF01-0000-0000-C000-000000000046}"))
+        self.failUnlessEqual(GUID("{0002DF01-0000-0000-C000-000000000046}").progid(),
+                             u'InternetExplorer.Application.1')
+
+if __name__ == "__main__":
+    unittest.main()
