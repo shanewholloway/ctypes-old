@@ -1,0 +1,69 @@
+Changes in ctypes 0.6
+
+  Installation
+
+    ctypes has been converted into a package instead of a couple of
+    modules.  This requires that you remove any previous version of
+    ctypes you may have installed, either (on Windows, if you have
+    installed from the exe-file) by using Control Panel->Add/Remove
+    Programs, or by deleting the files Lib/site-packages/ctypes.py
+    and Lib/site-packages/_ctypes.pyd.
+
+  Package contents
+
+    On Windows, 
+
+  Format characters
+
+    Format characters like '"i"' or '"H"' are no longer supported
+    anywhere.  They must be replaced by the corresponding type like
+    'c_int' or 'c_ushort'.  String formats in Structures or Unions
+    like '"6c"' which describe an array of 6 characters must be
+    replaced by 'c_char * 6'.
+
+  Functions
+
+    Again, format characters are no longer allowed as function's
+    restype attribute. Replace them by the appropriate ctypes' type
+    like c_char_p instead of '"s"' or '"z"' if the function returns a
+    string pointer, for example.
+
+  Callback functions
+
+    The type for callback functions can no longer be defined by
+    subclassing 'CFunction', actually this type no longer exists.  The
+    recommended way to define the type of a callback function is to
+    call 'WINFUNCTYPE()' if you need a C-callable function pointer using
+    the __stdcall calling convention, or 'CFUNCTYPE()' if you need a
+    function pointer using the standard cdecl calling convention.
+
+    You have to supply the result type and the expected argument
+    types.
+
+    Instances of these types are callable from C, but they are now
+    also callable from Python directly.
+
+    These types can also be used in the 'argtypes' sequence, or as the
+    'restype' attribute if you have a dll function expecting or returning
+    a function pointer.
+
+  Pointers
+
+    Pointer *types* are created by calling 'POINTER(c_int)' for
+    example. The 'POINTER' function maintains a cache of created
+    types, so calling it with the same argument always returns the
+    *same* identical type.
+
+    pointer instances are usually created by 'pointer(c_int(42))' for
+    example. 'pointer()' internally calls 'POINTER()' to get the type.
+
+  c_string and c_wstring
+
+    In previous versions the 'c_string' and 'c_wstring' types could be
+    used to allocate mutable buffers and fill them from or convert
+    them to Python strings or unicode objects. These do no longer exist.
+
+    ctypes now exports a 'c_buffer()' function as a replacement.
+    Actually 'c_buffer' returns a character array (an instance of
+    'c_char * size').
+
