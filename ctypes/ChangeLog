@@ -1,3 +1,8 @@
+2003-06-03  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Raise AttributeError instead of ValueError
+	when a function is not found in a dll. Suggested by Chuck Esterbrook.
+
 2003-05-16  Thomas Heller  <theller@python.net>
 
 	* source\_ctypes.c: Fix some (but not all) problems with pointer
