@@ -1255,7 +1255,29 @@ Set the encoding and error handling ctypes uses when converting\n\
 between unicode and strings.  Returns the previous values.\n";
 #endif
 
+static PyObject *cast(PyObject *self, PyObject *args)
+{
+	PyObject *obj, *ctype;
+	struct argument a;
+	CDataObject *result;
+	int size;
+
+	if (!PyArg_ParseTuple(args, "OO", &obj, &ctype))
+		return NULL;
+	if (-1 == ConvParam(obj, 0, &a))
+		return NULL;
+	result = PyObject_CallFunctionObjArgs(ctype, NULL);
+	if (result == NULL)
+		return NULL;
+	// result->b_size
+	// a.ffi_type->size
+	memcpy(result->b_ptr, &a.value,
+	       min(result->b_size, a.ffi_type->size));
+	return result;
+}
+
 PyMethodDef module_methods[] = {
+	{"cast", cast, METH_VARARGS},
 #ifdef HAVE_USABLE_WCHAR_T
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
 #endif
