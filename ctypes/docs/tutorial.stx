@@ -2,6 +2,11 @@ The ctypes module
 
   "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
 
+  (Intro missing)
+
+<!--
+  XXX Move this...
+
   "'ctypes'":../ctypes.html is a Python module allowing to create and
   manipulate C data types in Python. These can then be passed to
   C-functions loaded from dynamic link libraries.
@@ -25,20 +30,20 @@ The ctypes module
 
     Internally 'ctypes' makes heavy use of the new type system
     introduced in Python 2.2, so it will not work in earlier versions.
-
+-->
 
   Loading dynamic link libraries into Python
 
-    'ctypes' exports the objects 'cdll', and on Windows also 'windll'
-    and 'oledll' to load dynamic link libraries.
+    'ctypes' exports the 'cdll', and on Windows also 'windll'
+    and 'oledll' objects to load dynamic link libraries.
 
     You can load libraries by retrieving them as attributes.  'cdll'
-    loads libraries which export functions using the 'cdecl' calling
-    convention, while 'windll' libraries call functions using the
-    'stdcall' calling convention. 'oledll' also uses the 'stdcall'
+    loads libraries which export functions using the standard 'cdecl'
+    calling convention, while 'windll' libraries call functions using
+    the 'stdcall' calling convention. 'oledll' also uses the 'stdcall'
     calling convention, and assumes the functions return a Windows
-    'HRESULT'. These are used to automatically raise 'WindowsError'
-    Python exceptions when the function call failes.
+    'HRESULT' error code. This are used to automatically raise
+    'WindowsError' Python exceptions when the function call fails.
 
     Here are some examples::
 
@@ -77,7 +82,7 @@ The ctypes module
       HMODULE GetModuleHandleW(LPCWSTR lpModuleName);
 
     'windll' does not try to hide these differences, you must load the
-    version you need explicitely by specifying 'GetModuleHandleA' or
+    version you need by specifying 'GetModuleHandleA' or
     'GetModuleHandleW' explicitely, and call them with normal strings
     or unicode strings respectively.
 
@@ -97,12 +102,13 @@ The ctypes module
     seconds since the UNIX epoch, and the 'GetModuleHandleA()'
     function, which returns a win32 module handle.
 
-    This example calls both functions with a NULL pointer::
+    This example calls both functions with a NULL pointer ('None' is
+    the Python equivalent of a NULL pointer in C)::
 
       >>> from ctypes import cdll, windll
-      >>> print cdll.msvcrt.time(0)
+      >>> print cdll.msvcrt.time(None)
       1048777320
-      >>> print hex(windll.kernel32.GetModuleHandleA(0))
+      >>> print hex(windll.kernel32.GetModuleHandleA(None))
       0x1d000000
 
     'ctypes' tries at its best to protect you from calling functions
@@ -131,7 +137,7 @@ The ctypes module
       >>>
 
     There are, however, enough ways to crash Python with 'ctypes',
-    so you should be careful.
+    so you should be careful ayway.
 
     Python integers, strings and unicode strings are the only Python
     objects that may directly be used as parameters in C API calls.
@@ -167,7 +173,8 @@ The ctypes module
     |'c_longlong' |'__int64' or       |long       |
     |        	  |'long long'        |           |
     |---------------------------------------------|
-    |'c_ulonglong'|'unsigned __int64' |long       |
+    |'c_ulonglong'|'unsigned __int64' or|long     |
+    |        	  |'unsigned long long'|          |
     |---------------------------------------------|
     |'c_char_p'	  |'char *'           |string     |
     |        	  |(zero terminated)  |           |
@@ -180,7 +187,7 @@ The ctypes module
     |---------------------------------------------|
 
     All these types can be created by calling them with an optional initial value
-    of the correct type and value::
+    of the correct type::
 
       >>> c_int()
       c_int(0)
@@ -191,7 +198,7 @@ The ctypes module
         File "<stdin>", line 1, in ?
       ValueError: Value out of range
     
-    Since these types are mutable, the calue can also be changed afterwards::
+    Since these types are mutable, their value can also be changed afterwards::
 
       >>> i = c_int(42)
       c_int(42)
@@ -201,17 +208,33 @@ The ctypes module
       >>> print i.value
       -99
 
-    Note that assigning a value from the pointer types 'c_char_p',
-    'c_wchar_p', and 'c_void_p' change the memory locations they point
-    to, not the contents of this memory block.
+    Note that assigning a new value to instances of the pointer types
+    'c_char_p', 'c_wchar_p', and 'c_void_p' change the memory
+    locations they point to, not the contents of this memory block
+    they point to (of course not, because Python strings are
+    immutable)::
 
-    XXX explain c_string
+      >>> s = "Hello, World"
+      >>> c_s = c_char_p(s)
+      >>> print c_s
+      c_char_p('Hello, World')
+      >>> c_s.value = "Hi, there"
+      >>> print c_s
+      c_char_p('Hi, there')
+      >>> print s                 # first string is unchanged
+      Hello, World      
+
+    Python strings are immutable, so ctypes provides a function to
+    allocate a mutable memory block which can be used to::
+
+      >>> from ctypes import c_buffer
+      >>> c_buffer(3)
 
   Calling functions
 
     Note that printf prints to the real standard output channel, *not*
     to 'sys.stdout', so these examples will only work at the console
-    prompt, not from within *idle* or *PythonWin*::
+    prompt, not from within *IDLE* or *PythonWin*::
 
       >>> from ctypes import cdll; printf = cdll.msvcrt.printf
       >>> printf("Hello, %s\n", "World!")
@@ -230,8 +253,8 @@ The ctypes module
       >>>
 
     Python floats have to be wrapped in 'c_float()' or
-    'c_double()' calls, so that they can be converted to the
-    correct C data type (float or double)::
+    'c_double()' calls, so that they can be passed as the
+    required C data type::
 
       >>> from ctypes import cdll, c_double
       >>> printf = cdll.msvcrt.printf
@@ -239,11 +262,6 @@ The ctypes module
       Integer 1234, double 3.1400001049
       34
       >>>
-
-    'c_double' and 'c_float' create *mutable* C data types. There are
-    also other wrappers like 'c_int', 'c_string', and more. The
-    current value of all these objects can be read and written from
-    Python as the 'value' property.
 
   <!--
   Calling functions with your own custom data types
@@ -282,11 +300,19 @@ The ctypes module
     This also works with other data types (including user defined
     types like structures, unions, arrays, or pointers).
 
+  <!--
+  Placeholder
+  Using your own types
+
+    XXX explain the from_param class method
+
+  -->
+
 
   Return types
 
-    By default functions are assumed to return integers.  A different
-    return type can be specified by setting the 'restype' attribute of
+    By default functions are assumed to return integers.  Different
+    return types can be specified by setting the 'restype' attribute of
     the function object.
 
     Allowed values for 'restype' are simple data types like 'c_int',
@@ -492,12 +518,17 @@ The ctypes module
 
   Pointers
 
-    Pointers are created by the 'pointer' function:
+    Pointer instances are created by calling the 'pointer' function
+    on a ctypes' type::
 
     >>> from ctypes import c_int, pointer
     >>> i = c_int(42)
     >>> pi = pointer(i)
-    
+
+    Pointer instances have a 'contents' attribute which returns the
+    ctypes' type pointed to.
+
+    Pointer instances 
 
     Note: This section is out of date and needs to be rewritten. In
     the meantime refer to the samples in the source distribution for
@@ -661,8 +692,8 @@ The ctypes module
 	  _stdcall_ = 0
 
       def compare(a1, a2):
-          v1 = c_int.from_pointer(a1).value
-	  v2 = c_int.from_pointer(a2).value
+          v1 = c_int.from_address(a1).value
+	  v2 = c_int.from_address(a2).value
 	  return cmp(v1, v2)
 
       cmpfunc = CMPFUNC(compare)
@@ -733,4 +764,8 @@ The ctypes module
     void) cannot be constructed. Actually they can return anything
     which has sizeof(x) == sizeof(int).
 
-<!-- Local Variables: compile-command: "make_html" End: -->
+<!--
+  Local Variables:
+  compile-command: "make_html"
+  End:
+-->
