@@ -1,3 +1,27 @@
+2004-10-08  Thomas Heller  <theller@python.net>
+
+	* ctypes\__init__.py: POINTER(None) will now return c_void_p.
+	This change was made to ease automatic code generation (and makes
+	sense, since None is used in other places for 'void' as well.
+
+	* source\_ctypes.c: ctypes _pointer_type_cache now lives in the
+	_ctypes module, to make it available to C code.
+	
+	Setting the _fields_ attribute on a Structure or Union type after
+	creation automatically update the POINTER instance to it when it
+	already exists, this allows to use POINTER(<type>) in the _fields_
+	list without need to update the POINTER type later.
+
+	Implemented a customg from_param class method for CFuncPtrType:
+	Python callables can now be passed directly as arguments to
+	functions requiring callbacks: WINFUNCTYPE() or CFUNCTYPE() in the
+	argtypes list.
+
+	To avoid having to keep a reference to the created callback
+	function explicitely (which will always be forgotten), started
+	code to keep a reference automatically - currently this only works
+	for functions, *not* for methods!!!
+
 2004-09-28  Thomas Heller  <theller@python.net>
 
 	* (Message): Support for 'lazy' Structure and Union definitions.
