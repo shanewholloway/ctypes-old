@@ -97,10 +97,10 @@ if sys.platform == 'darwin':
         print "Fixing Apple strangeness in Python configuration"
         distutils.sysconfig._config_vars['LDSHARED'] = y
 
-if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h') \
-       or os.path.exists('/usr/local/include/ffi.h'):
-    # A system with a pre-existing libffi.
-    LIBFFI_SOURCES=None
+##if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h') \
+##       or os.path.exists('/usr/local/include/ffi.h'):
+##    # A system with a pre-existing libffi.
+##    LIBFFI_SOURCES=None
 
 if sys.platform == 'win32':
     LIBFFI_SOURCES=None
