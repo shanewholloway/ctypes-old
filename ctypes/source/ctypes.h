@@ -88,7 +88,6 @@ typedef struct {
 typedef struct {
 	PyObject_HEAD
 	ffi_type *pffi_type;
-	char tag;
 	union {
 		char c;
 		char b;

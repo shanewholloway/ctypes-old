@@ -1234,7 +1234,6 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
-		parg->tag = 'Z';
 		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
@@ -1290,7 +1289,6 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
-		parg->tag = 'z';
 		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
@@ -1341,7 +1339,6 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
-		parg->tag = 'z';
 		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
@@ -1355,7 +1352,6 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
-		parg->tag = 'Z';
 		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
@@ -1392,7 +1388,6 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 			if (parg == NULL)
 				return NULL;
 			parg->pffi_type = &ffi_type_pointer;
-			parg->tag = 'Z';
 			Py_INCREF(value);
 			parg->obj = value;
 			/* Remember: b_ptr points to where the pointer is stored! */
@@ -1534,20 +1529,14 @@ static PyObject *
 SimpleType_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *dict;
-	char *fmt;
 	PyCArgObject *parg;
-
-	dict = PyType_stgdict(type);
 
 	parg = new_CArgObject();
 	if (parg == NULL)
 		return NULL;
 
-	/* We should get rid of the tag member, probably */
-	fmt = PyString_AsString(dict->proto);
-	parg->tag = fmt[0];
+	dict = PyType_stgdict(type);
 	parg->pffi_type = &dict->ffi_type;
-
 	parg->obj = dict->setfunc(&parg->value, value, 0, type);
 	if (parg->obj == NULL) {
 		Py_DECREF(parg);
@@ -2573,7 +2562,6 @@ _byref(PyObject *obj)
 		return NULL;
 	}
 
-	parg->tag = 'P';
 	parg->pffi_type = &ffi_type_pointer;
 	parg->obj = obj;
 	parg->value.p = ((CDataObject *)obj)->b_ptr;
