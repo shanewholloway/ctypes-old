@@ -1,4 +1,4 @@
-# comtypes.automation package
+# comtypes.automation module
 
 from ctypes import *
 from _ctypes import CopyComPointer
