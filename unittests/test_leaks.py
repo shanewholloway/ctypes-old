@@ -49,11 +49,11 @@ class LeakTestCase(unittest.TestCase):
 
     def make_cyclic_structures(self, repeat):
         for i in xrange(repeat):
+            PLIST = POINTER("LIST")
             class LIST(Structure):
-                pass
-            LIST._fields_ = [("pnext", POINTER(LIST))]
+                _fields_ = [("pnext", PLIST)]
+            SetPointerType(PLIST, LIST)
             del _pointer_type_cache[LIST] # XXX should this be a weakkeydict?
-            del LIST
 
     if hasattr(sys, "gettotalrefcount"):
 
@@ -69,20 +69,22 @@ class LeakTestCase(unittest.TestCase):
                 last_refcount = total_refcount
             self.fail("leaking refcounts")
 
-    def test_cycles_objcount(self):
-        # not correct - gc.get_objects() returns only thos objects
-        # that the garbage collector tracks.  Correct would be to use
-        # sys.getobjects(), but this is only available in debug build.
-        last_objcount = 0
-        for x in xrange(5):
-            self.make_cyclic_structures(1000)
-            while gc.collect():
-                pass
-            total_objcount = len(gc.get_objects())
-            if last_objcount >= total_objcount:
-                return
-            last_objcount = total_objcount
-        self.fail("leaking objects")
+    else:
+
+        def test_cycles_objcount(self):
+            # not correct - gc.get_objects() returns only thos objects
+            # that the garbage collector tracks.  Correct would be to use
+            # sys.getobjects(), but this is only available in debug build.
+            last_objcount = 0
+            for x in xrange(5):
+                self.make_cyclic_structures(1000)
+                while gc.collect():
+                    pass
+                total_objcount = len(gc.get_objects())
+                if last_objcount >= total_objcount:
+                    return
+                last_objcount = total_objcount
+            self.fail("leaking objects")
 
 if __name__ == "__main__":
     unittest.main()
