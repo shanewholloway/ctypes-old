@@ -337,10 +337,16 @@ class CDLL:
     def __getitem__(self, name):
         return getattr(self, name)
 
-    def __del__(self, FreeLibrary=_FreeLibrary):
-        if self._handle != 0 and FreeLibrary:
-            FreeLibrary(self._handle)
-        self._handle = 0
+# This creates problems in gc.  See
+# https://sourceforge.net/tracker/index.php?func=detail&aid=1042541&group_id=71702&atid=532154
+# but since we cannot free the libraries anyway (the functions
+# retrieved don't keep a reference to the _DLL instance), it does no
+# harm to disable this code.
+#
+##    def __del__(self, FreeLibrary=_FreeLibrary):
+##        if self._handle != 0 and FreeLibrary:
+##            FreeLibrary(self._handle)
+##        self._handle = 0
 
 class PyDLL(CDLL):
     class _CdeclFuncPtr(_CFuncPtr):
