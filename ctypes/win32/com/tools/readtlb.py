@@ -367,7 +367,7 @@ class InterfaceReader(TypeInfoReader):
         l = []
         l.append("%s._methods_ = %s._methods_ + [" % (self.name, self.baseinterface))
         for m in methods:
-            l.append('    (%s),' % m.declaration())
+            l.append('    %s,' % m.declaration())
         l.append("]")
         return "\n".join(l)
 
@@ -420,7 +420,7 @@ class DispatchInterfaceReader(InterfaceReader):
         l = []
         l.append("%s._dispmethods_ = [" % self.name)
         for m in methods:
-            l.append('    (%s),' % m.declaration())
+            l.append('    %s,' % m.declaration())
         l.append("]")
         return "\n".join(l)
 
@@ -458,7 +458,7 @@ class CoClassReader(TypeInfoReader):
 
     def declaration(self):
         l = []
-        l.append("class %s(COMObject):" % self.name)
+        l.append("class %s:" % self.name)
         if self.docstring:
             l.append('    """%s"""' % self.docstring)
         l.append("    _reg_clsid_ = %r" % self.guid)
@@ -482,10 +482,6 @@ from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT
 
-class COMObject:
-    # later this class will be used to create COM objects.
-    pass
-
 class enum(c_int):
     pass
 
@@ -496,12 +492,9 @@ class dispinterface(IDispatch):
     class __metaclass__(type(IDispatch)):
         def __setattr__(self, name, value):
             if name == '_dispmethods_':
-##                protos = []
                 dispmap = {}
                 for dispid, mthname, proto in value:
-##                    protos.append(proto)
                     dispmap[dispid] = mthname
-##                setattr(self, '_methods_', IDispatch._methods_ + protos)
                 setattr(self, '_methods_', IDispatch._methods_)
                 type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
             type(IDispatch).__setattr__(self, name, value)
