@@ -1,12 +1,4 @@
 /*
-  Short-term todo list:
-
-  - For faster instance creation with b_base, the _basespec_ trick should be
-  avoided.
- */
-
-
-/*
   ToDo:
 
   Get rid of the checker (and also the converters) field in CFuncPtrObject and
@@ -1957,46 +1949,28 @@ PyTypeObject CData_Type = {
 	0,					/* tp_free */
 };
 
-/*
- * Trick #17: Pass a PyCObject named _basespec_ to the tp_new constructor,
- * then let tp_new remove it from the keyword dict, so that tp_init doesn't
- * get confused by it.
- *
- */
+/* Allocate memory (or not) for a CDataObject instance */
+static void CData_MallocBuffer(CDataObject *obj, StgDictObject *dict)
+{
+	if (dict->size <= sizeof(obj->b_value)) {
+		/* No need to call malloc, can use the default buffer */
+		obj->b_ptr = (char *)&obj->b_value;
+		obj->b_needsfree = 0;
+	} else {
+		/* In python 2.4, and ctypes 0.9.6, the malloc call took about
+		   33% of the creation time for c_int().
+		*/
+		obj->b_ptr = PyMem_Malloc(dict->size);
+		obj->b_needsfree = 1;
+		memset(obj->b_ptr, 0, dict->size);
+	}
+	obj->b_size = dict->size;
+}
 
-/*
- * If base is NULL, index is ignored, and baseofs is cast to a pointer
- * and used as the buffer of the new instance.
- *
- * If base is not NULL, it must be a CDataObject.
- * The new instance is a kind of 'slice' of the base object.
- * It shares base's pointer at offset baseofs, and uses index
- * in the base's object list to keep its references.
- *
- * In the latter case, the new instance shares the buffer of base.
- *
- * Box a memory block into a CData instance:
- *	CData_AtAddress(PyObject *type, void *buf);
- *
- * Create a CData instance as 'slice' of a base object:
- *	CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs);
- *
- */
-
-/*
-  XXX: The trick above is slow...  Much faster is it, as it seems, to create
-  the new instance as if it were standalone, and then patch it afterwards -
-  even if this means we must PyMem_Free the just allocated memory.
-  
-  Fix later.
- */
 PyObject *
 CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 {
-	struct basespec spec;
-	PyObject *cobj;
-	PyObject *mem;
-	PyObject *args, *kw;
+	CDataObject *cmem;
 
 	if (base && !CDataObject_Check(base)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -2004,26 +1978,34 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 		return NULL;
 	}
 
-	spec.base = (CDataObject *)base;
-	spec.adr = adr;
-	spec.index = index;
-	cobj = PyCObject_FromVoidPtrAndDesc(&spec, basespec_string, NULL);
-	kw = Py_BuildValue("{s:O}", "_basespec_", cobj);
-	args = PyTuple_New(0);
+	cmem = (CDataObject *)PyObject_CallFunctionObjArgs(type, NULL);
+	if (cmem == NULL)
+		return NULL;
 
-	mem = PyObject_Call(type, args, kw);
-	Py_DECREF(kw);
-	Py_DECREF(args);
-	/* the pointer in it points to memory local to this func. */
-	assert(cobj->ob_refcnt == 1);
-	Py_DECREF(cobj);
+	if (cmem->b_needsfree)
+		PyMem_Free(cmem->b_ptr);
+	cmem->b_ptr = NULL;
 
-	return mem;
+	if (base) { /* use base's buffer */
+		cmem->b_ptr = adr;
+		cmem->b_needsfree = 0;
+		Py_INCREF(base);
+		cmem->b_base = (CDataObject *)base;
+		cmem->b_index = index;
+	} else { /* copy contents of adr */
+		StgDictObject *dict = PyType_stgdict(type);
+		CData_MallocBuffer(cmem, PyType_stgdict(type));
+		memcpy(cmem->b_ptr, adr, dict->size);
+		cmem->b_index = index;
+	}
+	return (PyObject *)cmem;
 }
 
-/* We cannot call CData_FromBaseObj, because we have no base object.  So, we
-   create an empty instance, free the memory it contains, and fill in the
-   memory pointer afterwards.
+/*
+ Box a memory block into a CData instance.
+
+ We create an new instance, free the memory it contains, and fill in the
+ memory pointer afterwards.
 */
 static PyObject *
 CData_AtAddress(PyObject *type, void *buf)
@@ -2141,28 +2123,10 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 
 
 /******************************************************************/
-static void CData_MallocBuffer(CDataObject *obj, StgDictObject *dict)
-{
-	if (dict->size <= sizeof(obj->b_value)) {
-		/* No need to call malloc, can use the default buffer */
-		obj->b_ptr = (char *)&obj->b_value;
-		obj->b_needsfree = 0;
-	} else {
-		/* In python 2.4, and ctypes 0.9.6, the malloc call took about
-		   33% of the creation time for c_int().
-		*/
-		obj->b_ptr = PyMem_Malloc(dict->size);
-		obj->b_needsfree = 1;
-		memset(obj->b_ptr, 0, dict->size);
-	}
-	obj->b_size = dict->size;
-}
-
 static PyObject *
 GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	CDataObject *obj;
-	PyObject *basespec = NULL;
 	int size, align, length;
 	StgDictObject *dict;
 
@@ -2177,71 +2141,16 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	align = dict->align;
 	length = dict->length;
 
-	if (kwds)
-		basespec = PyDict_GetItemString(kwds, "_basespec_");
-
 	obj = (CDataObject *)type->tp_alloc(type, 0);
 	if (!obj)
 		return NULL;
-	/* Three different cases:
-	 * - no basespec object in kwds: Allocate new memory
-	 * - basespec->base is set:
-	 *	This is the base object owning the buffer,
-	 *	index and offset must be set
-	 * - basespec->base is NULL:
-	 *	index is ignored, offset contains the buffer address to use.
-	 */
 
-	if (basespec) {
-		struct basespec *spec;
-		void *descr;
+	obj->b_base = NULL;
+	obj->b_index = 0;
+	obj->b_objects = NULL;
+	obj->b_length = length;
 
-		descr = PyCObject_GetDesc(basespec);
-		if (!descr) {
-			Py_DECREF(obj);
-			return NULL;
-		}
-		if (descr != basespec_string) {
-			PyErr_SetString(PyExc_TypeError, "invalid object");
-			Py_DECREF(obj);
-			return NULL;
-		}
-		spec = PyCObject_AsVoidPtr(basespec);
-
-		if (spec->base) {
-			Py_INCREF(spec->base);
-			obj->b_base = spec->base;
-			obj->b_index = spec->index;
-
-			obj->b_objects = NULL;
-			obj->b_length = length;
-			
-			obj->b_ptr = spec->adr;
-			obj->b_size = size;
-			obj->b_needsfree = 0;
-		} else {
-			obj->b_base = NULL;
-			obj->b_index = 0;
-			obj->b_objects = NULL;
-			obj->b_length = length;
-			
-			CData_MallocBuffer(obj, dict);
-			memcpy(obj->b_ptr, spec->adr, size);
-		}
-		/* don't pass this to tp_init! */
-		if (-1 == PyDict_DelItemString(kwds, "_basespec_")) {
-			Py_DECREF(obj);
-			return NULL;
-		}
-
-	} else {
-		obj->b_base = NULL;
-		obj->b_index = 0;
-		obj->b_objects = NULL;
-		obj->b_length = length;
-
-		CData_MallocBuffer(obj, dict);
-	}
+	CData_MallocBuffer(obj, dict);
 	return (PyObject *)obj;
 }
 /*****************************************************************/
@@ -2554,9 +2463,9 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	StgDictObject *dict;
 	THUNK thunk;
 
-	if (kwds && PyDict_GetItemString(kwds, "_basespec_")) {
+	/* We're retrieved from a structure field or C result, maybe */
+	if (PyTuple_GET_SIZE(args) == 0)
 		return GenericCData_new(type, args, kwds);
-	}
 
 	if (2 <= PyTuple_GET_SIZE(args)) {
 #ifdef MS_WIN32
