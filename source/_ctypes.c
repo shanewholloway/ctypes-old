@@ -1,4 +1,21 @@
 /*
+  ToDo:
+
+  think about a buffer-like object (memory? bytes?)
+
+  Should POINTER(c_char) and POINTER(c_wchar) have a .value property?
+  What about c_char and c_wchar arrays then?
+
+  Add from_mmap, from_file, from_string metaclass methods.
+
+  Maybe we can get away with from_file (calls read) and with a from_buffer
+  method?
+
+  And what about the to_mmap, to_file, to_str(?) methods?  They would clobber
+  the namespace, probably. So, functions instead? And we already have memmove...
+*/
+
+/*
 
 Name			methods, members, getsets
 ==============================================================================
