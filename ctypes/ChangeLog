@@ -1,5 +1,10 @@
 2005-03-16  Thomas Heller  <theller@python.net>
 
+	* ctypes\source\_ctyopes.c: Subclasses of c_char_p, c_wchar_p, and
+	c_void_p were not able to override the from_param class method in
+	their class definitions because SimpleType_new overwrote them.
+	Reported by Andreas Degert.
+
 	* ctypes\source: Removed the unneeded nArgBytes member from
 	StgDictObject, and change the code accordingly.  Thanks to
 	Andreas Degert for spotting this.
