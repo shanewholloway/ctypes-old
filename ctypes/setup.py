@@ -19,8 +19,13 @@ kw["sources"] = ["source/_ctypes.c",
 
 # Support the distutils 'depends' option, if availabale
 if hasattr(distutils.core, 'get_distutil_options'):
+    # Python 2.3a1
     kw["depends"] = ["source/ctypes.h"]
-                  
+elif (hasattr(distutils.core, 'extension_keywords') and 
+      'depends' in distutils.core.extension_keywords):
+    # Python current CVS
+    kw["depends"] = ["source/ctypes.h"]
+
 
 if os.name == "nt":
     extensions = [Extension("_ctypes",
@@ -153,6 +158,17 @@ class test(Command):
 ##        self.byte_compile(self.get_outputs(include_bytecode=0))
 ##    # run ()
 
+options = {}
+if (hasattr(distutils.core, 'setup_keywords') and 
+    'classifiers' in distutils.core.setup_keywords):
+        kw['classifiers'] = \
+                 ['Topic :: Software Development',
+                  'Operating System :: MacOS :: MacOS X',
+                  'Operating System :: Microsoft :: Windows',
+                  'Operating System :: POSIX',
+                  'Intended Audience :: Developers']
+
+
 if __name__ == '__main__':
     setup(name="ctypes",
           ext_modules = extensions,
@@ -167,7 +183,8 @@ if __name__ == '__main__':
           url="http://starship.python.net/crew/theller/ctypes.html",
           platforms=["windows", "linux"],
 
-          cmdclass = {'test': test}
+          cmdclass = {'test': test},
+          **options
           )
 
 ## Local Variables:
