@@ -7,19 +7,25 @@ except NameError:
     # fake to enable this test on Linux
     WINFUNCTYPE = CFUNCTYPE
 
-import os, sys
-if os.name == "nt":
-    libc = cdll.msvcrt
-    
-elif os.name == "posix":
-    if sys.platform == "darwin":
-        libc = cdll.LoadLibrary("/usr/lib/libc.dylib")
-    elif sys.platform == "cygwin":
-        libc = cdll.LoadLibrary("/bin/cygwin1.dll")
-    elif sys.platform == "sunos5":
-        libc = cdll.LoadLibrary("/lib/libc.so")
-    else:
-        libc = cdll.LoadLibrary("/lib/libc.so.6")
+
+def get_libc():
+    import os, sys
+    if os.name == "nt":
+        return cdll.msvcrt
+    elif os.name == "posix":
+        if sys.platform == "darwin":
+            return cdll.LoadLibrary("/usr/lib/libc.dylib")
+        elif sys.platform == "cygwin":
+            return cdll.LoadLibrary("/bin/cygwin1.dll")
+        elif sys.platform == "sunos5":
+            return cdll.LoadLibrary("/lib/libc.so")
+        else:
+            try:
+                return cdll.LoadLibrary("/lib/libc.so.6")
+            except OSError:
+                pass
+    return None
+libc = get_libc()
 
 class CFuncPtrTestCase(unittest.TestCase):
     def test_basic(self):
@@ -90,44 +96,41 @@ class CFuncPtrTestCase(unittest.TestCase):
 
         self.failUnlessEqual(f(10, 11, 12, 13), 46)
 
-    def test_dllfunctions(self):
+    if libc is not None:
+        def test_dllfunctions(self):
 
-        def NoNullHandle(value):
-            if not value:
-                raise WinError()
-            return value
+            def NoNullHandle(value):
+                if not value:
+                    raise WinError()
+                return value
 
-##        f = windll.kernel32.GetModuleHandleA
-##        f.argtypes = (c_char_p,)
-##        f.restype = NoNullHandle
+            strchr = libc.strchr
+            strchr.restype = c_char_p
+            strchr.argtypes = (c_char_p, c_char)
+            self.failUnlessEqual(strchr("abcdefghi", "b"), "bcdefghi")
+            self.failUnlessEqual(strchr("abcdefghi", "x"), None)
 
-        strchr = libc.strchr
-        strchr.restype = c_char_p
-        strchr.argtypes = (c_char_p, c_char)
-        self.failUnlessEqual(strchr("abcdefghi", "b"), "bcdefghi")
-        self.failUnlessEqual(strchr("abcdefghi", "x"), None)
+            strtok = libc.strtok
+            strtok.restype = c_char_p
+            # Neither of this does work
+    ##        strtok.argtypes = (c_char_p, c_char_p)
+    ##        strtok.argtypes = (c_string, c_char_p)
 
-        strtok = libc.strtok
-        strtok.restype = c_char_p
-        # Neither of this does work
-##        strtok.argtypes = (c_char_p, c_char_p)
-##        strtok.argtypes = (c_string, c_char_p)
+            def c_string(init):
+                size = len(init) + 1
+                return (c_char*size)(*init)
 
-        def c_string(init):
-            size = len(init) + 1
-            return (c_char*size)(*init)
+            s = "a\nb\nc"
+            b = c_string(s)
 
-        s = "a\nb\nc"
-        b = c_string(s)
+    ##        b = (c_char * (len(s)+1))()
+    ##        b.value = s
 
-##        b = (c_char * (len(s)+1))()
-##        b.value = s
-
-##        b = c_string(s)
-        self.failUnlessEqual(strtok(b, "\n"), "a")
-        self.failUnlessEqual(strtok(None, "\n"), "b")
-        self.failUnlessEqual(strtok(None, "\n"), "c")
-        self.failUnlessEqual(strtok(None, "\n"), None)
+    ##        b = c_string(s)
+            self.failUnlessEqual(strtok(b, "\n"), "a")
+            self.failUnlessEqual(strtok(None, "\n"), "b")
+            self.failUnlessEqual(strtok(None, "\n"), "c")
+            self.failUnlessEqual(strtok(None, "\n"), None)
         
 if __name__ == '__main__':
     unittest.main()
