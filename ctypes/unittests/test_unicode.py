@@ -2,25 +2,9 @@
 import unittest
 import ctypes
 
-def get_libc():
-    import os, sys
-    if os.name == "nt":
-        return ctypes.cdll.msvcrt
-    elif os.name == "posix":
-        if sys.platform == "darwin":
-            return ctypes.cdll.LoadLibrary("/usr/lib/libc.dylib")
-        elif sys.platform == "cygwin":
-            return ctypes.cdll.LoadLibrary("/bin/cygwin1.dll")
-        elif sys.platform == "sunos5":
-            return ctypes.cdll.LoadLibrary("/lib/libc.so")
-        else:
-            try:
-                return ctypes.cdll.LoadLibrary("/lib/libc.so.6")
-            except OSError:
-                pass
-    return None
-libc = get_libc()
-wcslen = libc.wcslen
+import _ctypes_test
+libc = ctypes.CDLL(_ctypes_test.__file__)
+wcslen = libc.my_wcslen
 wcslen.argtypes = [ctypes.c_wchar_p]
 
 
