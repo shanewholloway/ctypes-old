@@ -275,6 +275,9 @@ EXPORT(void) GetString(BSTR *pbstr)
 #endif
 
 PyMethodDef module_methods[] = {
+#ifdef _DEBUG
+	{"my_debug", my_debug, METH_O},
+#endif
 	{ NULL, NULL, 0, NULL},
 };
 
