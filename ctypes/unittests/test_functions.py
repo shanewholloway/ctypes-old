@@ -196,7 +196,7 @@ class FunctionTestCase(unittest.TestCase):
         self.failUnless(13577625587 == f(1000000000000, cb))
 
 def get_suite():
-    return unittest.makeSuite(FunctionTestCase, 'test')
+    return unittest.makeSuite(FunctionTestCase)
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
