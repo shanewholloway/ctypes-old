@@ -4,7 +4,7 @@
 """create and manipulate C data types in Python"""
 
 import os
-if os.path.isfile(".CTYPES_DEVEL"):
+if os.path.isfile(os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")):
     # magic to allow using ctypes from the CVS tree
     import sys
     __path__.append(os.path.abspath(
