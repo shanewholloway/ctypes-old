@@ -1,3 +1,12 @@
+2003-03-11  Thomas Heller  <theller@python.net>
+
+	* ctypes/source: CFuncPtr changes: The _argtypes_ attribute is now
+	optional (but required if you want to construct callbacks).
+	CFuncPtr now has two contructors: CFuncPtr(callable), and
+	CFuncPtr(funcname, dll).  So CFuncPtr can now completely replace
+	both CFunction (for callbacks) and DynFunction (for dll
+	functions).
+
 2003-03-07  Thomas Heller  <theller@python.net>
 
 	* ctypes: The CFuncPtr type now supports cyclic garbage
