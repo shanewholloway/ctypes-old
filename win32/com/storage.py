@@ -1,17 +1,13 @@
 # storage interfaces
 from ctypes import *
 from ctypes.com import IUnknown, GUID, HRESULT, STDMETHOD
-from ctypes.wintypes import DWORD
+from ctypes.wintypes import DWORD, FILETIME
 from ctypes.com import ole32
 
 LPOLESTR = LPCOLESTR = c_wchar_p
 BOOL = c_int
 LARGE_INTEGER = c_longlong
 ULARGE_INTEGER = c_ulonglong
-
-class FILETIME(Structure):
-    _fields_ = [("dwLowDateTime", DWORD),
-                ("dwHighDateTime", DWORD)]
 
 class STATSTG(Structure):
     _fields_ = [("pwcsName", LPOLESTR),
