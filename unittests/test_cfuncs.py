@@ -101,6 +101,12 @@ class CFunctions(unittest.TestCase):
         self.failUnlessEqual(self.dll.tf_i(42), 84)
         self.failUnlessEqual(self.dll.tf_i(-42), -84)
 
+    def test_void(self):
+        self.dll.tv_i.restype = None
+        self.dll.tv_i.argtypes = (c_int,)
+        self.failUnlessEqual(self.dll.tv_i(42), None)
+        self.failUnlessEqual(self.dll.tv_i(-42), None)
+
 # The following repeates the above tests with stdcall functions (where
 # they are available)
 try:
