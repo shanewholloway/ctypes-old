@@ -212,6 +212,8 @@ void ffi_call(/*@dependent@*/ ffi_cif *cif,
 
 /** private members **/
 
+#ifdef UNDEFINED
+
 static void ffi_prep_incoming_args_SYSV (char *stack, void **ret,
 					 void** args, ffi_cif* cif);
 static void ffi_closure_SYSV (ffi_closure *)
@@ -445,6 +447,8 @@ ffi_prep_args_raw(char *stack, extended_cif *ecif)
 {
   memcpy (stack, ecif->avalue, ecif->cif->bytes);
 }
+
+#endif /* UNDEFINED */
 
 /* we borrow this routine from libffi (it must be changed, though, to
  * actually call the function passed in the first argument.  as of
