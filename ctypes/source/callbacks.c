@@ -59,7 +59,7 @@ PrintError(char *msg, ...)
 
 
 /* after code that pyrex generates */
-static void _AddTraceback(char *funcname, char *filename, int lineno)
+void _AddTraceback(char *funcname, char *filename, int lineno)
 {
 	PyObject *py_srcfile = 0;
 	PyObject *py_funcname = 0;
