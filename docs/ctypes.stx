@@ -104,7 +104,11 @@ The ctypes module
     The binary Windows distribution only contains the 'ctypes' module
     as well as the underlying '_ctypes' extension module.
 
-    These files are distibuted under the "MIT license":LICENSE.txt.
+    These files are distributed under the "MIT license":LICENSE.txt.
 
 
-<!-- Local Variables: compile-command: "make_html" End: -->
+<!--
+	Local Variables:
+	compile-command: "make_html"
+	End:
+-->
