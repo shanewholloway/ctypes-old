@@ -8,7 +8,8 @@ __version__ = "0.5.1"
 from _ctypes import Union, Structure, Array
 from _ctypes import c_string
 
-from _ctypes import _Pointer, CFuncPtr
+from _ctypes import _Pointer
+from _ctypes import CFuncPtr as _CFuncPtr
 
 import os as _os
 
@@ -18,11 +19,25 @@ if _os.name == "nt":
 
 from _ctypes import FUNCFLAG_CDECL
 
+def CALLBACK(restype, *argtypes):
+    class X(_CFuncPtr):
+        _argtypes_ = argtypes
+        _restype_ = restype
+        _flags_ = FUNCFLAG_CDECL
+    return X
 
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
          FreeLibrary as _FreeLibrary
     from _ctypes import FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
+
+    def STDAPI(restype, *argtypes):
+        class X(_CFuncPtr):
+            _argtypes_ = argtypes
+            _restype_ = restype
+            _flags_ = FUNCFLAG_STDCALL
+        return X
+
 elif _os.name == "posix":
     from _ctypes import dlopen as _LoadLibrary
     _FreeLibrary = None
@@ -160,7 +175,7 @@ def pointer(inst):
 
 ################################################################
 
-class _CdeclFuncPtr(CFuncPtr):
+class _CdeclFuncPtr(_CFuncPtr):
     _flags_ = FUNCFLAG_CDECL
     _restype_ = c_int # default, can be overridden in instances
 
@@ -187,7 +202,7 @@ class CDLL:
         self._handle = 0
 
 if _os.name ==  "nt":
-    class _StdcallFuncPtr(CFuncPtr):
+    class _StdcallFuncPtr(_CFuncPtr):
         _flags_ = FUNCFLAG_STDCALL
         _restype_ = c_int # default, can be overridden in instances
         
@@ -199,7 +214,7 @@ if _os.name ==  "nt":
             setattr(self, name, func)
             return func
 
-    class _OlecallFuncPtr(CFuncPtr):
+    class _OlecallFuncPtr(_CFuncPtr):
         _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
         _restype_ = c_int # needed, but unused
 
