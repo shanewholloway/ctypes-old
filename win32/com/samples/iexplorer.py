@@ -1,6 +1,4 @@
-from ctypes.com import ole32, IUnknown, GUID, PIUnknown, REFCLSID, REFIID
-from ctypes.com.connectionpoints import IConnectionPointContainer, IConnectionPoint,\
-     GetConnectionPoint
+from ctypes.com import IUnknown, GUID, PIUnknown, REFCLSID, REFIID
 from ctypes.com.automation import BSTR, VARIANT
 from ctypes import byref, c_long, c_ulong, c_double, oledll, POINTER, pointer, c_voidp
 from ctypes import windll
@@ -8,17 +6,21 @@ user32 = windll.user32
 
 from ie6_gen import InternetExplorer, IWebBrowser2, DWebBrowserEvents2
 
-oleaut32 = oledll.oleaut32
-
 # XXX
-CLSCTX_INPROC_SERVER = 0x1
-CLSCTX_LOCAL_SERVER = 0x4
 DWORD = c_ulong
 
 ################################################################
+# This should moe into ctypes.com :
+from ctypes import oledll
+from ctypes.com import ole32
+
+oleaut32 = oledll.oleaut32
 
 ole32.CoInitialize(None)
 ole32.CoCreateInstance.argtypes = REFCLSID, c_voidp, DWORD, REFIID, POINTER(PIUnknown)
+
+CLSCTX_INPROC_SERVER = 0x1
+CLSCTX_LOCAL_SERVER = 0x4
 
 def CreateInstance(coclass, interface=None,
                    clsctx = CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER):
@@ -48,6 +50,7 @@ class DWebBrowserEvents2Impl(dispinterface_EventReceiver):
         user32.PostQuitMessage(0)
 
 ################################################################
+from ctypes.com.connectionpoints import GetConnectionPoint
 
 browser = CreateInstance(InternetExplorer)
 browser._put_Visible(1)
@@ -55,6 +58,8 @@ browser._put_Visible(1)
 cp = GetConnectionPoint(browser, DWebBrowserEvents2)
 
 comobj = DWebBrowserEvents2Impl()
+# _com_pointers_ is a sequence of (guid, interface_pointer) pairs.
+# Get the interface_pointer to the first (default) interface.
 pevents = comobj._com_pointers_[0][1]
 
 cookie = DWORD()
