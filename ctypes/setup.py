@@ -70,6 +70,7 @@ else:
         extra_link_args.extend(['-read_only_relocs', 'warning'])
 
     extensions = [Extension("_ctypes",
+                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             libraries=["ffi"],
                             include_dirs=include_dirs,
                             library_dirs=library_dirs,
