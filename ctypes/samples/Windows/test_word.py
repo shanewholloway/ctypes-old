@@ -5,7 +5,7 @@ def test_word():
     try:
         word = Dispatch("Word.Application")
     except WindowsError, details:
-        if details.errno == 0x800401F3: # Invalid Class String
+        if details.errno == 0x800401F3L: # Invalid Class String
             print "It seems Word is not installed..."
             return
         raise
