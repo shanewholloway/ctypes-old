@@ -524,7 +524,7 @@ ctypes tutorial
 
     Structure and Union fields are normally aligned in the same way
     the C compiler would do it by default. It is possible to override
-    this behaviour be specifying a 'packed' class attribute in the
+    this behaviour be specifying a '_pack_' class attribute in the
     subclass, it must be set to a positive integer and specifies the
     maximum alignment for the fields. I believe this is what '#pragma
     pack(n)' also does in MSVC.
