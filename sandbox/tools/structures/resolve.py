@@ -271,6 +271,12 @@ class Structure(object):
                     return "Class(%s)" % self.name
             return "Structure(%s)" % self.name
 
+    def isClass(self):
+        for m in self.members:
+            if isinstance(m, Method):
+                return True
+        return False
+
 class Union(Structure):
     def __init__(self, name, members):
         self.name = name
@@ -491,25 +497,21 @@ def main(args=None):
         return handler.all[id]
 
     for obj in handler.all.values():
-        if isinstance(obj, (Structure, Union)):
-            print obj.name
+##        if isinstance(obj, (Structure, Union)):
+##            print obj.name
+##            obj.resolve(find_typ)
+##            pp(obj.members)
+##            print
+##            continue
+        if isinstance(obj, Typedef):
             obj.resolve(find_typ)
-            pp(obj.members)
-            print
-        elif isinstance(obj, Typedef):
-            if 1:
-##            try:
-                obj.resolve(find_typ)
-##            except:
-##                pass
-##            else:
-                if isinstance(obj.typ, (Structure, Union)):
-                    print obj
-                    if isinstance(obj, Structure):
-                        print obj.typ.bases
-                    for f in obj.typ.members:
-                        print " ", f
-                    print
+            if isinstance(obj.typ, (Structure, Union)) and not obj.typ.isClass():
+                print obj, len(obj.typ.members)
+##                if isinstance(obj, Structure):
+##                    print obj.typ.bases
+##                for f in obj.typ.members:
+##                    print " ", f
+##                print
 
 ##    pp(handler.all)
 ##    print
