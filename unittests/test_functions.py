@@ -66,8 +66,8 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_i_bhilfd
         f.argtypes = [c_byte, c_wchar, c_int, c_long, c_float, c_double]
         result = f(1, u"x", 3, 4, 5.0, 6.0)
-        self.failUnless(result == 139)
-        self.failUnless(type(result) == int)
+        self.failUnlessEqual(result, 139)
+        self.failUnlessEqual(type(result), int)
 
     def test_wchar_result(self):
         try:
@@ -92,23 +92,23 @@ class FunctionTestCase(unittest.TestCase):
         f = dll._testfunc_i_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
         result = f(1, 2, 3, 4, 5.0, 6.0)
-        self.failUnless(result == 21)
-        self.failUnless(type(result) == int)
+        self.failUnlessEqual(result, 21)
+        self.failUnlessEqual(type(result), int)
 
         result = f(-1, -2, -3, -4, -5.0, -6.0)
-        self.failUnless(result == -21)
-        self.failUnless(type(result) == int)
+        self.failUnlessEqual(result, -21)
+        self.failUnlessEqual(type(result), int)
 
         # If we declare the function to return a short,
         # is the high part split off?
         f.restype = c_short
         result = f(1, 2, 3, 4, 5.0, 6.0)
-        self.failUnless(result == 21)
-        self.failUnless(type(result) == int)
+        self.failUnlessEqual(result, 21)
+        self.failUnlessEqual(type(result), int)
         
         result = f(1, 2, 3, 0x10004, 5.0, 6.0)
-        self.failUnless(result == 21)
-        self.failUnless(type(result) == int)
+        self.failUnlessEqual(result, 21)
+        self.failUnlessEqual(type(result), int)
 
         # You cannot assing character format codes as restype any longer
         self.assertRaises(TypeError, setattr, f, "restype", "i")
@@ -118,24 +118,24 @@ class FunctionTestCase(unittest.TestCase):
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
         f.restype = c_float
         result = f(1, 2, 3, 4, 5.0, 6.0)
-        self.failUnless(result == 21)
-        self.failUnless(type(result) == float)
+        self.failUnlessEqual(result, 21)
+        self.failUnlessEqual(type(result), float)
 
         result = f(-1, -2, -3, -4, -5.0, -6.0)
-        self.failUnless(result == -21)
-        self.failUnless(type(result) == float)
+        self.failUnlessEqual(result, -21)
+        self.failUnlessEqual(type(result), float)
         
     def test_doubleresult(self):
         f = dll._testfunc_d_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
         f.restype = c_double
         result = f(1, 2, 3, 4, 5.0, 6.0)
-        self.failUnless(result == 21)
-        self.failUnless(type(result) == float)
+        self.failUnlessEqual(result, 21)
+        self.failUnlessEqual(type(result), float)
 
         result = f(-1, -2, -3, -4, -5.0, -6.0)
-        self.failUnless(result == -21)
-        self.failUnless(type(result) == float)
+        self.failUnlessEqual(result, -21)
+        self.failUnlessEqual(type(result), float)
         
     def test_longlongresult(self):
         try:
@@ -146,24 +146,24 @@ class FunctionTestCase(unittest.TestCase):
         f.restype = c_longlong
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
         result = f(1, 2, 3, 4, 5.0, 6.0)
-        self.failUnless(result == 21)
-        self.failUnless(type(result) == long)
+        self.failUnlessEqual(result, 21)
+        self.failUnlessEqual(type(result), long)
 
         f = dll._testfunc_q_bhilfdq
         f.restype = c_longlong
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double, c_longlong]
         result = f(1, 2, 3, 4, 5.0, 6.0, 21)
-        self.failUnless(result == 42)
-        self.failUnless(type(result) == long)
+        self.failUnlessEqual(result, 42)
+        self.failUnlessEqual(type(result), long)
 
     def test_stringresult(self):
         f = dll._testfunc_p_p
         f.restype = c_char_p
         result = f("123")
-        self.failUnless(result == "123")
+        self.failUnlessEqual(result, "123")
 
         result = f(None)
-        self.failUnless(result == None)
+        self.failUnlessEqual(result, None)
 
     def test_pointers(self):
         f = dll._testfunc_p_p
@@ -176,10 +176,10 @@ class FunctionTestCase(unittest.TestCase):
 
         v = c_int(42)
 
-        self.failUnless(pointer(v).contents.value == 42)
+        self.failUnlessEqual(pointer(v).contents.value, 42)
         result = f(pointer(v))
-        self.failUnless(type(result) == POINTER(c_int))
-        self.failUnless(result.contents.value == 42)
+        self.failUnlessEqual(type(result), POINTER(c_int))
+        self.failUnlessEqual(result.contents.value, 42)
 
         # This on works...
         result = f(pointer(v))
@@ -191,19 +191,19 @@ class FunctionTestCase(unittest.TestCase):
 
         # We need to keep the pointer alive, otherwise the contents change:
         result = f(pointer(c_int(99)))
-        self.failUnless(result.contents.value != 99)
+        self.failIfEqual(result.contents.value, 99)
 
         # XXX But this not! WHY on earth?
         arg = byref(v)
         result = f(arg)
-        self.failUnless(result.contents != v.value)
+        self.failIfEqual(result.contents, v.value)
 
         self.assertRaises(TypeError, f, byref(c_short(22)))
 
         # It is dangerous, however, because you don't control the lifetime
         # of the pointer:
         result = f(byref(c_int(99)))
-        self.failUnless(result.contents != 99)
+        self.failIfEqual(result.contents, 99)
 
     def test_errors(self):
         f = dll._testfunc_p_p
@@ -229,7 +229,7 @@ class FunctionTestCase(unittest.TestCase):
 
         cb = CallBack(callback)
         f(2**18, cb)
-        self.failUnless(args == expected)
+        self.failUnlessEqual(args, expected)
 
     ################################################################
         
@@ -246,13 +246,13 @@ class FunctionTestCase(unittest.TestCase):
         
         cb = MyCallback(callback)
         result = f(-10, cb)
-        self.failUnless(result == -18)
+        self.failUnlessEqual(result, -18)
 
         # test with prototype
         f.argtypes = [c_int, MyCallback]
         cb = MyCallback(callback)
         result = f(-10, cb)
-        self.failUnless(result == -18)
+        self.failUnlessEqual(result, -18)
                 
         AnotherCallback = WINFUNCTYPE(c_int, c_int, c_int, c_int, c_int)
 
@@ -275,12 +275,12 @@ class FunctionTestCase(unittest.TestCase):
 
         def callback(value):
             #print "called back with", value
-            self.failUnless(type(value) == int)
+            self.failUnlessEqual(type(value), int)
             return value
         
         cb = MyCallback(callback)
         result = f(-10, cb)
-        self.failUnless(result == -18)
+        self.failUnlessEqual(result, -18)
 
     def test_longlong_callbacks(self):
 
@@ -292,12 +292,12 @@ class FunctionTestCase(unittest.TestCase):
         f.argtypes = [c_longlong, MyCallback]
 
         def callback(value):
-            self.failUnless(type(value) == long)
+            self.failUnlessEqual(type(value), long)
             return value & 0x7FFFFFFF
 
         cb = MyCallback(callback)
 
-        self.failUnless(13577625587 == f(1000000000000, cb))
+        self.failUnlessEqual(13577625587, f(1000000000000, cb))
 
     def test_errors(self):
         self.assertRaises(AttributeError, getattr, dll, "_xxx_yyy")

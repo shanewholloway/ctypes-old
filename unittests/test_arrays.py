@@ -20,23 +20,23 @@ class ArrayTestCase(unittest.TestCase):
 
             ia = int_array(*init)
             # length of instance ok?
-            self.failUnless(len(ia) == alen)
+            self.failUnlessEqual(len(ia), alen)
 
             # slot values ok?
             values = [ia[i] for i in range(len(init))]
-            self.failUnless(values == init)
+            self.failUnlessEqual(values, init)
 
             # change the items
             from operator import setitem
             new_values = range(42, 42+alen)
             [setitem(ia, n, new_values[n]) for n in range(alen)]
             values = [ia[i] for i in range(len(init))]
-            self.failUnless(values == new_values)
+            self.failUnlessEqual(values, new_values)
 
             # are the items initialized to 0?
             ia = int_array()
             values = [ia[i] for i in range(len(init))]
-            self.failUnless(values == [0] * len(init))
+            self.failUnlessEqual(values, [0] * len(init))
 
             # Too many in itializers should be caught
             self.assertRaises(IndexError, int_array, *range(alen*2))
@@ -49,14 +49,14 @@ class ArrayTestCase(unittest.TestCase):
         # CharArray("abc")
         self.assertRaises(TypeError, CharArray, "abc")
 
-        self.failUnless(ca[0] == "a")
-        self.failUnless(ca[1] == "b")
-        self.failUnless(ca[2] == "c")
-        self.failUnless(ca[-3] == "a")
-        self.failUnless(ca[-2] == "b")
-        self.failUnless(ca[-1] == "c")
+        self.failUnlessEqual(ca[0], "a")
+        self.failUnlessEqual(ca[1], "b")
+        self.failUnlessEqual(ca[2], "c")
+        self.failUnlessEqual(ca[-3], "a")
+        self.failUnlessEqual(ca[-2], "b")
+        self.failUnlessEqual(ca[-1], "c")
 
-        self.failUnless(len(ca) == 3)
+        self.failUnlessEqual(len(ca), 3)
 
         # slicing is not supported:
         from operator import getslice, delitem
@@ -73,19 +73,19 @@ class ArrayTestCase(unittest.TestCase):
 
         na = numarray()
         values = [na[i] for i in range(alen)]
-        self.failUnless(values == [0] * alen)
+        self.failUnlessEqual(values, [0] * alen)
 
         na = numarray(*[c_int()] * alen)
         values = [na[i] for i in range(alen)]
-        self.failUnless(values == [0]*alen)
+        self.failUnlessEqual(values, [0]*alen)
 
         na = numarray(1, 2, 3, 4, 5)
         values = [i for i in na]
-        self.failUnless(values == [1, 2, 3, 4, 5])
+        self.failUnlessEqual(values, [1, 2, 3, 4, 5])
 
         na = numarray(*map(c_int, (1, 2, 3, 4, 5)))
         values = [i for i in na]
-        self.failUnless(values == [1, 2, 3, 4, 5])
+        self.failUnlessEqual(values, [1, 2, 3, 4, 5])
 
     def test_classcache(self):
         self.failUnless(not ARRAY(c_int, 3) is ARRAY(c_int, 4))
