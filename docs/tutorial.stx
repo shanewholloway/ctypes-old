@@ -731,7 +731,7 @@ ctypes tutorial
     negative integer if the first item is smaller than the second, a 0
     if they are equal, and a positive integer else.
 
-    So out callback function receives pointers to integers, and must
+    So our callback function receives pointers to integers, and must
     return an integer. First we create the 'type' for the callback
     function::
 
