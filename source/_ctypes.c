@@ -1391,16 +1391,6 @@ CData_dealloc(PyObject *self)
 	self->ob_type->tp_free(self);
 }
 
-static PyObject *
-CData_objects(CDataObject *self)
-{
-	PyObject *result;
-
-	result = CData_GetList(self);
-	Py_INCREF(result);
-	return result;
-}
-
 static PyMemberDef CData_members[] = {
 	{ "_b_base_", T_OBJECT,
 	  offsetof(CDataObject, b_base), READONLY,
@@ -3332,35 +3322,37 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
 
 /* some functions handy for testing */
 
-EXPORT int _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
+DL_EXPORT(int) _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 //	printf("_testfunc_i_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (int)(b + h + i + l + f + d);
 }
 
-EXPORT float _testfunc_f_bhilfd(char b, short h, int i, long l, float f, double d)
+DL_EXPORT(float) _testfunc_f_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 //	printf("_testfunc_f_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (float)(b + h + i + l + f + d);
 }
 
-EXPORT double _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double d)
+DL_EXPORT(double) _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 //	printf("_testfunc_d_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (double)(b + h + i + l + f + d);
 }
 
-EXPORT char * _testfunc_p_p(void *s)
+DL_EXPORT(char *) _testfunc_p_p(void *s)
 {
 	return s;
 }
 
 
 #ifndef MS_WIN32
-# define __stdcall /* */
+# ifndef __stdcall
+#  define __stdcall /* */
+# endif
 #endif
 
 typedef struct {
@@ -3368,27 +3360,27 @@ typedef struct {
 	int (__stdcall *s)(int, int);
 } FUNCS;
 
-EXPORT int _testfunc_callfuncp(FUNCS *fp)
+DL_EXPORT(int) _testfunc_callfuncp(FUNCS *fp)
 {
 	fp->c(1, 2);
 	fp->s(3, 4);
 	return 0;
 }
 
-EXPORT int _testfunc_deref_pointer(int *pi)
+DL_EXPORT(int) _testfunc_deref_pointer(int *pi)
 {
 	return *pi;
 }
 
 #ifdef MS_WIN32
-EXPORT int _testfunc_piunk(IUnknown FAR *piunk)
+DL_EXPORT(int) _testfunc_piunk(IUnknown FAR *piunk)
 {
 	piunk->lpVtbl->AddRef(piunk);
 	return piunk->lpVtbl->Release(piunk);
 }
 #endif
 
-EXPORT int _testfunc_callback_with_pointer(int (*func)(int *))
+DL_EXPORT(int) _testfunc_callback_with_pointer(int (*func)(int *))
 {
 	int table[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
@@ -3396,18 +3388,18 @@ EXPORT int _testfunc_callback_with_pointer(int (*func)(int *))
 }
 
 #ifdef HAVE_LONG_LONG
-EXPORT PY_LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
+DL_EXPORT(PY_LONG_LONG) _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
 				     double d, PY_LONG_LONG q)
 {
 	return (PY_LONG_LONG)(b + h + i + l + f + d + q);
 }
 
-EXPORT PY_LONG_LONG _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
+DL_EXPORT(PY_LONG_LONG) _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 	return (PY_LONG_LONG)(b + h + i + l + f + d);
 }
 
-EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
+DL_EXPORT(int) _testfunc_callback_i_if(int value, int (*func)(int))
 {
 	int sum = 0;
 	while (value != 0) {
@@ -3417,7 +3409,7 @@ EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
 	return sum;
 }
 
-EXPORT PY_LONG_LONG _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
+DL_EXPORT(PY_LONG_LONG) _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
 {
 	PY_LONG_LONG sum = 0;
 
@@ -3430,21 +3422,21 @@ EXPORT PY_LONG_LONG _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_L
 
 #endif
 
-EXPORT int _testfunc_ppp(char ***p)
+DL_EXPORT(int) _testfunc_ppp(char ***p)
 {
 	static char message[] = "Hello, World";
 	if (p) {
 		*p = malloc(sizeof(char *));
-		printf("malloc returned %d\n", *p);
+		printf("malloc returned %d\n", (int)*p);
 		**p = message;
 		return 1;
 	}
 	return 0;
 }
 
-EXPORT void my_free(void *p)
+DL_EXPORT(void) my_free(void *p)
 {
-	printf("my_free got %d\n", p);
+	printf("my_free got %d\n", (int)p);
 }
 
 typedef struct {
@@ -3467,7 +3459,7 @@ EGG my_eggs[1] = {
 	{ "first egg", 1, my_spams }
 };
 
-EXPORT  int getSPAMANDEGGS(EGG **eggs)
+DL_EXPORT(int) getSPAMANDEGGS(EGG **eggs)
 {
 	*eggs = my_eggs;
 	return 1;
@@ -3479,7 +3471,7 @@ typedef struct tagpoint {
 	int y;
 } point;
 
-EXPORT int _testfunc_byval(point in, point *pout)
+DL_EXPORT(int) _testfunc_byval(point in, point *pout)
 {
 	static point buf;
 	if (pout) {
@@ -3491,14 +3483,14 @@ EXPORT int _testfunc_byval(point in, point *pout)
 
 #endif
 
-EXPORT int an_integer = 42;
+DL_EXPORT (int) an_integer = 42;
 
-EXPORT int get_an_integer(void)
+DL_EXPORT(int) get_an_integer(void)
 {
 	return an_integer;
 }
 
-EXPORT double 
+DL_EXPORT(double)
 integrate(double a, double b, double (*f)(double), long nstep)
 {
 	double x, sum=0.0, dx=(b-a)/(double)nstep;
@@ -3515,18 +3507,18 @@ static void _xxx_init(void *(*Xalloc)(int), void (*Xfree)(void *))
 {
 	void *ptr;
 	
-	printf("_xxx_init got %x %x\n", Xalloc, Xfree);
+	printf("_xxx_init got %x %x\n", (int)Xalloc, (int)Xfree);
 	printf("calling\n");
 	ptr = Xalloc(32);
 	Xfree(ptr);
-	printf("calls done, ptr was %x\n", ptr);
+	printf("calls done, ptr was %x\n", (int)ptr);
 }
 
 xxx_library _xxx_lib = {
 	_xxx_init
 };
 
-EXPORT xxx_library *library_get(void)
+DL_EXPORT(xxx_library) *library_get(void)
 {
 	return &_xxx_lib;
 }
