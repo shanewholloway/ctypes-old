@@ -114,9 +114,8 @@ class StringTestCase(unittest.TestCase):
 
 class WStringTestCase(unittest.TestCase):
     def test_wchar(self):
-##        print c_wchar(u"x")
-##        repr(byref(c_wchar(u"x")))
-
+        c_wchar(u"x")
+        repr(byref(c_wchar(u"x")))
         c_wchar("x")
         
 

@@ -1,5 +1,9 @@
 2003-05-16  Thomas Heller  <theller@python.net>
 
+	* source\_ctypes.c: Make the restype atribute of functions readable.
+	VisualPython's debugger had problems if it was not.
+	Contributed by Nick Adams.
+
 	* ctypes\__init__.py: Fix the name of the void pointer type, it's
 	c_void_p not c_voidp (but leave the old name intact)
 
