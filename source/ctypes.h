@@ -65,6 +65,32 @@ typedef struct {
 	PyObject *paramflags;
 } CFuncPtrObject;
 
+typedef struct {
+	PyObject_HEAD
+	ffi_type *pffi_type;
+	char tag;
+	union {
+		char c;
+		char b;
+		short h;
+		int i;
+		long l;
+#ifdef HAVE_LONG_LONG
+		PY_LONG_LONG q;
+#endif
+		double d;
+		float f;
+		void *p;
+	} value;
+	PyObject *obj;
+	int size; /* for the 'V' tag */
+} PyCArgObject;
+
+extern PyTypeObject PyCArg_Type;
+extern PyCArgObject *new_CArgObject(void);
+#define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
+extern PyCArgObject *new_CArgObject(void);
+
 extern PyTypeObject StgDict_Type;
 #define StgDict_CheckExact(v)	    ((v)->ob_type == &StgDict_Type)
 #define StgDict_Check(v)	    PyObject_TypeCheck(v, &StgDict_Type)
@@ -121,8 +147,27 @@ extern void FreeCallback(THUNK);
 
 extern PyMethodDef module_methods[];
 
+struct argument {
+	ffi_type *ffi_type;
+	PyObject *keep;
+	union result {
+		char c;
+		char b;
+		short h;
+		int i;
+		long l;
+#ifdef HAVE_LONG_LONG
+		PY_LONG_LONG q;
+#endif
+		double d;
+		float f;
+		void *p;
+	} value;
+};
+
 typedef PyObject *(* GETFUNC)(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index);
 typedef PyObject *(* SETFUNC)(void *ptr, PyObject* value, unsigned size, PyObject *type);
+typedef int (* ASPARAM)(CDataObject *self, struct argument *pa);
 
 /* a table entry describing a predefined ctypes type */
 struct fielddesc {
@@ -158,9 +203,10 @@ typedef struct {
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
 	ffi_type ffi_type;
-	PyObject *proto;	/* Only for Pointer/ArrayObject */
+	PyObject *proto;
 	SETFUNC setfunc;
 	GETFUNC getfunc;
+	ASPARAM asparam;
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
@@ -244,32 +290,6 @@ extern PyObject *GetKeepedObjects(CDataObject *target);
 #define FUNCFLAG_PYTHONAPI 0x4
 
 #define DICTFLAG_FINAL 0x1000
-
-typedef struct {
-	PyObject_HEAD
-	ffi_type *pffi_type;
-	char tag;
-	union {
-		char c;
-		char b;
-		short h;
-		int i;
-		long l;
-#ifdef HAVE_LONG_LONG
-		PY_LONG_LONG q;
-#endif
-		double d;
-		float f;
-		void *p;
-	} value;
-	PyObject *obj;
-	int size; /* for the 'V' tag */
-} PyCArgObject;
-
-extern PyTypeObject PyCArg_Type;
-extern PyCArgObject *new_CArgObject(void);
-#define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
-extern PyCArgObject *new_CArgObject(void);
 
 extern void Extend_Error_Info(PyObject *exc_class, char *fmt, ...);
 

@@ -422,31 +422,13 @@ PyTypeObject PyCArg_Type = {
  *    and value.
  */
 
-union result {
-	char c;
-	char b;
-	short h;
-	int i;
-	long l;
-#ifdef HAVE_LONG_LONG
-	PY_LONG_LONG q;
-#endif
-	double d;
-	float f;
-	void *p;
-};
-
-struct argument {
-	ffi_type *ffi_type;
-	PyObject *keep;
-	union result value;
-};
-
 /*
  * Convert a single Python object into a PyCArgObject and return it.
  */
 static int ConvParam(PyObject *obj, int index, struct argument *pa)
 {
+	StgDictObject *stgdict;
+
 	if (PyCArg_CheckExact(obj)) {
 		PyCArgObject *carg = (PyCArgObject *)obj;
 		pa->ffi_type = carg->pffi_type;
@@ -520,8 +502,10 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 #endif
 	}
 #endif
-
-	{
+	stgdict = PyObject_stgdict(obj);
+	if (stgdict && stgdict->asparam) {
+		return stgdict->asparam(obj, pa);
+	} else {
 		PyObject *arg;
 		arg = PyObject_GetAttrString(obj, "_as_parameter_");
 		/* Which types should we exactly allow here?
