@@ -383,13 +383,13 @@ class InterfaceReader(TypeInfoReader):
             
             name = BSTR()
             self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
-            if fd.invkind == DISPATCH_PROPERTYGET:
+            if fd.invkind == DISPATCH_PROPERTYGET: # same as INVOKE_PROPERTYGET
                 name = "_get_" + mangle_name(name.value)
-            elif fd.invkind == DISPATCH_PROPERTYPUT:
+            elif fd.invkind == DISPATCH_PROPERTYPUT: # same as INVOKE_PROPERTYPUT
                 name = "_put_" + mangle_name(name.value)
-            elif fd.invkind == DISPATCH_METHOD:
+            elif fd.invkind == DISPATCH_METHOD: # same as INVOKE_FUNC
                 name = mangle_name(name.value)
-            elif fd.invkind == DISPATCH_PROPERTYPUTREF:
+            elif fd.invkind == DISPATCH_PROPERTYPUTREF: # same as INVOKE_PROPERTYPUTREF
                 name = "_putREF_" + mangle_name(name.value)
             else:
                 assert 0
@@ -691,15 +691,18 @@ def main():
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
+## XXX Does not work with stdole2.tlb unless an assert is removed.
+## But in this case strange code is generated (but oleview also has it's problems with it)
 ##        path = r"c:\windows\system32\stdole2.tlb"
-##        path = r"c:\windows\system32\stdole32.tlb"
-##        path = r"c:\windows\system32\stdole.tlb"
 ##        path = r"c:\windows\system32\simpdata.tlb"
 ##        path = r"c:\windows\system32\nscompat.tlb"
 ##        path = r"c:\windows\system32\mshtml.tlb"
         path = r"..\samples\server\sum.tlb"
 ##        path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
+## XXX Does definitely *not* work with the Excel type library
+##        path = r"c:\Programme\Microsoft Office\Office\XL5EN32.OLB"
+##        path = r"c:\windows\system32\msxml3.dll"
 
         # Microsoft PictureClip Control 6.0 (Ver 1.1)
 ##        path = r"c:\Windows\System32\PICCLP32.OCX"
