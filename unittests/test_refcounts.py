@@ -22,17 +22,17 @@ class RefcountTestCase(unittest.TestCase):
             #print "called back with", value
             return value
 
-        self.failUnless(grc(callback) == 2)
+        self.failUnlessEqual(grc(callback), 2)
         cb = MyCallback(callback)
 
         self.failUnless(grc(callback) > 2)
         result = f(-10, cb)
-        self.failUnless(result == -18)
+        self.failUnlessEqual(result, -18)
         cb = None
 
         gc.collect()
 
-        self.failUnless(grc(callback) == 2)
+        self.failUnlessEqual(grc(callback), 2)
 
 
     def test_refcount(self):
@@ -40,7 +40,7 @@ class RefcountTestCase(unittest.TestCase):
         def func(*args):
             pass
         # this is the standard refcount for func
-        self.failUnless(grc(func) == 2)
+        self.failUnlessEqual(grc(func), 2)
 
         # the CFuncPtr instance holds atr least one refcount on func:
         f = OtherCallback(func)
@@ -80,7 +80,7 @@ class RefcountTestCase(unittest.TestCase):
 
         del f
         gc.collect()
-        self.failUnless(grc(func) == 2)
+        self.failUnlessEqual(grc(func), 2)
         
 
 if __name__ == '__main__':
