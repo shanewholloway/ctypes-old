@@ -386,7 +386,7 @@ class Generator(object):
             # function definition
             print >> self.stream, "def %s(%s):" % (func.name, ", ".join(argnames))
             print >> self.stream, "    'Function %s in %s'" % (func.name, dllname)
-            print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
+##            print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
             if not self.use_decorators:
                 print >> self.stream, "%s = %s(%s, %r, [%s]) (%s)" % \
                       (func.name, cc, type_name(func.returns), dllname, ", ".join(args), func.name)
