@@ -434,22 +434,24 @@ PyTypeObject PyCArg_Type = {
  *    and value.
  */
 
+union result {
+	char c;
+	char b;
+	short h;
+	int i;
+	long l;
+#ifdef HAVE_LONG_LONG
+	PY_LONG_LONG q;
+#endif
+	double d;
+	float f;
+	void *p;
+};
+
 struct argument {
 	ffi_type *ffi_type;
 	PyObject *keep;
-	union {
-		char c;
-		char b;
-		short h;
-		int i;
-		long l;
-#ifdef HAVE_LONG_LONG
-		PY_LONG_LONG q;
-#endif
-		double d;
-		float f;
-		void *p;
-	} value;
+	union result value;
 };
 
 /*
@@ -700,15 +702,13 @@ static int _call_function_pointer(int flags,
 /*
  * Convert the C value in result into an instance described by restype
  */
-static PyObject *GetResult(PyObject *restype, struct argument *result)
+static PyObject *GetResult(PyObject *restype, ffi_type *ffi_type, union result *result)
 {
 	StgDictObject *dict;
 
 	if (restype == NULL) {
-		return getentry("i")->getfunc(&result->value.l, sizeof(int));
+		return getentry("i")->getfunc(&result->l, sizeof(int));
 	}
-
-	assert(restype);
 
 	if (restype == Py_None) {
 		Py_INCREF(Py_None);
@@ -730,7 +730,7 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 			return NULL;
 		}
 		/* Even better would be to use the buffer interface */
-		memcpy(pd->b_ptr, &result->value, pd->b_size);
+		memcpy(pd->b_ptr, result, pd->b_size);
 		return (PyObject *)pd;
 	}
 
@@ -748,25 +748,25 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 #endif
 		switch (dict->size) {
 		case 1:
-			c = (char)result->value.l;
+			c = (char)result->l;
 			retval = dict->getfunc(&c, dict->size);
 			break;
 		case SIZEOF_SHORT:
-			s = (short)result->value.l;
+			s = (short)result->l;
 			retval = dict->getfunc(&s, dict->size);
 			break;
 		case SIZEOF_INT:
-			i = (int)result->value.l;
+			i = (int)result->l;
 			retval = dict->getfunc(&i, dict->size);
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
-			l = (long)result->value.l;
+			l = (long)result->l;
 			retval = dict->getfunc(&l, dict->size);
 			break;
 #endif
 		default:
-			retval = dict->getfunc(&result->value, dict->size);
+			retval = dict->getfunc(result, dict->size);
 			break;
 		}
 		if (retval == NULL)
@@ -783,7 +783,7 @@ static PyObject *GetResult(PyObject *restype, struct argument *result)
 	}
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
-					     result->value.i);
+					     result->i);
 	PyErr_SetString(PyExc_TypeError,
 			"Bug: cannot convert result");
 	return NULL; /* to silence the compiler */
@@ -936,7 +936,7 @@ PyObject *_CallProc(PPROC pProc,
 			retval = PyInt_FromLong(result.value.i);
 	} else
 #endif
-		retval = GetResult(restype, &result);
+		retval = GetResult(restype, result.ffi_type, &result.value);
   cleanup:
 	for (i = 0; i < argcount; ++i)
 		Py_XDECREF(args[i].keep);
