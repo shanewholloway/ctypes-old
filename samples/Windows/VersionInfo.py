@@ -1,6 +1,6 @@
 # modeled after ASPN recipe by Dan Rolander (?), which uses calldll
 
-from ctypes import c_string, c_int, windll, sizeof, WinError, byref, c_char_p
+from ctypes import c_int, windll, sizeof, WinError, byref, c_char_p, c_char
 from ctypes import pointer, POINTER
 from ctypes import Structure
 
@@ -9,6 +9,25 @@ from ctypes import c_ushort, c_ubyte, c_ulong, c_char
 BYTE = c_ubyte
 WORD = c_ushort
 DWORD = c_ulong
+
+def c_string(init, size=None):
+    """c_string(aString) -> character array
+    c_string(anInteger) -> character array
+    c_string(aString, anInteger) -> character array
+    """
+    if isinstance(init, str):
+        if size is None:
+            size = len(init)+1
+        buftype = c_char * size
+        buf = buftype()
+        buf.value = init
+        return buf
+    elif isinstance(init, int):
+        buftype = c_char * init
+        buf = buftype()
+        return buf
+    raise TypeError, init
+
 
 def dump(data, indent=""):
     INDENT = "   " + indent
@@ -44,7 +63,7 @@ def get_file_version(filename):
         raise WinError()
 
     buffer = c_string("\000"*verinfosize)
-    windll.version.GetFileVersionInfoA(filename, 0, buffer._b_size_, buffer)
+    windll.version.GetFileVersionInfoA(filename, 0, sizeof(buffer), buffer)
 
     ffi = VS_FIXEDFILEINFO()
     uLen = c_int()

@@ -18,11 +18,30 @@ Robin Becker
 ####### hacked to use multiple threads by Robin Becker
 # from Paul Moore via comp.lang.python
 import thread, time
-from ctypes import windll, c_string, c_int, WinFuncType
+from ctypes import windll, c_int, WinFuncType, c_char
 user32 = windll.user32
 
 mutex = thread.allocate_lock()
 count = 0
+
+def c_string(init, size=None):
+    """c_string(aString) -> character array
+    c_string(anInteger) -> character array
+    c_string(aString, anInteger) -> character array
+    """
+    if isinstance(init, str):
+        if size is None:
+            size = len(init)+1
+        buftype = c_char * size
+        buf = buftype()
+        buf.value = init
+        return buf
+    elif isinstance(init, int):
+        buftype = c_char * init
+        buf = buftype()
+        return buf
+    raise TypeError, init
+
 
 ##class EnumWindowsProc(CFuncPtr):
 ##    _argtypes_ = c_int, c_int

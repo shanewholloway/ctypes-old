@@ -3,7 +3,25 @@
 from ctypes import cdll, POINTER, CFuncType
 
 import os, sys
-from ctypes import c_char_p, c_double
+from ctypes import c_char_p, c_double, c_char, sizeof
+
+def c_string(init, size=None):
+    """c_string(aString) -> character array
+    c_string(anInteger) -> character array
+    c_string(aString, anInteger) -> character array
+    """
+    if isinstance(init, str):
+        if size is None:
+            size = len(init)+1
+        buftype = c_char * size
+        buf = buftype()
+        buf.value = init
+        return buf
+    elif isinstance(init, int):
+        buftype = c_char * init
+        buf = buftype()
+        return buf
+    raise TypeError, init
 
 if os.name == "nt":
     libc = cdll.msvcrt
@@ -25,7 +43,7 @@ elif os.name == "posix":
     sscanf = libc.sscanf
     snprintf = libc.snprintf
 
-from ctypes import Structure, c_int, c_double, c_float, c_string, byref
+from ctypes import Structure, c_int, c_double, c_float, byref
 
 def test_printf():
     result = printf("%s%s %d 0x%x %f %d\n",
@@ -59,7 +77,7 @@ def test_sscanf():
 
 def test_snprintf():
     buf = c_string("\000"*32)
-    print snprintf(buf, buf._b_size_, "Hello, world")
+    print snprintf(buf, sizeof(buf), "Hello, world")
     print "value: %r" % buf.value
 
 def test_strtok():
