@@ -52,9 +52,6 @@ staticforward THUNK AllocCallback(PyObject *callable,
 				  DWORD RouterAddress,
 				  int is_cdecl);
 
-static int __stdcall CallPythonVTableEntry(PyObject *callable,
-					   PyObject *converters,
-					   void **pArgs);
 #endif
 
 static int __stdcall CallPythonObject(PyObject *callable,
@@ -173,51 +170,6 @@ static int __stdcall CallPythonObject(PyObject *callable,
 }
 
 #ifdef MS_WIN32
-/******************************************************************************
- *
- * Call the python object with all arguments EXCEPT the first one,
- * which is the this pointer
- *
- */
-static int __stdcall CallPythonVTableEntry(PyObject *callable,
-					    PyObject *converters, void **pArgs)
-{
-	int i;
-	PyObject *result;
-	PyObject *arglist;
-	PyObject *p;
-	/* Number of arguments of callable function */
-	int nArgs = PySequence_Length(converters);
-	int retcode = 0;
-
-	ENTER_PYTHON("CallPythonVTableEntry");
-	arglist = PyTuple_New(nArgs);
-	for (i = 0; i < nArgs; ++i) {
-		/* Note: new reference! */
-		PyObject *cnv = PySequence_GetItem(converters, i);
-		if (PyString_Check(cnv)) {
-			p = Py_BuildValue(PyString_AS_STRING(cnv), pArgs[i+1]);
-			PyTuple_SET_ITEM(arglist, i, p);
-		} else {	/* it is callable, has been checked before! */
-			PyObject *kw = Py_BuildValue("{s:i}", "_buffer_", pArgs[i+1]);
-			PyObject *obj = PyEval_CallObjectWithKeywords(cnv, NULL, kw);
-			Py_DECREF(kw);
-			PyTuple_SET_ITEM(arglist, i, obj);
-		}
-		/* XXX error handling! */
-	}
-	result = PyObject_CallObject(callable, arglist);
-	Py_DECREF(arglist);	/* items??? */
-	if (!result) {
-		PyErr_Print();
-	} else {
-		if (!PyArg_Parse(result, "i", &retcode))
-			PyErr_Print();
-	}
-	LEAVE_PYTHON("CallPythonVTableEntry");
-	return retcode;
-}
-
 
 #define NOSTACKFRAME
 //#define BREAKPOINTS
