@@ -1,6 +1,6 @@
 Implementing a COM server with 'ctypes'
 
-  "overview":overview.html :: "tutorial":tutorial.html ::
+  "overview":index.html :: "tutorial":tutorial.html ::
   "reference":reference.html :: "faq":faq.html
 
   ( Work in progress: "COM":com.html :: COM sample )

@@ -1,6 +1,6 @@
 ctypes FAQ - frequently asked questions
 
-  "overview":overview.html :: "tutorial":tutorial.html ::
+  "overview":index.html :: "tutorial":tutorial.html ::
   "reference":reference.html :: faq
 
   ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
