@@ -42,7 +42,7 @@ class IncludeParser(object):
         try:
             args = ["gccxml", "--preprocess", "-dM", fname]
             if lines and self.options.flags:
-                args.append(self.options.flags)
+                args.extend(self.options.flags)
             print "run", " ".join(args)
             i, o = os.popen4(" ".join(args))
             i.close()
@@ -59,7 +59,7 @@ class IncludeParser(object):
         fname = self.create_source_file(lines)
         args = ["gccxml", fname, "-fxml=%s" % xmlfile]
         if self.options.flags:
-            args.append(self.options.flags)
+            args.extend(self.options.flags)
         try:
             retcode = os.system(" ".join(args))
             if retcode:
