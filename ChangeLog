@@ -1,3 +1,12 @@
+2004-09-07  Thomas Heller  <theller@python.net>
+
+	* (Message): Fix the create_unicode_buffer function - it was
+	returning c_char arrays instead of c_wchar arrays.
+
+	Both create_string_buffer and create_unicode_buffer can now be
+	called with string and unicode instances, they will do the needed
+	conversions themselves.
+
 2004-09-01  Thomas Heller  <theller@python.net>
 
 	* (Message): A pythonapi object has been added to the ctypes

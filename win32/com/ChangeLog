@@ -1,3 +1,8 @@
+2004-09-06  Thomas Heller  <theller@python.net>
+
+	* (Message): Patch from Bruce Dodson to fix an infinite loop if a
+	typelib references types defined in another typelib.
+
 2004-08-20  Thomas Heller  <theller@python.net>
 
 	* com/server.py: In UseCommandLine, print a short explanation that
