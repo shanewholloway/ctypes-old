@@ -1515,6 +1515,10 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	  3. We absolutely need GC support.
 
 	*/
+	/* The thunk keeps unowned references to callable and dict->argtypes
+	   so we have to keep them alive somewhere else: callable is kept in self,
+	   dict->argtypes is in the type's stgdict.
+	*/
 	thunk = AllocFunctionCallback(callable,
 				      dict->nArgBytes,
 				      dict->argtypes,
@@ -1536,31 +1540,19 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 
-	/* HACK ALERT */
+	/* We store ourself in self->b_objects[0], because the whole instance
+	   must be kept alive if stored in a structure field, for example.
+	   Cycle GC to the rescue! And we have a unittest proving that this works
+	   correctly...
+	*/
+
 	if (-1 == PyList_SetItem(objects, 0, (PyObject *)self)) {
 		Py_DECREF((PyObject *)self);
 		return NULL;
 	}
-	Py_INCREF((PyObject *)self); /* for PyList_SetItem */
+	Py_INCREF((PyObject *)self); /* for PyList_SetItem above */
 
-#ifdef _DEBUG
-	printf("*CFuncPtr new %p\n", self);
-#endif
 	return (PyObject *)self;
-}
-
-static void
-CFuncPtr_dealloc(CFuncPtrObject *self)
-{
-#ifdef _DEBUG
-	printf("*CFuncPtr dealloc %p\n", self);
-#endif
-	Py_XDECREF(self->callable);
-	self->callable = NULL;
-	if (self->thunk)
-		FreeCallback(self->thunk);
-	self->thunk = NULL;
-	CData_dealloc((PyObject *)self);
 }
 
 static PyObject *
@@ -1588,6 +1580,51 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			 dict->restype);
 }
 
+static int
+CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
+{
+	int err;
+
+	err = visit(self->callable, arg);
+	if (err)
+		return err;
+
+	err = visit(self->b_objects, arg);
+	if (err)
+		return err;
+
+	return 0;
+}
+
+
+static int
+CFuncPtr_clear(CFuncPtrObject *self)
+{
+	Py_XDECREF(self->callable);
+	self->callable = NULL;
+
+	*(void **)self->b_ptr = NULL;
+	if (self->thunk)
+		FreeCallback(self->thunk);
+	self->thunk = NULL;
+	Py_XDECREF(self->b_objects);
+	self->b_objects = NULL;
+
+	return 0;
+}
+
+static void
+CFuncPtr_dealloc(CFuncPtrObject *self)
+{
+	Py_XDECREF(self->callable);
+	self->callable = NULL;
+	if (self->thunk)
+		FreeCallback(self->thunk);
+	self->thunk = NULL;
+
+	CData_dealloc((PyObject *)self);
+}
+
 static PyTypeObject CFuncPtr_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -1611,8 +1648,8 @@ static PyTypeObject CFuncPtr_Type = {
 	&CData_as_buffer,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"Function Pointer",			/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CFuncPtr_traverse,	/* tp_traverse */
+	(inquiry)CFuncPtr_clear,		/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */

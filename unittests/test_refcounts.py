@@ -1,10 +1,15 @@
 import unittest
 import ctypes
+import gc
 
 class MyCallback(ctypes.CFunction):
     _stdcall_ = 0
     _types_ = ctypes.c_int,
 
+
+class OtherCallback(ctypes.CFuncPtr):
+    _flags_ = ctypes.FUNCFLAG_CDECL
+    _argtypes_ = (ctypes.c_int, ctypes.c_ulonglong)
 
 class RefcountTestCase(unittest.TestCase):
     def setUp(self):
@@ -25,12 +30,61 @@ class RefcountTestCase(unittest.TestCase):
 
         self.failUnless(grc(callback) == 2)
         cb = MyCallback(callback)
-        self.failUnless(grc(callback) == 3)
+
+        self.failUnless(grc(callback) > 2)
         result = f(-10, cb)
         self.failUnless(result == -18)
         cb = None
         self.failUnless(grc(callback) == 2)
 
+
+    def test_refcount(self):
+        from sys import getrefcount as grc
+        def func(*args):
+            pass
+        # this is the standard refcount for func
+        self.failUnless(grc(func) == 2)
+
+        # the CFuncPtr instance holds atr least one refcount on func:
+        f = OtherCallback(func)
+        self.failUnless(grc(func) > 2)
+
+        # and may release it again
+        del f
+        self.failUnless(grc(func) >= 2)
+        
+        # but now it must be gone
+        gc.collect()
+        self.failUnless(grc(func) == 2)
+
+        class X(ctypes.Structure):
+            _fields_ = [("a", OtherCallback)]
+        x = X()
+        x.a = OtherCallback(func)
+        
+        # the CFuncPtr instance holds atr least one refcount on func:
+        self.failUnless(grc(func) > 2)
+
+        # and may release it again
+        del x
+        self.failUnless(grc(func) >= 2)
+        
+        # and now it must be gone again
+        gc.collect()
+        self.failUnless(grc(func) == 2)
+
+        f = OtherCallback(func)
+
+        # the CFuncPtr instance holds atr least one refcount on func:
+        self.failUnless(grc(func) > 2)
+
+        # create a cycle
+        f.cycle = f
+
+        del f
+        gc.collect()
+        self.failUnless(grc(func) == 2)
+        
 
 def get_suite():
     return unittest.makeSuite(RefcountTestCase)
