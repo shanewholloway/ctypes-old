@@ -73,7 +73,6 @@ _generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
 			Py_DECREF(ob);
 			return result;
 		}
-
 		if (value == Py_None && PointerTypeObject_Check(type)) {
 			*(void **)ptr = NULL; /*GCOV*/
 			Py_INCREF(Py_None); /*GCOV*/
@@ -257,7 +256,7 @@ CField_set(CFieldObject *self, CDataObject *dst, PyObject *value)
 {
 	PyObject *result = self->setfunc(dst->b_ptr + self->offset,
 					 value, self->size,
-					 self->fieldtype, dst);
+					 self->fieldtype);
 	if (result == NULL)
 		return -1;
 	return KeepRef(dst, self->index, result);

@@ -141,6 +141,49 @@ generic_getfunc(void *ptr, unsigned size,
 */
 
 static PyObject *
+basic_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
+{
+	/* This should be common to ALL types... */
+	if (PyObject_IsInstance(value, type)) {
+		CDataObject *src = (CDataObject *)value;
+		memmove(ptr,
+			src->b_ptr,
+			size);
+		value = GetKeepedObjects(src);
+		Py_INCREF(value);
+		return value;
+	}
+	PyErr_Format(PyExc_TypeError,
+		     "Incompatible types %s instance instead of %s instance",
+		     value->ob_type->tp_name,
+		     ((PyTypeObject *)type)->tp_name);
+	return NULL;
+}
+
+/* derived from cfield.c::_generic_field_setfunc */
+static PyObject *
+StructUnion_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
+{
+	/* This only for structures and arrays...*/
+	if (PyTuple_Check(value)) {
+		/* If value is a tuple, we call the type with the tuple
+		   and use the result */
+		PyObject *ob;
+		PyObject *result;
+		ob = PyObject_CallObject(type, value);
+		if (ob == NULL) {
+			Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
+					  ((PyTypeObject *)type)->tp_name);
+			return NULL;
+		}
+		result = StructUnion_setfunc(ptr, ob, size, type);
+		Py_DECREF(ob);
+		return result;
+	}
+	return basic_setfunc(ptr, value, size, type);
+}
+
+static PyObject *
 StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 {
 	PyTypeObject *result;
@@ -172,7 +215,7 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)dict;
 
-	/* XXX Allow overriding. __c_to_python__? */
+//	dict->setfunc = StructUnion_setfunc;
 	dict->getfunc = generic_getfunc;
 
 	fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
@@ -1074,7 +1117,7 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'Z';
-		parg->obj = fd->setfunc(&parg->value, value, 0);
+		parg->obj = fd->setfunc(&parg->value, value, 0, NULL);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
@@ -1127,7 +1170,7 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'z';
-		parg->obj = fd->setfunc(&parg->value, value, 0);
+		parg->obj = fd->setfunc(&parg->value, value, 0, NULL);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
@@ -1182,7 +1225,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'z';
-		parg->obj = fd->setfunc(&parg->value, value, 0);
+		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
@@ -1196,7 +1239,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'Z';
-		parg->obj = fd->setfunc(&parg->value, value, 0);
+		parg->obj = fd->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
@@ -1418,7 +1461,7 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 
 	parg->tag = fmt[0];
 	parg->pffi_type = fd->pffi_type;
-	parg->obj = fd->setfunc(&parg->value, value, 0);
+	parg->obj = fd->setfunc(&parg->value, value, 0, type);
 	if (parg->obj == NULL) {
 		Py_DECREF(parg);
 		return NULL;
@@ -1969,12 +2012,12 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	CDataObject *src;
 
 	if (setfunc)
-		return setfunc(ptr, value, size);
+		return setfunc(ptr, value, size, type);
 	
 	if (!CDataObject_Check(value)) {
 		StgDictObject *dict = PyType_stgdict(type);
 		if (dict && dict->setfunc)
-			return dict->setfunc(ptr, value, size);
+			return dict->setfunc(ptr, value, size, type);
 		/*
 		   If value is a tuple, we try to call the type with the tuple
 		   and use the result!
@@ -3588,7 +3631,7 @@ Simple_set_value(CDataObject *self, PyObject *value)
 	PyObject *result;
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 
-	result = dict->setfunc(self->b_ptr, value, dict->size);
+	result = dict->setfunc(self->b_ptr, value, dict->size, (PyObject *)self->ob_type);
 	if (!result)
 		return -1;
 
