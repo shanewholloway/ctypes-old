@@ -200,32 +200,25 @@ assert sizeof(tagARRAYDESC) == 20, sizeof(tagARRAYDESC)
 assert alignment(tagARRAYDESC) == 4, alignment(tagARRAYDESC)
 
 ################################################################
-## CY start
+## CURRENCY
 
+# A fixed point decimal number, stored as integer scaled by 10000.
 class tagCY(Union):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 990
-    pass
-class N5tagCY5DOLLAR_143E(Structure):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 991
-    pass
-N5tagCY5DOLLAR_143E._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 991
-    ('Lo', c_ulong),
-    ('Hi', c_long),
-]
-assert sizeof(N5tagCY5DOLLAR_143E) == 8, sizeof(N5tagCY5DOLLAR_143E)
-assert alignment(N5tagCY5DOLLAR_143E) == 4, alignment(N5tagCY5DOLLAR_143E)
-tagCY._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 990
-    # Unnamed field renamed to '_'
-    ('_', N5tagCY5DOLLAR_143E),
-    ('int64', c_longlong),
-]
+    class _tagCY_143E(Structure):
+        _fields_ = [
+            ('Lo', c_ulong),
+            ('Hi', c_long),
+        ]
+    _fields_ = [
+        # Unnamed field renamed to '_'
+        ('_', _tagCY_143E),
+        ('int64', c_longlong),
+    ]
 
 assert sizeof(tagCY) == 8, sizeof(tagCY)
 assert alignment(tagCY) == 8, alignment(tagCY)
 CY = tagCY
-CURRENY = tagCY
+CURRENCY = tagCY
 
 ################################################################
 # DECIMAL
