@@ -1,6 +1,6 @@
 from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
      c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring, \
-     oledll, byref, sizeof, STDAPI, SetPointerType, WinError, pointer
+     oledll, byref, sizeof, WinFuncType, SetPointerType, WinError, pointer
 
 from _ctypes import HRESULT
 
@@ -61,7 +61,7 @@ def STDMETHOD(restype, name, *argtypes):
     # First argument (this) for COM method implementation is really an
     # IUnknown pointer, but we don't want this to be built all the time,
     # since we probably don't use it, so use c_voidp
-    return name, STDAPI(restype, c_voidp, *argtypes)
+    return name, WinFuncType(restype, c_voidp, *argtypes)
 
 def COMPointer__del__(self):
     if self.contents.lpVtbl:
@@ -136,7 +136,7 @@ class _interface_meta(type(Structure)):
             # For this we don't want the first argument - the 'this' pointer.
             restype = PROTO.__dict__["_restype_"]
             argtypes = PROTO.__dict__["_argtypes_"][1:]
-            clientPROTO = STDAPI(restype, *argtypes)
+            clientPROTO = WinFuncType(restype, *argtypes)
             mth = new.instancemethod(clientPROTO(index), None, ptrclass)
             setattr(ptrclass, name, mth)
             index += 1
