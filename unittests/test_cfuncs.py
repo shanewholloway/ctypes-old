@@ -2,9 +2,6 @@ import unittest
 from ctypes import *
 import _ctypes_test
 
-##dll = CDLL(_ctypes_test.__file__)
-##wdll = WinDLL(_ctypes_test.__file__)
-
 class CFunctions(unittest.TestCase):
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)
@@ -78,19 +75,24 @@ class CFunctions(unittest.TestCase):
         self.dll.tf_bd.argtypes = (c_byte, c_double)
         self.failUnlessEqual(self.dll.tf_bd(0, 42), 42)
 
-class stdcall_dll(WinDLL):
-    def __getattr__(self, name):
-        if name[:2] == '__' and name[-2:] == '__':
-            raise AttributeError, name
-        func = self._StdcallFuncPtr("s_" + name, self)
-        setattr(self, name, func)
-        return func
+try:
+    WinDLL
+except NameError:
+    pass
+else:
+    class stdcall_dll(WinDLL):
+        def __getattr__(self, name):
+            if name[:2] == '__' and name[-2:] == '__':
+                raise AttributeError, name
+            func = self._StdcallFuncPtr("s_" + name, self)
+            setattr(self, name, func)
+            return func
 
-class stdcallCFunctions(CFunctions):
+    class stdcallCFunctions(CFunctions):
 
-    def __init__(self, *args):
-        unittest.TestCase.__init__(self, *args)
-        self.dll = stdcall_dll(_ctypes_test.__file__)
+        def __init__(self, *args):
+            unittest.TestCase.__init__(self, *args)
+            self.dll = stdcall_dll(_ctypes_test.__file__)
 
 if __name__ == '__main__':
     unittest.main()
