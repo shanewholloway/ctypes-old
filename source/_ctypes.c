@@ -922,7 +922,7 @@ _type_ attribute.
 
 */
 
-static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPX";
+static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXO";
 
 static PyObject *
 c_wchar_p_from_param(PyObject *type, PyObject *value)
@@ -2170,16 +2170,6 @@ static PyGetSetDef CFuncPtr_getsets[] = {
 	{ NULL, NULL }
 };
 
-/*
-  CFuncPtr_new accepts different argument lists in addition to the standard
-  _basespec_ keyword arg:
-
-  "i" - function address
-  "sO" - function name, dll object (with an integer handle)
-  "is" - vtable index, method name, creates COM method pointers
-  "O" - must be a callable, creates a C callable function
-*/
-
 #ifdef MS_WIN32
 static PPROC FindAddress(void *handle, char *name, PyObject *type)
 {
@@ -2293,6 +2283,15 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 #endif
 
+/*
+  CFuncPtr_new accepts different argument lists in addition to the standard
+  _basespec_ keyword arg:
+
+  "i" - function address
+  "sO" - function name, dll object (with an integer handle)
+  "is" - vtable index, method name, creates COM method pointers
+  "O" - must be a callable, creates a C callable function
+*/
 static PyObject *
 CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -2420,11 +2419,12 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 	converters = self->converters ? self->converters : dict->converters;
 
 #ifdef MS_WIN32
-	/* It's a COM method */
 	if (self->index) {
+		/* It's a COM method */
 		CDataObject *this;
 		this = (CDataObject *)PyTuple_GetItem(args, 0);
 		if (!this || !CDataObject_Check(this)) {
+			/* XXX Better error msg when this == NULL */
 			PyErr_SetString(PyExc_TypeError,
 					"wrong type for this arg");
 			return NULL;
@@ -2433,7 +2433,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 		/* First arg is an pointer to an interface instance */
 		if (!this->b_ptr || *(void **)this->b_ptr == NULL) {
 			PyErr_SetString(PyExc_ValueError,
-					"NULL pointer access");
+					"NULL COM pointer access");
 			return NULL;
 		}
 		piunk = *(IUnknown **)this->b_ptr;
@@ -3720,6 +3720,7 @@ init_ctypes(void)
 	PyModule_AddObject(m, "FUNCFLAG_STDCALL", PyInt_FromLong(FUNCFLAG_STDCALL));
 #endif
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
+	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
 	PyModule_AddStringConstant(m, "__version__", "0.9.1");
 
 	/*************************************************
