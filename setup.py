@@ -12,8 +12,8 @@ dlls. It allows wrapping these libraries in pure Python.
 from __future__ import generators
 
 # XXX explain LIBFFI_SOURCES
-LIBFFI_SOURCES='../libffi-src'
-##LIBFFI_SOURCES='source/gcc/libffi'
+##LIBFFI_SOURCES='../libffi-src'
+LIBFFI_SOURCES='source/gcc/libffi'
 
 ################################################################
 
@@ -335,10 +335,13 @@ class my_build_ext(build_ext.build_ext):
     def fix_extension(self, libdir, incdir):
         for ext in self.extensions:
             if ext.name == "_ctypes":
+                print "INCDIR", incdir
                 ext.include_dirs.append(incdir)
+                print "LIBDIR", libdir
                 ext.library_dirs.append(libdir)
                 # Newer libffi is broken: it doesn't install ffitarget.h in the right directory (IMO)
-                ext.include_dirs.append(os.path.join(libdir, "gcc/include/libffi"))
+##                print "INCDIR", os.path.join(libdir, "../gcc/include/libffi")
+##                ext.include_dirs.append(os.path.join(libdir, "gcc/include/libffi"))
 
     def build_libffi_static(self):
         if LIBFFI_SOURCES == None:
@@ -351,7 +354,7 @@ class my_build_ext(build_ext.build_ext):
         build_dir = os.path.join(self.build_temp, 'libffi')
         inst_dir = os.path.abspath(self.build_temp)
 
-        libffi_dir = find_file_in_subdir(inst_dir, "libffi.a")
+        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
         incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
         if libffi_dir and incffi_dir:
             self.fix_extension(libffi_dir, incffi_dir)
@@ -360,8 +363,14 @@ class my_build_ext(build_ext.build_ext):
 
         mkpath(build_dir)
 
-        cmd = "cd %s && '%s/configure' --prefix='%s' --disable-shared --enable-static && make install" \
-              % (build_dir, src_dir, inst_dir)
+	config_args = ["--disable-shared",
+		       "--enable-static",
+		       "--enable-multilib=no",
+		       "--prefix='%s'" % inst_dir,
+        ]
+
+        cmd = "cd %s && '%s/configure' %s && make install" \
+              % (build_dir, src_dir, " ".join(config_args))
 
         print 'Building static FFI library:'
         print cmd
@@ -370,7 +379,7 @@ class my_build_ext(build_ext.build_ext):
             print "Failed"
             sys.exit(res)
 
-        libffi_dir = find_file_in_subdir(inst_dir, "libffi.a")
+        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
         incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
         # if not libffi_dir or not incffi_dir: raise some error
 
