@@ -434,6 +434,7 @@ PyTypeObject PyCArg_Type = {
 
 struct argument {
 	ffi_type *ffi_type;
+	PyObject *keep;
 	union {
 		char c;
 		char b;
@@ -457,7 +458,6 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 	if (PyCArg_CheckExact(obj)) {
 		PyCArgObject *carg = (PyCArgObject *)obj;
 		pa->ffi_type = carg->pffi_type;
-		/* XXX What about structures by value? */
 		memcpy(&pa->value, &carg->value, sizeof(pa->value));
 		return 0;
 	}
@@ -520,15 +520,14 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 		if (PyCArg_CheckExact(arg)) {
 			PyCArgObject *carg = (PyCArgObject *)arg;
 			pa->ffi_type = carg->pffi_type;
-			/* XXX What about structures by value? */
 			memcpy(&pa->value, &carg->value, sizeof(pa->value));
-			Py_DECREF(arg); /* XXX */
+			pa->keep = arg;
 			return 0;
 		}
 		if (PyInt_Check(arg)) {
 			pa->ffi_type = &ffi_type_sint;
 			pa->value.l = PyInt_AS_LONG(arg);
-			Py_DECREF(arg);
+			pa->keep = arg;
 			return 0;
 		}
 #if 0
@@ -846,8 +845,11 @@ PyObject *_CallProc(PPROC pProc,
 	avalues = (void **)alloca(sizeof(void *) * argcount);
 	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
 	for (i = 0; i < argcount; ++i) {
-		avalues[i] = (void *)&args[i].value;
 		atypes[i] = args[i].ffi_type;
+		if (atypes[i]->type == FFI_TYPE_STRUCT)
+			avalues[i] = (void *)args[i].value.p;
+		else
+			avalues[i] = (void *)&args[i].value;
 	}
 
 	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes, &result, argcount))
@@ -863,6 +865,8 @@ PyObject *_CallProc(PPROC pProc,
 #endif
 		retval = GetResult(restype, &result);
   cleanup:
+	for (i = 0; i < argcount; ++i)
+		Py_XDECREF(args[i].keep);
 	return retval;
 }
 
