@@ -260,6 +260,35 @@ extern PyObject *PyExc_ArgError;
 extern char *conversion_mode_encoding;
 extern char *conversion_mode_errors;
 
+/* Python 2.4 macros, which are not available in Python 2.3 */
+
+#ifndef Py_CLEAR
+#define Py_CLEAR(op)				\
+        do {                            	\
+                if (op) {			\
+                        PyObject *tmp = (PyObject *)(op);	\
+                        (op) = NULL;		\
+                        Py_DECREF(tmp);		\
+                }				\
+        } while (0)
+#endif
+
+#ifndef Py_VISIT
+/* Utility macro to help write tp_traverse functions.
+ * To use this macro, the tp_traverse function must name its arguments
+ * "visit" and "arg".  This is intended to keep tp_traverse functions
+ * looking as much alike as possible.
+ */
+#define Py_VISIT(op)					\
+        do { 						\
+                if (op) {				\
+                        int vret = visit((op), arg);	\
+                        if (vret)			\
+                                return vret;		\
+                }					\
+        } while (0)
+#endif
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
