@@ -3,6 +3,8 @@
 # then hacked manually
 import weakref
 
+# Should probably be changed to use COMMETHOD!
+
 from ctypes import *
 from comtypes import STDMETHOD
 from comtypes import _GUID, GUID
@@ -332,7 +334,12 @@ class ITypeInfo(IUnknown):
         self.__com_GetRefTypeInfo(href, byref(ti))
         return ti
 
-##    STDMETHOD(HRESULT, 'AddressOfMember', [MEMBERID, INVOKEKIND, POINTER(PVOID)]),
+    def AddressOfMember(self, memid, invkind):
+        "Get the address of a function in a dll"
+        p = c_void_p()
+        self.__com_AddressOfMember(memid, invkind, byref(p))
+        return p.value
+
 ##    STDMETHOD(HRESULT, 'CreateInstance', [POINTER(IUnknown), POINTER(IID), POINTER(PVOID)]),
 
     def GetMops(self, index):
@@ -551,8 +558,11 @@ ITypeInfo._methods_ = [
 
 ITypeComp._methods_ = [
 # C:/Programme/gccxml/bin/Vc71/PlatformSDK/oaidl.h 3090
-    STDMETHOD(HRESULT, 'Bind', [LPOLESTR, DWORD, WORD, POINTER(POINTER(ITypeInfo)), POINTER(DESCKIND), POINTER(BINDPTR)]),
-    STDMETHOD(HRESULT, 'BindType', [LPOLESTR, DWORD, POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp))]),
+    STDMETHOD(HRESULT, 'Bind',
+              [LPOLESTR, DWORD, WORD, POINTER(POINTER(ITypeInfo)),
+               POINTER(DESCKIND), POINTER(BINDPTR)]),
+    STDMETHOD(HRESULT, 'BindType',
+              [LPOLESTR, DWORD, POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp))]),
 ]
 
 ICreateTypeInfo._methods_ = [
