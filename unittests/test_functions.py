@@ -158,11 +158,12 @@ def test_longlong_callbacks():
 
 ##    """
     ""
+def get_suite():
+    return unittest.makeSuite(FunctionTestCase, 'test')
 
 def test(verbose=0):
-    suite = unittest.makeSuite(FunctionTestCase, 'test')
     runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(suite)
+    runner.run(get_suite())
 
 if __name__ == '__main__':
     unittest.main()

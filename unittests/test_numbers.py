@@ -116,10 +116,12 @@ class NumberTestCase(unittest.TestCase):
             self.assertRaises(TypeError, t, 3.14)
 
             
+def get_suite():
+    return unittest.makeSuite(NumberTestCase, 'test')
+
 def test(verbose=0):
-    suite = unittest.makeSuite(NumberTestCase, 'test')
     runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(suite)
+    runner.run(get_suite())
 
 if __name__ == '__main__':
     unittest.main()
