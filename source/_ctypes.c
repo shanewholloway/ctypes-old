@@ -121,7 +121,7 @@ static PyObject *CData_AtAddress(PyObject *type, void *buf);
 
 static PyObject *
 generic_getfunc(void *ptr, unsigned size,
-		PyObject *type, CDataObject *src, ...)
+		PyObject *type, CDataObject *src, int index)
 {
 	if (type == NULL) {
 		PyErr_SetString(PyExc_SystemError,
@@ -928,7 +928,7 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 
 static PyObject *
 CharArray_getfunc(char *ptr, unsigned size,
-		  PyObject *type, CDataObject *src, ...)
+		  PyObject *type, CDataObject *src, int index)
 {
 	int i;
 	for (i = 0; i < size; ++i)
@@ -940,7 +940,7 @@ CharArray_getfunc(char *ptr, unsigned size,
 #ifdef CTYPES_UNICODE
 static PyObject *
 WCharArray_getfunc(wchar_t *ptr, unsigned size,
-		   PyObject *type, CDataObject *src, ...)
+		   PyObject *type, CDataObject *src, int index)
 {
 	unsigned int i;
 	for (i = 0; i < size/sizeof(wchar_t); ++i)
@@ -1021,6 +1021,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	result->tp_dict = (PyObject *)stgdict;
 
 	stgdict->getfunc = generic_getfunc;
+	stgdict->setfunc = StructUnion_setfunc;
 	/* Special casing character arrays.
 	   A permanent annoyance: char arrays are also strings!
 	*/
@@ -2006,6 +2007,7 @@ CData_AtAddress(PyObject *type, void *buf)
  * Set an item in object 'dst', which has the itemtype 'type', to 'value'.
  * This function has the same signature as the SETFUNC has.
  * XXX Explain differences between this function and the type's setfunc.
+ * XXX See also _generic_field_setfunc...
  */
 static PyObject *
 _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
@@ -2014,8 +2016,11 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 
 	if (!CDataObject_Check(value)) {
 		StgDictObject *dict = PyType_stgdict(type);
-		if (dict && dict->setfunc)
-			return dict->setfunc(ptr, value, size, type);
+		assert(dict);
+		assert(dict->setfunc);
+		return dict->setfunc(ptr, value, size, type);
+/* Seems this code is unused */
+#if 0
 		/*
 		   If value is a tuple, we try to call the type with the tuple
 		   and use the result!
@@ -2044,9 +2049,11 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 				     value->ob_type->tp_name);
 			return NULL;
 		}
+#endif
 	}
 	src = (CDataObject *)value;
 
+	/* Hm.  Shouldn't dict->setfunc accept this? */
 	if (PyObject_IsInstance(value, type)) {
 		memcpy(ptr,
 		       src->b_ptr,
@@ -2057,6 +2064,8 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		return value;
 	}
 
+/* Seems this code is unused */
+#if 0
 	if (PointerTypeObject_Check(type)
 	    && ArrayObject_Check(value)) {
 		StgDictObject *p1, *p2;
@@ -2078,6 +2087,7 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		*/
 		return (PyObject *)src;
 	}
+#endif
 	PyErr_Format(PyExc_TypeError,
 		     "incompatible types, %s instance instead of %s instance",
 		     value->ob_type->tp_name,
@@ -3336,7 +3346,6 @@ static PyObject *
 Array_slice(CDataObject *self, int ilow, int ihigh)
 {
 	StgDictObject *stgdict, *itemdict;
-	PyObject *proto;
 	PyListObject *np;
 	int i, len;
 
@@ -3351,9 +3360,8 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 	len = ihigh - ilow;
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	proto = stgdict->proto;
-	itemdict = PyType_stgdict(proto);
-	/* XXX can we use our own getfunc? */
+	itemdict = PyType_stgdict(stgdict->proto);
+
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = (char *)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
@@ -3380,8 +3388,6 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 {
 	int size, offset;
 	StgDictObject *stgdict;
-	PyObject *itemtype;
-	char *ptr;
 	PyObject *keep;
 
 	if (value == NULL) {
@@ -3398,10 +3404,8 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	}
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
-	ptr = self->b_ptr + offset;
-	itemtype = stgdict->proto;
 
-	keep = _CData_set(ptr, value, size, itemtype);
+	keep = _CData_set(self->b_ptr + offset, value, size, stgdict->proto);
 	if (keep == NULL)
 		return -1;
 	return KeepRef(self, index, keep);
@@ -3882,7 +3886,6 @@ Pointer_slice(CDataObject *self, int ilow, int ihigh)
 {
 	PyListObject *np;
 	StgDictObject *stgdict, *itemdict;
-	PyObject *proto;
 	int i, len;
 
 	if (ilow < 0)
@@ -3892,9 +3895,8 @@ Pointer_slice(CDataObject *self, int ilow, int ihigh)
 	len = ihigh - ilow;
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	proto = stgdict->proto;
-	itemdict = PyType_stgdict(proto);
-	/* XXX can we use out own getfunc? */
+	itemdict = PyType_stgdict(stgdict->proto);
+
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = *(char **)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
