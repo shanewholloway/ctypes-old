@@ -229,11 +229,6 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 			}
 		} else
 			bitsize = 0;
-/*
-#ifdef _DEBUG
-		_asm int 3;
-#endif
-*/
 		if (isStruct) {
 			prop = CField_FromDesc(desc, i,
 					       prev_desc, bitsize, &bitofs,
