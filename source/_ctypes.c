@@ -2453,7 +2453,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 		if (piunk)
 			required ++;
 #endif
-		if (dict->flags & FUNCFLAG_CDECL == FUNCFLAG_CDECL) {
+		if ((dict->flags & FUNCFLAG_CDECL) == FUNCFLAG_CDECL) {
 			/* For cdecl functions, we allow more actual arguments
 			   than the length of the argtypes tuple.
 			*/
