@@ -47,12 +47,15 @@ class StringPtrTestCase(unittest.TestCase):
         x = X()
 
         # c_char_p and Python string is compatible
-        # c_char_p and c_buffer is NOT compatible
+        # c_char_p and c_buffer IS NOW  compatible
         self.failUnlessEqual(x.str, None)
         x.str = "Hello, World"
         self.failUnlessEqual(x.str, "Hello, World")
         b = c_buffer("Hello, World")
-        self.failUnlessRaises(TypeError, setattr, x, "str", b)
+        x.str = b
+        self.failUnlessEqual(x.str, "Hello, World")
+        b.value = "spam, spam"
+        self.failUnlessEqual(x.str, "spam, spam")
 
 
     if libc is not None:

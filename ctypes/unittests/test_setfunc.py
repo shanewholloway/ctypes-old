@@ -28,7 +28,8 @@ class TestIntegers(unittest.TestCase):
                 param = cls.from_param(obj)
                 if obj == param:
                     continue
-                self.failUnlessEqual(repr(param), "<cparam '%s' (42)>" % cls._type_)
+                self.failUnlessEqual(repr(param), "<cparam '%s' (42)>" % cls._type_,
+                                     (repr(param), obj, cls, cls._type_))
 
             for obj in (c_char("x"), c_char_p("x"), "x", c_float(42), c_double(42), 42.0):
                 self.assertRaises(TypeError, lambda: cls.from_para,(obj))
@@ -44,6 +45,19 @@ class TestIntegers(unittest.TestCase):
 
             for obj in (c_char("x"), c_char_p("x"), "x", c_float(42), c_double(42), 42.0):
                 self.assertRaises(TypeError, setattr, x, "v", obj)
+
+class TestStrings(unittest.TestCase):
+
+    def test_init(self):
+        pass
+
+    def test_fromparam(self):
+        c_char_p.from_param("abc")
+        c_char_p.from_param(u"abc")
+        c_char_p.from_param(c_char_p("abc"))
+        c_char_p.from_param(byref(c_char("x")))
+#fails        print c_char_p.from_param(c_wchar_p(u"abc"))
+        print c_char_p.from_param(cast(42, c_char_p))
 
 if __name__ == "__main__":
     unittest.main()

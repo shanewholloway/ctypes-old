@@ -800,17 +800,12 @@ z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		Py_INCREF(value);
 		return value;
 	}
-	/* Do we want to allow c_wchar_p also, with conversion? */
-	if (PyObject_IsInstance(value, CTYPE_c_char_p)) {
-		*(char **)ptr = *(char **)(((CDataObject *)value)->b_ptr);
-		Py_INCREF(value);
-		return value;
-	}
 	if (PyString_Check(value)) {
 		*(char **)ptr = PyString_AS_STRING(value);
 		Py_INCREF(value);
 		return value;
-	} else if (PyUnicode_Check(value)) {
+	}
+	if (PyUnicode_Check(value)) {
 		PyObject *str = PyUnicode_AsEncodedString(value,
 							  conversion_mode_encoding,
 							  conversion_mode_errors);
@@ -819,6 +814,28 @@ z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		*(char **)ptr = PyString_AS_STRING(str);
 		Py_INCREF(str);
 		return str;
+	}
+	/* Do we want to allow c_wchar_p also, with conversion? */
+	if (PyObject_IsInstance(value, CTYPE_c_char_p)) {
+		*(char **)ptr = *(char **)(((CDataObject *)value)->b_ptr);
+		Py_INCREF(value);
+		return value;
+	}
+	if (ArrayObject_Check(value)) {
+		PyObject *itemtype = PyObject_stgdict(value)->itemtype;
+		if (PyObject_IsSubclass(itemtype, CTYPE_c_char)) {
+			*(char **)ptr = ((CDataObject *)value)->b_ptr;
+			Py_INCREF(value);
+			return value;
+		}
+	}
+	if (PointerObject_Check(value)) {
+		PyObject *itemtype = PyObject_stgdict(value)->itemtype;
+		if (PyObject_IsSubclass(itemtype, CTYPE_c_char)) {
+			*(char **)ptr = *(char **)((CDataObject *)value)->b_ptr;
+			Py_INCREF(value);
+			return value;
+		}
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "string or integer address expected instead of %s instance",
@@ -852,6 +869,22 @@ Z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		*(wchar_t **)ptr = *(wchar_t **)(((CDataObject *)value)->b_ptr);
 		Py_INCREF(value);
 		return value;
+	}
+	if (ArrayObject_Check(value)) {
+		PyObject *itemtype = PyObject_stgdict(value)->itemtype;
+		if (PyObject_IsSubclass(itemtype, CTYPE_c_wchar)) {
+			*(char **)ptr = ((CDataObject *)value)->b_ptr;
+			Py_INCREF(value);
+			return value;
+		}
+	}
+	if (PointerObject_Check(value)) {
+		PyObject *itemtype = PyObject_stgdict(value)->itemtype;
+		if (PyObject_IsSubclass(itemtype, CTYPE_c_wchar)) {
+			*(char **)ptr = *(char **)((CDataObject *)value)->b_ptr;
+			Py_INCREF(value);
+			return value;
+		}
 	}
 	if (PyString_Check(value)) {
 		value = PyUnicode_FromEncodedObject(value,
