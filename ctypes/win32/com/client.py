@@ -525,6 +525,30 @@ def DispatchWithEvents(progid, user_class, interface=IDispatch,
     result.__dict__["_event_handler"] = rcv._handler
     return result
 
+def GetObject(displayName):
+    # see also: c:/python23/lib/site-packages/win32com/client/__init__.py 47
+    # win32com is more flexible
+    from ctypes.com.moniker import MkParseDisplayName
+    moniker, i, bindCtx = MkParseDisplayName("winmgmts:")
+    pdisp = POINTER(IDispatch)()
+    moniker.BindToObject(bindCtx, None, byref(IDispatch._iid_), byref(pdisp))
+    return _Dispatch(pdisp)
+
+
+if __name__ == "__main__":
+
+    # win32com code:
+    #  moniker, i, bindCtx = pythoncom.MkParseDisplayName(Pathname)
+    #  dispatch = moniker.BindToObject(bindCtx, None, pythoncom.IID_IDispatch)
+
+    d = GetObject("winmgmts:")
+    result = d.ExecQuery("SELECT * FROM Win32_NTLogEvent WHERE LogFile = 'Application'")
+    print len(result)
+    print result.Count
+
+    raise SystemExit
+
+
 ################################################################
 
 if __name__ == "__main__":
