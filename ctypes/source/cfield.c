@@ -22,70 +22,6 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
-/* Default setfunc to be used as CFieldObject.setfunc when the field type
-   doesn't supply its own setfunc.
-
-   Can eventually be removed when ALL ctypes types supply their own setfunc.
-*/
-static PyObject *
-_generic_field_setfunc(void *ptr, PyObject *value, unsigned size,
-		       PyObject *type)
-{
-	/* inlined code from _CData_set() */
-	if (CDataObject_Check(value)) {
-		CDataObject *src = (CDataObject *)value;
-
-		/* same type */
-		if (PyObject_IsInstance(value, type)) {
-			memmove(ptr,
-				src->b_ptr,
-				size);
-			value = GetKeepedObjects(src);
-			Py_INCREF(value);
-			return value;
-		}
-
-		/* field type: X*
-		   value type: X[]
-		*/
-		if (PointerTypeObject_Check(type)
-		    && ArrayObject_Check(value)
-		    && PyObject_stgdict(value)->proto == PyType_stgdict(type)->proto) {
-			*(void **)ptr = src->b_ptr;
-			/* We need to keep the array alive, not just the arrays b_objects. */
-			Py_INCREF(value);
-			return value;
-		}
-	} else {
-		/* Not a CDataObject instance */
-		if (PyTuple_Check(value)) {
-			/* If value is a tuple, we call the type with the tuple
-			   and use the result */
-			PyObject *ob;
-			PyObject *result;
-			ob = PyObject_CallObject(type, value);
-			if (ob == NULL) {
-				Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
-						  ((PyTypeObject *)type)->tp_name);
-				return NULL;
-			}
-			result = _generic_field_setfunc(ptr, ob, size, type);
-			Py_DECREF(ob);
-			return result;
-		}
-		if (value == Py_None && PointerTypeObject_Check(type)) {
-			*(void **)ptr = NULL; /*GCOV*/
-			Py_INCREF(Py_None); /*GCOV*/
-			return Py_None; /*GCOV*/
-		}
-	}
-	PyErr_Format(PyExc_TypeError,
-		     "Incompatible types %s instance instead of %s instance",
-		     value->ob_type->tp_name,
-		     ((PyTypeObject *)type)->tp_name);
-	return NULL;
-}
-
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -160,7 +96,8 @@ CField_FromDesc(PyObject *desc, int index,
 	size = dict->size;
 	length = dict->length;
 
-	setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
+	assert(dict->setfunc);
+	setfunc = dict->setfunc;
 
 	/*  Field descriptors for 'c_char * n' are be special cased to
 	    return a Python string instead of an Array object instance...
