@@ -2092,9 +2092,8 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_needsfree = 1;
 	if (data) {
 		memcpy(obj->b_ptr, data, slen);
-		memset(obj->b_ptr+slen, 0, size-slen);
-	} else
-		memset(obj->b_ptr, 0, size);
+	}
+	obj->b_ptr[size-1] = '\0';
 	return (PyObject *)obj;
 }
 

@@ -1,3 +1,13 @@
+2003-02-26  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c (CString_new): The buffer is only initialized
+	to the bytes from the string is passed in, if any.  The
+	terminating NUL byte is always set.  This allows large c_string
+	instances to be created with minimum overhead.
+
+	* source: Moved code from _ctypes.c into the new files cfield.c
+	(field accessors) and stgdict.c (storage info dict).
+
 2003-02-25  Thomas Heller  <theller@python.net>
 
 	* source\callproc.c: Added call_cdeclfunction.
