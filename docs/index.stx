@@ -16,6 +16,16 @@ The ctypes module
 
   News
 
+    Bradley Schatz has started porting 'ctypes' to 'java'. The code is
+    already in
+    "CVS":http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/ctypes/ctypes-java/,
+    and here are the preliminary "docs":http://tinyurl.com/jel2 fresh from
+    CVS.
+
+    There is now a mailing list for discussion of "ctypes
+    development":http://lists.sourceforge.net/lists/listinfo/ctypes-devel,
+    and a "Wiki":http://starship.python.net/crew/theller/moin.cgi/CtypesModule.
+
     **'ctypes' version 0.6.2 has been released**. The changes are
     summarized "here":changes.html.
 
