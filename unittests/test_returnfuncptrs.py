@@ -16,7 +16,7 @@ class ReturnFuncPtrTestCase(unittest.TestCase):
         self.assertRaises(TypeError, strchr, "abcdef", 3)
         self.assertRaises(TypeError, strchr, "abcdef")
         
-    def test__without_prototype(self):
+    def test_without_prototype(self):
         dll = CDLL(_ctypes_test.__file__)
         get_strchr = dll.get_strchr
         addr = get_strchr()
