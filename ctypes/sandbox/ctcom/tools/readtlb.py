@@ -1,41 +1,10 @@
-from ctcom.typeinfo import LoadTypeLib, ITypeInfoPointer, BSTR, LPTYPEATTR, LPFUNCDESC, HREFTYPE
+from ctcom.typeinfo import LoadTypeLib, ITypeInfoPointer, BSTR, \
+     LPTYPEATTR, LPFUNCDESC, HREFTYPE
 from ctcom.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS
+from ctcom.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
+     DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF
+
 from ctypes import byref, c_int, c_ulong
-
-class TypeInfoReader:
-    def __init__(self, library, typeinfo):
-        self.library = library
-        self.ti = typeinfo
-
-        self._get_typeattr()
-        self._get_documentation()
-
-    def _get_typeattr(self):
-        pta = LPTYPEATTR()
-        self.ti.GetTypeAttr(byref(pta))
-        ta = pta.contents
-        self.guid = str(ta.guid)
-        self._parse_typeattr(ta)
-        self.ti.ReleaseTypeAttr(pta)
-
-    def _get_documentation(self):
-        name = BSTR()
-        docstring = BSTR()
-        helpcontext = c_ulong()
-        helpfile = BSTR()
-        self.ti.GetDocumentation(-1, byref(name),
-                                 byref(docstring), byref(helpcontext),
-                                 byref(helpfile))
-        self.name = name.value
-        self.docstring = docstring.value
-
-    def _parse_typeattr(self, ta):
-        pass
-
-DISPATCH_METHOD = 0x1
-DISPATCH_PROPERTYGET = 0x2
-DISPATCH_PROPERTYPUT = 0x4
-DISPATCH_PROPERTYPUTREF = 0x8
 
 VT_EMPTY	= 0
 VT_NULL	= 1
@@ -88,7 +57,7 @@ TYPES = {
     VT_DISPATCH: "IDispatchPointer",
 
     VT_BOOL: "c_int", # VT_BOOL
-
+    VT_VARIANT: "VARIANT",
     VT_UNKNOWN: "IUnknownPointer",
 
     VT_I1: "c_byte",
@@ -105,6 +74,54 @@ TYPES = {
     VT_LPSTR: "c_char_p",
     VT_LPWSTR: "c_wchar_p",
     }
+
+class TypeInfoReader:
+    def __init__(self, library, typeinfo):
+        self.library = library
+        self.ti = typeinfo
+
+        self._get_typeattr()
+        self._get_documentation()
+
+    def _get_typeattr(self):
+        pta = LPTYPEATTR()
+        self.ti.GetTypeAttr(byref(pta))
+        ta = pta.contents
+        self.guid = str(ta.guid)
+        self._parse_typeattr(ta)
+        self.ti.ReleaseTypeAttr(pta)
+
+    def _get_documentation(self):
+        name = BSTR()
+        docstring = BSTR()
+        helpcontext = c_ulong()
+        helpfile = BSTR()
+        self.ti.GetDocumentation(-1, byref(name),
+                                 byref(docstring), byref(helpcontext),
+                                 byref(helpfile))
+        self.name = name.value
+        self.docstring = docstring.value
+
+    def _parse_typeattr(self, ta):
+        pass
+
+class EnumReader(TypeInfoReader):
+    def declaration(self):
+        l = []
+        l.append("class %s(enum):" % self.name)
+        l.append('    """%s"""' % self.docstring)
+        l.append("    _iid_ = GUID('%s')" % self.guid)
+        l.append("")
+        return "\n".join(l)
+
+class Method:
+    def __init__(self, name, restype, argtypes):
+        self.name = name
+        self.argtypes = argtypes
+
+    def declaration(self):
+        argtypes = ", ".join(self.argtypes)
+        return '"%s", [%s]' % (self.name, argtypes)
 
 class InterfaceReader(TypeInfoReader):
     
@@ -154,8 +171,11 @@ class InterfaceReader(TypeInfoReader):
                 assert 0
             argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
 
-            restype = TYPES[fd.elemdescFunc.tdesc.vt]
-            methods.append((name, restype, fd.oVft/4, argtypes))
+            restype = fd.elemdescFunc.tdesc.vt
+            assert restype in (VT_HRESULT, VT_VOID, VT_UI4, VT_I4), restype
+            mth = Method(name, restype, argtypes)
+##            oVft/4
+            methods.append(mth)
 ##            print "%s(%d)" % (name.value, fd.cParams)
 ##            print fd.elemdescFunc.tdesc.vt
 ##            assert fd.elemdescFunc.tdesc.vt in (24, 25), fd.elemdescFunc.tdesc.vt # HRESULT
@@ -166,8 +186,8 @@ class InterfaceReader(TypeInfoReader):
 
         l = []
         l.append("%s._methods_ = [" % self.name)
-        for n, v, o, t in methods:
-            l.append('         ("%s", %s, %s, %s)' % (n, v, o, t))
+        for m in methods:
+            l.append('    (%s),' % m.declaration())
         l.append("]")
         return "\n".join(l)
 
@@ -181,9 +201,21 @@ class InterfaceReader(TypeInfoReader):
         return result
 
     def _get_type(self, tdesc):
-        if tdesc.vt == 26:
+        if tdesc.vt == VT_PTR:
             return "POINTER(%s)" % self._get_type(tdesc.u.lptdesc[0])
-        return TYPES.get(tdesc.vt, tdesc.vt)
+        if tdesc.vt == VT_USERDEFINED:
+            # use hreftype
+            hr = tdesc.u.hreftype
+            ti = ITypeInfoPointer()
+            self.ti.GetRefTypeInfo(hr, byref(ti))
+
+            name = BSTR()
+            ti.GetDocumentation(-1, byref(name), None, None, None)
+
+            return name.value
+
+##        return TYPES.get(tdesc.vt, tdesc.vt)
+        return TYPES[tdesc.vt]
 
 class DispatchInterfaceReader(InterfaceReader):
     pass
@@ -214,6 +246,20 @@ class CoClassReader(TypeInfoReader):
         l.append("")
         return "\n".join(l)
 
+HEADER = r"""
+from ctcom import IUnknown, GUID, COMPointer
+from ctcom.typeinfo import IDispatch, BSTR
+
+from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
+     c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
+     c_float, c_double
+
+class COMObject:
+    pass
+
+class enum:
+    pass
+"""
 
 class TypeLibReader:
     def __init__(self, filename):
@@ -242,9 +288,9 @@ class TypeLibReader:
                 rdr = InterfaceReader(self, ti)
                 self.interfaces[rdr.guid] = rdr
             elif kind.value == TKIND_ENUM:
-##                rdr = EnumReader(self, ti)
-##                self.enums[rdr.guid] = rdr
-                print "# ??? Enum"
+                rdr = EnumReader(self, ti)
+                self.enums[rdr.guid] = rdr
+##                print "# ??? Enum"
 
         for iid in self.types:
             ti = self.types[iid]
@@ -266,15 +312,15 @@ class TypeLibReader:
 
     def dump(self, ofi=None):
 
-##        print >> ofi, "# Generated from %s" % self.filename
-##        print >> ofi, HEADER
+        print >> ofi, "# Generated from %s" % self.filename
+        print >> ofi, HEADER
         
         if self.enums:
             print >> ofi
             print >> ofi, "#" * 78
             for guid, itf in self.enums.iteritems():
                 print >> ofi
-                print >> ofi, itf
+                print >> ofi, itf.declaration()
 
         if self.interfaces:
             print >> ofi
