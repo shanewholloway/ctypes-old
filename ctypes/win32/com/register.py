@@ -80,7 +80,7 @@ class Registrar(object):
                 exe = sys.executable
             else:
                 # Or pythonw.exe?
-                exe = "%s %s" % (sys.executable, os.path.abspath(sys.argv[0]))
+                exe = '%s "%s"' % (sys.executable, os.path.abspath(sys.argv[0]))
             table.append((HKCR, "CLSID\\%s\\LocalServer32" % self._reg_clsid_, "", exe))
                  
         return table
