@@ -33,6 +33,7 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 if os.name == "nt":
     extensions = [Extension("_ctypes",
+##                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             export_symbols=["DllGetClassObject,PRIVATE",
                                            "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
