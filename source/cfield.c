@@ -110,10 +110,6 @@ CField_FromDesc(PyObject *desc, int index,
 		StgDictObject *idict;
 		if (adict && adict->proto) {
 			idict = PyType_stgdict(adict->proto);
-			if (idict->setfunc == getentry("c")->setfunc) {
-				struct fielddesc *fd = getentry("s");
-				setfunc = fd->setfunc;
-			}
 #ifdef CTYPES_UNICODE
 			if (idict->setfunc == getentry("u")->setfunc) {
 				struct fielddesc *fd = getentry("U");
@@ -901,6 +897,9 @@ s_set(void *ptr, PyObject *value, unsigned length, PyObject *type)
 	char *data;
 	unsigned size;
 
+	/* XXX This accepts unicode converting it with the default ancoding.
+	   Not what we want.
+	*/
 	data = PyString_AsString(value);
 	if (!data)
 		return NULL;
