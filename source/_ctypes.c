@@ -2342,36 +2342,17 @@ CString_set_value(CDataObject *self, PyObject *value)
 	data = PyString_AsString(value);
 	if (!data)
 		return -1;
-	size = strlen(data);
-	if (size > self->b_size) {
+	size = PyString_Size(value);
+	if (size == -1)
+		return -1;
+	if (size+1 > self->b_size) {
 		PyErr_SetString(PyExc_ValueError,
 				"string too long");
 		return -1;
 	}
+	/* clear old contents of buffer, just in case */
 	memset(self->b_ptr, 0, self->b_size);
-	memcpy(self->b_ptr, data, size);
-	return 0;
-}
-
-static int
-CString_set_value_raw(CDataObject *self, PyObject *value)
-{
-	char *data;
-	int size;
-
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return -1;
-	}
-	if (-1 == PyString_AsStringAndSize(value, &data, &size))
-		return -1;
-	if (size > self->b_size) {
-		PyErr_SetString(PyExc_ValueError,
-				"string too long");
-		return -1;
-	}
-	memset(self->b_ptr, 0, self->b_size);
+	/* copy new contents */
 	memcpy(self->b_ptr, data, size);
 	return 0;
 }
@@ -2391,7 +2372,7 @@ CString_as_parameter(CDataObject *self)
 
 static PyGetSetDef CString_getsets[] = {
 	{ "raw", (getter)CString_get_value_raw,
-	  (setter)CString_set_value_raw,
+	  (setter)CString_set_value,
 	  "the raw string contents", NULL },
 	{ "value", (getter)CString_get_value,
 	  (setter)CString_set_value,
