@@ -1,9 +1,21 @@
+2004-10-15  Thomas Heller  <theller@python.net>
+
+	* Work around a bug in Python's PyUnicode_FromWideChar and
+	PyUnicode_AsWideChar api functions.
+
+2004-10-14  Thomas Heller  <theller@python.net>
+
+	* Implemented cycle GC for several internal types fixed some
+	leaks.  Fixed another memory leak and a refcount leak.
+	Added a unittest to check for leaks.
+
 2004-10-13  Thomas Heller  <theller@python.net>
 
 	* Bit fields in structures and unions are now implemented.  They
 	are defined using a third item in the _fields_ list, which
 	specifies the number of bits in this field.  Bit fields are only
 	allowed for numeric types, not for character types like c_char.
+	Tested on several x86, windows and linux.
 
 2004-10-12  Thomas Heller  <theller@python.net>
 
