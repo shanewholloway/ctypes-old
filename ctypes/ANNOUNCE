@@ -27,6 +27,17 @@ Changes in 0.9.1
 
   ctypes changes
 
+    ctypes now allows calling Python C api functions.  The pythonapi
+    symbol should be used to access these functions, this will
+    automatically use the correct calling convention and exception
+    handling.  The py_object type is the ctypes variant of 'PyObject *'.
+    This feature should also work if you are using a static python
+    build.
+
+    It is now possible to call cdecl functions with more arguments
+    than the length of the argtypes sequence specifies - this allows
+    to provide functions like sprintf() with a proper prototype.
+
     It is now possible to create strings or unicode strings if you
     have the integer address by calling c_char_p(address) or
     c_wchar_p(address).  Integers can also be assigned to structure
@@ -52,12 +63,6 @@ Changes in 0.9.1
     The alignment function was not exported by the ctypes module.  It
     returns the alignment requirements in bytes of a type or instance.
 
-  experimental changes
-
-    It is now possible to call Python API functions with ctypes.  This
-    is an experimental feature and will probably change.  Please don't
-    use it yet in production code, and watch the ctypes-users mailing
-    list.
 
   ctypes.com changes
 
