@@ -116,6 +116,10 @@ ffi_status ffi_prep_cif(/*@out@*/ /*@partial@*/ ffi_cif *cif,
 #if !defined M68K && !defined __x86_64__ && !defined S390
   /* Make space for the return structure pointer */
   if (cif->rtype->type == FFI_TYPE_STRUCT
+#ifdef _MSC_VER
+      /* MSVC returns small structures in registers */
+      && cif->rtype->size > 8
+#endif
 #ifdef SPARC
       && (cif->abi != FFI_V9 || cif->rtype->size > 32)
 #endif
