@@ -1,6 +1,6 @@
 # cparser_config.py - configuration items for cparser.py
 #
-# XXX should be made platform specific!
+# XXX Should this be converted to the h2xml.cfg style?
 import re, sys, os
 
 # C keywords, according to MSDN, plus some additional
