@@ -268,9 +268,6 @@ class Generator(object):
     def Function(self, func):
         if func in self.done:
             return
-        if func.name == "qsort":
-            import pdb
-            pdb.set_trace()
         dllname = self.find_dllname(func.name)
         if dllname and func.extern:
             self.generate(func.returns)
