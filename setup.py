@@ -33,6 +33,9 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 
 if os.name == "nt":
+    fmt = "bBhHiIlLqQfd"
+    testfunc_names = ["s_tf_%s" % s for s in fmt] + ["s_tf_b%s" % s for s in fmt]
+
     kw["sources"].extend([
 ##        "source/libffi_msvc/types.c",
         "source/libffi_msvc/ffi.c",
@@ -50,6 +53,7 @@ if os.name == "nt":
                   Extension("_ctypes_test",
                             libraries=["oleaut32"],
                             sources=["source/_ctypes_test.c"],
+                            export_symbols=testfunc_names,
                             include_dirs=["source/libffi_msvc"],
                             )
                   ]
