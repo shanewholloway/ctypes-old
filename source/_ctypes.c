@@ -4485,6 +4485,40 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
 	return Py_None;
 }
 
+#ifdef MS_WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT
+#endif
+
+/* some functions handy for testing */
+
+EXPORT int _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
+{
+//	printf("_testfunc_i_bhilfd got %d %d %d %d %f %f\n",
+//	       b, h, i, l, f, d);
+	return (int)(b + h + i + l + f + d);
+}
+
+EXPORT float _testfunc_f_bhilfd(char b, short h, int i, long l, float f, double d)
+{
+//	printf("_testfunc_f_bhilfd got %d %d %d %d %f %f\n",
+//	       b, h, i, l, f, d);
+	return (float)(b + h + i + l + f + d);
+}
+
+EXPORT double _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double d)
+{
+//	printf("_testfunc_d_bhilfd got %d %d %d %d %f %f\n",
+//	       b, h, i, l, f, d);
+	return (double)(b + h + i + l + f + d);
+}
+
+EXPORT char * _testfunc_s_s(char *s)
+{
+	return s;
+}
+
 /*
  Local Variables:
  compile-command: "python ../setup.py -q build install --home ~"
