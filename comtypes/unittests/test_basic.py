@@ -1,6 +1,6 @@
 import unittest
 from ctypes import windll, POINTER, byref, HRESULT
-from comtypes import IUnknown, STDMETHOD
+from comtypes import IUnknown, STDMETHOD, GUID
 
 def method_count(interface):
     return sum([len(base.__dict__.get("_methods_", ()))
@@ -49,6 +49,10 @@ class BasicTest(unittest.TestCase):
 
         self.failUnlessEqual(method_count(IMyInterface), 3)
 
+        # assigning _methods_ does not work until we have an _iid_!
+        self.assertRaises(AttributeError,
+                          setattr, IMyInterface, "_methods_", [])
+        IMyInterface._iid_ = GUID.create_new()
         IMyInterface._methods_ = []
         self.failUnlessEqual(method_count(IMyInterface), 3)
 
