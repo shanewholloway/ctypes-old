@@ -502,15 +502,30 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 
 #ifdef Py_USING_UNICODE
 	if (PyUnicode_Check(obj)) {
-		pa->ffi_type = &ffi_type_pointer;
 #ifdef HAVE_USABLE_WCHAR_T
+		pa->ffi_type = &ffi_type_pointer;
 		pa->value.p = PyUnicode_AS_UNICODE(obj);
 		Py_INCREF(obj);
 		pa->keep = obj;
-#else
-#error FIXME - create a 'wchar_t *'
-#endif
 		return 0;
+#else
+		int size = PyUnicode_GET_SIZE(obj);
+		size += 1; /* terminating NUL */
+		size *= sizeof(wchar_t);
+		pa->value.p = PyMem_Malloc(size);
+		if (!pa->value.p)
+			return -1;
+		memset(pa->value.p, 0, size);
+		pa->keep = PyCObject_FromVoidPtr(pa->value.p, PyMem_Free);
+		if (!pa->keep) {
+			PyMem_Free(pa->value.p);
+			return -1;
+		}
+		if (-1 == PyUnicode_AsWideChar((PyUnicodeObject *)obj,
+					       pa->value.p, PyUnicode_GET_SIZE(obj)))
+			return -1;
+		return 0;
+#endif
 	}
 #endif
 
@@ -594,7 +609,7 @@ static int _call_function_pointer(int flags,
 				  struct argument *res,
 				  int argcount)
 {
-	PyThreadState *_save; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
+	PyThreadState *_save = NULL; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
 	ffi_cif cif;
 	int cc;
 #ifdef MS_WIN32
