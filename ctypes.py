@@ -174,6 +174,8 @@ class CDLL:
                (self.__class__.__name__, self._name, self._handle, id(self))
 
     def __getattr__(self, name):
+        if name[:2] == '__' and name[-2:] == '__':
+            raise AttributeError, name
         func = _DynFunction(name, self, FUNCFLAG_CDECL)
         setattr(self, name, func)
         return func
@@ -186,12 +188,16 @@ class CDLL:
 if _os.name ==  "nt":
     class WinDLL(CDLL):
         def __getattr__(self, name):
+            if name[:2] == '__' and name[-2:] == '__':
+                raise AttributeError, name
             func = _DynFunction(name, self)
             setattr(self, name, func)
             return func
 
     class OleDLL(CDLL):
         def __getattr__(self, name):
+            if name[:2] == '__' and name[-2:] == '__':
+                raise AttributeError, name
             func = _DynFunction(name, self, FUNCFLAG_HRESULT)
             setattr(self, name, func)
             return func
