@@ -3,7 +3,6 @@ from ctypes import *
 
 class CallbacksBase(unittest.TestCase):
     def callback(self, *args):
-        print "GOT", args
         self.got_args = args
         return args[-1]
 
