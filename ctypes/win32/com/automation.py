@@ -88,14 +88,7 @@ VAR_DISPATCH = 3
 # So BSTR's received from dll function calls will never be freed,
 # and BSTR's we pass to functions are freed too often ;-(
 
-from _ctypes import _SimpleCData
-
-class BSTR(_SimpleCData):
-    _type_ = "X"
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.value)
-
-assert(sizeof(BSTR) == 4)
+from ctypes import BSTR
 
 ################################################################
 # Interfaces declarations
