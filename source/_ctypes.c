@@ -4548,6 +4548,17 @@ EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
 	return initial;
 }
 
+EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG))
+{
+	LONG_LONG initial = value;
+
+	while (value != 0) {
+		func(value);
+		value /= 2;
+	}
+	return initial;
+}
+
 #endif
 /*
  Local Variables:
