@@ -1,5 +1,5 @@
-ctypes 0.9.1 released - Sept 14, 2004
-=====================================
+ctypes 0.9.2 released - Oct 28, 2004
+====================================
 
 Overview
 
@@ -12,109 +12,52 @@ Overview
     wrap libraries in pure Python.  It is even possible to implement C
     callback functions in pure Python.
 
-    ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD.  It may
-    also run on other systems, provided that libffi supports this
-    platform.
+    ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD, OpenBSD.
+    It may also run on other systems, provided that libffi supports
+    this platform.
 
     On windows, ctypes contains a ctypes.com package which allows to
     call and implement custom COM interfaces.
 
 
-Changes in 0.9.1
+Changes in 0.9.2
 
-  ctypes 0.9.1 should be fully compatible again with Gary Bishop's
-  readline module which is also used by IPython.
+    Fixed several bugs and memory leaks.
 
-  ctypes changes
+    ctypes is now tested on Windows, Linux (x86 and x86_64), OpenBSD
+    and Mac OS X.
 
-    The internal conversions that ctypes does between unicode and
-    strings can now use a specified encoding and error handling.  A
-    set_conversion_mode() function allows to set them, it returns the
-    previous values.  The inital values are ('mbcs', 'ignore') on
-    Windows, and ('ascii', 'strict') on other systems.
+    Implemented some helper functions: memmove, memset, string_at, wstring_at.
+    The former act as their C library counterpart, the latter two allow
+    to read a zero-terminated (wide) strings at a certain address.
 
-    When internal processing of an argument for a function call fails,
-    the new ctypes.ArgumentError is raised.
+    Implemented a cast(cobj, ctype) function, which creates a new object
+    of the specified ctype from an existing object.
 
-    CDLL and its subclasses now accept an optional second handle
-    parameter.  If this is supplied, it is used instead of calling
-    LoadLibrary() or dlopen() to get one.
+    ctypes now explicitely allocates executable memory for the callbacks
+    it creates, this makes it work correctly on platforms where
+    executing data is normally forbidden (OpenBSD, Win XP SP2 on AMD 64).
 
-    Sometimes objects have been freed too early when calling functions
-    where argtypes have been set.
+    Fixed the unicode handling on non-windows platforms.
 
-    Fixed the create_unicode_buffer function - it was returning c_char
-    arrays instead of c_wchar arrays.
+    Bit fields in structures and unions are now implemented.
+    For a bit field, one would specify the width in bits as the third
+    part in the _fields_ list like this:
 
-    Both create_string_buffer and create_unicode_buffer can now be
-    called with string and unicode instances, they will do the needed
-    conversions themselves.
+	class BitFieldSample(Structure):
+	    _fields_ = [("anInt", c_int),
+			("aBitField", c_int, 3)]
 
-    ctypes now allows calling Python C api functions.  The 'pythonapi'
-    symbol should be used to access these functions, this will
-    automatically use the correct calling convention and exception
-    handling.  The 'py_object' type is the ctypes variant of 'PyObject *'.
-    This feature should also work if you are using a static python
-    build.
+    POINTER(None) now returns c_void_p.  This change was made for easier
+    code generation, and makes sense since 'None' is the ctypes way to
+    spell 'void'.
 
-    It is now possible to call cdecl functions with more arguments
-    than the length of the argtypes sequence specifies - this allows
-    to provide functions like sprintf() with a proper prototype.
-
-    It is now possible to create strings or unicode strings if you
-    have the integer address by calling c_char_p(address) or
-    c_wchar_p(address).  Integers can also be assigned to structure
-    fields of type c_char_p and c_wchar_p.
-
-    c_char_p and c_wchar_p both accept strings and unicode strings -
-    if needed they are encoded or decoded using 'strict' error
-    handling.
-
-    The _ctypes.call_function function, although private and
-    deprecated, has been put back in - it is used by Gary Bishop's
-    readline module.
-
-    Array and pointer instances now support slicing, for pointers only
-    getslice is implemented (setslice is too dangerous, probably).
-    Slices are represented as lists of the elements, except
-    for character and unicode character pointer and arrays, where
-    strings resp. unicode strings are used instead.
-
-    On windows, the include files were missing from the source
-    distribution.
-
-    The alignment function was not exported by the ctypes module.  It
-    returns the alignment requirements in bytes of a type or instance.
-
-
-  ctypes.com changes
-
-    Applied a patch from Bruce Dodson which fixes an infinite loop in
-    readtlb.py if a typelib references types defined in another
-    typelib.  readtlb still generates bad code for such cases, but the
-    results could be edited by hand if the dependencies can be sorted
-    out.
-
-    ctypes now caches the types that WINFUNCTYPE and CFUNCTYPE
-    creates, to avoid unneeeded creation of classes. This
-    makes importing files containing a lot of COM interfaces (like the
-    ones that the readtlb tool generates) a lot (10 x) faster.
-
-    COM servers now print a short usage message when they are run
-    without the /regserver or /unregserver flag.
-
-    VARIANT does now handle the COM DATE type (VT_DATE) as Python
-    datetime.
-
-    VARIANT now handles integers and longs correctly - if longs are
-    too large they are stored as doubles (VT_R8). Integers are now
-    stored as VT_I4 instead of VT_INT.
 
     Detailed changelogs are in CVS:
     
-  <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD>
+    <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD>
 
-  <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD>
+    <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD>
 
 
 Future plans

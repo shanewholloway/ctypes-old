@@ -1363,13 +1363,13 @@ c_memset(PyObject *self, PyObject *args)
 	return result;
 }
 
-static char get_string_doc[] =
-"get_string(addr[, size]) -> string\n\
+static char string_at_doc[] =
+"string_at(addr[, size]) -> string\n\
 \n\
 Return the string at addr.\n";
 
 static PyObject *
-get_string(PyObject *self, PyObject *args)
+string_at(PyObject *self, PyObject *args)
 {
 	PyObject *result = NULL;
 	PyObject *src;
@@ -1390,13 +1390,13 @@ get_string(PyObject *self, PyObject *args)
 }
 
 #ifdef CTYPES_UNICODE
-static char get_wstring_doc[] =
-"get_wstring(addr[, size]) -> unicode string\n\
+static char wstring_at_doc[] =
+"wstring_at(addr[, size]) -> unicode string\n\
 \n\
 Return the wide string at addr.\n";
 
 static PyObject *
-get_wstring(PyObject *self, PyObject *args)
+wstring_at(PyObject *self, PyObject *args)
 {
 	PyObject *result = NULL;
 	PyObject *src;
@@ -1418,12 +1418,12 @@ get_wstring(PyObject *self, PyObject *args)
 #endif
 
 PyMethodDef module_methods[] = {
-	{"get_string", get_string, METH_VARARGS, get_string_doc},
+	{"string_at", string_at, METH_VARARGS, string_at_doc},
 	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
 	{"memset", c_memset, METH_VARARGS, memset_doc},
 	{"cast", cast, METH_VARARGS, cast_doc},
 #ifdef CTYPES_UNICODE
-	{"get_wstring", get_wstring, METH_VARARGS, get_wstring_doc},
+	{"wstring_at", wstring_at, METH_VARARGS, wstring_at_doc},
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
 #endif
 #ifdef MS_WIN32

@@ -246,7 +246,7 @@ else:
             return buf
         raise TypeError, init
 
-    from _ctypes import get_wstring
+    from _ctypes import wstring_at
     
 POINTER(c_char).from_param = c_char_p.from_param #_SimpleCData.c_char_p_from_param
 
@@ -379,4 +379,4 @@ _pointer_type_cache[None] = c_void_p
 
 # functions
 
-from _ctypes import memmove, memset, get_string, cast
+from _ctypes import memmove, memset, string_at, cast
