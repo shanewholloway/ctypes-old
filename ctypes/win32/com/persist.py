@@ -1,11 +1,8 @@
 from ctypes import *
 from ctypes.com import IUnknown, GUID, HRESULT, STDMETHOD
-from ctypes.wintypes import DWORD
-from ctypes.com.automation import VARIANT
+from ctypes.wintypes import DWORD, LPOLESTR, LPCOLESTR, BOOL
+from ctypes.com.automation import VARIANT, IErrorLog
 from ctypes.com.storage import IStream
-
-LPCOLESTR = c_wchar_p
-BOOL = c_int
 
 class IPersist(IUnknown):
     _iid_ = GUID("{0000010C-0000-0000-C000-000000000046}")
@@ -23,6 +20,16 @@ class IPersistStream(IPersist):
         STDMETHOD(HRESULT, "GetSizeMax", POINTER(c_longlong))
         ]
 
+class IPersistStreamInit(IPersist):
+    _iid_ = GUID("{7FD52380-4E07-101B-AE2D-08002B2EC713}")
+    _methods_ = IPersist._methods_ + [
+        STDMETHOD(HRESULT, "IsDirty"),
+        STDMETHOD(HRESULT, "Load", POINTER(IStream)),
+        STDMETHOD(HRESULT, "Save", POINTER(IStream), BOOL),
+        STDMETHOD(HRESULT, "GetSizeMax", POINTER(c_longlong)),
+        STDMETHOD(HRESULT, "InitNew")
+        ]
+
 class IPersistFile(IPersist):
     _iid_ = GUID("{0000010B-0000-0000-C000-000000000046}")
     _methods_ = IPersist._methods_ + [
@@ -34,10 +41,6 @@ class IPersistFile(IPersist):
         # How would we do this?
         STDMETHOD(HRESULT, "GetCurFile", POINTER(LPCOLESTR))
         ]
-
-# fake:
-IErrorLog = IUnknown
-IPropertyBag = IUnknown
 
 class IPropertyBag(IUnknown):
     _iid_ = GUID("{55272A00-42CB-11CE-8135-00AA004BB851}")
@@ -54,4 +57,4 @@ class IPersistPropertyBag(IPersist):
         STDMETHOD(HRESULT, "Save", POINTER(IPropertyBag), BOOL, BOOL)
         ]
 
-__all__ = ["Persist", "IPersistFile", "IPropertyBag", "IPersistPropertyBag"]
+##__all__ = ["Persist", "IPersistFile", "IPropertyBag", "IPersistPropertyBag"]

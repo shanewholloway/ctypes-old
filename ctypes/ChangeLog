@@ -1,13 +1,28 @@
-2004-01-30  Thomas Heller  <theller@python.net>
+2004-04-20  Thomas Heller  <theller@python.net>
 
-	* (Repository): Added STATUS.txt, which describes the state of the
-	libffi integration.  Added bench.bat, a batch file using the
-	timeit module to make it easier to check the speed of some simple
-	operations.
+	* ctypes\__init__.py: c_buffer is silently deprecated, and
+	replaced by create_string_buffer.  A similar function
+	create_unicode_buffer has been added.
+
+	* source\callproc.c: Improve the error reporting for access
+	violations - the message now reports the faulting address in
+	charge, and whether reading or writing failed.
+
+2004-02-05  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Added c_char_p_from_param and
+	c_void_p_from_param class methods to the _SimpleCData type.  These
+	are later used as from_param class methods for the c_void_p,
+	c_char_p, and POINTER(c_char) types.  Added unittests for them.
+
+	* (CFuncPtr_set_argtypes): It is now possible to assign None to a
+	functions argtypes attribute.  This clear the argtypes sequence,
+	after that the function can be called with any number and types of
+	arguments.
 
 2004-01-20  Thomas Heller  <theller@python.net>
 
-	* source\_ctypes.c: Moved the test functions into a separate
+	* source\_ctypes.c: Moved the test functions into a seaparate
 	Python extension module _ctypes_test.c.  Setup-script and
 	unittests updated.
 

@@ -19,12 +19,6 @@ class SimpleTypesTestCase(unittest.TestCase):
         a = c_char_p("123")
         self.failUnless(c_char_p.from_param(a) is a)
 
-        self.failUnless(c_char_p.from_param(None)._obj is None)
-
-        # Hm, how to check the c_char_p(xxx)._as_parameter_ attribute?
-##        print c_char_p("xxx")._as_parameter_._obj
-
-
     def test_cw_strings(self):
         from ctypes import byref
         try:
@@ -40,10 +34,6 @@ class SimpleTypesTestCase(unittest.TestCase):
 
         pa = c_wchar_p.from_param(c_wchar_p(u"123"))
         self.failUnless(type(pa) == c_wchar_p)
-        self.failUnless(c_wchar_p.from_param(None)._obj is None)
-
-
-        # Hm, how to check the c_wchar_p(xxx)._as_parameter_ attribute?
 
     def test_int_pointers(self):
         from ctypes import c_short, c_uint, c_int, c_long, POINTER, pointer

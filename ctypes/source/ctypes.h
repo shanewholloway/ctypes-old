@@ -128,10 +128,11 @@ typedef PyObject *(* GETFUNC)(void *, unsigned size);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 
 struct fielddesc {
-	char code;
-	SETFUNC setfunc;
-	GETFUNC getfunc;
-	ffi_type *tp; /* always statically allocated */
+    char code;
+    int size;
+    int align;
+    SETFUNC setfunc;
+    GETFUNC getfunc;
 };
 
 typedef struct {
@@ -151,9 +152,8 @@ typedef struct {
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
-	SETFUNC setfunc;	/* Only for Simple */
-	GETFUNC getfunc;	/* Only for Simple */
-	ffi_type *tp;		/* Only for Simple */
+	SETFUNC setfunc;	/* Only for ArrayObject */
+	GETFUNC getfunc;	/* Only for ArrayObject */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
@@ -239,9 +239,6 @@ extern int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	  int index, int size, char *ptr);
 
-#ifdef MS_WIN32
-extern void SetException(unsigned long code);
-#endif
 extern void Extend_Error_Info(char *fmt, ...);
 
 extern void PrepareResult(PyObject *restype, PyCArgObject *result);
