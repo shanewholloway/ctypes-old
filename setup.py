@@ -335,19 +335,20 @@ class my_build_ext(build_ext.build_ext):
     def fix_extension(self, inst_dir):
         incdir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
         if not incdir:
-            return None
+            return 0
         libdir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
         if not libdir:
-            return None
+            return 0
         incdir_2 = find_file_in_subdir(os.path.join(inst_dir, "lib"), "ffitarget.h")
         if not incdir_2:
-            return None
+            return 0
         for ext in self.extensions:
             if ext.name == "_ctypes":
                 print "INCDIR", incdir
                 ext.include_dirs.append(incdir)
                 ext.include_dirs.append(incdir_2)
                 ext.library_dirs.append(libdir)
+	return 1
 
     def build_libffi_static(self):
         if LIBFFI_SOURCES == None:
@@ -360,7 +361,7 @@ class my_build_ext(build_ext.build_ext):
         build_dir = os.path.join(self.build_temp, 'libffi')
         inst_dir = os.path.abspath(self.build_temp)
 
-        if not self.force and self.fix_extension(inc_dir):
+        if not self.force and self.fix_extension(inst_dir):
             return
 
         mkpath(build_dir)
@@ -380,11 +381,7 @@ class my_build_ext(build_ext.build_ext):
             print "Failed"
             sys.exit(res)
 
-        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
-        incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
-        # if not libffi_dir or not incffi_dir: raise some error
-
-        self.fix_extension(libffi_dir, incffi_dir)
+        self.fix_extension(inst_dir)
 
 # Since we mangle the build_temp dir, we must also do this in the clean command.
 class my_clean(clean.clean):
