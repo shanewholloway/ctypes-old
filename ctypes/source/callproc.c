@@ -921,6 +921,8 @@ PyObject *_CallProc(PPROC pProc,
 	} else
 #endif
 		retval = GetResult(restype, resbuf, checker);
+	/* Overwrite result memory, to catch bugs. */
+	memset(resbuf, 0x55, max(rtype->size, sizeof(ffi_arg)));
   cleanup:
 	for (i = 0; i < argcount; ++i)
 		Py_XDECREF(args[i].keep);
