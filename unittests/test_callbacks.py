@@ -58,10 +58,12 @@ class IntegerCallbacks(CallbacksBase):
         self.failUnlessEqual(self.check_type_1(c_ulonglong, 42), 42)
 
     def test_float(self):
-        # because of rounding errors double -> float -> double,
-        # this test doesn't work with every float value
-        self.failUnlessEqual(self.check_type(c_float, 2.5), 2.5)
-        self.failUnlessEqual(self.check_type_1(c_float, 2.5), 2.5)
+        # only almost equal: double -> float -> double
+        import math
+        self.failUnlessAlmostEqual(self.check_type(c_float, math.e), math.e,
+                                   places=6)
+        self.failUnlessAlmostEqual(self.check_type_1(c_float, math.e), math.e,
+                                   places=6)
 
     def test_double(self):
         self.failUnlessEqual(self.check_type(c_double, 3.14), 3.14)
