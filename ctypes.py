@@ -19,6 +19,18 @@ if _os.name == "nt":
 
 from _ctypes import FUNCFLAG_CDECL
 
+"""
+WINOLEAPI -> HRESULT
+WINOLEAPI_(type)
+
+STDMETHODCALLTYPE
+
+STDMETHOD(name)
+STDMETHOD_(type, name)
+
+STDAPICALLTYPE
+"""
+
 def CALLBACK(restype, *argtypes):
     class X(_CFuncPtr):
         _argtypes_ = argtypes
