@@ -59,7 +59,10 @@ class IncludeParser(object):
                 i.close()
                 data = o.read()
         finally:
-            os.remove(fname)
+            if not self.options.keep_temporary_files:
+                os.remove(fname)
+            else:
+                print >> sys.stderr, "file '%s' not removed" % fname
         return [line[len("#define "):]
                 for line in data.splitlines()
                 if line.startswith("#define ")]
@@ -75,13 +78,42 @@ class IncludeParser(object):
             if self.options.verbose:
                 print >> sys.stderr, "running:", " ".join(args)
             if subprocess:
-                retcode = subprocess.call(args)
+                proc = subprocess.Popen(args,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        stdin=subprocess.PIPE)
+                data, err = proc.communicate()
+                retcode = proc.wait()
+                if retcode:
+                    self.display_compiler_errors(err.splitlines())
+                    raise SystemExit(1)
             else:
                 retcode = os.system(" ".join(args))
             if retcode:
                 raise CompilerError, "gccxml returned %s" % retcode
         finally:
-            os.remove(fname)
+            if not self.options.keep_temporary_files:
+                os.remove(fname)
+            else:
+                print >> sys.stderr, "file '%s' not removed" % fname
+
+    def display_compiler_errors(self, lines):
+        print "Compiler errors on these source lines:"
+        import re, linecache
+        pat = re.compile(r"(.*\.cpp):(\d+):(.*)")
+        output = []
+        for line in lines:
+            match = pat.search(line)
+            if match:
+                fnm, lineno, errmsg = match.groups()
+                if re.match(r"\d+:", errmsg):
+                    errmsg = errmsg.split(":", 1)[1]
+                text = "'%s' %s" % (linecache.getline(fnm, int(lineno)).rstrip(), errmsg)
+                output.append(text)
+            if line.startswith(" ") and output:
+                output[-1] = output[-1] + line.strip()
+        for line in output:
+            print line
 
     def get_defines(self, include_files):
         """'Compile' an include file with gccxml, and return a
@@ -166,7 +198,10 @@ class IncludeParser(object):
             items = gccxmlparser.parse(fname)
         finally:
             # make sure the temporary file is removed after using it
-            os.remove(fname)
+            if not self.options.keep_temporary_files:
+                os.remove(fname)
+            else:
+                print >> sys.stderr, "file '%s' not removed" % fname
 
         types = {}
         for i in items:
@@ -226,23 +261,29 @@ class IncludeParser(object):
         """
         self.options = options
 
-        if options.verbose:
-            print >> sys.stderr, "finding definitions ..."
-        defines = self.get_defines(include_files)
-        if options.verbose:
-            print >> sys.stderr, "%d found" % len(defines)
+        if options.cpp_symbols:
+            if options.verbose:
+                print >> sys.stderr, "finding definitions ..."
+            defines = self.get_defines(include_files)
+            if options.verbose:
+                print >> sys.stderr, "%d found" % len(defines)
 
-            print >> sys.stderr, "filtering definitions ..."
-        aliases, functions, excluded, defines = self.filter_definitions(defines)
-        if options.verbose:
-            print >> sys.stderr, "%d values, %d aliases" % (len(defines), len(aliases))
+                print >> sys.stderr, "filtering definitions ..."
+            aliases, functions, excluded, defines = self.filter_definitions(defines)
+            if options.verbose:
+                print >> sys.stderr, "%d values, %d aliases" % (len(defines), len(aliases))
 
-        if options.verbose:
-            print >> sys.stderr, "finding definitions types ..."
-            # invoke C++ template magic
-        types = self.find_types(include_files, defines)
-        if options.verbose:
-            print >> sys.stderr, "found %d types ..." % len(types)
+            if options.verbose:
+                print >> sys.stderr, "finding definitions types ..."
+                # invoke C++ template magic
+            types = self.find_types(include_files, defines)
+            if options.verbose:
+                print >> sys.stderr, "found %d types ..." % len(types)
+        else:
+            types = {}
+            functions = {}
+            aliases = {}
+            excluded = {}
 
         if options.verbose:
             print >> sys.stderr, "creating xml output file ..."
