@@ -429,9 +429,15 @@ class VARIANT(Structure):
     def __repr__(self):
         return "<VARIANT 0x%X at %x>" % (self.vt, addressof(self))
 
-    # We must do this manually, BUT ONLY if we own the VARIANT
+##    _owned = True
+
+##    # We must do this manually, BUT ONLY if we own the VARIANT
 ##    def __del__(self, _clear = oleaut32.VariantClear):
-##        _clear(byref(self))
+##        if self._owned:
+##            _clear(byref(self))
+
+##    def own(self, how):
+##        self._owned = how
 
     def optional(cls):
         var = VARIANT()
