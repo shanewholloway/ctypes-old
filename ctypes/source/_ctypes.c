@@ -339,7 +339,6 @@ CDataType_from_param(PyObject *type, PyObject *value)
 
 		/* If we got a PyCArgObject, we must check if the object packed in it
 		   is an instance of the type's dict->proto */
-//		if(dict && ob && dict->proto == (PyObject *)ob->ob_type){
 		if(dict && ob
 		   && PyObject_IsInstance(ob, dict->proto)) {
 			Py_INCREF(value);
@@ -351,24 +350,6 @@ CDataType_from_param(PyObject *type, PyObject *value)
 			     ob->ob_type->tp_name);
 		return NULL;
 	}
-#if 1
-/* XXX Remove this section ??? */
-	/* tuple returned by byref: */
-	/* ('i', addr, obj) */
-	if (PyTuple_Check(value)) {
-		PyObject *ob;
-		StgDictObject *dict;
-
-		dict = PyType_stgdict(type);
-		ob = PyTuple_GetItem(value, 2);
-		if (dict && ob &&
-		    0 == PyObject_IsInstance(value, dict->proto)) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
-/* ... and leave the rest */
-#endif
 	PyErr_Format(PyExc_TypeError,
 		     "expected %s instance instead of %s",
 		     ((PyTypeObject *)type)->tp_name,
@@ -571,7 +552,6 @@ PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 	return 0;
 }
 
-/* derived from cfield.c::_generic_field_setfunc */
 static PyObject *
 Pointer_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
@@ -671,18 +651,7 @@ PointerType_from_param(PyObject *type, PyObject *value)
 	if (value == Py_None)
 		return PyInt_FromLong(0); /* NULL pointer */
 
-	if (ArrayObject_Check(value)) {
-		/* Array instances are also pointers when
-		   the item types are the same.
-		*/
-		StgDictObject *v = PyObject_stgdict(value);
-		StgDictObject *t = PyType_stgdict(type);
-		if (v && t && v->proto == t->proto) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
-	if (PointerObject_Check(value)) {
+	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		StgDictObject *v = PyObject_stgdict(value);
 		StgDictObject *t = PyType_stgdict(type);
 		if (PyObject_IsSubclass(v->proto, t->proto)) {
@@ -747,13 +716,8 @@ PyTypeObject PointerType_Type = {
 
 /******************************************************************/
 /*
-  ArrayType_Type
+  CharArray helper functions
 */
-/*
-  ArrayType_new ensures that the new Array subclass created has a _length_
-  attribute, and a _type_ attribute.
-*/
-
 static int
 CharArray_set_raw(CDataObject *self, PyObject *value)
 {
@@ -863,6 +827,17 @@ CharArray_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 	return StructUnion_setfunc(ptr, value, size, type);
 }
 
+static PyObject *
+CharArray_getfunc(void *ptr, unsigned size,
+		  PyObject *type, CDataObject *src, int index)
+{
+	int i;
+	for (i = 0; i < size; ++i)
+		if (((char *)ptr)[i] == '\0')
+			break;
+	return PyString_FromStringAndSize(ptr, i);
+}
+
 static PyGetSetDef CharArray_getsets[] = {
 	{ "raw", (getter)CharArray_get_raw, (setter)CharArray_set_raw,
 	  "value", NULL },
@@ -870,6 +845,11 @@ static PyGetSetDef CharArray_getsets[] = {
 	  "string value"},
 	{ NULL, NULL }
 };
+
+/******************************************************************/
+/*
+  WCharArray helper functions
+*/
 
 #ifdef CTYPES_UNICODE
 static PyObject *
@@ -961,6 +941,29 @@ static PyGetSetDef WCharArray_getsets[] = {
 };
 #endif
 
+#ifdef CTYPES_UNICODE
+static PyObject *
+WCharArray_getfunc(void *ptr, unsigned size,
+		   PyObject *type, CDataObject *src, int index)
+{
+	unsigned int i;
+	for (i = 0; i < size/sizeof(wchar_t); ++i)
+		if (((wchar_t *)ptr)[i] == (wchar_t)0)
+			break;
+	return PyUnicode_FromWideChar((wchar_t *)ptr, i);
+}
+#endif
+
+/******************************************************************/
+/*
+  ArrayType_Type
+*/
+/*
+  ArrayType_new ensures that the new Array subclass created has a _length_
+  attribute, and a _type_ attribute.
+*/
+
+
 /*
   Copied from Python's typeobject.c.
  */
@@ -979,30 +982,6 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 	}
 	return 0;
 }
-
-static PyObject *
-CharArray_getfunc(void *ptr, unsigned size,
-		  PyObject *type, CDataObject *src, int index)
-{
-	int i;
-	for (i = 0; i < size; ++i)
-		if (((char *)ptr)[i] == '\0')
-			break;
-	return PyString_FromStringAndSize(ptr, i);
-}
-
-#ifdef CTYPES_UNICODE
-static PyObject *
-WCharArray_getfunc(void *ptr, unsigned size,
-		   PyObject *type, CDataObject *src, int index)
-{
-	unsigned int i;
-	for (i = 0; i < size/sizeof(wchar_t); ++i)
-		if (((wchar_t *)ptr)[i] == (wchar_t)0)
-			break;
-	return PyUnicode_FromWideChar((wchar_t *)ptr, i);
-}
-#endif
 
 static PyObject *
 ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
