@@ -136,3 +136,21 @@ def localserver(objclass):
     factory._register_class()
     pump_messages()
     factory._revoke_class()
+
+def UseCommandLine(cls):
+    import sys
+    from ctypes.com.w_getopt import w_getopt
+    from ctypes.com.register import register, unregister
+    opts, args = w_getopt(sys.argv[1:], "regserver unregserver embedding".split())
+    if not opts:
+        return 0 # nothing for us to do
+
+    for option, value in opts:
+        if option == "regserver":
+            register(cls)
+        elif option == "unregserver":
+            unregister(cls)
+        elif option == "embedding":
+            localserver(cls)
+
+    return 1 # we have done something
