@@ -263,6 +263,7 @@ new_CArgObject(void)
 		return NULL;
 	p->tag = '\0';
 	p->obj = NULL;
+	memset(&p->value, sizeof(p->value), 0);
 	return p;
 }
 
