@@ -27,6 +27,13 @@ Changes in 0.9.1
 
   ctypes changes
 
+    Fixed the create_unicode_buffer function - it was returning c_char
+    arrays instead of c_wchar arrays.
+
+    Both create_string_buffer and create_unicode_buffer can now be
+    called with string and unicode instances, they will do the needed
+    conversions themselves.
+
     ctypes now allows calling Python C api functions.  The pythonapi
     symbol should be used to access these functions, this will
     automatically use the correct calling convention and exception
@@ -65,6 +72,13 @@ Changes in 0.9.1
 
 
   ctypes.com changes
+
+
+    Applied a patch from Bruce Dodson which fixes an infinite loop in
+    readtlb.py if a typelib references types defined in another
+    typelib.  readtlb still generates bad code for such cases, but the
+    results could be edited by hand if the dependencies can be sorted
+    out.
 
     ctypes now caches the types that WINFUNCTYPE and CFUNCTYPE
     creates, to avoid unneeeded creation of classes. This
