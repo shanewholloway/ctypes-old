@@ -1863,7 +1863,7 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 */
 static PyObject *
 _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
-	  int index, int size, char *ptr)
+	   int size, char *ptr)
 {
 	CDataObject *src;
 
@@ -1888,7 +1888,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 				return NULL;
 			}
 			return _CData_set(dst, type, setfunc, ob,
-					  index, size, ptr);
+					  size, ptr);
 		} else {
 			PyErr_Format(PyExc_TypeError,
 				     "expected %s instance, got %s",
@@ -1967,7 +1967,7 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		return -1;
 
 	result = _CData_set(mem, type, setfunc, value,
-			    index, size, ptr);
+			    size, ptr);
 	if (result == NULL)
 		return -1;
 
