@@ -24,6 +24,7 @@ static void
 StgDict_dealloc(StgDictObject *self)
 {
 	Py_XDECREF(self->proto);
+	PyMem_Free(self->ffi_type.elements);
 	((PyObject *)self)->ob_type->tp_free((PyObject *)self);
 }
 
@@ -160,11 +161,16 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 	union_size = 0;
 	total_align = 1;
 
+	stgdict->ffi_type.type = FFI_TYPE_STRUCT;
+	stgdict->ffi_type.elements = PyMem_Malloc(sizeof(ffi_type *) * (len + 1));
+	memset(stgdict->ffi_type.elements, 0, sizeof(ffi_type *) * (len + 1));
+
 #define realdict ((PyObject *)&stgdict->dict)
 	for (i = 0; i < len; ++i) {
 		PyObject *name = NULL, *desc = NULL;
 		PyObject *pair = PySequence_GetItem(fields, i);
 		PyObject *prop;
+		StgDictObject *dict;
 
 		if (!pair  || !PyArg_Parse(pair, "(OO)", &name, &desc)) {
 			PyErr_SetString(PyExc_AttributeError,
@@ -172,6 +178,9 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 			Py_XDECREF(pair);
 			return NULL;
 		}
+		dict = PyType_stgdict(desc);
+		if (dict)
+			stgdict->ffi_type.elements[i] = &dict->ffi_type;
 		if (isStruct) {
 			prop = CField_FromDesc(desc, i,
 					       &size, &offset, &align, pack);
@@ -207,7 +216,6 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 	/* Adjust the size according to the alignment requirements */
 	size = ((size + total_align - 1) / total_align) * total_align;
 
-	stgdict->ffi_type.type = FFI_TYPE_STRUCT;
 	stgdict->ffi_type.alignment = total_align;
 	stgdict->ffi_type.size = size;
 
