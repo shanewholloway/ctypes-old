@@ -121,7 +121,7 @@ class test(Command):
 
     def run(self):
         
-        import sys
+        import sys, unittest
         # Invoke the 'build' command to "build" pure Python modules
         # (ie. copy 'em into the build tree)
         self.run_command('build')
@@ -158,7 +158,6 @@ class test(Command):
 
 
         if test_suites:
-            import unittest
             suite = unittest.TestSuite(test_suites)
             self.announce("running unittests")
 
