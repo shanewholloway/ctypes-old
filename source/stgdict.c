@@ -94,21 +94,6 @@ PyObject_stgdict(PyObject *self)
 }
 
 /*
- * Does not set exception if it fails!
- */
-int
-PyObject_stginfo(PyObject *self, int *psize, int *palign, int *plength)
-{
-	StgDictObject *d = PyObject_stgdict(self);
-	if (!d)
-		return -1;
-	*psize = d->size;
-	*palign = d->align;
-	*plength = d->length;
-	return 0;
-}
-
-/*
   This is a helper function for the StructType_Type object.
   Hm, actually only for Structure types, since it requires the
   _fields_ attribute.
