@@ -22,7 +22,7 @@ CLSCTX_INPROC_SERVER = 0x1
 CLSCTX_LOCAL_SERVER = 0x4
 
 def CreateInstance(coclass, interface=None,
-                   clsctx = CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER):
+                   clsctx = CLSCTX_LOCAL_SERVER):
     if interface is None:
         interface = coclass._com_interfaces_[0]
     p = pointer(interface())
@@ -44,8 +44,8 @@ class DWebBrowserEvents2Impl(dispinterface_EventReceiver):
     # The base class will call all methods we implement here,
     # and simply print the method name with the arguments
     # for unimplemented methods.
-    def OnQuit(self, *args):
-        print "OnQuit", args
+    def OnQuit(self, this, *args):
+        print "OnQuit", self, this, args
         user32.PostQuitMessage(0)
 
 ################################################################
