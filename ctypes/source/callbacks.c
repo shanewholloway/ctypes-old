@@ -237,10 +237,14 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		p->atypes[i] = &ffi_type_sint;
 	}
 
+#ifdef MS_WIN32
 	if (is_cdecl)
 		abi = FFI_DEFAULT_ABI;
 	else
 		abi = FFI_STDCALL;
+#else
+	abi = FFI_DEFAULT_ABI;
+#endif
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_cif(&p->cif, abi, nArgs,
 			      &ffi_type_sint,
