@@ -242,9 +242,9 @@ class test(Command):
         # Collect the results in the ok, fail, error, testcases and
         # tracebacks instance vars.
         # A sequence of testcase names together with their outcome is returned.
-        i, o = os.popen4("%s %s -v" % (sys.executable, path))
-        i.close()
+        os.system("%s run_remote_test.py %s" % (sys.executable, path))
         cases = []
+        o = open("test.output")
         while 1:
             line = o.readline()
             if not line:
