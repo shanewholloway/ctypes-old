@@ -680,6 +680,9 @@ static int _call_function_pointer(int flags,
 	case 'f':
 		rtype = &ffi_type_float;
 		break;
+	case 'v':
+		rtype = &ffi_type_void;
+		break;
 	default:
 		printf("RES ????? %c\n", res->tag);
 		rtype = NULL;
