@@ -641,7 +641,6 @@ static PyObject *
 u_set(void *ptr, PyObject *value, unsigned size)
 {
 	int len;
-	wchar_t *p;
 
 	if (PyString_Check(value)) {
 		value = PyUnicode_FromEncodedObject(value,
@@ -657,11 +656,6 @@ u_set(void *ptr, PyObject *value, unsigned size)
 	} else
 		Py_INCREF(value);
 
-	p = PyUnicode_AsUnicode(value);
-	if (!p) {
-		Py_DECREF(value);
-		return NULL;
-	}
 	len = PyUnicode_GET_SIZE(value);
 	if (len != 1) {
 		Py_DECREF(value);
@@ -669,7 +663,8 @@ u_set(void *ptr, PyObject *value, unsigned size)
 				"one character unicode string expected");
 		return NULL;
 	}
-	*(wchar_t *)ptr = p[0];
+
+	*(wchar_t *)ptr = PyUnicode_AS_UNICODE(value)[0];
 	Py_DECREF(value);
 
 	Py_INCREF(Py_None);
