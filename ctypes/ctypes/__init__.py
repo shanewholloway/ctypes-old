@@ -16,6 +16,7 @@ from _ctypes import CFuncPtr as _CFuncPtr
 from _ctypes import __version__ as _ctypes_version
 
 from _ctypes import ArgumentError
+from _ctypes import _check_HRESULT
 
 if __version__ != _ctypes_version:
     raise Exception, ("Version number mismatch", __version__, _ctypes_version)
@@ -324,11 +325,26 @@ if _os.name ==  "nt":
             setattr(self, name, func)
             return func
 
-
+    class HRESULT(c_long):
+        # _check_retval_ is called with the function's result when it
+        # is used as restype.  It checks for the FAILED bit, and
+        # raises a WindowsError if it is set.
+        #
+        # The _check_retval_ method is implemented in C, so that the
+        # method definition itself is not included in the traceback
+        # when it raises an error - that is what we want (and Python
+        # doesn't have a way to raise an exception in the caller's
+        # frame.
+        _check_retval_ = _check_HRESULT
+        
     class OleDLL(CDLL):
         class _OlecallFuncPtr(_CFuncPtr):
+            # It would be possible to remove the _FUNCFLAG_HRESULT
+            # code, and use HRESULT as _restype_.  But
+            # _FUNCFLAG_HRESULT is used in other places in the C code
+            # as well, so we leave it as it is.
             _flags_ = _FUNCFLAG_STDCALL | _FUNCFLAG_HRESULT
-            _restype_ = c_int # needed, but unused
+            _restype_ = c_int # needed, but unused (see _FUNCFLAG_HRESULT flag)
         def __getattr__(self, name):
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
