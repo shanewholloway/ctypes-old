@@ -7,6 +7,8 @@
 	arrays, where strings resp. unicode strings are used - much more
 	convenient.
 
+	* MANIFEST.windows.in: Added the include files which were missing
+	from the source distribution.
 
 2004-07-28  Thomas Heller  <theller@python.net>
 
