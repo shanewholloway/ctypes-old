@@ -1,7 +1,8 @@
 from ctypes import windll, oledll
-from ctypes import POINTER, c_int, byref, pointer, addressof, WinError
+from ctypes import POINTER, c_uint, c_int, byref, pointer, addressof, WinError
 from ctypes import Structure, Union
-from ctypes import sizeof, c_ubyte, c_wchar_p
+from ctypes import sizeof, c_byte, c_ubyte, c_wchar_p, c_short, c_ushort
+from ctypes import c_long, c_ulong, c_float, c_double
 
 SYS_WIN16 = 0
 SYS_WIN32 = SYS_WIN16 + 1
@@ -28,9 +29,9 @@ def dump(obj, indent=""):
 
 
 class GUID(Structure):
-    _fields_ = [("Data1", "I"),
-                ("Data2", "h"),
-                ("Data3", "h"),
+    _fields_ = [("Data1", c_int),
+                ("Data2", c_short),
+                ("Data3", c_short),
                 ("Data4", c_ubyte * 8)]
 
     _as_parameter_ = property(byref)
@@ -150,7 +151,7 @@ class COMPointerMeta(type(Structure)):
         return result
 
 class IUnknownPointer(Structure):
-    _fields_ = [("this", "i")]
+    _fields_ = [("this", c_int)]
     _interface_ = IUnknown
     __metaclass__ = COMPointerMeta
     
@@ -272,30 +273,30 @@ VARIANT_SET = { int: ("intVal", VT_I4),
 
 class VARIANT(Structure):
     class U(Union):
-        _fields_ = [("bVal", "b"),      # VT_UI1
-                    ("iVal", "h"),      # VT_I2
-                    ("lVal", "l"),      # VT_I4
-                    ("fltVal", "f"),    # VT_R4
-                    ("dblVal", "d"),    # VT_R8
-                    ("boolVal", "i"),   # VT_BOOL
-                    ("scode", "i"),     # VT_ERROR
+        _fields_ = [("bVal", c_byte),      # VT_UI1
+                    ("iVal", c_short),      # VT_I2
+                    ("lVal", c_long),      # VT_I4
+                    ("fltVal", c_float),    # VT_R4
+                    ("dblVal", c_double),    # VT_R8
+                    ("boolVal", c_int),   # VT_BOOL
+                    ("scode", c_int),     # VT_ERROR
                     ("pdispVal", IDispatchPointer), # VT_DISPATCH
                     ("punkVal", IUnknownPointer), # VT_UNKNOWN
 
-                    ("bstrVal", "i"),
-                    ("myBstrVal", "Z"),
+                    ("bstrVal", c_int),
+                    ("myBstrVal", c_wchar_p),
 ##???                    ("cVal", "c"),      # VT_I1
-                    ("uiVal", "H"),     # VT_UI2
-                    ("ulVal", "L"),     # VT_UI4
-                    ("intVal", "i"),    # VT_INT
-                    ("uintVal", "I"),   # VT_UINT
+                    ("uiVal", c_ushort),     # VT_UI2
+                    ("ulVal", c_ulong),     # VT_UI4
+                    ("intVal", c_int),    # VT_INT
+                    ("uintVal", c_uint),   # VT_UINT
                     ]
 
 
-    _fields_ = [("vt", "h"),
-                ("wReserved1", "h"),
-                ("wReserved2", "h"),
-                ("wReserved3", "h"),
+    _fields_ = [("vt", c_short),
+                ("wReserved1", c_short),
+                ("wReserved2", c_short),
+                ("wReserved3", c_short),
                 ("u", U)]
     __slots__ = []
 
@@ -328,22 +329,22 @@ class VARIANT(Structure):
 class DISPPARAMS(Structure):
     _fields_ = [("rgvarg", POINTER(VARIANT)),
                 ("rgdispidNamedArgs", POINTER(c_int)),
-                ("cArgs", "I"),
-                ("cNamedArgs", "I")]
+                ("cArgs", c_uint),
+                ("cNamedArgs", c_uint)]
 
 
 DISPID_PROPERTYPUT = -3
 
 class EXCEPINFO(Structure):
-    _fields_ = [("wCode", "H"),
-                ("wReserved", "H"),
-                ("bstrSource", "Z"),
-                ("bstrDescription", "Z"),
-                ("bstrHelpFile", "Z"),
-                ("dwHelpContext", "I"),
-                ("pvReserved", "i"),
-                ("pfnDeferredFillIn", "i"),
-                ("scode", "i")]
+    _fields_ = [("wCode", c_ushort),
+                ("wReserved", c_ushort),
+                ("bstrSource", c_wchar_p),
+                ("bstrDescription", c_wchar_p),
+                ("bstrHelpFile", c_wchar_p),
+                ("dwHelpContext", c_uint),
+                ("pvReserved", c_int),
+                ("pfnDeferredFillIn", c_int),
+                ("scode", c_int)]
 
 ################################################################
 

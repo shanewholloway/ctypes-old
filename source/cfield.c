@@ -17,8 +17,6 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 
-static char *var_field_codes = "sS";
-
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -34,88 +32,49 @@ CField_FromDesc(PyObject *desc, int index,
 	int size, align, length;
 	SETFUNC setfunc = NULL;
 	GETFUNC getfunc = NULL;
+	StgDictObject *dict;
 
 	self = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type,
 						   NULL);
 	if (self == NULL)
 		return NULL;
-#if 1
-	if (PyString_Check(desc)) {
-		struct fielddesc *fmt;
-		char *name = PyString_AS_STRING(desc);
-		int fieldsize = 0;
-		
-		while (isdigit(*name)) {
-		        fieldsize = fieldsize * 10 + *name - '0';
-			++name;
-		}
 
-		if (name[1] != '\0') {
-			PyErr_Format(PyExc_ValueError,
-				     "format must be single char, not '%s'",
-				     name);
-			return NULL;
-		}
-
-		if (fieldsize && !strchr(var_field_codes, name[0])) {
-			PyErr_Format(PyExc_ValueError,
-				     "field size not allowed for '%s' format",
-				     name);
-			return NULL;
-		}
-
-		fmt = getentry(name);
-		if (!fmt) {
-			PyErr_Format(PyExc_ValueError,
-				     "invalid format '%s'", name);
-			return NULL;
-		}
-		size = fieldsize ? fieldsize * fmt->size : fmt->size;
-		if (pack)
-			align = min(pack, fmt->align);
-		else
-			align = fmt->align;
-		setfunc = fmt->setfunc;
-		getfunc = fmt->getfunc;
-		length = 1;
-		proto = NULL;
-	} else 
-#endif
-	{
-		StgDictObject *dict;
-		dict = PyType_stgdict(desc);
-		if (!dict) {
-			PyErr_SetString(PyExc_TypeError,
-					"has no _stginfo_");
-			Py_DECREF(self);
-			return NULL;
-		}
-		size = dict->size;
-		align = dict->align;
-		length = dict->length;
-		proto = desc;
-#if 0
-		/* XXX This is the place where field descriptors like
-		   'c_char * n' should be scpecial cased to return a Python
-		   string instead of an Array object instance...
-		*/
-		if (ArrayTypeObject_Check(proto)) {
-			StgDictObject *adict = PyType_stgdict(proto);
-			StgDictObject *idict;
-			if (adict && adict->proto) {
-				struct fielddesc *fd;
-				idict = PyType_stgdict(adict->proto);
-				fd = getentry("c");
-				if (idict->getfunc == fd->getfunc) {
-					fd = getentry("s");
-					getfunc = fd->getfunc;
-					setfunc = fd->setfunc;
-				}
-			}
-			
-		}
-#endif
+	dict = PyType_stgdict(desc);
+	if (!dict) {
+		PyErr_SetString(PyExc_TypeError,
+				"has no _stginfo_");
+		Py_DECREF(self);
+		return NULL;
 	}
+	size = dict->size;
+	if (pack)
+		align = min(pack, dict->align);
+	else
+		align = dict->align;
+	length = dict->length;
+	proto = desc;
+#if 0
+	/* XXX This is the place where field descriptors like
+	   'c_char * n' should be scpecial cased to return a Python
+	   string instead of an Array object instance...
+	*/
+	if (ArrayTypeObject_Check(proto)) {
+		StgDictObject *adict = PyType_stgdict(proto);
+		StgDictObject *idict;
+		if (adict && adict->proto) {
+			struct fielddesc *fd;
+			idict = PyType_stgdict(adict->proto);
+			fd = getentry("c");
+			if (idict->getfunc == fd->getfunc) {
+				fd = getentry("s");
+				getfunc = fd->getfunc;
+				setfunc = fd->setfunc;
+			}
+		}
+			
+	}
+#endif
+
 	self->setfunc = setfunc;
 	self->getfunc = getfunc;
 	self->index = index;

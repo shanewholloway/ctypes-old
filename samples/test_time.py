@@ -1,15 +1,15 @@
 from ctypes import cdll, c_int, Structure, byref, pointer, POINTER, c_int, c_char_p
 
 class tm(Structure):
-    _fields_ = [("tm_sec", "i"),
-                ("tm_min", "i"),
-                ("tm_hour", "i"),
-                ("tm_mday", "i"),
-                ("tm_mon", "i"),
-                ("tm_year", "i"),
-                ("tm_wday", "i"),
-                ("tm_yday", "i"),
-                ("tm_isdst", "i")]
+    _fields_ = [("tm_sec", c_int),
+                ("tm_min", c_int),
+                ("tm_hour", c_int),
+                ("tm_mday", c_int),
+                ("tm_mon", c_int),
+                ("tm_year", c_int),
+                ("tm_wday", c_int),
+                ("tm_yday", c_int),
+                ("tm_isdst", c_int)]
 
     def dump(self, indent=""):
         INDENT = "   "

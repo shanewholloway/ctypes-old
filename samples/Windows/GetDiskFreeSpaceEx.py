@@ -1,11 +1,7 @@
-from ctypes import Structure, windll, WinError, byref
+from ctypes import Structure, windll, WinError, byref, c_ulonglong
 kernel32 = windll.kernel32
 
-class ULARGE_INTEGER(Structure):
-    _fields_ = [("value", "Q")]
-
-    def __long__(self):
-        return self.value
+ULARGE_INTEGER = c_ulonglong
 
 def test_ansi(drive):
     avail = ULARGE_INTEGER()
@@ -36,7 +32,6 @@ def test_unicode(drive):
     if not result:
         raise WinError()
 
-##    return [long(avail), long(total), long(totalfree)]
     return [avail.value, total.value, totalfree.value]
 
 try:
@@ -51,7 +46,7 @@ if __name__ == '__main__':
     drive = ""
     drive = "c:\\"
 ##    drive = "x:\\"
-##    drive = r"\\server\setup\xx"
+##    drive = r"\\server\setup"
     print "ANSI"
     print test_ansi(drive)
     print

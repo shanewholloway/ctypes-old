@@ -4,32 +4,44 @@ from struct import calcsize
 from _ctypes import alignment
 
 class StructureTestCase(unittest.TestCase):
-    formats = "csbBhHiIlLqQdf"
-
+    formats = {"c": c_char,
+               "b": c_byte,
+               "B": c_ubyte,
+               "h": c_short,
+               "H": c_ushort,
+               "i": c_int,
+               "I": c_uint,
+               "l": c_long,
+               "L": c_ulong,
+               "q": c_longlong,
+               "Q": c_ulonglong,
+               "f": c_float,
+               "d": c_double,
+               }
+    
     def test_simple_structs(self):
-        for code in self.formats:
+        for code, tp in self.formats.items():
             class X(Structure):
-                _fields_ = [("x", "c"),
-                            ("y", code)]
+                _fields_ = [("x", c_char),
+                            ("y", tp)]
             self.failUnless(sizeof(X) == calcsize("c%c0%c" % (code, code)))
 
     def test_unions(self):
-        for code in self.formats:
+        for code, tp in self.formats.items():
             class X(Union):
-                _fields_ = [("x", "c"),
-                            ("y", code)]
+                _fields_ = [("x", c_char),
+                            ("y", tp)]
             self.failUnless(sizeof(X) == calcsize("%c" % (code)))
 
     def test_struct_alignment(self):
-        print
         class X(Structure):
-            _fields_ = [("x", "3s")]
+            _fields_ = [("x", c_char * 3)]
         self.failUnless(alignment(X) == calcsize("s"))
         self.failUnless(sizeof(X) == calcsize("3s"))
 
         class Y(Structure):
-            _fields_ = [("x", "3s"),
-                        ("y", "i")]
+            _fields_ = [("x", c_char * 3),
+                        ("y", c_int)]
         self.failUnless(alignment(Y) == calcsize("i"))
         self.failUnless(sizeof(Y) == calcsize("3si"))
 
@@ -76,8 +88,8 @@ class StructureTestCase(unittest.TestCase):
     def test_fields(self):
         # test the offset and size attributes of Structure/Unoin fields.
         class X(Structure):
-            _fields_ = [("x", "i"),
-                        ("y", "b")]
+            _fields_ = [("x", c_int),
+                        ("y", c_char)]
 
         self.failUnless(X.x.offset == 0)
         self.failUnless(X.x.size == sizeof(c_int))
@@ -90,8 +102,8 @@ class StructureTestCase(unittest.TestCase):
         self.assertRaises(TypeError, setattr, X.x, "size", 92)
 
         class X(Union):
-            _fields_ = [("x", "i"),
-                        ("y", "b")]
+            _fields_ = [("x", c_int),
+                        ("y", c_char)]
 
         self.failUnless(X.x.offset == 0)
         self.failUnless(X.x.size == sizeof(c_int))
@@ -108,23 +120,23 @@ class StructureTestCase(unittest.TestCase):
 
     def test_packed(self):
         class X(Structure):
-            _fields_ = [("a", "b"),
-                        ("b", "q")]
+            _fields_ = [("a", c_byte),
+                        ("b", c_longlong)]
             _pack_ = 1
 
-        self.failUnless(sizeof(X) == 9)
-        self.failUnless(X.b.offset == 1)
+        self.failUnless(sizeof(X) == 9, sizeof(X))
+        self.failUnless(X.b.offset == 1, X.b.offset)
 
         class X(Structure):
-            _fields_ = [("a", "b"),
-                        ("b", "q")]
+            _fields_ = [("a", c_byte),
+                        ("b", c_longlong)]
             _pack_ = 2
-        self.failUnless(sizeof(X) == 10)
-        self.failUnless(X.b.offset == 2)
+        self.failUnless(sizeof(X) == 10, sizeof(X))
+        self.failUnless(X.b.offset == 2, X.b.offset)
 
         class X(Structure):
-            _fields_ = [("a", "b"),
-                        ("b", "q")]
+            _fields_ = [("a", c_byte),
+                        ("b", c_longlong)]
             _pack_ = 4
         self.failUnless(sizeof(X) == 12)
         self.failUnless(X.b.offset == 4)
@@ -134,8 +146,8 @@ class StructureTestCase(unittest.TestCase):
         longlong_align = struct.calcsize("bq") - longlong_size
 
         class X(Structure):
-            _fields_ = [("a", "b"),
-                        ("b", "q")]
+            _fields_ = [("a", c_byte),
+                        ("b", c_longlong)]
             _pack_ = 8
 
         self.failUnless(sizeof(X) == longlong_align + longlong_size)
