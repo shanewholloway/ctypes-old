@@ -20,23 +20,6 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
-/* compilers seem to have different behaviour with this structure.  GCC on x86
- * packs the fields into one 32-bit int, MSVC creates one char and one int.
- * The WIDEN_BITFIELDS function returns  .... XXXX FIXME
- */
-struct b_bitfields { char a:2; int b:28; };
-#define WIDEN_BITFIELDS (!(sizeof(struct b_bitfields) - sizeof(int)))
-
-/* convert to macro? */
-static int
-can_continue_bitfield(StgDictObject *prev, StgDictObject *this)
-{
-	if (WIDEN_BITFIELDS)
-		return prev && this->size == prev->size;
-	else
-		return prev == this;
-}
-
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -62,8 +45,9 @@ CField_FromDesc(PyObject *desc, int index,
 	StgDictObject *dict;
 	int fieldtype;
 #define NO_BITFIELD 0
-#define CONT_BITFIELD 1
-#define NEW_BITFIELD 2
+#define NEW_BITFIELD 1
+#define CONT_BITFIELD 2
+#define EXPAND_BITFIELD 3
 
 	self = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type,
 						   NULL);
@@ -77,20 +61,17 @@ CField_FromDesc(PyObject *desc, int index,
 		return NULL;
 	}
 	if (bitsize /* this is a bitfield request */
-#ifdef _MSC_VER
 	    && *pfield_size /* we have a bitfield open */
 	    && dict->size * 8 == *pfield_size /* MSVC */
-	    && (*pbitofs + bitsize) <= *pfield_size
-#else
-	    && *pfield_size /* we have a bitfield open */
-	    && ( (*pbitofs + bitsize) <= *pfield_size
-		 || (*pbitofs + bitsize) <= dict->size)
-#endif
-		)
-	{
+	    && (*pbitofs + bitsize) <= *pfield_size) {
 		/* continue bit field */
-		*pfield_size = max(*pfield_size, dict->size);
 		fieldtype = CONT_BITFIELD;
+	} else if (bitsize /* this is a bitfield request */
+	    && *pfield_size /* we have a bitfield open */
+	    && dict->size * 8 >= *pfield_size /* MSVC */
+	    && (*pbitofs + bitsize) <= dict->size * 8) {
+		/* expand bit field */
+		fieldtype = EXPAND_BITFIELD;
 	} else if (bitsize) {
 		/* start new bitfield */
 		fieldtype = NEW_BITFIELD;
@@ -161,6 +142,17 @@ CField_FromDesc(PyObject *desc, int index,
 		*poffset += size;
 
 		*palign = align;
+		break;
+
+	case EXPAND_BITFIELD:
+		/* XXX needs more */
+		*psize += dict->size - *pfield_size/8;
+
+		*pfield_size = dict->size * 8;
+
+		self->size = (bitsize << 16) + *pbitofs;
+		self->offset = *poffset - size; /* poffset is already updated for the NEXT field */
+		*pbitofs += bitsize;
 		break;
 
 	case CONT_BITFIELD:
