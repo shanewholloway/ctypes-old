@@ -51,12 +51,13 @@ def storage(t):
 class PackingError(Exception):
     pass
 
-def _calc_packing(struct, fields, pack, verbose):
+def _calc_packing(struct, fields, pack):
+    # Try a certain packing, raise PackingError if field offsets,
+    # total size ot total alignment is wrong.
     if struct.size is None: # incomplete struct
         return -1
     if struct.name in dont_assert_size:
         return None
-    assert not isinstance(struct, nodes.Union)
     if struct.bases:
         size = struct.bases[0].size
         total_align = struct.bases[0].align
@@ -65,14 +66,14 @@ def _calc_packing(struct, fields, pack, verbose):
         total_align = 8 # in bits
     for i, f in enumerate(fields):
         if f.bits:
-            return -2
+            return -2 # XXX FIXME
         s, a = storage(f.typ)
         if pack is not None:
             a = min(pack, a)
         if size % a:
             size += a - size % a
-        if size != int(f.offset):
-            raise PackingError, "field offset"
+        if size != f.offset:
+            raise PackingError, "field offset (%s/%s)" % (size, f.offset)
         size += s
         total_align = max(total_align, a)
     if total_align != struct.align:
@@ -83,13 +84,13 @@ def _calc_packing(struct, fields, pack, verbose):
     if size % a:
         size += a - size % a
     if size != struct.size:
-        raise PackingError, "total size"
+        raise PackingError, "total size (%s/%s)" % (size, struct.size)
 
-def calc_packing(struct, fields, verbose=False):
+def calc_packing(struct, fields):
     # try several packings, starting with unspecified packing
     for pack in [None, 16*8, 8*8, 4*8, 2*8, 1*8]:
         try:
-            _calc_packing(struct, fields, pack, verbose)
+            _calc_packing(struct, fields, pack)
         except PackingError, details:
             continue
         else:
@@ -325,6 +326,7 @@ class Generator(object):
         #
         # Hm, how to detect a COM interface with no methods? IXMLDOMCDATASection is such a beast...
         if not isinstance(body.struct, nodes.Union) and not methods:
+##        if not methods:
             pack = calc_packing(body.struct, fields)
             if pack is not None:
                 print "%s._pack_ = %s" % (body.struct.name, pack)
