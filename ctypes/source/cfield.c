@@ -41,7 +41,6 @@ CField_FromDesc(PyObject *desc, int index,
 {
 	CFieldObject *self;
 	int size, align;
-	SETFUNC setfunc = NULL;
 	StgDictObject *dict;
 	int fieldtype;
 #define NO_BITFIELD 0
