@@ -231,7 +231,7 @@ class test_local(test):
             finally:
                 sys.path = old_path
                 suite = unittest.TestSuite(test_suites)
-                unittest.TextTestRunner(verbosity=1).run(suite)
+                unittest.TextTestRunner(verbosity=self.verbosity).run(suite)
 # class test_local
                         
 
