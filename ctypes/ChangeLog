@@ -1,3 +1,9 @@
+2004-09-15  Thomas Heller  <theller@python.net>
+
+	* source\callproc.c: Important fix - sometimes pointers to
+	arguments in function call have been free'd too early, especially
+	when argtypes have been specified for functions.
+
 2004-09-07  Thomas Heller  <theller@python.net>
 
 	* (Message): Fix the create_unicode_buffer function - it was
