@@ -403,7 +403,7 @@ CDataType_from_param(PyObject *type, PyObject *value)
 		/* If we got a PyCArgObject, we must check if the object packed in it
 		   is an instance of the type's dict->proto */
 		if(dict && ob
-		   && PyObject_IsInstance(ob, dict->proto)) {
+		   && PyObject_IsInstance(ob, dict->itemtype)) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -452,7 +452,7 @@ CDataType_clear(PyTypeObject *self)
 {
 	StgDictObject *dict = PyType_stgdict((PyObject *)self);
 	if (dict)
-		Py_CLEAR(dict->proto);
+		Py_CLEAR(dict->itemtype);
 	return PyType_Type.tp_clear((PyObject *)self);
 }
 
@@ -461,7 +461,7 @@ CDataType_traverse(PyTypeObject *self, visitproc visit, void *arg)
 {
 	StgDictObject *dict = PyType_stgdict((PyObject *)self);
 	if (dict)
-		Py_VISIT(dict->proto);
+		Py_VISIT(dict->itemtype);
 	return PyType_Type.tp_traverse((PyObject *)self, visit, arg);
 }
 
@@ -610,8 +610,8 @@ PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 		return -1;
 	}
 	Py_INCREF(proto);
-	Py_XDECREF(stgdict->proto);
-	stgdict->proto = proto;
+	Py_XDECREF(stgdict->itemtype);
+	stgdict->itemtype = proto;
 	return 0;
 }
 
@@ -629,7 +629,7 @@ Pointer_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 	if (dict
 	    && ArrayObject_Check(value)
 	    /* Should we accept subclasses here? */
-	    && dict->proto == PyType_stgdict(type)->proto) {
+	    && dict->itemtype == PyType_stgdict(type)->itemtype) {
 		*(void **)ptr = ((CDataObject *)value)->b_ptr;
 		/* We need to keep the array alive, not just the arrays b_objects. */
 		Py_INCREF(value);
@@ -728,7 +728,7 @@ PointerType_from_param(PyObject *type, PyObject *value)
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		StgDictObject *v = PyObject_stgdict(value);
 		StgDictObject *t = PyType_stgdict(type);
-		if (PyObject_IsSubclass(v->proto, t->proto)) {
+		if (PyObject_IsSubclass(v->itemtype, t->itemtype)) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -898,7 +898,7 @@ static PyObject *
 CharArray_getfunc(void *ptr, unsigned size,
 		  PyObject *type, CDataObject *src, int index)
 {
-	int i;
+	unsigned i;
 	for (i = 0; i < size; ++i)
 		if (((char *)ptr)[i] == '\0')
 			break;
@@ -1113,7 +1113,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->align = itemalign;
 	stgdict->length = length;
 	Py_INCREF(proto);
-	stgdict->proto = proto;
+	stgdict->itemtype = proto;
 
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
@@ -1139,6 +1139,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	*/
 	/*
 	  What we really want to check here is if proto is c_char or c_wchar.
+	  XXX XXX XXX
 	 */
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		if (-1 == add_getset(result, CharArray_getsets))
@@ -1221,7 +1222,7 @@ static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *typedict = PyType_stgdict(type);
-	StgDictObject *itemdict = PyType_stgdict(typedict->proto);
+	StgDictObject *itemdict = PyType_stgdict(typedict->itemtype);
 
 	/* z_set and Z_set accept integers as well. Until that is fixed, we
 	 have to typecheck here. */
@@ -1242,7 +1243,7 @@ string_ptr_from_param(PyObject *type, PyObject *value)
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		/* c_char array instance or pointer(c_char(...)) */
 		StgDictObject *dt = PyObject_stgdict(value);
-		StgDictObject *dict = dt && dt->proto ? PyType_stgdict(dt->proto) : NULL;
+		StgDictObject *dict = dt && dt->itemtype ? PyType_stgdict(dt->itemtype) : NULL;
 		if (dict && (dict->setfunc == itemdict->setfunc)) {
 			Py_INCREF(value);
 			return value;
@@ -1321,7 +1322,7 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		}
 	}
 	stgd = PyObject_stgdict(value);
-	if (stgd && (stgd->proto == c_char || stgd->proto == c_wchar)) {
+	if (stgd && (stgd->itemtype == c_char || stgd->itemtype == c_wchar)) {
 		PyCArgObject *parg = new_CArgObject();
 		if (parg == NULL)
 			return NULL;
@@ -1419,16 +1420,16 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		case 'z': /* c_char_p */
 			ml = &c_char_p_method;
 			assert(c_char);
-			Py_XDECREF(stgdict->proto);
+			Py_XDECREF(stgdict->itemtype);
 			Py_INCREF(c_char);
-			stgdict->proto = c_char;
+			stgdict->itemtype = c_char;
 			break;
 		case 'Z': /* c_wchar_p */
 			ml = &c_wchar_p_method;
 			assert(c_wchar);
-			Py_XDECREF(stgdict->proto);
+			Py_XDECREF(stgdict->itemtype);
 			Py_INCREF(c_wchar);
-			stgdict->proto = c_wchar;
+			stgdict->itemtype = c_wchar;
 			break;
 		case 'P': /* c_void_p */
 			ml = &c_void_p_method;
@@ -2634,7 +2635,7 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 			ob = PyTuple_GET_ITEM(argtypes, i);
 			dict = PyType_stgdict(ob);
 			/* Create an instance of the pointed-to type */
-			ob = PyObject_CallObject(dict->proto, NULL);
+			ob = PyObject_CallObject(dict->itemtype, NULL);
 			if (ob == NULL)
 				goto error;
 			/* Insert as byref parameter */
@@ -2656,7 +2657,7 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 			v = _get_arg(&inargs_index, name, defval, inargs, kwds);
 			if (v == 0)
 				goto error;
-			ob = PyObject_CallFunctionObjArgs(dict->proto,
+			ob = PyObject_CallFunctionObjArgs(dict->itemtype,
 							  v,
 							  NULL);
 			Py_DECREF(v);
@@ -2746,8 +2747,9 @@ _get_one(PyObject *obj)
   XXX See comments in comtypes::COMMETHOD2.  Urgent need to clean this up:
   replace with a _from_outparam_ slot call.
 */
-	if (dict-> proto && PyString_CheckExact(dict->proto)) {
-		char *fmt = PyString_AS_STRING(dict->proto);
+	/* XXX XXX This needs to be fixed. dict->itemtype is NEVER a string any more. */
+	if (dict->itemtype && PyString_CheckExact(dict->itemtype)) {
+		char *fmt = PyString_AS_STRING(dict->itemtype);
 		/* simple data type, but no pointer */
 		if (fmt[0] == 'P') {
 			Py_INCREF(result);
@@ -3187,7 +3189,7 @@ Array_item(CDataObject *self, int index)
 	}
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	itemtype = stgdict->proto;
+	itemtype = stgdict->itemtype;
 	stgdict = PyType_stgdict(itemtype);
 
 	size = stgdict->size;
@@ -3215,8 +3217,9 @@ Array_slice(CDataObject *self, int ilow, int ihigh)
 	len = ihigh - ilow;
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	itemdict = PyType_stgdict(stgdict->proto);
+	itemdict = PyType_stgdict(stgdict->itemtype);
 
+	/* XXX XXX XXX Can we use getfunc here? */
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = (char *)self->b_ptr;
 		return PyString_FromStringAndSize(ptr + ilow, len);
@@ -3260,7 +3263,7 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
 
-	keep = _CData_set(self->b_ptr + offset, value, size, stgdict->proto);
+	keep = _CData_set(self->b_ptr + offset, value, size, stgdict->itemtype);
 	if (keep == NULL)
 		return -1;
 	return KeepRef(self, index, keep);
@@ -3531,7 +3534,7 @@ Pointer_item(CDataObject *self, int index)
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
 	
-	proto = stgdict->proto;
+	proto = stgdict->itemtype;
 	itemdict = PyType_stgdict(proto);
 	size = itemdict->size;
 	offset = index * itemdict->size;
@@ -3577,7 +3580,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 	}
 	size = stgdict->size / stgdict->length;
 
-	keep = _CData_set(*(void **)self->b_ptr, value, size, stgdict->proto);
+	keep = _CData_set(*(void **)self->b_ptr, value, size, stgdict->itemtype);
 	if (keep == NULL)
 		return -1;
 	return KeepRef(self, index, keep);
@@ -3596,7 +3599,7 @@ Pointer_get_contents(CDataObject *self, void *closure)
 
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
-	return CData_FromBaseObj(stgdict->proto,
+	return CData_FromBaseObj(stgdict->itemtype,
 				   (PyObject *)self, 0,
 				   *(void **)self->b_ptr);
 }
@@ -3615,11 +3618,11 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	}
 	stgdict = PyObject_stgdict((PyObject *)self);
 	if (!CDataObject_Check(value) 
-	    || 0 == PyObject_IsInstance(value, stgdict->proto)) {
+	    || 0 == PyObject_IsInstance(value, stgdict->itemtype)) {
 		/* XXX PyObject_IsInstance could return -1! */
 		PyErr_Format(PyExc_TypeError,
 			     "expected %s instead of %s",
-			     ((PyTypeObject *)(stgdict->proto))->tp_name,
+			     ((PyTypeObject *)(stgdict->itemtype))->tp_name,
 			     value->ob_type->tp_name);
 		return -1;
 	}
@@ -3685,7 +3688,7 @@ Pointer_slice(CDataObject *self, int ilow, int ihigh)
 	len = ihigh - ilow;
 
 	stgdict = PyObject_stgdict((PyObject *)self);
-	itemdict = PyType_stgdict(stgdict->proto);
+	itemdict = PyType_stgdict(stgdict->itemtype);
 
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		char *ptr = *(char **)self->b_ptr;
