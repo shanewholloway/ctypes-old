@@ -81,6 +81,8 @@ bytes(cdata)
 
 #include "Python.h"
 #include "structmember.h"
+
+#include <ffi.h>
 #include "ctypes.h"
 
 #ifdef MS_WIN32
@@ -458,7 +460,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!stgdict)
 		return NULL;
 	stgdict->size = sizeof(void *);
-	stgdict->align = getentry("P")->align;
+	stgdict->align = getentry("P")->tp->alignment;
 	stgdict->length = 2;
 
 	proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
@@ -950,9 +952,9 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	fmt = getentry(PyString_AS_STRING(proto));
 
-	stgdict->align = fmt->align;
+	stgdict->align = fmt->tp->alignment;
 	stgdict->length = 1;
-	stgdict->size = fmt->size;
+	stgdict->size = fmt->tp->size;
 	stgdict->setfunc = fmt->setfunc;
 	stgdict->getfunc = fmt->getfunc;
 	/* This consumes the refcount on proto which we have */
@@ -1141,7 +1143,7 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 	PyObject *ob;
 	PyObject *converters = NULL;
 
-	stgdict->align = getentry("P")->align;
+	stgdict->align = getentry("P")->tp->alignment;
 	stgdict->length = 1;
 	stgdict->size = sizeof(void *);
 	stgdict->setfunc = NULL;
