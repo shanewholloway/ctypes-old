@@ -8,15 +8,16 @@ Compression=lzma
 SolidCompression=yes
 LicenseFile="C:\sf\gccxml\GCC_XML\Copyright.txt"
 InfoBeforeFile=snapshot.txt
+OutputDir="c:\inout"
 
 [Files]
 Source: "C:\sf\gccxml\GCC_XML\Copyright.txt"; DestDir: "{app}\doc"; Flags: ignoreversion
 Source: "C:\sf\buildgcc\bin\release\snapshot.txt"; DestDir: "{app}\doc"; Destname: README.txt; Flags: ignoreversion
 
-Source: "C:\sf\buildgcc\bin\release\gccxml.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "C:\sf\buildgcc\bin\release\gccxml_cc1plus.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "C:\sf\buildgcc\bin\release\vcInstallPatch.exe"; DestDir: "{app}\install"; Flags: ignoreversion
-Source: "C:\sf\buildgcc\bin\release\vcInstall.exe"; DestDir: "{app}\install"; Flags: ignoreversion
+Source: "C:\sf\buildgcc6\bin\minsizerel\gccxml.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "C:\sf\buildgcc6\bin\minsizerel\gccxml_cc1plus.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
+;Source: "C:\sf\buildgcc6\bin\minsizerel\vcInstallPatch.exe"; DestName: "patch.exe"; DestDir: "{app}\install"; Flags: ignoreversion
+Source: "C:\sf\buildgcc6\bin\minsizerel\vcInstall.exe"; DestDir: "{app}\install"; Flags: ignoreversion
 
 Source: "C:\sf\gccxml\GCC_XML\VcInstall\*.patch"; DestDir: "{app}\install"; Flags: ignoreversion
 Source: "C:\sf\gccxml\GCC_XML\VcInstall\vcCat.exe"; DestName: cat.exe; DestDir: "{app}\install"; Flags: ignoreversion
