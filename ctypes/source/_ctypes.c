@@ -2105,27 +2105,18 @@ _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
  * to the value 'value'.
  */
 static int
-CData_set(PyObject *dst, PyObject *type, PyObject *value,
+CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 	  int index, int size, char *ptr)
 {
-	CDataObject *mem = (CDataObject *)dst;
-	PyObject *result;
-
-	if (!CDataObject_Check(dst)) {
-		PyErr_SetString(PyExc_TypeError,
-				"not a ctype instance");
-		return -1;
-	}
-
-	result = _CData_set(mem, type, value,
-			    size, ptr);
+	PyObject *result = _CData_set(dst, type, value,
+				      size, ptr);
 	if (result == NULL)
 		return -1;
 
 	/* KeepRef steals a refcount from it's last argument */
 	/* If KeepRef fails, we are stumped.  The dst memory block has already
 	   been changed */
-	return KeepRef(mem, index, result);
+	return KeepRef(dst, index, result);
 }
 
 
@@ -3443,7 +3434,7 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	ptr = self->b_ptr + offset;
 	itemtype = stgdict->proto;
 
-	return CData_set((PyObject *)self, itemtype, value,
+	return CData_set(self, itemtype, value,
 			 index, size, ptr);
 }
 
@@ -3803,7 +3794,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 	size = stgdict->size / stgdict->length;
 
 	/* XXXXX Make sure proto is NOT NULL! */
-	return CData_set((PyObject *)self, stgdict->proto, value,
+	return CData_set(self, stgdict->proto, value,
 			 index, size, *(void **)self->b_ptr);
 }
 
