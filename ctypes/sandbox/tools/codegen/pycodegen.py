@@ -74,13 +74,6 @@ def make_struct_header(name, struct, isStruct):
 def make_struct_body(name, struct):
     methods = [m for m in struct.members if isinstance(m, nodes.Method)]
     fields = [m for m in struct.members if isinstance(m, nodes.Field)]
-##    if methods and not struct.bases:
-##        fields.append(nodes.Field("lpVtbl", nodes.FundamentalType("void"), None, "0"))
-##        base_name = "_com_interface_base"
-##    else:
-##        base_name = map(type_name, struct.bases)
-##        base_name = ", ".join(base_name)
-
     if fields:
         if struct.bases:
             print "%s._fields_ = %s._fields_ + [" % (name, base_name)
@@ -108,7 +101,11 @@ def make_struct_body(name, struct):
             print "%s._methods_ = [" % name
         for m in methods:
             args = [type_name(a) for a in m.arguments]
-            print "    STDMETHOD(%s, '%s', %s)" % (type_name(m.returns), m.name, ", ".join(args))
+            text = "    STDMETHOD(%s, '%s'" % (type_name(m.returns), m.name)
+            if args:
+                print "%s,%s)," % (text, ", ".join(args))
+            else:
+                print "%s)," % text
         print "]"
 
     try:
@@ -324,13 +321,16 @@ def main():
     print "def STDCALL(*x): return x"
     print "STDMETHOD = STDCALL"
     print "def CDECL(*x): return x"
+    print "class _com_interface_base(Structure):"
+    print "    _fields_ = [('lpVtbl', c_void_p)]"
     print
 
-    for howoften in range(100):
+    for howoften in range(50):
         for i in todo.copy():
             needs = set(i.depends())
             if needs.issubset(done): # can generate this one now
 ##                print "# generate", i
+##                print "#depends", i.depends()
                 a = generate(i)
                 done.update(a)
                 done.add(i)
@@ -342,13 +342,17 @@ def main():
         if not todo:
             print "# done after %d iterations" % howoften
             return
+    todo = list(todo)
     print "# left %d items after %d iterations" % (len(todo), howoften+1)
     print "#", todo
 
-    return
+    return todo
     
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) == 1:
+        sys.argv.append("IDispatch")
+    todo = main()
 
 # TODO-List:
 #
