@@ -1,0 +1,43 @@
+ctypes is a module allowing to create and manipulate C data types in
+Python. These can then be passed to C-functions loaded from dynamic
+link libraries.
+
+This module is supposed to be a greatly enhanced and much more
+complete replacement of Sam Rushing's calldll/npstruct/windll
+modules. ctypes is not based on Sam's work, it has different roots.
+
+It requires Python 2.2 or higher, since it makes intensive use of the
+new type system.
+
+----
+
+It provides classes which can be used to create complicated C data
+types, for example, those used in Windows type libraries.
+
+Included is a facility to dynamically load DLLs, retrieve functions,
+and call them. You can also call methods on COM objects.
+
+Implemented are simple data types (int, char, string, and so on),
+function pointers (callbacks), structures, unions, arrays, and
+pointers.
+
+ctypes uses win32 structured exception handling, to make it as safe as
+possible, although it should be pretty clear that it's easy to crash
+the Python interpreter with it.
+
+The source distribution contains an extensive, although inclomplete,
+tutorial (which you can also read online), as well as example scripts
+demonstrating the use.
+
+One of these scripts contains a dynamic Dispatch implementation, which
+is used to drive MS word as an example.
+
+----
+
+Current version: 0.4.0
+
+Homepage: http://starship.python.net/crew/theller/ctypes.html
+
+License: MIT
+
+Platforms: Windows, linux
