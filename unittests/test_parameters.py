@@ -20,6 +20,34 @@ class SimpleTypesTestCase(unittest.TestCase):
             set_conversion_mode(*self.prev_conv_mode)
         
 
+    def test_subclasses(self):
+        from ctypes import c_void_p, c_char_p
+        # ctypes 0.9.5 and before did overwrite from_param in SimpleType_new
+        class CVOIDP(c_void_p):
+            def from_param(cls, value):
+                return value * 2
+            from_param = classmethod(from_param)
+
+        class CCHARP(c_char_p):
+            def from_param(cls, value):
+                return value * 4
+            from_param = classmethod(from_param)
+
+        self.failUnlessEqual(CVOIDP.from_param("abc"), "abcabc")
+        self.failUnlessEqual(CCHARP.from_param("abc"), "abcabcabcabc")
+
+        try:
+            from ctypes import c_wchar_p
+        except ImportError:
+            return
+
+        class CWCHARP(c_wchar_p):
+            def from_param(cls, value):
+                return value * 3
+            from_param = classmethod(from_param)
+
+        self.failUnlessEqual(CWCHARP.from_param("abc"), "abcabcabc")
+
     # XXX Replace by c_char_p tests
     def test_cstrings(self):
         from ctypes import c_char_p, byref
