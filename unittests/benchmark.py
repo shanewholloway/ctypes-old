@@ -17,8 +17,8 @@ if __name__ == "__main__":
     print >> sys.stderr, "func call, 2 args: %.3f us" % t.timeit()
     print >> sys.stderr
 
-    t = Timer("ex_func", "from __main__ import ex_func")
+    t = Timer("ex_func()", "from __main__ import ex_func")
     print >> sys.stderr, "dll call, no args:  %.3f us" % (t.timeit(10000000) / 10)
-    t = Timer("py_func", "from __main__ import py_func")
+    t = Timer("py_func()", "from __main__ import py_func")
     print >> sys.stderr, "func call, no args: %.3f us" % (t.timeit(10000000) / 10)
     print >> sys.stderr
