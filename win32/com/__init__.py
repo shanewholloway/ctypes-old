@@ -181,7 +181,7 @@ S_OK = 0
 E_NOTIMPL = 0x80004001
 E_NOINTERFACE = 0x80004002
 
-class COMObject:
+class COMObject(object):
     _refcnt = 0
     _factory = None
 
