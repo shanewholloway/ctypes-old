@@ -2287,13 +2287,16 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	CFuncPtrObject *self;
 	int index;
 	char *name = NULL;
+	PyObject *cls = NULL;
 
-	if (!PyArg_ParseTuple(args, "is", &index, &name))
+	if (!PyArg_ParseTuple(args, "is|O", &index, &name, &cls))
 		return NULL;
 	
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
 
 	self->index = index + 0x1000;
+	if (cls)
+		return PyMethod_New(self, NULL, cls);
 	return (PyObject *)self;
 }
 #endif
@@ -2304,7 +2307,8 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
   "i" - function address
   "sO" - function name, dll object (with an integer handle)
-  "is" - vtable index, method name, creates COM method pointers
+  "is" - vtable index, method name, creates callable calling COM vtbl
+  "isO" - vtable index, method name, class, creates unbound method calling COM vtbl
   "O" - must be a callable, creates a C callable function
 */
 static PyObject *
@@ -2319,7 +2323,7 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return GenericCData_new(type, args, kwds);
 	}
 
-	if (2 == PyTuple_GET_SIZE(args)) {
+	if (2 <= PyTuple_GET_SIZE(args)) {
 #ifdef MS_WIN32
 		if (PyInt_Check(PyTuple_GET_ITEM(args, 0)))
 			return CFuncPtr_FromVtblIndex(type, args, kwds);
