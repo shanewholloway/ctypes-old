@@ -72,4 +72,4 @@ class StringPtrTestCase(unittest.TestCase):
         x1 = r[0], r[1], r[2], r[3], r[4]
 
 if __name__ == '__main__':
-    test()
+    unittest.main()
