@@ -647,10 +647,11 @@ static int _call_function_pointer(int flags,
 	}
 	rtype = tag2ffitype(res->tag);
     
-	if (flags & FUNCFLAG_CDECL)
-		abi = FFI_DEFAULT_ABI;
-	else
+	abi = FFI_DEFAULT_ABI;
+#ifdef _MSC_VER
+	if (0 == (flags & FUNCFLAG_CDECL))
 		abi = FFI_STDCALL;
+#endif
 
 	if (FFI_OK != ffi_prep_cif(&cif,
 				   abi,
