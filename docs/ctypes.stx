@@ -101,8 +101,8 @@ The ctypes module
     Looking at the sample files is highly recommended in addition to
     reading the documentation.
 
-    The binary Windows distribution only contains the 'ctypes' module
-    as well as the underlying '_ctypes' extension module.
+    The binary Windows distribution only everything except the
+    documentation, the unittests, and some example scripts.
 
     These files are distributed under the "MIT license":LICENSE.txt.
 
