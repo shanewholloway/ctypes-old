@@ -1,5 +1,5 @@
 # -*- python -*-
-# Generated from c:\windows\system32\shdocvw.dll
+# Generated from C:\windows\system32\SHDOCVW.DLL
 
 ###############################################################
 # NOTE: This is a GENERATED file. Please do not make changes, #
@@ -20,7 +20,7 @@ class SHDocVw:
     guid = GUID('{EAB22AC0-30C1-11CF-A7EB-0000C05BAE0B}')
     version = (1, 1)
     flags = 0x8
-    path = 'c:\\windows\\system32\\shdocvw.dll'
+    path = 'C:\\windows\\system32\\SHDOCVW.DLL'
 
 ##############################################################################
 
@@ -147,6 +147,11 @@ class IWebBrowser2(IDispatch):
     _iid_ = GUID('{D30C1661-CDAF-11D0-8A3E-00C04FC9E26E}')
 
 
+class IShellNameSpace(IDispatch):
+    """IShellNameSpace Interface"""
+    _iid_ = GUID('{E572D3C9-37BE-4AE2-825D-D521763E3108}')
+
+
 class IShellWindows(IDispatch):
     """Definition of interface IShellWindows"""
     _iid_ = GUID('{85CB6900-4D95-11CF-960C-0080C7F4EE85}')
@@ -167,9 +172,9 @@ class ISearches(IDispatch):
     _iid_ = GUID('{47C922A2-3DD5-11D2-BF8B-00C04FB93661}')
 
 
-class DWebBrowserEvents(dispinterface):
-    """Web Browser Control Events (old)"""
-    _iid_ = GUID('{EAB22AC2-30C1-11CF-A7EB-0000C05BAE0B}')
+class DShellWindowsEvents(dispinterface):
+    """Event interface for IShellWindows"""
+    _iid_ = GUID('{FE4106E0-399A-11D0-A48C-00A0C90A8F39}')
 
 
 class ISearchAssistantOC3(IDispatch):
@@ -187,9 +192,9 @@ class DWebBrowserEvents2(dispinterface):
     _iid_ = GUID('{34A715A0-6587-11D0-924A-0020AFC7AC4D}')
 
 
-class DShellWindowsEvents(dispinterface):
-    """Event interface for IShellWindows"""
-    _iid_ = GUID('{FE4106E0-399A-11D0-A48C-00A0C90A8F39}')
+class IScriptErrorList(IDispatch):
+    """Script Error List Interface"""
+    _iid_ = GUID('{F3470F24-15FD-11D2-BB2E-00805FF7EFCA}')
 
 
 class ISearchAssistantOC2(IDispatch):
@@ -211,14 +216,9 @@ class DShellNameSpaceEvents(dispinterface):
     _iid_ = GUID('{55136806-B2DE-11D1-B9F2-00A0C98BC547}')
 
 
-class IShellNameSpace(IDispatch):
-    """IShellNameSpace Interface"""
-    _iid_ = GUID('{E572D3C9-37BE-4AE2-825D-D521763E3108}')
-
-
-class IScriptErrorList(IDispatch):
-    """Script Error List Interface"""
-    _iid_ = GUID('{F3470F24-15FD-11D2-BB2E-00805FF7EFCA}')
+class DWebBrowserEvents(dispinterface):
+    """Web Browser Control Events (old)"""
+    _iid_ = GUID('{EAB22AC2-30C1-11CF-A7EB-0000C05BAE0B}')
 
 
 class _SearchAssistantEvents(dispinterface):
@@ -295,6 +295,43 @@ IWebBrowser2._methods_ = IDispatch._methods_ + [
     STDMETHOD(HRESULT, "_put_AddressBar", c_int),
     STDMETHOD(HRESULT, "_get_Resizable", POINTER(c_int)),
     STDMETHOD(HRESULT, "_put_Resizable", c_int),
+]
+
+IShellNameSpace._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "MoveSelectionUp"),
+    STDMETHOD(HRESULT, "MoveSelectionDown"),
+    STDMETHOD(HRESULT, "ResetSort"),
+    STDMETHOD(HRESULT, "NewFolder"),
+    STDMETHOD(HRESULT, "Synchronize"),
+    STDMETHOD(HRESULT, "Import"),
+    STDMETHOD(HRESULT, "Export"),
+    STDMETHOD(HRESULT, "InvokeContextMenuCommand", BSTR),
+    STDMETHOD(HRESULT, "MoveSelectionTo"),
+    STDMETHOD(HRESULT, "_get_SubscriptionsEnabled", POINTER(c_int)),
+    STDMETHOD(HRESULT, "CreateSubscriptionForSelection", POINTER(c_int)),
+    STDMETHOD(HRESULT, "DeleteSubscriptionForSelection", POINTER(c_int)),
+    STDMETHOD(HRESULT, "SetRoot", BSTR),
+    STDMETHOD(HRESULT, "_get_EnumOptions", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_EnumOptions", c_long),
+    STDMETHOD(HRESULT, "_get_SelectedItem", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_put_SelectedItem", POINTER(IDispatch)),
+    STDMETHOD(HRESULT, "_get_Root", POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "_put_Root", VARIANT),
+    STDMETHOD(HRESULT, "_get_Depth", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_Depth", c_int),
+    STDMETHOD(HRESULT, "_get_Mode", POINTER(c_uint)),
+    STDMETHOD(HRESULT, "_put_Mode", c_uint),
+    STDMETHOD(HRESULT, "_get_Flags", POINTER(c_ulong)),
+    STDMETHOD(HRESULT, "_put_Flags", c_ulong),
+    STDMETHOD(HRESULT, "_put_TVFlags", c_ulong),
+    STDMETHOD(HRESULT, "_get_TVFlags", POINTER(c_ulong)),
+    STDMETHOD(HRESULT, "_get_Columns", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_Columns", BSTR),
+    STDMETHOD(HRESULT, "_get_CountViewTypes", POINTER(c_int)),
+    STDMETHOD(HRESULT, "SetViewType", c_int),
+    STDMETHOD(HRESULT, "SelectedItems", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "Expand", VARIANT, c_int),
+    STDMETHOD(HRESULT, "UnselectAll"),
 ]
 
 IShellWindows._methods_ = IDispatch._methods_ + [
@@ -376,24 +413,9 @@ ISearches._methods_ = IDispatch._methods_ + [
     STDMETHOD(HRESULT, "_NewEnum", POINTER(POINTER(IUnknown))),
 ]
 
-DWebBrowserEvents._dispmethods_ = [
-    DISPMETHOD(0x64, None, "BeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0x65, None, "NavigateComplete", BSTR),
-    DISPMETHOD(0x66, None, "StatusTextChange", BSTR),
-    DISPMETHOD(0x6c, None, "ProgressChange", c_long, c_long),
-    DISPMETHOD(0x68, None, "DownloadComplete"),
-    DISPMETHOD(0x69, None, "CommandStateChange", c_long, c_int),
-    DISPMETHOD(0x6a, None, "DownloadBegin"),
-    DISPMETHOD(0x6b, None, "NewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0x71, None, "TitleChange", BSTR),
-    DISPMETHOD(0xc8, None, "FrameBeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0xc9, None, "FrameNavigateComplete", BSTR),
-    DISPMETHOD(0xcc, None, "FrameNewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0x67, None, "Quit", POINTER(c_int)),
-    DISPMETHOD(0x6d, None, "WindowMove"),
-    DISPMETHOD(0x6e, None, "WindowResize"),
-    DISPMETHOD(0x6f, None, "WindowActivate"),
-    DISPMETHOD(0x70, None, "PropertyChange", BSTR),
+DShellWindowsEvents._dispmethods_ = [
+    DISPMETHOD(0xc8L, None, "WindowRegistered", c_long),
+    DISPMETHOD(0xc9L, None, "WindowRevoked", c_long),
 ]
 
 ISearchAssistantOC3._methods_ = IDispatch._methods_ + [
@@ -479,43 +501,55 @@ IWebBrowserApp._methods_ = IDispatch._methods_ + [
 ]
 
 DWebBrowserEvents2._dispmethods_ = [
-    DISPMETHOD(0x66, None, "StatusTextChange", BSTR),
-    DISPMETHOD(0x6c, None, "ProgressChange", c_long, c_long),
-    DISPMETHOD(0x69, None, "CommandStateChange", c_long, c_int),
-    DISPMETHOD(0x6a, None, "DownloadBegin"),
-    DISPMETHOD(0x68, None, "DownloadComplete"),
-    DISPMETHOD(0x71, None, "TitleChange", BSTR),
-    DISPMETHOD(0x70, None, "PropertyChange", BSTR),
-    DISPMETHOD(0xfa, None, "BeforeNavigate2", POINTER(IDispatch), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(c_int)),
-    DISPMETHOD(0xfb, None, "NewWindow2", POINTER(POINTER(IDispatch)), POINTER(c_int)),
-    DISPMETHOD(0xfc, None, "NavigateComplete2", POINTER(IDispatch), POINTER(VARIANT)),
-    DISPMETHOD(0x103, None, "DocumentComplete", POINTER(IDispatch), POINTER(VARIANT)),
-    DISPMETHOD(0xfd, None, "OnQuit"),
-    DISPMETHOD(0xfe, None, "OnVisible", c_int),
-    DISPMETHOD(0xff, None, "OnToolBar", c_int),
-    DISPMETHOD(0x100, None, "OnMenuBar", c_int),
-    DISPMETHOD(0x101, None, "OnStatusBar", c_int),
-    DISPMETHOD(0x102, None, "OnFullScreen", c_int),
-    DISPMETHOD(0x104, None, "OnTheaterMode", c_int),
-    DISPMETHOD(0x106, None, "WindowSetResizable", c_int),
-    DISPMETHOD(0x108, None, "WindowSetLeft", c_long),
-    DISPMETHOD(0x109, None, "WindowSetTop", c_long),
-    DISPMETHOD(0x10a, None, "WindowSetWidth", c_long),
-    DISPMETHOD(0x10b, None, "WindowSetHeight", c_long),
-    DISPMETHOD(0x107, None, "WindowClosing", c_int, POINTER(c_int)),
-    DISPMETHOD(0x10c, None, "ClientToHostWindow", POINTER(c_long), POINTER(c_long)),
-    DISPMETHOD(0x10d, None, "SetSecureLockIcon", c_long),
-    DISPMETHOD(0x10e, None, "FileDownload", POINTER(c_int)),
-    DISPMETHOD(0x10f, None, "NavigateError", POINTER(IDispatch), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(c_int)),
-    DISPMETHOD(0xe1, None, "PrintTemplateInstantiation", POINTER(IDispatch)),
-    DISPMETHOD(0xe2, None, "PrintTemplateTeardown", POINTER(IDispatch)),
-    DISPMETHOD(0xe3, None, "UpdatePageStatus", POINTER(IDispatch), POINTER(VARIANT), POINTER(VARIANT)),
-    DISPMETHOD(0x110, None, "PrivacyImpactedStateChange", c_int),
+    DISPMETHOD(0x66L, None, "StatusTextChange", BSTR),
+    DISPMETHOD(0x6cL, None, "ProgressChange", c_long, c_long),
+    DISPMETHOD(0x69L, None, "CommandStateChange", c_long, c_int),
+    DISPMETHOD(0x6aL, None, "DownloadBegin"),
+    DISPMETHOD(0x68L, None, "DownloadComplete"),
+    DISPMETHOD(0x71L, None, "TitleChange", BSTR),
+    DISPMETHOD(0x70L, None, "PropertyChange", BSTR),
+    DISPMETHOD(0xfaL, None, "BeforeNavigate2", POINTER(IDispatch), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(c_int)),
+    DISPMETHOD(0xfbL, None, "NewWindow2", POINTER(POINTER(IDispatch)), POINTER(c_int)),
+    DISPMETHOD(0xfcL, None, "NavigateComplete2", POINTER(IDispatch), POINTER(VARIANT)),
+    DISPMETHOD(0x103L, None, "DocumentComplete", POINTER(IDispatch), POINTER(VARIANT)),
+    DISPMETHOD(0xfdL, None, "OnQuit"),
+    DISPMETHOD(0xfeL, None, "OnVisible", c_int),
+    DISPMETHOD(0xffL, None, "OnToolBar", c_int),
+    DISPMETHOD(0x100L, None, "OnMenuBar", c_int),
+    DISPMETHOD(0x101L, None, "OnStatusBar", c_int),
+    DISPMETHOD(0x102L, None, "OnFullScreen", c_int),
+    DISPMETHOD(0x104L, None, "OnTheaterMode", c_int),
+    DISPMETHOD(0x106L, None, "WindowSetResizable", c_int),
+    DISPMETHOD(0x108L, None, "WindowSetLeft", c_long),
+    DISPMETHOD(0x109L, None, "WindowSetTop", c_long),
+    DISPMETHOD(0x10aL, None, "WindowSetWidth", c_long),
+    DISPMETHOD(0x10bL, None, "WindowSetHeight", c_long),
+    DISPMETHOD(0x107L, None, "WindowClosing", c_int, POINTER(c_int)),
+    DISPMETHOD(0x10cL, None, "ClientToHostWindow", POINTER(c_long), POINTER(c_long)),
+    DISPMETHOD(0x10dL, None, "SetSecureLockIcon", c_long),
+    DISPMETHOD(0x10eL, None, "FileDownload", POINTER(c_int)),
+    DISPMETHOD(0x10fL, None, "NavigateError", POINTER(IDispatch), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(c_int)),
+    DISPMETHOD(0xe1L, None, "PrintTemplateInstantiation", POINTER(IDispatch)),
+    DISPMETHOD(0xe2L, None, "PrintTemplateTeardown", POINTER(IDispatch)),
+    DISPMETHOD(0xe3L, None, "UpdatePageStatus", POINTER(IDispatch), POINTER(VARIANT), POINTER(VARIANT)),
+    DISPMETHOD(0x110L, None, "PrivacyImpactedStateChange", c_int),
 ]
 
-DShellWindowsEvents._dispmethods_ = [
-    DISPMETHOD(0xc8, None, "WindowRegistered", c_long),
-    DISPMETHOD(0xc9, None, "WindowRevoked", c_long),
+IScriptErrorList._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "advanceError"),
+    STDMETHOD(HRESULT, "retreatError"),
+    STDMETHOD(HRESULT, "canAdvanceError", POINTER(c_long)),
+    STDMETHOD(HRESULT, "canRetreatError", POINTER(c_long)),
+    STDMETHOD(HRESULT, "getErrorLine", POINTER(c_long)),
+    STDMETHOD(HRESULT, "getErrorChar", POINTER(c_long)),
+    STDMETHOD(HRESULT, "getErrorCode", POINTER(c_long)),
+    STDMETHOD(HRESULT, "getErrorMsg", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "getErrorUrl", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "getAlwaysShowLockState", POINTER(c_long)),
+    STDMETHOD(HRESULT, "getDetailsPaneOpen", POINTER(c_long)),
+    STDMETHOD(HRESULT, "setDetailsPaneOpen", c_long),
+    STDMETHOD(HRESULT, "getPerErrorDisplay", POINTER(c_long)),
+    STDMETHOD(HRESULT, "setPerErrorDisplay", c_long),
 ]
 
 ISearchAssistantOC2._methods_ = IDispatch._methods_ + [
@@ -572,69 +606,35 @@ IShellUIHelper._methods_ = IDispatch._methods_ + [
 ]
 
 DShellNameSpaceEvents._dispmethods_ = [
-    DISPMETHOD(0x1, None, "FavoritesSelectionChange", c_long, c_long, BSTR, BSTR, c_long, BSTR, c_long),
-    DISPMETHOD(0x2, None, "SelectionChange"),
-    DISPMETHOD(0x3, None, "DoubleClick"),
-    DISPMETHOD(0x4, None, "Initialized"),
+    DISPMETHOD(0x1L, None, "FavoritesSelectionChange", c_long, c_long, BSTR, BSTR, c_long, BSTR, c_long),
+    DISPMETHOD(0x2L, None, "SelectionChange"),
+    DISPMETHOD(0x3L, None, "DoubleClick"),
+    DISPMETHOD(0x4L, None, "Initialized"),
 ]
 
-IShellNameSpace._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "MoveSelectionUp"),
-    STDMETHOD(HRESULT, "MoveSelectionDown"),
-    STDMETHOD(HRESULT, "ResetSort"),
-    STDMETHOD(HRESULT, "NewFolder"),
-    STDMETHOD(HRESULT, "Synchronize"),
-    STDMETHOD(HRESULT, "Import"),
-    STDMETHOD(HRESULT, "Export"),
-    STDMETHOD(HRESULT, "InvokeContextMenuCommand", BSTR),
-    STDMETHOD(HRESULT, "MoveSelectionTo"),
-    STDMETHOD(HRESULT, "_get_SubscriptionsEnabled", POINTER(c_int)),
-    STDMETHOD(HRESULT, "CreateSubscriptionForSelection", POINTER(c_int)),
-    STDMETHOD(HRESULT, "DeleteSubscriptionForSelection", POINTER(c_int)),
-    STDMETHOD(HRESULT, "SetRoot", BSTR),
-    STDMETHOD(HRESULT, "_get_EnumOptions", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_EnumOptions", c_long),
-    STDMETHOD(HRESULT, "_get_SelectedItem", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_put_SelectedItem", POINTER(IDispatch)),
-    STDMETHOD(HRESULT, "_get_Root", POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "_put_Root", VARIANT),
-    STDMETHOD(HRESULT, "_get_Depth", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_Depth", c_int),
-    STDMETHOD(HRESULT, "_get_Mode", POINTER(c_uint)),
-    STDMETHOD(HRESULT, "_put_Mode", c_uint),
-    STDMETHOD(HRESULT, "_get_Flags", POINTER(c_ulong)),
-    STDMETHOD(HRESULT, "_put_Flags", c_ulong),
-    STDMETHOD(HRESULT, "_put_TVFlags", c_ulong),
-    STDMETHOD(HRESULT, "_get_TVFlags", POINTER(c_ulong)),
-    STDMETHOD(HRESULT, "_get_Columns", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_Columns", BSTR),
-    STDMETHOD(HRESULT, "_get_CountViewTypes", POINTER(c_int)),
-    STDMETHOD(HRESULT, "SetViewType", c_int),
-    STDMETHOD(HRESULT, "SelectedItems", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "Expand", VARIANT, c_int),
-    STDMETHOD(HRESULT, "UnselectAll"),
-]
-
-IScriptErrorList._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "advanceError"),
-    STDMETHOD(HRESULT, "retreatError"),
-    STDMETHOD(HRESULT, "canAdvanceError", POINTER(c_long)),
-    STDMETHOD(HRESULT, "canRetreatError", POINTER(c_long)),
-    STDMETHOD(HRESULT, "getErrorLine", POINTER(c_long)),
-    STDMETHOD(HRESULT, "getErrorChar", POINTER(c_long)),
-    STDMETHOD(HRESULT, "getErrorCode", POINTER(c_long)),
-    STDMETHOD(HRESULT, "getErrorMsg", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "getErrorUrl", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "getAlwaysShowLockState", POINTER(c_long)),
-    STDMETHOD(HRESULT, "getDetailsPaneOpen", POINTER(c_long)),
-    STDMETHOD(HRESULT, "setDetailsPaneOpen", c_long),
-    STDMETHOD(HRESULT, "getPerErrorDisplay", POINTER(c_long)),
-    STDMETHOD(HRESULT, "setPerErrorDisplay", c_long),
+DWebBrowserEvents._dispmethods_ = [
+    DISPMETHOD(0x64L, None, "BeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0x65L, None, "NavigateComplete", BSTR),
+    DISPMETHOD(0x66L, None, "StatusTextChange", BSTR),
+    DISPMETHOD(0x6cL, None, "ProgressChange", c_long, c_long),
+    DISPMETHOD(0x68L, None, "DownloadComplete"),
+    DISPMETHOD(0x69L, None, "CommandStateChange", c_long, c_int),
+    DISPMETHOD(0x6aL, None, "DownloadBegin"),
+    DISPMETHOD(0x6bL, None, "NewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0x71L, None, "TitleChange", BSTR),
+    DISPMETHOD(0xc8L, None, "FrameBeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0xc9L, None, "FrameNavigateComplete", BSTR),
+    DISPMETHOD(0xccL, None, "FrameNewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0x67L, None, "Quit", POINTER(c_int)),
+    DISPMETHOD(0x6dL, None, "WindowMove"),
+    DISPMETHOD(0x6eL, None, "WindowResize"),
+    DISPMETHOD(0x6fL, None, "WindowActivate"),
+    DISPMETHOD(0x70L, None, "PropertyChange", BSTR),
 ]
 
 _SearchAssistantEvents._dispmethods_ = [
-    DISPMETHOD(0x1, None, "OnNextMenuSelect", c_long),
-    DISPMETHOD(0x2, None, "OnNewSearch"),
+    DISPMETHOD(0x1L, None, "OnNextMenuSelect", c_long),
+    DISPMETHOD(0x2L, None, "OnNewSearch"),
 ]
 
 IShellFavoritesNameSpace._methods_ = IDispatch._methods_ + [
@@ -655,13 +655,6 @@ IShellFavoritesNameSpace._methods_ = IDispatch._methods_ + [
 
 ##############################################################################
 
-class ShellWindows:
-    """ShellDispatch Load in Shell Context"""
-    _reg_clsid_ = '{9BA05972-F6A8-11CF-A442-00A0C90A8F39}'
-    _com_interfaces_ = [IShellWindows]
-    _outgoing_interfaces_ = [DShellWindowsEvents]
-
-
 class ShellNameSpace:
     _reg_clsid_ = '{55136805-B2DE-11D1-B9F2-00A0C98BC547}'
     _com_interfaces_ = [IShellNameSpace]
@@ -673,11 +666,11 @@ class CScriptErrorList:
     _com_interfaces_ = [IScriptErrorList]
 
 
-class InternetExplorer:
-    """Internet Explorer Application."""
-    _reg_clsid_ = '{0002DF01-0000-0000-C000-000000000046}'
-    _com_interfaces_ = [IWebBrowser2, IWebBrowserApp]
-    _outgoing_interfaces_ = [DWebBrowserEvents2, DWebBrowserEvents]
+class WebBrowser_V1:
+    """WebBrowser Control"""
+    _reg_clsid_ = '{EAB22AC3-30C1-11CF-A7EB-0000C05BAE0B}'
+    _com_interfaces_ = [IWebBrowser, IWebBrowser2]
+    _outgoing_interfaces_ = [DWebBrowserEvents, DWebBrowserEvents2]
 
 
 class ShellBrowserWindow:
@@ -687,11 +680,25 @@ class ShellBrowserWindow:
     _outgoing_interfaces_ = [DWebBrowserEvents2, DWebBrowserEvents]
 
 
-class WebBrowser_V1:
-    """WebBrowser Control"""
-    _reg_clsid_ = '{EAB22AC3-30C1-11CF-A7EB-0000C05BAE0B}'
-    _com_interfaces_ = [IWebBrowser, IWebBrowser2]
-    _outgoing_interfaces_ = [DWebBrowserEvents, DWebBrowserEvents2]
+class SearchAssistantOC:
+    """SearchAssistantOC Class"""
+    _reg_clsid_ = '{B45FF030-4447-11D2-85DE-00C04FA35C89}'
+    _com_interfaces_ = [ISearchAssistantOC3]
+    _outgoing_interfaces_ = [_SearchAssistantEvents]
+
+
+class ShellWindows:
+    """ShellDispatch Load in Shell Context"""
+    _reg_clsid_ = '{9BA05972-F6A8-11CF-A442-00A0C90A8F39}'
+    _com_interfaces_ = [IShellWindows]
+    _outgoing_interfaces_ = [DShellWindowsEvents]
+
+
+class InternetExplorer:
+    """Internet Explorer Application."""
+    _reg_clsid_ = '{0002DF01-0000-0000-C000-000000000046}'
+    _com_interfaces_ = [IWebBrowser2, IWebBrowserApp]
+    _outgoing_interfaces_ = [DWebBrowserEvents2, DWebBrowserEvents]
 
 
 class WebBrowser:
@@ -704,11 +711,4 @@ class WebBrowser:
 class ShellUIHelper:
     _reg_clsid_ = '{64AB4BB7-111E-11D1-8F79-00C04FC2FBE1}'
     _com_interfaces_ = [IShellUIHelper]
-
-
-class SearchAssistantOC:
-    """SearchAssistantOC Class"""
-    _reg_clsid_ = '{B45FF030-4447-11D2-85DE-00C04FA35C89}'
-    _com_interfaces_ = [ISearchAssistantOC3]
-    _outgoing_interfaces_ = [_SearchAssistantEvents]
 
