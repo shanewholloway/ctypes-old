@@ -311,6 +311,111 @@ PyMethodDef module_methods[] = {
 	{ NULL, NULL, 0, NULL},
 };
 
+EXPORT(char) tf_b(char c)
+{
+	return c;
+}
+EXPORT(unsigned char) tf_B(unsigned char c)
+{
+	return c;
+}
+EXPORT(short) tf_h(short c)
+{
+#ifdef _DEBUG
+	_asm int 3;
+#endif
+	return c;
+}
+EXPORT(unsigned short) tf_H(unsigned short c)
+{
+	return c;
+}
+EXPORT(int) tf_i(int c)
+{
+	return c;
+}
+EXPORT(unsigned int) tf_I(unsigned int c)
+{
+	return c;
+}
+EXPORT(long) tf_l(long c)
+{
+	return c;
+}
+EXPORT(unsigned long) tf_L(unsigned long c)
+{
+	return c;
+}
+EXPORT(PY_LONG_LONG) tf_q(PY_LONG_LONG c)
+{
+	return c;
+}
+EXPORT(unsigned PY_LONG_LONG) tf_Q(unsigned PY_LONG_LONG c)
+{
+	return c;
+}
+EXPORT(float) tf_f(float c)
+{
+	return c;
+}
+EXPORT(double) tf_d(double c)
+{
+	return c;
+}
+
+/*******/
+
+EXPORT(char) tf_bb(char x, char c)
+{
+	return c;
+}
+EXPORT(unsigned char) tf_bB(char x, unsigned char c)
+{
+	return c;
+}
+EXPORT(short) tf_bh(char x, short c)
+{
+	return c;
+}
+EXPORT(unsigned short) tf_bH(char x, unsigned short c)
+{
+	return c;
+}
+EXPORT(int) tf_bi(char x, int c)
+{
+	return c;
+}
+EXPORT(unsigned int) tf_bI(char x, unsigned int c)
+{
+	return c;
+}
+EXPORT(long) tf_bl(char x, long c)
+{
+	return c;
+}
+EXPORT(unsigned long) tf_bL(char x, unsigned long c)
+{
+	return c;
+}
+EXPORT(PY_LONG_LONG) tf_bq(char x, PY_LONG_LONG c)
+{
+	return c;
+}
+EXPORT(unsigned PY_LONG_LONG) tf_bQ(char x, unsigned PY_LONG_LONG c)
+{
+	return c;
+}
+EXPORT(float) tf_bf(char x, float c)
+{
+	return c;
+}
+EXPORT(double) tf_bd(char x, double c)
+{
+	return c;
+}
+
+/********/
+
 DL_EXPORT(void)
 init_ctypes_test(void)
 {
