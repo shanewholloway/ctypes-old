@@ -396,7 +396,7 @@ static THUNK AllocCallback(PyObject *callable, int nArgBytes,
 {
 	BYTE *pCallback, *pNargBytes, *pConverters, *pCalladdr, *pRouter;
 
-	pCallback = malloc(ti.pEnd - ti.pStart);
+	pCallback = PyMem_Malloc(ti.pEnd - ti.pStart);
 	memcpy(pCallback, ti.pStart, ti.pEnd - ti.pStart);
 	pNargBytes = pCallback +(ti.pEnd - ti.pStart) - 16;
 	pConverters = pCallback + (ti.pEnd - ti.pStart) - 12;
@@ -512,7 +512,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	PyCArgObject cResult;
 
 	nArgs = PySequence_Size(converters);
-	p = malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
+	p = PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
 
 	/* Check for NULL */
 	for (i = 0; i < nArgs; ++i) {
@@ -566,7 +566,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 void FreeCallback(THUNK thunk)
 {
-	free(thunk);
+	PyMem_Free(thunk);
 }
 
 /****************************************************************************
