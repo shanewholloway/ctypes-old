@@ -1,7 +1,6 @@
 from ctypes.com import IUnknown, GUID, PIUnknown, REFCLSID, REFIID
 from ctypes.com.automation import BSTR, VARIANT
-from ctypes import byref, c_long, c_ulong, c_double, oledll, POINTER, pointer, c_voidp
-from ctypes import windll
+from ctypes import *
 user32 = windll.user32
 
 from ie6_gen import InternetExplorer, IWebBrowser2, DWebBrowserEvents2
@@ -68,6 +67,10 @@ cp.Advise(byref(pevents), byref(cookie))
 v = VARIANT()
 browser.Navigate("http://www.python.org/",
                  byref(v), byref(v), byref(v), byref(v))
+
+v = c_int()
+browser._get_Visible(byref(v))
+print "Is visible?", v
 
 from ctypes.wintypes import MSG
 msg = MSG()
