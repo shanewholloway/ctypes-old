@@ -29,8 +29,9 @@ if sys.platform == "win32":
             self.assertRaises(ValueError, IsWindow, None)
 
         def test_SEH(self):
-            """Call functions with invalid arguments, and make sure that access violations
-            are trapped and raise an exception"""
+            # Call functions with invalid arguments, and make sure that access violations
+            # are trapped and raise an exception.
+            #
             # Normally, in a debug build of the _ctypes extension
             # module, exceptions are not trapped, so we can only run
             # this test in a release build.
