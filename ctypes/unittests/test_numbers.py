@@ -115,6 +115,24 @@ class NumberTestCase(unittest.TestCase):
         for t in signed_types + unsigned_types:
             self.assertRaises(TypeError, t, 3.14)
 
+    def test_sizes(self):
+        for t in signed_types + unsigned_types + float_types:
+            size = struct.calcsize(t._type_)
+            # sizeof of the type...
+            self.failUnless(sizeof(t) == size)
+            # and sizeof of an instance
+            self.failUnless(sizeof(t()) == size)
+
+    def test_alignments(self):
+        from _ctypes import alignment
+        for t in signed_types + unsigned_types + float_types:
+            code = t._type_ # the typecode
+            align = struct.calcsize("c%c" % code) - struct.calcsize(code)
+
+            # alignment of the type...
+            self.failUnless(alignment(t) == align)
+            # and alingment of an instance
+            self.failUnless(alignment(t()) == align)
             
 def get_suite():
     return unittest.makeSuite(NumberTestCase, 'test')
