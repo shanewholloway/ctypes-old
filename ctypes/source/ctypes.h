@@ -47,6 +47,9 @@ typedef struct {
 	PyObject *converters;
 	PyObject *argtypes;
 	PyObject *restype;
+#ifdef MS_WIN32
+	int index;
+#endif
 } CFuncPtrObject;
 
 extern PyObject *CData_GetList(CDataObject *mem);
