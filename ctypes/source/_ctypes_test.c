@@ -69,11 +69,12 @@ EXPORT(char *) my_strdup(char *src)
 #ifdef HAVE_WCHAR_H
 EXPORT(wchar_t *) my_wcsdup(wchar_t *src)
 {
-#ifdef MS_WIN32
-	return _wcsdup(src);
-#else
-	return wcsdup(src);
-#endif
+	int len = wcslen(src);
+	wchar_t *ptr = malloc((len + 1) * sizeof(wchar_t));
+	if (ptr == NULL)
+		return NULL;
+	memcpy(ptr, src, (len+1) * sizeof(wchar_t));
+	return ptr;
 }
 
 EXPORT(size_t *) my_wcslen(wchar_t *src)
