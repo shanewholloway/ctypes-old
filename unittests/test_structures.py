@@ -224,7 +224,7 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(SomeInts((1, 2, 3, 4)).a[:], [1, 2, 3, 4])
         # too long
         # XXX Should raise ValueError?, not RuntimeError
-        self.assertRaises(ValueError, SomeInts, (1, 2, 3, 4, 5))
+        self.assertRaises(RuntimeError, SomeInts, (1, 2, 3, 4, 5))
 
     def test_nested_initializers(self):
         # test initializing nested structures
@@ -256,7 +256,13 @@ class StructureTestCase(unittest.TestCase):
 
         p = PersonW(u"Someone")
         self.failUnlessEqual(p.name, "Someone")
-        
+
+        self.failUnlessEqual(PersonW(u"1234567890").name, u"1234567890")
+        self.failUnlessEqual(PersonW(u"12345678901").name, u"12345678901")
+        # exact fit
+        self.failUnlessEqual(PersonW(u"123456789012").name, u"123456789012")
+        #too long
+        self.assertRaises(ValueError, PersonW, u"1234567890123")
 
     def test_init_errors(self):
         class Phone(Structure):
