@@ -12,6 +12,7 @@ dlls. It allows wrapping these libraries in pure Python.
 
 from distutils.core import setup, Extension, Command
 import distutils.core
+from distutils.errors import DistutilsOptionError
 
 import os, sys
 
@@ -179,7 +180,7 @@ if LIBFFI_SOURCES is not None:
     libffi_lib = ["%s/lib" % LIBFFI_BASE]
 
 else:
-    def task_build_libffi():
+    def task_build_libffi(force=0):
         pass
     LIBFFI_CFLAGS=[]
     LIBFFI_LDFLAGS=['-lffi']
@@ -217,7 +218,8 @@ class test(Command):
         ('test-prefix=', None,
          "prefix to the testcase filename"),
         ('test-suffixes=', None,
-         "a list of suffixes used to generate names the of the testcases")
+         "a list of suffixes used to generate names the of the testcases"),
+        ('verbosity=', 'V', "verbosity"),
         ]
 
     def initialize_options(self):
@@ -227,10 +229,17 @@ class test(Command):
         self.test_dir = 'unittests'
         self.test_prefix = 'test_'
         self.test_suffixes = None
+        self.verbosity = 0
 
     # initialize_options()
 
     def finalize_options(self):
+        try:
+            self.verbosity = int(self.verbosity)
+        except ValueError:
+            raise DistutilsOptionError, \
+                  "verbosity must be an integer"
+
         if self.test_suffixes is None:
             self.test_suffixes = []
             pref_len = len(self.test_prefix)
@@ -280,10 +289,10 @@ class test(Command):
                     test_suites.append(unittest.makeSuite(o))
 
         if test_suites:
-            suite = unittest.TestSuite(test_suites)
             self.announce("running unittests")
 
-            runner = unittest.TextTestRunner(verbosity=self.verbose)
+            runner = unittest.TextTestRunner(verbosity=self.verbosity)
+            suite = unittest.TestSuite(test_suites)
             runner.run(suite)
 
         # restore sys.path
