@@ -806,73 +806,6 @@ u_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 	return PyUnicode_FromWideChar((wchar_t *)ptr, 1);
 }
 
-/* U - a unicode string */
-static PyObject *
-U_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
-{
-	PyObject *result;
-	unsigned int len;
-	Py_UNICODE *p;
-
-	size /= sizeof(wchar_t); /* we count character units here, not bytes */
-
-	result = PyUnicode_FromWideChar((wchar_t *)ptr, size);
-	if (!result)
-		return NULL; /*COV*/
-	/* We need 'result' to be able to count the characters with wcslen,
-	   since ptr may not be NUL terminated.  If the length is smaller (if
-	   it was actually NUL terminated, we construct a new one and throw
-	   away the result.
-	*/
-	/* chop off at the first NUL character, if any. */
-	p = PyUnicode_AS_UNICODE(result);
-	for (len = 0; len < size; ++len)
-		if (!p[len])
-			break;
-
-	if (len < size) {
-		PyObject *ob = PyUnicode_FromWideChar((wchar_t *)ptr, len);
-		Py_DECREF(result);
-		return ob;
-	}
-	return result;
-}
-
-static PyObject *
-U_set(void *ptr, PyObject *value, unsigned length, PyObject *type)
-{
-	unsigned int size;
-	assert(type);
-	/* It's easier to calculate in characters than in bytes */
-	length /= sizeof(wchar_t);
-
-	if (PyString_Check(value)) {
-		value = PyUnicode_FromEncodedObject(value,
-						    conversion_mode_encoding,
-						    conversion_mode_errors);
-		if (!value)
-			return NULL;
-	} else if (!PyUnicode_Check(value)) {
-		PyErr_Format(PyExc_TypeError,
-				"unicode string expected instead of %s instance",
-				value->ob_type->tp_name);
-		return NULL;
-	} else
-		Py_INCREF(value);
-	size = PyUnicode_GET_SIZE(value);
-	if (size > length) {
-		PyErr_Format(PyExc_ValueError,
-			     "string too long (%d, maximum length %d)",
-			     size, length);
-		Py_DECREF(value);
-		return NULL;
-	} else if (size < length-1)
-		/* copy terminating NUL character if there is space */
-		size += 1;
-	PyUnicode_AsWideChar((PyUnicodeObject *)value, (wchar_t *)ptr, size);
-	return value;
-}
-
 #endif
 
 static PyObject *
@@ -1093,42 +1026,41 @@ P_get(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index)
 }
 
 static struct fielddesc formattable[] = {
-	{ 'b', b_set, b_get, &ffi_type_schar},
-	{ 'B', B_set, B_get, &ffi_type_uchar},
-	{ 'c', c_set, c_get, &ffi_type_schar},
-	{ 'd', d_set, d_get, &ffi_type_double},
-	{ 'f', f_set, f_get, &ffi_type_float},
-	{ 'h', h_set, h_get, &ffi_type_sshort},
-	{ 'H', H_set, H_get, &ffi_type_ushort},
-	{ 'i', i_set, i_get, &ffi_type_sint},
-	{ 'I', I_set, I_get, &ffi_type_uint},
+	{ 'b', b_set, b_get, &ffi_type_schar},		/* c_byte */
+	{ 'B', B_set, B_get, &ffi_type_uchar},		/* c_ubyte */
+	{ 'c', c_set, c_get, &ffi_type_schar},		/* c_char */
+	{ 'd', d_set, d_get, &ffi_type_double},		/* c_double */
+	{ 'f', f_set, f_get, &ffi_type_float},		/* c_float */
+	{ 'h', h_set, h_get, &ffi_type_sshort},		/* c_short */
+	{ 'H', H_set, H_get, &ffi_type_ushort},		/* c_ushort */
+	{ 'i', i_set, i_get, &ffi_type_sint},		/* c_int */
+	{ 'I', I_set, I_get, &ffi_type_uint},		/* c_uint */
 /* XXX Hm, sizeof(int) == sizeof(long) doesn't hold on every platform */
 /* As soon as we can get rid of the type codes, this is no longer a problem */
 #if SIZEOF_LONG == 4
-	{ 'l', l_set, l_get, &ffi_type_sint},
-	{ 'L', L_set, L_get, &ffi_type_uint},
+	{ 'l', l_set, l_get, &ffi_type_sint},		/* c_long */
+	{ 'L', L_set, L_get, &ffi_type_uint},		/* c_ulong */
 #elif SIZEOF_LONG == 8
-	{ 'l', l_set, l_get, &ffi_type_slong},
-	{ 'L', L_set, L_get, &ffi_type_ulong},
+	{ 'l', l_set, l_get, &ffi_type_slong},		/* c_long */
+	{ 'L', L_set, L_get, &ffi_type_ulong},		/* c_ulong */
 #else
 # error
 #endif
 #ifdef HAVE_LONG_LONG
-	{ 'q', q_set, q_get, &ffi_type_slong},
-	{ 'Q', Q_set, Q_get, &ffi_type_ulong},
+	{ 'q', q_set, q_get, &ffi_type_slong},		/* c_longlong */
+	{ 'Q', Q_set, Q_get, &ffi_type_ulong},		/* c_ulonglong */
 #endif
-	{ 'P', P_set, P_get, &ffi_type_pointer},
-	{ 'z', z_set, z_get, &ffi_type_pointer},
+	{ 'P', P_set, P_get, &ffi_type_pointer},	/* c_void_p */
+	{ 'z', z_set, z_get, &ffi_type_pointer},	/* c_char_p */
 #ifdef CTYPES_UNICODE
-	{ 'u', u_set, u_get, NULL}, /* ffi_type set later */
-	{ 'U', U_set, U_get, &ffi_type_pointer},
-	{ 'Z', Z_set, Z_get, &ffi_type_pointer},
+	{ 'u', u_set, u_get, NULL}, /* ffi_type set later */ /* c_wchar */
+	{ 'Z', Z_set, Z_get, &ffi_type_pointer},	/* c_wchar_p */
 #endif
 #ifdef MS_WIN32
-	{ 'X', BSTR_set, BSTR_get, &ffi_type_pointer},
-	{ 'v', vBOOL_set, vBOOL_get, &ffi_type_sshort},
+	{ 'X', BSTR_set, BSTR_get, &ffi_type_pointer},	/* BSTR */
+	{ 'v', vBOOL_set, vBOOL_get, &ffi_type_sshort},	/* VARIANT_BOOL */
 #endif
-	{ 'O', O_set, O_get, &ffi_type_pointer},
+	{ 'O', O_set, O_get, &ffi_type_pointer},	/* py_object */
 	{ 0, NULL, NULL, NULL},
 };
 
@@ -1140,21 +1072,19 @@ static struct fielddesc formattable[] = {
 struct fielddesc *
 getentry(char *fmt)
 {
-	static int initialized = 0;
 	struct fielddesc *table = formattable;
-
+#ifdef CTYPES_UNICODE
+	static int initialized = 0;
 	if (!initialized) {
 		initialized = 1;
-#ifdef CTYPES_UNICODE
 		if (sizeof(wchar_t) == sizeof(short))
 			getentry("u")->pffi_type = &ffi_type_sshort;
 		else if (sizeof(wchar_t) == sizeof(int))
 			getentry("u")->pffi_type = &ffi_type_sint;
 		else if (sizeof(wchar_t) == sizeof(long))
 			getentry("u")->pffi_type = &ffi_type_slong;
-#endif
 	}
-
+#endif
 	for (; table->code; ++table) {
 		if (table->code == fmt[0])
 			return table;
