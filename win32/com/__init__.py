@@ -70,6 +70,9 @@ class GUID(Structure):
 ##    def __hash__(self):
 ##        return hash(repr(self))
 
+    def copy(self):
+        return GUID(str(self))
+
     def from_progid(cls, progid):
         inst = cls()
         ole32.CLSIDFromProgID(unicode(progid), byref(inst))
