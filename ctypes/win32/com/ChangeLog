@@ -1,5 +1,8 @@
 2004-08-19  Thomas Heller  <theller@python.net>
 
+	* com/automation.py: VARIANT does now handle the COM DATE type
+	VT_DATE as Python datetime.
+
 	* com/automation.py: Integers in a VARIANT use the VT_I4 typecode
 	instead of VT_INT. Python longs are converted to ints if possible,
  	if not they are stored as VT_R8.
