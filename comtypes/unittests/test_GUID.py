@@ -23,5 +23,7 @@ class Test(unittest.TestCase):
         self.failUnlessEqual(GUID("{0002DF01-0000-0000-C000-000000000046}").progid(),
                              u'InternetExplorer.Application.1')
 
+        self.failIfEqual(GUID.create_new(), GUID.create_new())
+
 if __name__ == "__main__":
     unittest.main()
