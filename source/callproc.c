@@ -716,6 +716,9 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 	}
 
 	dict = PyType_stgdict(restype);
+
+	/* THIS code should probably move into CallProc, where GetResult is
+	   called. But doesn't matter too much. */
 	if (dict && dict->size < sizeof(ffi_arg)) {
 		int n = 1;
 		char *pn = (char *) &n;
@@ -731,25 +734,6 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 			ptr += sizeof(ffi_arg) - dict->size;
 			result = ptr;
 		}
-	}
-
-	if (PointerTypeObject_Check(restype)) {
-		CDataObject *pd;
-		/* There is no Python api to set the pointer value, so we
-		   create an empty (NULL) pointer, and modify it afterwards.
-		*/
-		pd = (CDataObject *)PyObject_CallFunctionObjArgs(restype, NULL);
-		if (!pd)
-			return NULL;
-		if (!CDataObject_Check(pd)) {
-			Py_DECREF(pd);
-			PyErr_SetString(PyExc_TypeError,
-					"BUG: restype call did not return a CDataObject");
-			return NULL;
-		}
-		/* Even better would be to use the buffer interface */
-		memcpy(pd->b_ptr, result, pd->b_size);
-		return (PyObject *)pd;
 	}
 
 	if (dict && dict->getfunc) {
@@ -768,12 +752,13 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 			return v;
 		}
 	}
+
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
 					     *(int *)result);
 	PyErr_SetString(PyExc_TypeError,
 			"Bug: cannot convert result");
-	return NULL; /* to silence the compiler */
+	return NULL;
 }
 
 /*
