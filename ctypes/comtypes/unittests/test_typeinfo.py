@@ -58,7 +58,7 @@ class Test(unittest.TestCase):
             for f in range(ta.cFuncs):
                 fd = ti.GetFuncDesc(f)
                 names = ti.GetNames(fd.memid, 32)
-                ti.GetIDsOfNames(names)
+                ti.GetIDsOfNames(*names)
                 ti.GetMops(fd.memid)
             
             for v in range(ta.cVars):
