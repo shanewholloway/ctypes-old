@@ -32,7 +32,7 @@ class RemoteTestRunner(unittest.TextTestRunner):
             mod = __import__(modname, globals(), locals(), [""])
         except:
             if self.verbosity == 2:
-                self.stream.write("%s ... could not import " % fname)
+                self.stream.write("(could not import %s) " % fname)
             result.addError(TestFile(fname), sys.exc_info())
             return result
 
