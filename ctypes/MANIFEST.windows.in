@@ -9,3 +9,5 @@ include docs/*.stx
 
 include samples/rt
 recursive-include samples *.py
+
+include win32/com/samples/server/control/test.html
