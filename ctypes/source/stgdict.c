@@ -128,13 +128,11 @@ GetFields(PyObject *desc, int *pindex, int *psize, int *poffset, int *palign, in
 #endif
 
 /*
-  This is a helper function for the StructType_Type object.
-  Hm, actually only for Structure types, since it requires the
-  _fields_ attribute.
+  Retrive the (optional) _pack_ attribute from a type, the _fields_ attribute,
+  and create an StgDictObject.  Used for Structure and Union subclasses.
 */
-
 PyObject *
-StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
+StgDict_ForType(PyObject *type, int isStruct)
 {
 	StgDictObject *stgdict;
 	int len, offset, size, align, i;
@@ -142,21 +140,23 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 	int field_size = 0;
 	int bitofs;
 	PyObject *isPacked;
+	PyObject *fields;
 	int pack = 0;
 
-	if (!typedict)
-		return NULL;
-
-	isPacked = PyDict_GetItemString(typedict, "_pack_");
+	isPacked = PyObject_GetAttrString(type, "_pack_");
 	if (isPacked) {
 		pack = PyInt_AsLong(isPacked);
 		if (pack < 0 || PyErr_Occurred()) {
+			Py_XDECREF(isPacked);
 			PyErr_SetString(PyExc_ValueError,
 					"_pack_ must be a non-negative integer");
 			return NULL;
 		}
-	}
+		Py_DECREF(isPacked);
+	} else
+		PyErr_Clear();
 
+	fields = PyObject_GetAttrString(type, "_fields_");
 	if (!fields) {
 		PyErr_SetString(PyExc_AttributeError,
 				"class must define a '_fields_' attribute");
@@ -167,13 +167,16 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 	if (len == -1) {
 		PyErr_SetString(PyExc_AttributeError,
 				"'_fields_' must be a sequence of pairs");
+		Py_DECREF(fields);
 		return NULL;
 	}
 
 	stgdict = (StgDictObject *)PyObject_CallObject(
 		(PyObject *)&StgDict_Type, NULL);
-	if (!stgdict)
+	if (!stgdict) {
+		Py_DECREF(fields);
 		return NULL;
+	}
 
 	offset = 0;
 	size = 0;
@@ -266,6 +269,7 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 		Py_DECREF(prop);
 	}
 #undef realdict
+	Py_DECREF(fields);
 
 	if (!isStruct)
 		size = union_size;
