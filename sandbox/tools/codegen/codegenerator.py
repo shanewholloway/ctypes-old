@@ -218,9 +218,6 @@ class Generator(object):
     ################################################################
 
     def Alias(self, alias):
-        if alias in self.done:
-            return
-        self.done.add(alias)
         if alias.typ is not None: # we can resolve it
             self.generate(alias.typ)
             if alias.alias in self.names:
@@ -233,8 +230,6 @@ class Generator(object):
             
 
     def Macro(self, macro):
-        if macro in self.done:
-            return
         # We don't know if we can generate valid, error free Python
         # code All we can do is to try to compile the code.  If the
         # compile fails, we know it cannot work, so we generate
@@ -247,11 +242,8 @@ class Generator(object):
         else:
             print >> self.stream, code
             self.names.add(macro.name)
-        self.done.add(macro)
 
     def StructureHead(self, head):
-        if head in self.done:
-            return
         for struct in head.struct.bases:
             self.generate(struct.get_head())
             self.more.add(struct)
@@ -271,23 +263,17 @@ class Generator(object):
             print >> self.stream, "    # %s %s" % head.struct.location
         print >> self.stream, "    pass"
         self.names.add(head.struct.name)
-        self.done.add(head)
 
     _structures = 0
     def Structure(self, struct):
-        if struct in self.done:
-            return
         self._structures += 1
         self.generate(struct.get_head())
         self.generate(struct.get_body())
-        self.done.add(struct)
 
     Union = Structure
         
     _typedefs = 0
     def Typedef(self, tp):
-        if tp in self.done:
-            return
         self._typedefs += 1
         if type(tp.typ) in (typedesc.Structure, typedesc.Union):
             self.generate(tp.typ.get_head())
@@ -302,30 +288,21 @@ class Generator(object):
                 print >> self.stream, "%s = %s # typedef" % \
                       (tp.name, self.type_name(tp.typ))
         self.names.add(tp.name)
-        self.done.add(tp)
 
     _arraytypes = 0
     def ArrayType(self, tp):
-        if tp in self.done:
-            return
         self._arraytypes += 1
         self.generate(get_real_type(tp.typ))
         self.generate(tp.typ)
-        self.done.add(tp)
 
     _functiontypes = 0
     def FunctionType(self, tp):
-        if tp in self.done:
-            return
         self._functiontypes += 1
         self.generate(tp.returns)
         self.generate_all(tp.arguments)
-        self.done.add(tp)
         
     _pointertypes = 0
     def PointerType(self, tp):
-        if tp in self.done:
-            return
         self._pointertypes += 1
         if type(tp.typ) is typedesc.PointerType:
             self.generate(tp.typ)
@@ -336,20 +313,13 @@ class Generator(object):
             self.generate(tp.typ)
         else:
             self.generate(tp.typ)
-        self.done.add(tp)
 
     def CvQualifiedType(self, tp):
-        if tp in self.done:
-            return
         self.generate(tp.typ)
-        self.done.add(tp)
 
     _variables = 0
     def Variable(self, tp):
-        if tp in self.done:
-            return
         self._variables += 1
-        self.done.add(tp)
         if tp.init is None:
             # wtypes.h contains IID_IProcessInitControl, for example
             return
@@ -366,20 +336,14 @@ class Generator(object):
 
     _enumvalues = 0
     def EnumValue(self, tp):
-        if tp in self.done:
-            return
         value = int(tp.value)
         print >> self.stream, \
               "%s = %d # enum %s" % (tp.name, value, tp.enumeration.name or "")
         self.names.add(tp.name)
         self._enumvalues += 1
-        self.done.add(tp)
 
     _enumtypes = 0
     def Enumeration(self, tp):
-        if tp in self.done:
-            return
-        self.done.add(tp)
         self._enumtypes += 1
         if tp.name:
             print >> self.stream
@@ -388,8 +352,6 @@ class Generator(object):
             self.generate(item)
 
     def StructureBody(self, body):
-        if body in self.done:
-            return
         fields = []
         methods = []
         for m in body.struct.members:
@@ -472,7 +434,7 @@ class Generator(object):
                     ", ".join(args))
             print >> self.stream, "]"
 
-        self.done.add(body)
+##        self.done.add(body)
 
     def find_dllname(self, func):
         if hasattr(func, "dllname"):
@@ -523,8 +485,6 @@ class Generator(object):
     _functiontypes = 0
     _notfound_functiontypes = 0
     def Function(self, func):
-        if func in self.done:
-            return
         dllname = self.find_dllname(func)
         if dllname:
             self.generate(func.returns)
@@ -554,15 +514,13 @@ class Generator(object):
             self._functiontypes += 1
         else:
             self._notfound_functiontypes += 1
-        self.done.add(func)
 
     def FundamentalType(self, item):
-        if item in self.done:
-            return
-        name = ctypes_names[item.name]
+        pass # we should check if this is known somewhere
+##        name = ctypes_names[item.name]
 ##        if name !=  "None":
 ##            print >> self.stream, "from ctypes import %s" % name
-        self.done.add(item)
+##        self.done.add(item)
 
     ########
 
@@ -576,6 +534,7 @@ class Generator(object):
             return
         mth = getattr(self, type(item).__name__)
         mth(item)
+        self.done.add(item)
 
     def generate_all(self, items):
         for item in items:
