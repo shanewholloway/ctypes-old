@@ -168,13 +168,13 @@ class InprocClassFactory(_ClassFactory):
     def AddRef(self, this):
         self._refcnt += 1
         dprint("AddRef", self, self._refcnt)
-        self._factory.LockServer(None, 1)
+##        self._factory.LockServer(None, 1)
         return self._refcnt
 
     def Release(self, this):
         self._refcnt -= 1
         dprint("Release", self, self._refcnt)
-        self._factory.LockServer(None, 0)
+##        self._factory.LockServer(None, 0)
         return self._refcnt
 
     def LockServer(self, this, fLock):
