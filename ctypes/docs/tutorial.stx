@@ -661,80 +661,166 @@ ctypes tutorial
 
   Callback functions
 
-    Sometimes, functions expect a function pointer (callback function)
-    as an argument.
+    (This example is too long, I should have used a shorter
+    array)
 
-    'ctypes' has a 'CFunction' base type, which is used to define and
-    create function pointers from Python callable objects.
+    'ctypes' allows to create C callable function pointers from Python
+    callables. These are sometimes called *callback functions*.
 
-    Subclasses must provide a '_types_' attribute, which is a string
-    containing format specifiers (only 'i' for 'int' and 's' for 'char
-    *' are currently allowed) for the arguments the function expects
-    and a '_stdcall_' attribute, which must be '1' to specify the
-    '__stdcall' calling convention, or '0' to specify '__cdecl'
-    calling convention.
+    First, you must create a class for the callback function, the
+    class knows the calling convention, the result type the function
+    has to return, and the number and types of the arguments this
+    function will receive.
 
-    Instances of function pointers are created by calling the
-    (sub)class with a *Python callable* as argument. This callable
-    must return None (which will be interpreted as '0'), or an
-    integer.
+    'ctypes' provides the CFUNCTYPE factory function to create types
+    for callback functions using the normal cdecl calling convention,
+    and, on Windows, the WINFUNCTYPE factory function to create types
+    for callback functions using the stdcall calling convention.
+
+    Both of these factory functions are called with the result type as
+    first argument, and the callback functions expected argument types
+    as the remaining arguments.
+
+    I will present an example here which uses the standard C library's
+    'qsort' function, this is used to sort items with the help of a
+    callback function. 'qsort' will be used to sort an array of integers::
     
-    We are now trying to create a C callable function ('callback')
-    which we can pass to the standard C library 'qsort' function.
-    'qsort' expects
+       >>> from ctypes import cdll, c_int
+       >>> IntArray10 = c_int * 10
+       >>> ia = IntArray10(5, 4, 3, 1, 7, 9, 33, 2, 99, 0)
+       >>> qsort = cdll.msvcrt.qsort
+       >>>
 
-    The following example creates a C callable function ('callback')
-    usable by the 'qsort' standard library function::
+    'qsort' must be called with a pointer to the data to sort, the
+    number of items in the data array, the size of one item, and the
+    sort function, which is the callback. The callback function will
+    then be called with two pointers to items, and it must return a
+    negative integer if the first item is smaller than the second, a 0
+    if they are equal, and a positive integer else.
 
-      class CMPFUNC(CFunction):
-          _types_ = 'ii'
-	  _stdcall_ = 1
+    So out callback function receives pointers to integers, and must
+    return an integer. First we create the 'type' for the callback
+    function::
 
-      def compare(adr1, adr2):
-          return cmp(adr1, adr2)
+       >>> CMPFUNC = CFUNCTYPE(c_int, POINTER(c_int), POINTER(c_int))
+       >>>
 
-      cmpfunc = CMPFUNC(compare)
+    For the first implementation of the callback function, we simply
+    print the arguments we get, and return 0 (incremental development)::
 
-    Note that the same effect could be achived by this code::
+       >>> def py_cmp_func(a, b):
+       ...     print "py_cmp_func", a, b
+       ...     return 0
+       ...
+       >>>
 
-      class CMPFUNC(CFunction):
-          _types_ = 'ii'
-	  _stdcall_ = 0
+    Create the C callable function::
 
-      cmpfunc = CMPFUNC(cmp)
+       >>> cmp_func = CMPFUNC(py_cmp_func)
+       >>>
 
-    'cmpfunc' will now be a *pointer* to a C callable function with
-    this signature::
+    And we're ready to go:
 
-      int __cdecl cmpfunc(int, int);
+       >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       -1
+       >>>
 
-    Beware: If you use the 'qsort' standard library function to sort
-    an array of integers, the 'compare' function will receive
-    *pointers* into the array, not the array items itself, so the
-    above code will *not* work with qsort.
+    We know how to access the contents of a pointer, so lets redefine our callback::
 
-    To remedy, we must expect *pointers* in the compare function, and
-    retrieve the actual contents, and compare those.
+       >>> def py_cmp_func(a, b):
+       ...     print "py_cmp_func", a[0], b[0]
+       ...     return 0
+       ...
+       >>> cmp_func = CMPFUNC(py_cmp_func)
+       >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
+       py_cmp_func 5 9
+       py_cmp_func 5 0
+       py_cmp_func 9 0
+       py_cmp_func 4 9
+       py_cmp_func 3 9
+       py_cmp_func 1 9
+       py_cmp_func 7 9
+       py_cmp_func 33 9
+       py_cmp_func 2 9
+       py_cmp_func 99 9
+       py_cmp_func 0 9
+       py_cmp_func 99 9
+       py_cmp_func 99 9
+       py_cmp_func 2 9
+       py_cmp_func 33 9
+       py_cmp_func 7 9
+       py_cmp_func 1 9
+       py_cmp_func 3 9
+       py_cmp_func 4 9
+       -1
+       >>>
 
-    This code implements a function doing this::
+    Ah, we're nearly done! Last refinements::
 
-      from ctypes import CFunction, c_int
+       >>> def py_cmp_func(a, b):
+       ...     print "py_cmp_func", a[0], b[0]
+       ...     return a[0] - b[0]
+       ...
+       >>> qsort(ia, len(ia), sizeof(c_int), CMPFUNC(py_cmp_func))
+       py_cmp_func 5 9
+       py_cmp_func 5 0
+       py_cmp_func 9 5
+       py_cmp_func 4 5
+       py_cmp_func 3 5
+       py_cmp_func 1 5
+       py_cmp_func 7 5
+       py_cmp_func 99 5
+       py_cmp_func 2 5
+       py_cmp_func 33 5
+       py_cmp_func 33 5
+       py_cmp_func 2 5
+       py_cmp_func 7 33
+       py_cmp_func 99 33
+       py_cmp_func 9 99
+       py_cmp_func 7 33
+       py_cmp_func 9 33
+       py_cmp_func 7 9
+       py_cmp_func 4 0
+       py_cmp_func 3 4
+       py_cmp_func 1 4
+       py_cmp_func 2 4
+       py_cmp_func 2 0
+       py_cmp_func 3 2
+       py_cmp_func 1 3
+       py_cmp_func 2 0
+       py_cmp_func 1 2
+       py_cmp_func 1 0
+       -1
+       >>>
 
-      class CMPFUNC(CFunction):
-          _types_ = "ii"
-	  _stdcall_ = 0
+    So, is our array sorted now::
 
-      def compare(a1, a2):
-          v1 = c_int.from_address(a1).value
-	  v2 = c_int.from_address(a2).value
-	  return cmp(v1, v2)
+       >>> for i in ia: print i,
+       ...
+       0 1 2 3 4 5 7 9 33 99
+       >>>
 
-      cmpfunc = CMPFUNC(compare)
+    Yep, it worked!
 
-    Assuming 'ia10' is an array in 10 integers, and '4' is sizeof(int),
-    we can sort the array contents in this way::
-
-       msvcrt.qsort(ia, len(ia), 4, compare)
 
   Surprises
 
@@ -779,35 +865,19 @@ ctypes tutorial
     wrapper object accessing the root-object's underlying buffer.
 
 
-  COM
-
-    XXX Move somewhere else
-
-    to be written. In short: You *can* call methods on COM objects,
-    you can even *implement* and expose COM objects.
-
-    For now, see the 'test' directory of the source distribution for
-    examples.
-
-
-
   Bugs, ToDo and non-implemented things
 
     Bitfields are not implemented. This probably counts as bug.
 
-    Enumeration types are not implemented. I do not consider this as a
-    bug - they can be implemented as well in pure python (maybe as
-    'int' subclasses).
+    Enumeration types are not implemented. You can do it easily
+    yourself, using 'c_int' as the base class.
 
-    What about 'long double'? They exist in MSVC for example, and have
-    80 bits.
+    'long double' is not implemented.
 
-    The whole unicode / wchar stuff is not yet implemented - although
-    it is mentioned above.
+    You cannot pass structures to functions as arguments, and you
+    cannot set them as return type (only pointers).
 
-    C function pointers returning something else than integers (or
-    void) cannot be constructed. Actually they can return anything
-    which has sizeof(x) == sizeof(int).
+    Unnamed structures are not implemented.
 
 <!--
   Local Variables:
