@@ -42,7 +42,7 @@ def main(args=None):
     def windows_dlls(option, opt, value, parser):
         parser.values.dlls.extend(windows_dll_names)
 
-    parser = OptionParser("usage: %prog [options] xmlfile")
+    parser = OptionParser("usage: %prog xmlfile [options]")
     parser.add_option("-d",
                       action="store_true",
                       dest="use_decorators",
