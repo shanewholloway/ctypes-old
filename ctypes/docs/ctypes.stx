@@ -14,12 +14,12 @@ The ctypes module
 
   News
 
-    ctypes-0.6.0 has been released, and the documentation has been
-    updated.
+    **'ctypes' version 0.6.0 has been released**, and the
+    documentation has been updated. The changes are summarized
+    "here":ctypes/changes.html.
 
-    There have been quite some (also incompatible) changes, but I'm
-    quite pleased with the result: it is much more consistent than
-    before.
+    There have been some (also incompatible) changes, but I'm quite
+    pleased with the result: ctypes is much more consistent than before.
 
     A proof-of-concept COM framework has been implemented, and added
     to the package. It is in an early stage, and I would like
@@ -69,9 +69,9 @@ The ctypes module
 
     *ctypes is very cool! Great piece of work.* - Just van Rossum
 
-  News
+  Old news
 
-    **'ctypes' now works on Windows, Linux and MacOSX**. Thanks
+    'ctypes' now works on Windows, Linux and MacOSX. Thanks
     to *Robin Becker* and *Just van Rossum* for their help.
 
     There is now a mailing list which should be used to discuss the
@@ -86,11 +86,9 @@ The ctypes module
 
   Documentation
 
-    An extensive tutorial, which is unfortunately a bit out of date,
-    is included in the source distribution, but also available
-    "online":ctypes/tutorial.html.  It will be corrected and rewritten
-    in a future release.  You should also read the sample files in the
-    source distribution.
+    An extensive tutorial is included in the source distribution, but
+    also available "online":ctypes/tutorial.html. You should also read
+    the sample files in the source distribution.
 
 
   Downloads
