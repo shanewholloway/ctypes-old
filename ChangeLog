@@ -1,3 +1,12 @@
+2003-02-05  Thomas Heller  <theller@python.net>
+
+	* Fixed a problem in c_string: The NUL byte at the buffer end
+	could be overwritten.  Added unittests for c_strings.
+
+	Per suggestion from Niki Spahiev, CFieldObjects now have a
+	readonly size and offset property.  Added short docs for them.
+	
+
 2003-01-31  Thomas Heller  <theller@python.net>
 
 	* Item deletion on Array or Pointer instances did crash with a
