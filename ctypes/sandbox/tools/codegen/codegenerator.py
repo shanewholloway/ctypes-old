@@ -1,17 +1,6 @@
 # Create ctypes wrapper code for abstract type descriptions.
 # Type descriptions are collections of typedesc instances.
 
-# Problems:
-#
-# SDL.h somewhere contains #define main SDL_main
-#
-# SDL_main is known to be a Function, but cannot be found in the dll
-# (probably because it is in the static library SDLmain.lib).
-# So, SDL_main cannot be generated because of the unknown dll.
-#
-# Hm, should self.generate() return whether code was actually generated,
-# or would it be better to have a namespace of generated names?
-
 import typedesc, sys
 
 try:
@@ -141,9 +130,10 @@ dont_assert_size = set(
 
 class Generator(object):
     def __init__(self, stream, use_decorators=False):
-        self.done = set()
         self.stream = stream
         self.use_decorators = use_decorators
+        self.done = set() # type descriptions that have been generated
+        self.names = set() # names that have been generated
 
     def init_value(self, t, init):
         tn = self.type_name(t, False)
@@ -242,13 +232,17 @@ class Generator(object):
     def Alias(self, alias):
         if alias in self.done:
             return
+        self.done.add(alias)
         if alias.typ is not None: # we can resolve it
             self.generate(alias.typ)
-            print >> self.stream, "%s = %s # alias" % (alias.name, alias.alias)
-        else: # we cannot resolve it
-            print >> self.stream, "# %s = %s # alias" % (alias.name, alias.alias)
+            if alias.alias in self.names:
+                print >> self.stream, "%s = %s # alias" % (alias.name, alias.alias)
+                self.names.add(alias.name)
+                return
+        # we cannot resolve it
+        print >> self.stream, "# %s = %s # alias" % (alias.name, alias.alias)
+        print "# unresolved alias: %s = %s" % (alias.name, alias.alias)
             
-        self.done.add(alias)
 
     def Macro(self, macro):
         if macro in self.done:
@@ -264,6 +258,7 @@ class Generator(object):
             print >> self.stream, "#", code
         else:
             print >> self.stream, code
+            self.names.add(macro.name)
         self.done.add(macro)
 
     def StructureHead(self, head):
@@ -288,6 +283,7 @@ class Generator(object):
         if head.struct.location:
             print >> self.stream, "    # %s %s" % head.struct.location
         print >> self.stream, "    pass"
+        self.names.add(head.struct.name)
         self.done.add(head)
 
     _structures = 0
@@ -318,6 +314,7 @@ class Generator(object):
             else:
                 print >> self.stream, "%s = %s # typedef" % \
                       (tp.name, self.type_name(tp.typ))
+        self.names.add(tp.name)
         self.done.add(tp)
 
     _arraytypes = 0
@@ -378,6 +375,7 @@ class Generator(object):
               "%s = %r # %s" % (tp.name,
                                 value,
                                 self.type_name(tp.typ, False))
+        self.names.add(tp.name)
 
     _enumvalues = 0
     def EnumValue(self, tp):
@@ -386,6 +384,7 @@ class Generator(object):
         value = int(tp.value)
         print >> self.stream, \
               "%s = %d # enum %s" % (tp.name, value, tp.enumeration.name or "")
+        self.names.add(tp.name)
         self._enumvalues += 1
         self.done.add(tp)
 
@@ -617,11 +616,11 @@ class Generator(object):
             if func.location:
                 print >> self.stream, "    # %s %s" % func.location
             print >> self.stream, "    return %s._api_(%s)" % (func.name, ", ".join(argnames))
-##            print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
             if not self.use_decorators:
                 print >> self.stream, "%s = %s(%s, %s, [%s]) (%s)" % \
                       (func.name, cc, self.type_name(func.returns), libname, ", ".join(args), func.name)
             print >> self.stream
+            self.names.add(func.name)
             self._functiontypes += 1
         else:
             self._notfound_functiontypes += 1
