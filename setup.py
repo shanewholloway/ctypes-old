@@ -349,7 +349,8 @@ class my_build_ext(build_ext.build_ext):
         incdir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
         if not incdir:
             return 0
-        libdir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
+        libdir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a") or \
+                 find_file_in_subdir(os.path.join(inst_dir, "lib64"), "libffi.a")
         if not libdir:
             return 0
         incdir_2 = find_file_in_subdir(os.path.join(inst_dir, "lib"), "ffitarget.h")
