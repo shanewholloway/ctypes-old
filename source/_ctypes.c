@@ -23,6 +23,7 @@ CData_Type
 
   CString_Type class	from_param()
   CString_Type		__new__(), __init__(), _as_parameter_, raw, value
+  CWString_Type		_as_parameter_
 
 CFunction_Type		__new__(), __init__(), _as_parameter_, callable
 DynFunction_Type	__new__(), __init__(), result_type, restype, argtypes
@@ -2522,9 +2523,6 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef CWString_members[] = {
-	{ "_as_parameter_",
-	  T_UINT, offsetof(CDataObject, b_ptr), READONLY,
-	  "convert to a parameter" },
 	{ "_b_size_", T_UINT,
 	  offsetof(CDataObject, b_size), READONLY,
 	  "the internal buffer size" },
@@ -2543,34 +2541,22 @@ CWString_get_value(CDataObject *self)
 				      wcslen((wchar_t *)self->b_ptr));
 }
 
-/*
-static int
-CString_set_value(CDataObject *self, PyObject *value)
+static PyObject *
+CWString_as_parameter(CDataObject *self)
 {
-	wchar_t *data;
-	int size;
-
-	if (self->b_ptr == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"NULL pointer access");
-		return -1;
-	}
-	data = PyUnicode_AsUnicode(value);
-	if (!data)
-		return -1;
-	size = strlen(data);
-	if (size > self->b_size) {
-		PyErr_SetString(PyExc_ValueError,
-				"string too long");
-		return -1;
-	}
-	memset(self->b_ptr, 0, self->b_size);
-	memcpy(self->b_ptr, data, size);
-	return 0;
+	PyCArgObject *p = new_CArgObject();
+	if (p == NULL)
+		return NULL;
+	p->tag = 'Z';
+	p->value.p = (char *)self->b_ptr;
+	Py_INCREF(self);
+	p->obj = (PyObject *)self;
+	return (PyObject *)p;
 }
-*/
 
 static PyGetSetDef CWString_getsets[] = {
+	{ "_as_parameter_", (getter)CWString_as_parameter,
+	  (setter)NULL, "convert to a parameter", NULL },
 	{ "value", (getter)CWString_get_value,
 	  NULL, //(setter)CString_set_value,
 	  "the string contents", NULL },
@@ -2583,35 +2569,52 @@ CWString_length(CDataObject *self)
 	return self->b_size;
 }
 
-/*
 static PyObject *
-CWString_from_param(PyObject *self, PyObject *args)
+CWString_from_param(PyObject *cls, PyObject *args)
 {
 	PyObject *value;
-	PyObject *type;
 
-	if (!PyArg_ParseTuple(args, "OO", &type, &value))
+#ifdef NO_METH_CLASS
+	PyObject *ignore;
+
+	if (!PyArg_ParseTuple(args, "OO", &ignore, &value))
 		return NULL;
+#else
+	value = args;
+#endif
 	if (value == Py_None)
 		return PyInt_FromLong(0);
 
-	if (!CString_Check(value) && !PyString_Check(value)) {
+	if (!CWString_Check(value) && !PyUnicode_Check(value)) {
 		PyErr_SetString(PyExc_TypeError,
-				"c_string, string, or None expected");
+				"c_wstring, unicode, or None expected");
 		return NULL;
 	}
 	Py_INCREF(value);
 	return value;
 }
-*/
+
 
 static PyMethodDef CWString_methods[] = {
-/*
 	{ "from_param", CWString_from_param, METH_VARARGS | METH_CLASS,
 	  from_param_doc },
-*/
 	{ NULL, NULL },
 };
+
+static PyObject *
+CWString_repr(CDataObject *self)
+{
+	wchar_t buffer[64];
+	int size;
+	if (self->b_ptr == NULL)
+		return PyString_FromString("<c_wstring NULL>");
+
+	if (self->b_size > 20)
+		size = _snwprintf(buffer, 64, L"<c_wstring '%.20s...'>", self->b_ptr);
+	else
+		size = _snwprintf(buffer, 64, L"<c_wstring '%.20s'>", self->b_ptr);
+	return PyUnicode_FromWideChar(buffer, size);
+}
 
 static PySequenceMethods CWString_as_sequence = {
 	(inquiry)CWString_length,		/* inquiry sq_length; */
@@ -2638,7 +2641,7 @@ static PyTypeObject CWString_Type = {
 	0,					/* tp_getattr */
 	0,					/* tp_setattr */
 	0,					/* tp_compare */
-	0,					/* tp_repr */
+	(reprfunc)CWString_repr,		/* tp_repr */
 	0,					/* tp_as_number */
 	&CWString_as_sequence,			/* tp_as_sequence */
 	0,					/* tp_as_mapping */

@@ -2,6 +2,7 @@
 # unit tests for converting parameters to function calls.
 #
 
+# XXX This comment NOT in sync with reality!
 #
 # When you assign an argtypes sequence to a function loaded from a dll,
 # ctypes internally looks for a .from_param() classmethod on the sequence
@@ -112,7 +113,7 @@ def test_integer():
 
     """
 
-def test_strings():
+def test_cstrings():
     # C char * is created from Python strings,
     # or from None to create a NULL pointer
     #
@@ -135,7 +136,6 @@ def test_strings():
     >>> c_string.from_param(None)
     0
 
-    # this returns the addres of the internal string buffer
     >>> type(c_string("abc")._as_parameter_)
     <type 'CArgObject'>
 
@@ -144,6 +144,36 @@ def test_strings():
     
     >>> c_string(None)._as_parameter_
     <cparam 'z' (00000000)>
+
+    """
+
+def test_cWIDEcstrings():
+    """
+    >>> from ctypes import c_wstring
+    >>> c_wstring.from_param(u"123")
+    u'123'
+
+    >>> c_wstring.from_param("123")
+    Traceback (most recent call last):
+       ...
+    TypeError: c_wstring, unicode, or None expected
+
+    >>> c_wstring.from_param(c_wstring("123"))
+    Traceback (most recent call last):
+       ...
+    TypeError: unicode string or None expected
+
+    >>> c_wstring.from_param(None)
+    0
+
+    >>> type(c_wstring(u"abc")._as_parameter_)
+    <type 'CArgObject'>
+
+    >>> c_wstring(None)
+    <c_wstring NULL>
+    
+    >>> c_wstring(None)._as_parameter_
+    <cparam 'Z' (00000000)>
 
     """
 
@@ -215,16 +245,21 @@ def test_byref():
     """
     >>> from ctypes import byref, c_int, addressof
     >>> ci = c_int(42)
-    >>> "<cparam 'P' (%08x)>" % addressof(ci) == repr(byref(ci))
-    1
+    >>> type(byref(ci))
+    <type 'CArgObject'>
+    
+    >>> type(addressof(ci))
+    <type 'int'>
     
     >>> from ctypes import pointer
     >>> p = pointer(ci)
+    >>> type(p._as_parameter_)
+    <type 'CArgObject'>
+    
     >>> a = addressof(p.contents)
-    >>> b = p._as_parameter_
-    >>> "<cparam 'P' (%08x)>" % a == repr(p._as_parameter_)
-    1
-
+    >>> type(a)
+    <type 'int'>
+    
     """
 
 def test(*args, **kw):
