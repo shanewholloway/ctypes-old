@@ -1,6 +1,9 @@
 from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
-     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring
-from ctypes import oledll, byref, sizeof
+     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring, \
+     oledll, byref, sizeof, STDAPI, SetPointerType, WinError, pointer
+
+from _ctypes import HRESULT
+
 ole32 = oledll.ole32
 
 ##from ctypes.windows import *
@@ -40,7 +43,6 @@ class GUID(Structure):
     def __eq__(self, other, IsEqualGUID=ole32.IsEqualGUID):
         return isinstance(other, GUID) and \
                IsEqualGUID(byref(self), byref(other))               
-
 assert(sizeof(GUID) == 16), sizeof(GUID)
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
@@ -50,150 +52,235 @@ REFCLSID = REFGUID = REFIID = POINTER(GUID)
 #
 
 def STDMETHOD(restype, name, *argtypes):
-    from ctypes import _CFuncPtr, FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
-    class X(_CFuncPtr):
-        _argtypes_ = argtypes
-        _restype_ = restype
-        _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
-    return name, X
+    return name, STDAPI(restype, PIUnknown, *argtypes)
 
-HRESULT = c_int # for now
+class _interface_meta(type(Structure)):
+    """Metaclass for COM interface classes.
 
-
-################################################################
+    These classes require a _methods_ list, which must be a sequence
+    of (name, prototype) pairs. 'name' is the name of the COM method,
+    'prototype' is the function class containing return type and
+    argument types. These pairs are usually created by the STDMETHOD()
+    function.
 
-class _COMInterfaceMeta(type(Structure)):
-    def __new__(self, name, bases, dict):
-        # Hm, if we want a real type for the lpvtbl field, we should
-        # probably use an imcomplete pointer, and SetPointerType later.
-        dict["_fields_"] = [("lpvtbl", c_voidp)]
-        return type(Structure).__new__(self, name, bases, dict)
+    The list must be a VTable order, and it must include all methods
+    of all base interfaces.
 
-class COMInterface(Structure):
-    """Base class for COM interfaces.
+    The method list is used to create a VTable instance and populating
+    it with C function pointers if the interface is *implemented* in
+    Python.
 
-    In practice, all actual COM interfaces are derived from IUnknown
-    or it's subclasses.
+    It is also used to automatically create Python methods for the
+    POINTER class for an interface, which forward the call to the COM
+    object which implements this interface.
 
-    A _methods_ class variable is required, which is a sequence of
-    (methodname, argtypes) pairs.  This sequence must be in VTable
-    order, and methods of the baseclass must ot be repeated in derived
-    classes.
-
-    The _methods_ variable may be set later, after to class is
-    created, to help out when some methods' argument types contain
-    references to interface pointers defined later.
-
-    An _iid_ class variable is also required, it must be a GUID
-    instance containing the CLSID of this interface.
+    The list *may* be set after the class is created, but it must be
+    available when the class is first used.
     """
-    __metaclass__ = _COMInterfaceMeta
-    def _get_methods(self):
-        # classmethod which returns the total sequence of (methodname,
-        # argument_types) pairs of COM methods in VTable order.
-        result = []
-        for cls in self.__mro__[:-4]:
-            result[0:0] = list(cls.__dict__["_methods_"])
+    
+    def __new__(self, name, bases, kwds):
+        # create a new COM interface class
+        self.VTable_ptr = POINTER("%s_VTable" % name)
+        fields = [("lpVtbl", self.VTable_ptr)]
+        kwds["_fields_"] = fields
+        result = type(Structure).__new__(self, name, bases, kwds)
+        if kwds.has_key("_methods_"):
+            result.__make_vtable()
+            result.__make_methods()
         return result
-    _get_methods = classmethod(_get_methods)
 
-
-################################################################
+    def __make_vtable(self):
+        class _VTable(Structure):
+            _fields_ = self._methods_
+        SetPointerType(self.VTable_ptr, _VTable)
 
-class _COMPointerMeta(type(Structure)):
-    # This metaclass sets the required _fields_ attribute, which is
-    # the same for all subclasses, and sets a flag that the Python
-    # methods have not yet been created, they are lazily created
-    # when the first instance is created.
-    def __new__(cls, name, bases, dict):
-        dict["_fields_"] = [("this", c_voidp)]
-        dict["_has_methods_"] = 0
-        return type(Structure).__new__(cls, name, bases, dict)
+    def __setattr__(self, name, value):
+        if hasattr(self, "_methods_"):
+            raise TypeError, "Cannot change _methods_"
+        type(Structure).__setattr__(self, name, value)
+        if name == "_methods_":
+            self.__make_vtable()
+            self.__make_methods()
 
-################
-
-class COMPointer(Structure):
-    """
-    COMPointer instances point to actual COM interface instances.
-
-    An _interface_ class variable must contain a COMInterface class.
-    Methods are automatically created from the _interface_'s _methods_
-    table.  The COM reference count is handled automatically, Python
-    decrements the COM refcount with Release() in the __del__ method
-    of IUnknown.
-    """
-    __metaclass__ = _COMPointerMeta
-
-    def __new__(cls, *args, **kw):
+    def __make_methods(self):
+        """This method attaches methods to the interface POINTER class"""
+##        print "# making client methods for interface", self.__name__
         import new
-        print "# __new__", cls
-        if cls._has_methods_:
-            return Structure.__new__(cls, *args, **kw)
-        print "# creating methods for", cls
         index = 0
-        for name, proto in cls._interface_._get_methods():
-            callable = proto(index)
-            mth = new.instancemethod(callable, None, cls)
-
-            setattr(cls, name, mth)
+        ptrclass = POINTER(self)
+        for name, PROTO in self._fields_[0][1]._type_._fields_: # VTable._fields_
+##            print "#\t%d %s" % (index, name)
+            restype = PROTO.__dict__["_restype_"]
+            # the first item in argtypes is the this pointer, but we don't need it
+            argtypes = PROTO.__dict__["_argtypes_"][1:]
+            clientPROTO = STDAPI(restype, *argtypes)
+            mth = new.instancemethod(clientPROTO(index), None, ptrclass)
+            setattr(ptrclass, name, mth)
             index += 1
-        cls._has_methods_ = 1
-        return Structure.__new__(cls, *args, **kw)
-
-
-################################################################
-# This is not exported by ctypes:
-_PyCArgType = type(byref(c_int()))
-
-from _ctypes import _Pointer
-
-class PPUNK(_Pointer):
-    # Class to represent pointers to COM interface pointers.
-    # Useful as argtype for methods which expect pointers to
-    # COM interface pointers such as QueryInterface (VOID FAR * FAR *)
-    def from_param(self, obj):
-        # We accept two types of arguments here:
-        # - pointers to instances of a COMPointer (sub)class
-        # - PyCArgObjects containing instances of a COMPointer (sub)class
-        # The first would have been created by a pointer(xxx) call,
-        # the second one by byref(xxx)
-        if type(obj) == _PyCArgType:
-            if not isinstance(obj._obj, COMPointer):
-                raise TypeError, "expected a reference to a COMPointer"
-            return obj
-        if not isinstance(obj, _Pointer) or \
-               not issubclass(obj._type_, COMPointer):
-            raise TypeError, "expected a reference to a COMPointer"
-        return obj
-    from_param = classmethod(from_param)
-
-class PUNK(_Pointer):
-    # Useful as argtype for methods which expect COM interface
-    # pointers such as ? (VOID FAR *)
-    def from_param(self, obj):
-        if not isinstance(obj, COMPointer):
-            raise TypeError, "expected a COMPointer"
-        return obj
-    from_param = classmethod(from_param)
+##        print "#"
 
 ################################################################
-# actual COM insterface and pointer classes
-#
-class IUnknown(COMInterface):
+# IUnknown, the root of all evil...
+
+class IUnknown(Structure):
+    __metaclass__ = _interface_meta
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
 
-    # IMO this one looks better than the second:
-    _methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, PPUNK),
-                 STDMETHOD(HRESULT, "AddRef"),
-                 STDMETHOD(HRESULT, "Release")]
+PIUnknown = POINTER(IUnknown)
 
-class IUnknownPointer(COMPointer):
-    _interface_ = IUnknown
+################################################################
+# Custom argument checking function for POINTER(PIUnknown)
+_PyCArgType = type(byref(c_int()))
+from ctypes import _Pointer
+def from_param(self_, obj):
+    # We accept two types of arguments here:
+    # - pointer to pointer to an instance of an IUnknown (sub)class
+    # - PyCArgObjects containing pointer to an instance of an IUnknown (sub)class
+    if type(obj) == _PyCArgType and \
+           issubclass(obj._obj._type_, IUnknown):
+        return obj
+    if isinstance(obj, _Pointer) and \
+           issubclass(obj._type_._type_, IUnknown):
+        return obj
+    raise TypeError, "expected a reference to a IUnknown"
 
-    def __del__(self):
-        # This code handles all the COM refcounting...
-        if self.this:
-            self.Release()
+# This must be set before it is first used in an argument list
+# XXX explain reason
+POINTER(PIUnknown).from_param = classmethod(from_param)
+
+IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnknown)),
+                      STDMETHOD(c_ulong, "AddRef"),
+                      STDMETHOD(c_ulong, "Release")]
+
+################################################################
+
+class IOleObject(IUnknown):
+    _iid_ = GUID("{00000112-0000-0000-C000-000000000046}")
+    # Most entries are wrong, and the list is incomplete - it's only a test
+    _methods_ = IUnknown._methods_ + \
+                [STDMETHOD(HRESULT, "SetClientSite"),
+                 STDMETHOD(HRESULT, "GetClientSite"),
+                 STDMETHOD(HRESULT, "SetHostNames"),
+                 STDMETHOD(HRESULT, "Close", c_ulong),
+                 STDMETHOD(HRESULT, "SetMoniker"),
+                 STDMETHOD(HRESULT, "GetMoniker"),
+                 STDMETHOD(HRESULT, "InitFromData"),
+                 STDMETHOD(HRESULT, "GetClipboardData"),
+                 STDMETHOD(HRESULT, "DoVerb"),
+                 STDMETHOD(HRESULT, "EnumVerbs"),
+                 STDMETHOD(HRESULT, "Update"),
+                 STDMETHOD(HRESULT, "IsUpToDate"),
+                 STDMETHOD(HRESULT, "GetUserClassID"),
+                 # more...
+                 ]
+
+PIOleObject = POINTER(IOleObject)
+
+################################################################
+# implementing a COM interface pointer
+
+E_NOTIMPL = 0x80000001
+
+class COMObject:
+    _refcnt = 1
+
+    def _notimpl(self, *args):
+##        print "notimpl", args
+        return E_NOTIMPL
+
+    def AddRef(self, this):
+        self._refcnt += 1
+        return self._refcnt
+
+    def Release(self, this):
+        self._refcnt -= 1
+        return self._refcnt
+
+    def _make_interface_pointer(self, itfclass):
+        # Take an interface class like 'IUnknown' and create
+        # an pointer to it, implementing this interface.
+        itf = itfclass()
+        vtbltype = itfclass._fields_[0][1]._type_
+        methods = []
+        for name, proto in vtbltype._fields_:
+            callable = getattr(self, name, self._notimpl)
+            methods.append(proto(callable))
+        vtbl = vtbltype(*methods)
+        itf.lpVtbl = pointer(vtbl)
+        return pointer(itf)
+
+
+def implement():
+    from ctypes import CDLL
+    import _ctypes
+    dll = CDLL(_ctypes.__file__)
+
+    ob = COMObject()
+
+    piunk = ob._make_interface_pointer(IUnknown)
+
+    print "From Python"
+
+    print "A", piunk.AddRef()
+    print "A", piunk.Release()
+
+    print "From C"
+
+    print "B", dll._testfunc_piunk(piunk)
+
+    print "From Python2"
+
+    print "C", piunk.AddRef()
+    print "C", piunk.Release()
+
+################################################################
+# accessing a COM interface pointer
+
+def client():
+    CLSCTX_INPROC_SERVER = 0x1
+    CLSCTX_LOCAL_SERVER = 0x4
+
+    ole32.CoInitialize(None)
+
+    clsid_stdpicture = GUID("{00000316-0000-0000-C000-000000000046}")
+
+    piunk = PIUnknown()
+
+    print "CoCreateInstance", \
+          ole32.CoCreateInstance(byref(clsid_stdpicture),
+                                 0,
+                                 CLSCTX_INPROC_SERVER,
+                                 byref(IUnknown._iid_),
+                                 byref(piunk))
+
+    p2 = pointer(IUnknown())
+    print "QI", piunk.QueryInterface(byref(IUnknown._iid_),
+                                     byref(p2))
+    p2.Release()
+    
+
+    piunk.QueryInterface(byref(GUID()),
+                         byref(p2))
+
+    try:
+        piunk.QueryInterface(byref(GUID()),
+                             byref(p2))
+    except WindowsError, details:
+        print details
+
+    p3 = PIOleObject()
+    print "QI OLEOBJECT", piunk.QueryInterface(byref(IOleObject._iid_),
+                                     pointer(p3))
+
+    print "IsUpToDate?", p3.IsUpToDate()
+    try:
+        print "Update?", p3.Update()
+    except WindowsError:
+        pass
+    print "close", p3.Close(0)
+
+    print "AddRef/Release", piunk.AddRef(), piunk.Release()
+    print "Last Release", piunk.Release()
 
 ################################################################
 
@@ -202,31 +289,22 @@ class IUnknownPointer(COMPointer):
 CLSCTX_INPROC_SERVER = 0x1
 CLSCTX_LOCAL_SERVER = 0x4
 
-if 0:
-    class IMyInterface(IUnknown):
-        _iid_ = GUID("{1738f9ad-482c-402a-8c6c-578c43ed5624}")
-        _methods_ = []
-        
-    class IMyInterfacePointer(COMPointer):
-        _interface_ = IMyInterface
-
-
 def test(runperf=0):
 
-    def getrefcount(p):
-        p.AddRef()
-        return p.Release()
+    def getrefcount(ob):
+        ob.AddRef()
+        return ob.Release()
 
     ole32.CoInitialize(None)
-    ole32.CoCreateInstance.argtypes = REFCLSID, c_voidp, DWORD, REFIID, PPUNK
+    ole32.CoCreateInstance.argtypes = REFCLSID, c_voidp, DWORD, REFIID, POINTER(PIUnknown)
 
-    p = IUnknownPointer()
+    p = PIUnknown()
     clsid_stdpicture = GUID("{00000316-0000-0000-C000-000000000046}")
 
     ole32.CoCreateInstance(byref(clsid_stdpicture),
                            0,
                            CLSCTX_INPROC_SERVER,
-                           byref(p._interface_._iid_),
+                           byref(IUnknown._iid_),
                            byref(p))
 
     assert getrefcount(p) == 1
@@ -258,8 +336,8 @@ def test(runperf=0):
 
     assert getrefcount(p) == 1
 
-    p2 = IUnknownPointer()
-    p.QueryInterface(byref(IUnknownPointer._interface_._iid_),
+    p2 = PIUnknown()
+    p.QueryInterface(byref(IUnknown._iid_),
                      byref(p2))
 
     assert getrefcount(p) == 2
@@ -267,24 +345,19 @@ def test(runperf=0):
 
     del p
 
-    assert getrefcount(p2) == 1
+##    assert getrefcount(p2) == 1
 
-    class IOleObject(IUnknown):
-        _iid_ = GUID("{00000112-0000-0000-C000-000000000046}")
-        _methods_ = [] # not true
-
-    class IOleObjectPointer(COMPointer):
-        _interface_ = IOleObject
-
-    pic = IOleObjectPointer()
-    p2.QueryInterface(byref(pic._interface_._iid_),
+    pic = pointer(IOleObject())
+    p2.QueryInterface(byref(IOleObject._iid_),
                       byref(pic))
 
-    assert getrefcount(pic) == 2
+##    assert getrefcount(pic) == 2
     del p2
-    assert getrefcount(pic) == 1
+##    assert getrefcount(pic) == 1
 
     print "test OK"
 
 if __name__ == '__main__':
-    test()
+##    implement()
+    client()
+##    test()
