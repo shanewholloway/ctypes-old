@@ -48,7 +48,7 @@ class CFunctions(unittest.TestCase):
         self.dll.tf_l.argtypes = (c_long,)
         self.failUnlessEqual(self.dll.tf_l(-42), -42)
         self.dll.tf_bl.restype = c_long
-        self.dll.tf_l.argtypes = (c_byte, c_long)
+        self.dll.tf_bl.argtypes = (c_byte, c_long)
         self.failUnlessEqual(self.dll.tf_bl(0, -42), -42)
 
     def test_ulong(self):
