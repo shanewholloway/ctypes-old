@@ -88,6 +88,20 @@ class VariantTestCase(unittest.TestCase):
         self.failUnlessEqual(v.vt, VT_DATE)
         self.failUnlessEqual(v.value, now)
 
+    def test_BSTR(self):
+        from ctypes.com.automation import BSTR, VT_BSTR
+        v = VARIANT()
+        v.value = u"abc\x00123\x00"
+        self.failUnlessEqual(v.value, "abc\x00123\x00")
+
+        v.value = None
+        # manually clear the variant
+        v._.VT_I4 = 0
+
+        # NULL pointer BSTR should be handled as empty string
+        v.vt = VT_BSTR
+        self.failUnlessEqual(v.value, "")
+
 ################################################################
 
 if __name__ == '__main__':
