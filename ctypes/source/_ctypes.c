@@ -1500,6 +1500,9 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 		}
 		Py_INCREF(ob);
 		stgdict->restype = ob;
+		stgdict->checker = PyObject_GetAttrString(ob, "_check_retval_");
+		if (stgdict->checker == NULL)
+			PyErr_Clear();
 	}
 	return 0;
 
@@ -2455,7 +2458,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 	assert(dict); /* if not, it's a bug */
 	restype = self->restype ? self->restype : dict->restype;
 	converters = self->converters ? self->converters : dict->converters;
-	checker = self->checker;
+	checker = self->checker ? self->checker : dict->checker;
 
 #ifdef MS_WIN32
 	if (self->index) {
