@@ -6,7 +6,6 @@ try:
 except ImportError:
     subprocess = None
 
-
 if sys.platform == "win32":
 
     def _locate_gccxml():
@@ -48,7 +47,8 @@ class IncludeParser(object):
             args = ["gccxml", "--preprocess", "-dM", fname]
             if lines and self.options.flags:
                 args.extend(self.options.flags)
-            print "run", args
+            if self.options.verbose:
+                print >> sys.stderr, "running:", " ".join(args)
             if subprocess:
                 proc = subprocess.Popen(args,
                                         stdout=subprocess.PIPE,
@@ -72,7 +72,8 @@ class IncludeParser(object):
         if self.options.flags:
             args.extend(self.options.flags)
         try:
-            print "run", args
+            if self.options.verbose:
+                print >> sys.stderr, "running:", " ".join(args)
             if subprocess:
                 retcode = subprocess.call(args)
             else:
@@ -218,7 +219,7 @@ class IncludeParser(object):
 
         The options object must have these attribuites:
           verbose - integer
-          flags - string
+          flags - sequence of strings
         """
         self.options = options
 
