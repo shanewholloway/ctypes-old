@@ -4,24 +4,16 @@
 import unittest
 from ctypes import *
 
-def find_test_dll():
-    import sys, os
-    if os.name == "nt":
-        name = "_ctypes_test.pyd"
-    else:
-        name = "_ctypes_test.so"
-    for p in sys.path:
-        f = os.path.join(p, name)
-        if os.path.isfile(f):
-            return f
-    return None
-
 # These two functions report the argument in the last call to one of
 # the tf_? functions.
 
 from _ctypes_test import \
      get_last_tf_arg_s as S, \
      get_last_tf_arg_u as U
+
+def find_test_dll():
+    import _ctypes_test
+    return _ctypes_test.__file__
 
 class CFunctions(unittest.TestCase):
     def __init__(self, *args):
