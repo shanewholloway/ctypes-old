@@ -1,6 +1,4 @@
 #include "Python.h"
-#define USE_CALLBACKS
-
 #include "ctypes.h"
 
 /******************************************************************/

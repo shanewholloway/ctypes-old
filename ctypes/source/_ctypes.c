@@ -100,9 +100,6 @@ bytes(cdata)
 
 #include "Python.h"
 #include "structmember.h"
-
-#define USE_CALLBACKS
-
 #include "ctypes.h"
 
 #ifdef MS_WIN32
@@ -2678,7 +2675,6 @@ PyTypeObject CFunctionType_Type = {
 
 
 
-#ifdef USE_CALLBACKS
 /******************************************************************/
 /*
  * CFunction_Type
@@ -2873,7 +2869,6 @@ PyTypeObject CFunction_Type = {
 	CFunction_new,				/* tp_new */
 	0,					/* tp_free */
 };
-#endif
 
 
 /******************************************************************/
@@ -3364,7 +3359,6 @@ init_ctypes(void)
 		return;
 	PyModule_AddObject(m, "_SimpleCData", (PyObject *)&Simple_Type);
 
-#ifdef USE_CALLBACKS
 // No: CFunction_Type is NOT a subclass of CData_Type!
 // Why? Currently it cannot, because it does not contain
 // a struct CDataObject. Hm.
@@ -3373,7 +3367,6 @@ init_ctypes(void)
 	if (PyType_Ready(&CFunction_Type) < 0)
 		return;
 	PyModule_AddObject(m, "CFunction", (PyObject *)&CFunction_Type);
-#endif
 	
 	/*************************************************
 	 *
@@ -3431,11 +3424,7 @@ init_ctypes(void)
 	 *
 	 * Others...
 	 */
-
-
-#ifdef USE_CALLBACKS
 	init_callbacks_in_module(m);
-#endif
 }
 
 PyObject *my_debug(PyObject *self, CDataObject *arg)

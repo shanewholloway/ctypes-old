@@ -1,8 +1,6 @@
 #include "Python.h"
 #include "structmember.h"
 
-#define USE_CALLBACKS
-
 #include "ctypes.h"
 
 /******************************************************************/
@@ -156,16 +154,13 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 	if (self->proto) {
 		CDataObject *src = (CDataObject *)value;
 		if (!CDataObject_Check(value)) {
-#ifdef USE_CALLBACKS
 			if (CFunctionObject_Check(value)) {
 				CFunctionObject *func;
 				func = (CFunctionObject *)value;
 				assert(self->size == sizeof(void *));
 				*(void **)(dst->b_ptr + self->offset) = func->callback;
 				Py_INCREF(value); /* reference to keep */
-			} else
-#endif
-			{
+			} else {
 				/* Hm. We can arrive here when self->proto is an ArrayType_Type,
 				   and value is a sequence. */
 				/* Should we call (self->proto).from_param(PySequence_GetItem())? */
