@@ -555,7 +555,10 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 
 ffi_type *GetType(PyObject *obj)
 {
-	StgDictObject *dict = PyType_stgdict(obj);
+	StgDictObject *dict;
+	if (obj == NULL)
+		return &ffi_type_sint;
+	dict = PyType_stgdict(obj);
 	if (dict == NULL)
 		return &ffi_type_sint;
 	return &dict->ffi_type;
@@ -698,6 +701,10 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 static PyObject *GetResult(PyObject *restype, struct argument *result)
 {
 	StgDictObject *dict;
+
+	if (restype == NULL) {
+		return getentry("i")->getfunc(&result->value.l, sizeof(int));
+	}
 
 	assert(restype);
 
@@ -1088,6 +1095,63 @@ static PyObject *py_dl_sym(PyObject *self, PyObject *args)
 }
 #endif
 
+/*
+ * Only for debugging so far: So that we can call CFunction instances
+ *
+ * XXX Needs to accept more arguments: flags, argtypes, restype
+ */
+static PyObject *
+call_function(PyObject *self, PyObject *args)
+{
+	PPROC func;
+	PyObject *arguments;
+	PyObject *result;
+
+#ifdef _DEBUG
+	_asm int 3;
+#endif
+	if (!PyArg_ParseTuple(args,
+			      "iO!",
+			      &func,
+			      &PyTuple_Type, &arguments))
+		return NULL;
+
+	result =  _CallProc(func,
+			    arguments,
+			    NULL,
+			    0, /* flags */
+			    NULL, /* self->argtypes */
+			    NULL); /* self->restype */
+	return result;
+}
+
+/*
+ * Only for debugging so far: So that we can call CFunction instances
+ *
+ * XXX Needs to accept more arguments: flags, argtypes, restype
+ */
+static PyObject *
+call_cdeclfunction(PyObject *self, PyObject *args)
+{
+	PPROC func;
+	PyObject *arguments;
+	PyObject *result;
+
+	if (!PyArg_ParseTuple(args,
+			      "iO!",
+			      &func,
+			      &PyTuple_Type, &arguments))
+		return NULL;
+
+	result =  _CallProc(func,
+			    arguments,
+			    NULL,
+			    FUNCFLAG_CDECL, /* flags */
+			    NULL, /* self->argtypes */
+			    NULL); /* self->restype */
+	return result;
+}
+
 static char alignment_doc[] =
 "addressof(C instance) -> integer\nReturn the address of the C instance";
 static char sizeof_doc[] =
@@ -1121,6 +1185,8 @@ PyMethodDef module_methods[] = {
 	{"sizeof", sizeof_func, METH_O, sizeof_doc},
 	{"byref", byref, METH_O, byref_doc},
 	{"addressof", addressof, METH_O, addressof_doc},
+	{"call_function", call_function, METH_VARARGS },
+	{"call_cdeclfunction", call_cdeclfunction, METH_VARARGS },
 	{NULL,      NULL}        /* Sentinel */
 };
 
