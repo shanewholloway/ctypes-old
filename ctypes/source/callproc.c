@@ -764,13 +764,12 @@ static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 {
 	StgDictObject *dict;
 
+	assert(restype);
+
 	if (restype == Py_None) {
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
-
-	if (restype == NULL)
-		return ToPython(&result->value, result->tag);
 
 	if (PointerTypeObject_Check(restype)) {
 		CDataObject *pd;
