@@ -604,7 +604,7 @@ CharArray_set_raw(CDataObject *self, PyObject *value)
 	char *ptr;
 	int size;
 	if (PyBuffer_Check(value)) {
-		size = value->ob_type->tp_as_buffer->bf_getreadbuffer(value, 0, &ptr);
+		size = value->ob_type->tp_as_buffer->bf_getreadbuffer(value, 0, (void *)&ptr);
 		if (size < 0)
 			return -1;
 	} else if (-1 == PyString_AsStringAndSize(value, &ptr, &size)) {
@@ -2571,7 +2571,7 @@ Struct_as_parameter(CDataObject *self)
 		return NULL;
 
 	parg->tag = 'V';
-	stgdict = PyObject_stgdict(self);
+	stgdict = PyObject_stgdict((PyObject *)self);
 	parg->pffi_type = &stgdict->ffi_type;
 	/* For structure parameters (by value), parg->value doesn't contain the structure
 	   data itself, instead parg->value.p *points* to the structure's data
