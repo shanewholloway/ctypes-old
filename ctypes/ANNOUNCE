@@ -37,6 +37,9 @@ Changes in 0.9.1
     On windows, the include files were missing from the source
     distribution.
 
+    The alignment function was not exported by the ctypes module.  It
+    returns the alignment requirements in bytes of a type or instance.
+
   ctypes.com changes
 
     VARIANT does now handle the COM DATE type (VT_DATE) as Python

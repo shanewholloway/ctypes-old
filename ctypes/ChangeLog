@@ -1,5 +1,9 @@
 2004-08-19  Thomas Heller  <theller@python.net>
 
+	* (Message): the alignment function was not exported by the ctypes
+	module.  It returns the alignment requirements in bytes of a type
+	or instance.
+
 	* source/callproc.c: The _ctypes.call_function function, although
 	private and deprecated, has been put back in - it is used by Gary
 	Bishop's readline module.
