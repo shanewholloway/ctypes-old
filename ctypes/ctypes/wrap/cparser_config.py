@@ -65,22 +65,12 @@ DEFAULT_UNREACHABLE
 MAXLONGLONG
 IMAGE_ORDINAL_FLAG64
 SECURITY_NT_AUTHORITY
-_I8_MIN
-_I8_MAX
-_UI8_MAX
-_I16_MIN
-_I16_MAX
-_UI16_MAX
-_I32_MIN
-_I32_MAX
-_UI32_MAX
-_I64_MIN
-_I64_MAX
-_UI64_MAX
+LLONG_MAX
+LLONG_MIN
+ULLONG_MAX
 """.strip().split()
-
-# The _I8_MIN symbols and friends are in limits.h, they have constanrs
-# with i8 i16 i32 i64 suffixes which gccxml refuses to compile.
+# The ..LONG_MIN and ..LONG_MAX symbols are in MSVC 7.1 limits.h,
+# gccxml complains: integer constant is too large for "long" type
 
 EXCLUDED_linux = """
 _IOT_termios
