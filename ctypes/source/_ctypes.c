@@ -170,6 +170,9 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)dict;
 
+	/* XXX Allow overriding. __c_to_python__? */
+	dict->getfunc = StructUnion_getfunc;
+
 	fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
 	if (!fields) {
 		StgDictObject *basedict = PyType_stgdict((PyObject *)result->tp_base);
@@ -190,9 +193,6 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 		Py_DECREF(result);
 		return NULL;
 	}
-
-	/* XXX Allow overriding. __c_to_python__? */
-	dict->getfunc = StructUnion_getfunc;
 
 	return (PyObject *)result;
 }
@@ -889,6 +889,14 @@ Array_getfunc(void *ptr, unsigned size,
 				"ctypes bug: Array_getfunc called with NULL type");
 		return NULL;
 	}
+	/* XXX This must be special cased to get rid of the Array checks in
+	   cfield.c :: CField_FromDesc, which installs custom getfuncs in
+	   fields.
+
+	   For c_char and c_wchar arrays, the c_char and c_wchar getfuncs must
+	   be used.
+	*/
+
 	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
 }
 
@@ -1924,26 +1932,6 @@ PyObject *
 CData_AtAddress(PyObject *type, void *buf)
 {
 	return CData_FromBaseObj(type, NULL, 0, buf);
-}
-
-static PyObject *
-CData_get(PyObject *type, GETFUNC getfunc, CDataObject *src,
-	  int index, int size, char *adr)
-{
-	if (getfunc)
-		return getfunc(adr, size,
-			       type, src, index);
-	if (type) {
-		StgDictObject *dict;
-		dict = PyType_stgdict(type);
-		if (dict && dict->getfunc)
-			return dict->getfunc(adr, size,
-					     type, src, index);
-		return CData_FromBaseObj(type, (PyObject *)src, index, adr);
-	}
-//	return getfunc(adr, size);
-	PyErr_SetString(PyExc_RuntimeError, "BUG in ctypes");
-	return NULL;
 }
 
 /*
@@ -3701,7 +3689,6 @@ Pointer_item(CDataObject *self, int index)
 	assert(stgdict);
 	
 	proto = stgdict->proto;
-	/* XXXXXX MAKE SURE PROTO IS NOT NULL! */
 	itemdict = PyType_stgdict(proto);
 	size = itemdict->size;
 	offset = index * itemdict->size;
@@ -3711,8 +3698,9 @@ Pointer_item(CDataObject *self, int index)
 		base = NULL;
 	else
 		base = self;
-	return CData_get(stgdict->proto, stgdict->getfunc, base,
-			 index, size, (*(char **)self->b_ptr) + offset);
+
+	return itemdict->getfunc((*(char **)self->b_ptr) + offset, size,
+				 proto, base, index);
 }
 
 static int
