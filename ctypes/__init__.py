@@ -34,7 +34,7 @@ STDMETHOD_(type, name)
 STDAPICALLTYPE
 """
 
-def CFuncType(restype, *argtypes):
+def CFUNCTYPE(restype, *argtypes):
     class X(_CFuncPtr):
         _argtypes_ = argtypes
         _restype_ = restype
@@ -46,7 +46,7 @@ if _os.name == "nt":
          FreeLibrary as _FreeLibrary
     from _ctypes import FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
 
-    def WinFuncType(restype, *argtypes):
+    def WINFUNCTYPE(restype, *argtypes):
         class X(_CFuncPtr):
             _argtypes_ = argtypes
             _restype_ = restype
@@ -197,6 +197,9 @@ def SetPointerType(pointer, cls):
 
 def pointer(inst):
     return POINTER(type(inst))(inst)
+
+def ARRAY(typ, len):
+    return typ * len
 
 ################################################################
 

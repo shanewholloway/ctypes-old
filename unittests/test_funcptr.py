@@ -3,7 +3,7 @@ from ctypes import * # bad style, generally
 
 class CFuncPtrTestCase(unittest.TestCase):
     def test_basic(self):
-        X = WinFuncType(c_int, c_int, c_int)
+        X = WINFUNCTYPE(c_int, c_int, c_int)
 
         def func(*args):
             return len(args)
@@ -13,8 +13,8 @@ class CFuncPtrTestCase(unittest.TestCase):
         self.failUnless(sizeof(X) == sizeof(c_voidp))
 
     def test_first(self):
-        StdCallback = WinFuncType(c_int, c_int, c_int)
-        CdeclCallback = CFuncType(c_int, c_int, c_int)
+        StdCallback = WINFUNCTYPE(c_int, c_int, c_int)
+        CdeclCallback = CFUNCTYPE(c_int, c_int, c_int)
 
         def func(a, b):
             return a + b
@@ -28,7 +28,7 @@ class CFuncPtrTestCase(unittest.TestCase):
         self.assertRaises(TypeError, c, 1, 2, 3)
 
     def test_structures(self):
-        WNDPROC = WinFuncType(c_long, c_int, c_int, c_int, c_int)
+        WNDPROC = WINFUNCTYPE(c_long, c_int, c_int, c_int, c_int)
 
         def wndproc(hwnd, msg, wParam, lParam):
             return hwnd + msg + wParam + lParam
@@ -52,7 +52,7 @@ class CFuncPtrTestCase(unittest.TestCase):
         wndclass = WNDCLASS()
         wndclass.lpfnWndProc = WNDPROC(wndproc)
 
-        WNDPROC_2 = WinFuncType(c_long, c_int, c_int, c_int, c_int)
+        WNDPROC_2 = WINFUNCTYPE(c_long, c_int, c_int, c_int, c_int)
 
         # CFuncPtr subclasses are compared by identity, so this raises a TypeError:
 ##        wndclass.lpfnWndProc = WNDPROC_2(wndproc)
