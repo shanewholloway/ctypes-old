@@ -156,8 +156,11 @@ class _interface_meta(type(Structure)):
     def _init_class(self):
         self.__make_vtable()
         self.__make_methods()
-        POINTER(self).__del__ = COMPointer__del__
-##        POINTER(self).__init__ = COMPointer__init__
+        P = POINTER(self)
+        P.__del__ = COMPointer__del__
+        # the presence of this attribute triggers automatic AddRef()
+        # calls in COM method implementations, for aruments we receive.
+        P._needs_com_addref_ = None
 
     def __setattr__(self, name, value):
         if name == "_methods_" and self.__dict__.has_key("_methods_"):
