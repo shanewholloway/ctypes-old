@@ -2,7 +2,7 @@ ctypes tutorial
 
   "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
 
-  This tutorial describes version 0.6 of 'ctypes'. There have been
+  This tutorial describes version 0.6.1 of 'ctypes'. There have been
   quite some changes to previous versions, the most important are
   listed "here":changes.html.
 
