@@ -71,7 +71,7 @@ class FunctionTestCase(unittest.TestCase):
 
         # If we declare the function to return a short,
         # is the high part split off?
-        f.restype = "h"
+        f.restype = c_short
         result = f(1, 2, 3, 4, 5.0, 6.0)
         self.failUnless(result == 21)
         self.failUnless(type(result) == int)
@@ -80,13 +80,13 @@ class FunctionTestCase(unittest.TestCase):
         self.failUnless(result == 21)
         self.failUnless(type(result) == int)
 
-        # You cannot assing C datatypes as restype, except POINTER classes:
-        self.assertRaises(TypeError, setattr, f, "restype", c_short)
+        # You cannot assing character format codes as restype any longer
+        self.assertRaises(TypeError, setattr, f, "restype", "i")
 
     def test_floatresult(self):
         f = dll._testfunc_f_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
-        f.restype = "f"
+        f.restype = c_float
         result = f(1, 2, 3, 4, 5.0, 6.0)
         self.failUnless(result == 21)
         self.failUnless(type(result) == float)
@@ -98,7 +98,7 @@ class FunctionTestCase(unittest.TestCase):
     def test_doubleresult(self):
         f = dll._testfunc_d_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
-        f.restype = "d"
+        f.restype = c_double
         result = f(1, 2, 3, 4, 5.0, 6.0)
         self.failUnless(result == 21)
         self.failUnless(type(result) == float)
@@ -113,14 +113,14 @@ class FunctionTestCase(unittest.TestCase):
         except NameError:
             return
         f = dll._testfunc_q_bhilfd
-        f.restype = "q"
+        f.restype = c_longlong
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
         result = f(1, 2, 3, 4, 5.0, 6.0)
         self.failUnless(result == 21)
         self.failUnless(type(result) == long)
 
         f = dll._testfunc_q_bhilfdq
-        f.restype = "q"
+        f.restype = c_longlong
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double, c_longlong]
         result = f(1, 2, 3, 4, 5.0, 6.0, 21)
         self.failUnless(result == 42)
@@ -128,7 +128,7 @@ class FunctionTestCase(unittest.TestCase):
 
     def test_stringresult(self):
         f = dll._testfunc_p_p
-        f.restype = "z"
+        f.restype = c_char_p
         result = f("123")
         self.failUnless(result == "123")
 
@@ -159,7 +159,7 @@ class FunctionTestCase(unittest.TestCase):
 
     def test_errors(self):
         f = dll._testfunc_p_p
-        f.restype = "i"
+        f.restype = c_int
 
         class X(Structure):
             _fields_ = [("y", "i")]
@@ -191,7 +191,7 @@ class FunctionTestCase(unittest.TestCase):
 
     def test_callbacks(self):
         f = dll._testfunc_callback_i_if
-        f.restype = "i"
+        f.restype = c_int
 
         class MyCallback(CFunction):
             _stdcall_ = 0
@@ -226,7 +226,7 @@ class FunctionTestCase(unittest.TestCase):
         # for the callback function.
         # In this case the call receives an instance of that type
         f = dll._testfunc_callback_i_if
-        f.restype = "i"
+        f.restype = c_int
 
         class MyCallback(CFunction):
             _stdcall_ = 0
@@ -244,14 +244,13 @@ class FunctionTestCase(unittest.TestCase):
         self.failUnless(result == -18)
 
     def test_longlong_callbacks(self):
-        # XXX crashes, for these reasons:
-        # f.restype = c_longlong raises TypeError, it's not allowed (on purpose)
 
         f = dll._testfunc_callback_q_qf
-        f.restype = "q" #c_longlong
+        f.restype = c_longlong
         class MyCallback(CFunction):
             _stdcall_ = 0
             _types_ = (c_longlong,)
+            _restype_ = c_longlong
 
         f.argtypes = [c_longlong, MyCallback]
 

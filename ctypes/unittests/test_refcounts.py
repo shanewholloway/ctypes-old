@@ -16,7 +16,7 @@ class RefcountTestCase(unittest.TestCase):
         from sys import getrefcount as grc
 
         f = dll._testfunc_callback_i_if
-        f.restype = "i"
+        f.restype = ctypes.c_int
         f.argtypes = [ctypes.c_int, MyCallback]
 
         def callback(value):
