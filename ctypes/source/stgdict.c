@@ -20,10 +20,17 @@ StgDict_init(StgDictObject *self, PyObject *args, PyObject *kwds)
 	return 0;
 }
 
+static int
+StgDict_clear(StgDictObject *self)
+{
+	Py_CLEAR(self->proto);
+	return 0;
+}
+
 static void
 StgDict_dealloc(StgDictObject *self)
 {
-	Py_XDECREF(self->proto);
+	StgDict_clear(self);
 	PyMem_Free(self->ffi_type.elements);
 	((PyObject *)self)->ob_type->tp_free((PyObject *)self);
 }
