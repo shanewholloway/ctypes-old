@@ -339,11 +339,14 @@ class Generator(object):
                                 value,
                                 self.type_name(tp.typ, False))
 
+    _enumvalues = 0
     def EnumValue(self, tp):
         if tp in self.done:
             return
+        value = int(tp.value)
         print >> self.stream, \
-              "%s = %s # enum %s" % (tp.name, tp.value, tp.enumeration.name or "")
+              "%s = %d # enum %s" % (tp.name, value, tp.enumeration.name or "")
+        self._enumvalues += 1
         self.done.add(tp)
 
     _enumtypes = 0
@@ -638,6 +641,7 @@ class Generator(object):
         print >> stream, "# Struct/Unions:      %5d" % self._structures
         print >> stream, "# Functions:          %5d" % self._functiontypes
         print >> stream, "# Enums:              %5d" % self._enumtypes
+        print >> stream, "# Enum values:        %5d" % self._enumvalues
         print >> stream, "# Typedefs:           %5d" % self._typedefs
         print >> stream, "# Pointertypes:       %5d" % self._pointertypes
         print >> stream, "# Arraytypes:         %5d" % self._arraytypes
