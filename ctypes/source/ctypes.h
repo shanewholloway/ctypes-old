@@ -95,11 +95,15 @@ extern PyTypeObject ArrayType_Type;
 extern PyTypeObject Array_Type;
 extern PyTypeObject PointerType_Type;
 extern PyTypeObject Pointer_Type;
+extern PyTypeObject CFuncPtr_Type;
+extern PyTypeObject CFuncPtrType_Type;
 
 #define ArrayTypeObject_Check(v)	PyObject_TypeCheck(v, &ArrayType_Type)
 #define ArrayObject_Check(v)		PyObject_TypeCheck(v, &Array_Type)
 #define PointerObject_Check(v)		PyObject_TypeCheck(v, &Pointer_Type)
 #define PointerTypeObject_Check(v)	PyObject_TypeCheck(v, &PointerType_Type)
+#define CFuncPtrObject_Check(v)		PyObject_TypeCheck(v, &CFuncPtr_Type)
+#define CFuncPtrTypeObject_Check(v)	PyObject_TypeCheck(v, &CFuncPtrType_Type)
 
 extern PyObject *
 CreateArrayType(PyObject *itemtype, int length);
@@ -241,6 +245,14 @@ extern void SetException(unsigned long code);
 extern void Extend_Error_Info(char *fmt, ...);
 
 extern void PrepareResult(PyObject *restype, PyCArgObject *result);
+
+struct basespec {
+	CDataObject *base;
+	int index;
+	char *adr;
+};
+
+extern char basespec_string[];
 
 /*
  Local Variables:

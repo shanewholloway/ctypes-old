@@ -1222,7 +1222,7 @@ CFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)result;
 }
 
-static PyTypeObject CFuncPtrType_Type = {
+PyTypeObject CFuncPtrType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
 	"_ctypes.CFuncPtrType",			/* tp_name */
@@ -1270,13 +1270,8 @@ static PyTypeObject CFuncPtrType_Type = {
 /*
   CData_Type
  */
-struct basespec {
-	CDataObject *base;
-	int index;
-	char *adr;
-};
 
-static char basespec_string[] = "base specification";
+char basespec_string[] = "base specification";
 
 /*
  * Return a list of size <size> filled with None's.
@@ -2221,7 +2216,7 @@ CFuncPtr_dealloc(CFuncPtrObject *self)
 	self->ob_type->tp_free(self);
 }
 
-static PyTypeObject CFuncPtr_Type = {
+PyTypeObject CFuncPtr_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
 	"_ctypes.CFuncPtr",
