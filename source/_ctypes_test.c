@@ -152,6 +152,28 @@ EXPORT(int) _testfunc_callback_i_if(int value, int (*func)(int))
 	return sum;
 }
 
+EXPORT(int) _testfunc_callback_i_iif(int value, int (*func)(int, int))
+{
+	int sum = 0;
+	while (value != 0) {
+		sum += func(value, value*2);
+		value /= 2;
+	}
+	if (sum == 0)
+		_asm ret 8 ; a comment
+	return sum;
+}
+
+EXPORT(int) _testfunc_stdcall_callback_i_iif(int value, int (__stdcall *func)(int, int))
+{
+	int sum = 0;
+	while (value != 0) {
+		sum += func(value, value*2);
+		value /= 2;
+	}
+	return sum;
+}
+
 EXPORT(PY_LONG_LONG) _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
 {
 	PY_LONG_LONG sum = 0;
