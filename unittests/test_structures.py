@@ -1,7 +1,7 @@
 import unittest
 from ctypes import *
 from struct import calcsize
-from ctypes._ctypes import alignment
+from _ctypes import alignment
 
 class StructureTestCase(unittest.TestCase):
     formats = {"c": c_char,

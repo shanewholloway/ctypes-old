@@ -3,6 +3,15 @@
 #
 """create and manipulate C data types in Python"""
 
+import os
+if os.path.isfile(".CTYPES_DEVEL"):
+    # magic to allow using ctypes from the CVS tree
+    import sys
+    __path__.append(os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", sys.platform)))
+    del sys
+del os
+
 __version__ = "0.6.0"
 
 from _ctypes import Union, Structure, Array

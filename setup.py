@@ -30,7 +30,7 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 
 if os.name == "nt":
-    extensions = [Extension("ctypes._ctypes",
+    extensions = [Extension("_ctypes",
                             export_symbols=["DllGetClassObject,PRIVATE",
                                             "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
@@ -51,7 +51,7 @@ else:
                   ]
 
 packages = ["ctypes"]
-package_dir = {"ctypes": "lib"}
+package_dir = {}
 
 if sys.platform == "win32":
     packages.append("ctypes.com")
@@ -174,7 +174,7 @@ class my_build_py(build_py.build_py):
         result = build_py.build_py.find_package_modules(self, package, package_dir)
         if package == 'ctypes':
             for pathname in glob.glob(os.path.join(sys.platform, "*.py")):
-                modname = os.path.basename(pathname)
+                modname = os.path.splitext(os.path.basename(pathname))[0]
                 result.append(('ctypes', modname, pathname))
         return result
 
