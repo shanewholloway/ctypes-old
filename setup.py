@@ -127,6 +127,8 @@ if sys.version_info < req_ver:
 if LIBFFI_SOURCES is not None:
 
     def task_build_libffi(force=0):
+        if sys.platform == "win32":
+            return
         if not os.path.isdir(LIBFFI_SOURCES):
             sys.stderr.write(
                 'LIBFFI_SOURCES is not a directory: %s\n'%LIBFFI_SOURCES)
@@ -158,7 +160,13 @@ if LIBFFI_SOURCES is not None:
             inst_dir = inst_dir.replace("'", "'\"'\"'")
             src_path = src_path.replace("'", "'\"'\"'")
 
-            subprocess('Building FFI', "cd build/libffi/BLD && '%s/configure' --prefix='%s' --disable-shared --enable-static && make install"%(src_path, inst_dir), None)
+            subprocess('Building FFI',
+                       "cd build/libffi/BLD && '%s/configure' --prefix='%s' --disable-shared --enable-static && make install"%(src_path, inst_dir), None)
+            subprocess('Building test',
+                       "cd build/libffi/BLD && '%s/configure' --prefix='%s' && make install"%(src_path, inst_dir), None)
+
+            subprocess('Building float1.c',
+                       "gcc -lffi build/libffi/testsuite/libffi.call/float1.c")
 
     LIBFFI_BASE='build/libffi'
     LIBFFI_CFLAGS=[
