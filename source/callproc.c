@@ -1009,7 +1009,6 @@ copy_com_pointer(PyObject *self, PyObject *args)
 {
 	PyObject *p1, *p2, *r = NULL;
 	struct argument a, b;
-	int result;
 	IUnknown *src, **pdst;
 	if (!PyArg_ParseTuple(args, "OO:CopyComPointer", &p1, &p2))
 		return NULL;
