@@ -117,7 +117,7 @@ def client(verbose, args):
         p = os.path.dirname(a)
         if p not in sys.path:
             sys.path.insert(0, p)
-        data = cPickle.dumps(s)
+        data = cPickle.dumps(d)
         open(".result.pck", "w").write(data)
         if verbose == 2:
             os.system("%s remotetest.py -v -p %s %s" % (sys.executable, ".result.pck", a))
