@@ -97,7 +97,6 @@ static int __stdcall CallPythonObject(PyObject *callable,
 	int i;
 	PyObject *result;
 	PyObject *arglist;
-	PyObject *p;
 	int nArgs;
 	int retcode;
 
