@@ -266,6 +266,14 @@ class _Dispatch(object):
         if fd.invkind == DISPATCH_PROPERTYGET:
             if fd.cParams == 0:
                 return self.__prop_get(fd.memid)
+            if fd.cParams == 1 and fd.cParamsOpt == 0:
+                # Guesswork.  InternetExplorer, and other typelibs,
+                # have propget properties with cParams == 1, and cParamsOpt == 0.
+                # The parameter type is VT_PTR | VT_..., and wPARAMFlags == PARAMFLAG_FOPT.
+                #
+                # And calling those without any parameter via Invoke works great...
+                if fd.lprgelemdescParam[0].paramdesc.wPARAMFlags == 10:
+                    return self.__prop_get(fd.memid)
             return _DispMethod(name, self._comobj, fd)
         elif fd.invkind == DISPATCH_METHOD:
             return _DispMethod(name, self._comobj, fd)
@@ -383,6 +391,8 @@ class _DispMethod(object):
                                 byref(uArgError)) # puArgError
         except WindowsError, (errno, strerror):
             assert excepinfo.pfnDeferredFillIn == 0
+            # No need for GetErrorInfo, DispInvoke already returns
+            # info in excepinfo.
             raise COMError(errno, strerror, excepinfo.as_tuple(), uArgError.value)
         return _wrap(result)
 
