@@ -3401,6 +3401,7 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	StgDictObject *stgdict;
 	PyObject *itemtype;
 	char *ptr;
+	PyObject *keep;
 
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
@@ -3419,8 +3420,10 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	ptr = self->b_ptr + offset;
 	itemtype = stgdict->proto;
 
-	return CData_set(self, itemtype, value,
-			 index, size, ptr);
+	keep = _CData_set(self, itemtype, value, size, ptr);
+	if (keep == NULL)
+		return -1;
+	return KeepRef(self, index, keep);
 }
 
 static int
