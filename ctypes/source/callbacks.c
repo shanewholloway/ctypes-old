@@ -199,15 +199,6 @@ static void closure_fcn(ffi_cif *cif,
 			  args);
 }
 
-static ffi_type *GetType(PyObject *obj)
-{
-	StgDictObject *dict = PyType_stgdict(obj);
-	if (dict == NULL)
-		return &ffi_type_sint;
-	return &dict->ffi_type;
-}
-
-
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
