@@ -43,9 +43,9 @@ The ctypes COM framework
 
         This is the base class for all COM interfaces.  Subclasses
         must have a '_methods_' attribute, which is a list of all COM
-        interface methods used in this interface. The '_methods_'
-        attribute for derived classes must include the methods of the
-        base class.
+        interface methods used in this interface in vtable order. The
+        '_methods_' attribute for derived classes must include the
+        methods of the base class.
 
 	It is not necessary to define the '_methods_' attribute in the
 	class definition statement, it can also be assigned later. But
@@ -57,11 +57,11 @@ The ctypes COM framework
 
 	Here a is sample interface definition::
 
-            class IPersist(IUnknown):
-                _iid_ = GUID("{0000010C-0000-0000-C000-000000000046}")
-                _methods_ = IUnknown._methods_ + [
-                    STDMETHOD(HRESULT, "GetClassID", POINTER(GUID))
-                    ]
+          class IPersist(IUnknown):
+              _iid_ = GUID("{0000010C-0000-0000-C000-000000000046}")
+              _methods_ = IUnknown._methods_ + [
+                  STDMETHOD(HRESULT, "GetClassID", POINTER(GUID))
+              ]
 
 	These interface definitions are used to *implement* COM
 	interfaces, or to *use* COM interfaces. In client code, if you
