@@ -143,123 +143,19 @@ CField_FromDesc(PyObject *desc, int index,
 static int
 CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 {
-	CDataObject *dst;
-	PyObject *objects;
-
-	if (!CDataObject_Check(inst)) {
-		PyErr_SetString(PyExc_TypeError,
-				"Not a CData Object");
-		return -1;
-	}
-	dst = (CDataObject *)inst;
-
-	/* Hm.
-	 * If self->proto is NULL, we require setfunc to do it's work.
-	 *
-	 * If self->proto is not NULL, we currently:
-	 *
-	 * - require that value is a CDataObject.
-	 *
-	 * - If isinstance(value, self->proto) is true, we simply
-	 *   copy the buffer contents of value into dst's buffer
-	 *   at the correct offset.
-	 *
-	 * - If self->proto is a PointerType and value is an Array,
-	 *   we require that the value type's stgdict is identical to
-	 *   self->proto's stgdict - this means that Array's items
-	 *   have the same type as the Pointer's contents. So we can
-	 *   copy the Array's buffer address into dst's buffer at the
-	 *   correct offset.
-	 *   (In C, an array can always (automatically) be cast to a pointer.)
-	 *
-	 * What would be a nice protocol to replace or extend the above
-	 * algorithm?
-	 */
-	if (self->proto) {
-		CDataObject *src = (CDataObject *)value;
-		if (!CDataObject_Check(value)) {
-			StgDictObject *dict = PyType_stgdict(self->proto);
-			if (dict->setfunc) {
-				value = dict->setfunc(dst->b_ptr + self->offset,
-						      value, dict->size);
-				if (!value)
-					return -1;
-			} else {
-				PyErr_SetString(PyExc_TypeError,
-						"CDataObject expected");
-				return -1;
-			}
-		} else if (PyObject_IsInstance(value, self->proto)) {
-			memcpy(dst->b_ptr + self->offset,
-			       src->b_ptr,
-			       self->size);
-			value = CData_GetList(src);
-			Py_INCREF(value); /* reference to keep */
-		} else if (PointerTypeObject_Check(self->proto)
-			   && ArrayObject_Check(src)) {
-			StgDictObject *p1, *p2;
-
-			p1 = PyObject_stgdict(value);
-			p2 = PyType_stgdict(self->proto);
-
-			if (p1->proto != p2->proto) {
-				PyErr_Format(PyExc_TypeError,
-				     "incompatible types, %s instance instead of %s instance",
-					     value->ob_type->tp_name,
-					     ((PyTypeObject *)self->proto)->tp_name);
-				return -1;
-			}
-			assert(self->size == sizeof(void *));
-			*(void **)(dst->b_ptr + self->offset) = src->b_ptr;
-			value = CData_GetList(src);
-			Py_INCREF(value); /* reference to keep */
-		} else {
-			PyErr_Format(PyExc_TypeError,
-				     "incompatible types, %s instance instead of %s instance",
-				     value->ob_type->tp_name,
-				     ((PyTypeObject *)self->proto)->tp_name);
-			return -1;
-		}
-	} else {
-		value = self->setfunc(dst->b_ptr + self->offset,
-				      value, self->size);
-		if (!value)
-			return -1;
-		/* No Py_INCREF(), setfunc already returns a new reference. */
-	}
-	/* Keep the object alive */
-	objects = CData_GetList(dst);
-	if (!objects)
-		return -1; /* Hm. Severe bug. What now? Undo all the above? */
-	return PyList_SetItem(objects, self->index, value);
+	return CData_set(inst, self->proto, self->setfunc, value,
+			 self->index, self->offset, self->size);
 }
 
 static PyObject *
 CField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
 {
-	CDataObject *mem;
-
 	if (inst == NULL) {
 		Py_INCREF(self);
 		return (PyObject *)self;
 	}
-
-	if (!CDataObject_Check(inst)) {
-		PyErr_SetString(PyExc_TypeError,
-				"Not a CData Object");
-		return NULL;
-	}
-	mem = (CDataObject *)inst;
-
-	/* XXX Do we need to check the size here, or do we trust in 'self'? */
-	if (self->proto) {
-		return CData_FromBaseObj(self->proto,
-					 inst,
-					 self->index,
-					 self->offset);
-	}
-
-	return self->getfunc(mem->b_ptr + self->offset, self->size);
+	return CData_get(self->proto, self->getfunc, inst,
+			 self->index, self->offset, self->size);
 }
 
 static PyMemberDef CField_members[] = {

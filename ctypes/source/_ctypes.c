@@ -1341,6 +1341,109 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs)
 }
 
 PyObject *
+CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
+	  int index, int offset, int size)
+{
+	CDataObject *mem;
+	if (!CDataObject_Check(src)) {
+		PyErr_SetString(PyExc_TypeError,
+				"not a ctype instance");
+		return NULL;
+	}
+	mem = (CDataObject *)src;
+	if (type)
+		return CData_FromBaseObj(type, src, index, offset);
+	else
+		return getfunc(mem->b_ptr + offset, size);
+}
+
+/*
+  Helper function for CData_set below.
+*/
+static PyObject *
+_CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
+	  int index, int offset, int size)
+{
+	CDataObject *src;
+	PyObject *result;
+
+	if (!type)
+		return setfunc(dst->b_ptr + offset, value, size);
+	
+	if (!CDataObject_Check(value)) {
+		StgDictObject *dict = PyType_stgdict(type);
+		if (dict && dict->setfunc)
+			return dict->setfunc(dst->b_ptr + offset,
+					     value, dict->size); /* Or simply size? */
+		PyErr_SetString(PyExc_TypeError,
+				"cannot use this type");
+		return NULL;
+	}
+	src = (CDataObject *)value;
+
+	if (PyObject_IsInstance(value, type)) {
+		memcpy(dst->b_ptr + offset,
+		       src->b_ptr,
+		       size);
+		result = CData_GetList(src);
+		Py_INCREF(result); /* reference to keep */
+		return result;
+	}
+
+	if (PointerTypeObject_Check(type)
+	    && ArrayObject_Check(value)) {
+		StgDictObject *p1, *p2;
+		p1 = PyObject_stgdict(value);
+		p2 = PyType_stgdict(type);
+
+		if (p1->proto != p2->proto) {
+			PyErr_Format(PyExc_TypeError,
+				     "incompatible types, %s instance instead of %s instance",
+				     value->ob_type->tp_name,
+				     ((PyTypeObject *)type)->tp_name);
+			return NULL;
+		}
+		*(void **)(dst->b_ptr + offset) = src->b_ptr;
+		result = CData_GetList(src);
+		Py_XINCREF(result); /* reference to keep */
+		return result;
+	}
+	PyErr_Format(PyExc_TypeError,
+		     "incompatible types, %s instance instead of %s instance",
+		     value->ob_type->tp_name,
+		     ((PyTypeObject *)type)->tp_name);
+	return NULL;
+}
+
+/*
+ * Set a slice in object 'dst', which has the type 'type',
+ * to the value 'value'.
+ */
+int
+CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
+	  int index, int offset, int size)
+{
+	CDataObject *mem = (CDataObject *)dst;
+	PyObject *objects, *result;
+
+	if (!CDataObject_Check(dst)) {
+		PyErr_SetString(PyExc_TypeError,
+				"not a ctype instance");
+		return -1;
+	}
+	objects = CData_GetList(mem);
+	if (!objects)
+		return -1;
+
+	result = _CData_set(mem, type, setfunc, value,
+			    index, offset, size);
+	if (result == NULL)
+		return -1;
+
+	return PyList_SetItem(objects, index, result);
+}
+
+PyObject *
 CData_AtAddress(PyObject *type, void *buf)
 {
 	return CData_FromBaseObj(type, NULL, 0, (int)buf);
@@ -2008,14 +2111,12 @@ Array_item(CDataObject *self, int index)
 	}
 
 	stgdict = PyObject_stgdict((PyObject *)self);
+	assert(stgdict);
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
 
-	if (stgdict->proto)
-		return CData_FromBaseObj(stgdict->proto,
-					   (PyObject *)self, index, offset);
-	else
-		return stgdict->getfunc(self->b_ptr + offset, size);
+	return CData_get(stgdict->proto, stgdict->getfunc, (PyObject *)self,
+			 index, offset, size);
 }
 
 static int
