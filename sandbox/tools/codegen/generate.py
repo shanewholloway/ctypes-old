@@ -45,6 +45,13 @@ def get_real_type(tp):
         return get_real_type(tp.typ)
     return tp
 
+struct_packing = {
+    "_IMAGE_SYMBOL": 2,
+    "tagPDA": 2,
+    "tagPDW": 2,
+    "DLGITEMTEMPLATE": 2,
+    }
+
 class Generator(object):
     def __init__(self):
         self.done = set()
@@ -60,7 +67,10 @@ class Generator(object):
         if basenames:
             print "class %s(%s):" % (head.struct.name, ", ".join(basenames))
         else:
-            if type(head.struct) == nodes.Structure:
+            methods = [m for m in head.struct.members if type(m) is nodes.Method]
+            if methods:
+                print "class %s(_com_interface):" % head.struct.name
+            elif type(head.struct) == nodes.Structure:
                 print "class %s(Structure):" % head.struct.name
             elif type(head.struct) == nodes.Union:
                 print "class %s(Union):" % head.struct.name
@@ -68,6 +78,8 @@ class Generator(object):
         self.done.add(head)
 
     def Structure(self, struct):
+        if struct in self.done:
+            return
         head = struct.get_head()
         self.StructureHead(head)
         body = struct.get_body()
@@ -141,23 +153,28 @@ class Generator(object):
                     self.more.add(m.typ)
                 t = get_real_type(m.typ)
                 self.generate([get_real_type(m.typ)])
-                if getattr(t, "name", None) == "SIZE":
-                    import pdb
-                    pdb.set_trace()
                 if type(t) in (nodes.Structure, nodes.Union):
                     assert t.get_body() in self.done
                 
-##                self.generate([m.typ])
             elif type(m) is nodes.Method:
                 methods.append(m)
                 self.generate([m.returns])
                 self.generate(m.arguments)
             elif type(m) is nodes.Constructor:
                 pass
+        try:
+            pack = struct_packing[body.struct.name]
+        except KeyError:
+            pass
+        else:
+            print "%s._pack_ = %s" % (body.struct.name, pack)
         if fields:
             print "%s._fields_ = [" % body.struct.name
             for f in fields:
-                print "    ('%s', %s)," % (f.name, type_name(f.typ))
+                if f.bits is None:
+                    print "    ('%s', %s)," % (f.name, type_name(f.typ))
+                else:
+                    print "    ('%s', %s, %s)," % (f.name, type_name(f.typ), f.bits)
             print "]"
         if methods:
             print "%s._methods_ = [" % body.struct.name
@@ -168,6 +185,10 @@ class Generator(object):
                     m.name,
                     ", ".join(args))
             print "]"
+        if body.struct.size:
+            size = body.struct.size // 8
+            print "assert sizeof(%s) == %s, sizeof(%s)" % \
+                  (body.struct.name, size, body.struct.name)
         self.done.add(body)
 
     def Function(self, func):
@@ -225,12 +246,15 @@ def find_names(names):
 
 def main():
     from gccxmlparser import parse
-##    items = parse(files=["windows.h"], xmlfile="windows.xml")
-    items = find_names(sys.argv[1:])
+    items = parse(files=["windows.h"], xmlfile="windows.xml")
+##    items = find_names(sys.argv[1:])
     gen = Generator()
     print "from ctypes import *"
     print "def STDMETHOD(*args): pass"
     print "def c_const(x): return x"
+    print "STDCALL = CDECL = STDMETHOD"
+    print "class _com_interface(Structure):"
+    print "    _fields_ = [('lpVtbl', c_void_p)]"
     print
 
     for i in range(20):
