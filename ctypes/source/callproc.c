@@ -281,7 +281,7 @@ PyCArg_repr(PyCArgObject *self)
 			self->tag, self->value.p);
 		break;
 
-	case 'p':
+	case 'P':
 		sprintf(buffer, "<cparam '%c' (%lx)>",
 			self->tag, (long)self->value.p);
 		break;
@@ -326,7 +326,7 @@ PyTypeObject PyCArg_Type = {
  * 1. Python integers are converted to C int and passed by value.
  *
  * 2. 3-tuples are expected to have a format character in the first
- *    item, which must be 'i', 'f', 'd', 'q', or 'p'.
+ *    item, which must be 'i', 'f', 'd', 'q', or 'P'.
  *    The second item will have to be an integer, float, double, long long
  *    or integer (denoting an address void *), will be converted to the
  *    corresponding C data type and passed by value.
@@ -346,72 +346,77 @@ PyTypeObject PyCArg_Type = {
  *    and value.
  */
 
-typedef struct {
-	int format;	// 'i', 'q', 'f', 'd', 'p'
-	union {
-		char c;
-		int i;
-		LONG_LONG l;
-		float f;
-		double d;
-		void *p;
-	} val;
-	PyObject *keepref;
-	int flags;	/* only used for results, not for parameters */
-} param;
-
-#define ASSERT_FORMAT(fmt) assert(strchr("ciqfdps", fmt))
+#define ASSERT_FORMAT(fmt) assert(strchr("ciqfdpsz", fmt))
 
 /*
  * Convert a single Python object into a 'C object' and store it in a
  * 'struct param'.  Return -1 on error (with exception set), 0 otherwise.
  */
-static int ConvParam(PyObject *obj, param *parm, int index)
+static PyCArgObject *ConvParam(PyObject *obj, int index)
 {
-	char *format;
-	PyObject *keepref;
-	PyObject *value;
-	int needs_decref = 0;
+	PyCArgObject *parm;
 
-	parm->keepref = NULL;
+	if (PyCArg_CheckExact(obj)) {
+		Py_INCREF(obj);
+		return (PyCArgObject *)obj;
+	}
+
+	parm = new_CArgObject();
+	if (!parm)
+		return NULL;
 
 	/* check for None, integer, string or unicode and use directly if successful */
 	if (obj == Py_None) {
-		parm->val.p = NULL;
-		parm->format = 'p';
-		return 0;
+		parm->tag = 'P';
+		parm->value.p = NULL;
+		Py_INCREF(Py_None);
+		parm->obj = Py_None;
+		return parm;
 	}
 
 	if (PyInt_Check(obj)) {
-		parm->val.i = PyInt_AS_LONG(obj);
-		parm->format = 'i';
-		return 0;
+		parm->tag = 'i';
+		parm->value.i = PyInt_AS_LONG(obj);
+		Py_INCREF(obj);
+		parm->obj = obj;
+		return parm;
 	}
 
 	if (PyString_Check(obj)) {
-		parm->val.p = PyString_AS_STRING(obj);
-		parm->format = 'p';
-		return 0;
+		parm->tag = 'P';
+		parm->value.p = PyString_AS_STRING(obj);
+		Py_INCREF(obj);
+		parm->obj = obj;
+		return parm;
 	}
 
 #ifdef HAVE_USABLE_WCHAR_T
 	if (PyUnicode_Check(obj)) {
-		parm->val.p = PyUnicode_AS_UNICODE(obj);
-		parm->format = 'p';
-		return 0;
+		parm->tag = 'P';
+		parm->value.p = PyUnicode_AS_UNICODE(obj);
+		Py_INCREF(obj);
+		parm->obj = obj;
+		return parm;
 	}
 #endif
-
-	if (PyCArg_CheckExact(obj)) {
-		PyCArgObject *p = (PyCArgObject *)obj;
-		memcpy(&parm->val, &p->value, sizeof(parm->val));
-		Py_INCREF(p->obj);
-		parm->keepref = p->obj;
-		parm->format = p->tag;
-		return 0;
+	{
+		PyObject *arg;
+		arg = PyObject_GetAttrString(obj, "_as_parameter_");
+		if (!arg || !PyCArg_CheckExact(arg)) {
+			Py_XDECREF(arg);
+			Py_DECREF(parm);
+			PyErr_Format(PyExc_TypeError,
+				     "Don't know how to convert parameter %d", index);
+#ifdef _DEBUG
+			_asm int 3;
+#endif
+			return NULL;
+		}
+		Py_DECREF(parm);
+		return (PyCArgObject *)arg;
 	}
 
-
+#ifdef NO_NO
 	/* If it isn't a tuple, retrieve the _as_parameter_ property.
 	   This must either be an integer or a 'magic' 3-tuple, containing
 	   a single letter string, the value to be passed, and a Python object
@@ -496,6 +501,7 @@ static int ConvParam(PyObject *obj, param *parm, int index)
 		Py_DECREF(obj);
 	}
 	return 0;
+#endif
 }
 
 
@@ -535,7 +541,7 @@ static int _call_function_pointer(int flags,
 		case 'i':
 			atypes[i] = &ffi_type_sint;
 			break;
-		case 'p':
+		case 'P':
 			atypes[i] = &ffi_type_pointer;
 			break;
 		case 'd':
@@ -553,7 +559,7 @@ static int _call_function_pointer(int flags,
 		rtype = &ffi_type_sint;
 		break;
 	case 's':
-	case 'p':
+	case 'P':
 		rtype = &ffi_type_pointer;
 		break;
 	case 'd':
@@ -589,10 +595,24 @@ static void __stdcall push(void)
 {
 }
 
+typedef struct {
+	int format;	// 'i', 'q', 'f', 'd', 'p'
+	union {
+		char c;
+		int i;
+		LONG_LONG l;
+		float f;
+		double d;
+		void *p;
+	} val;
+	PyObject *keepref;
+	int flags;	/* only used for results, not for parameters */
+} param;
+
 static int _call_function_pointer(int flags,
 				  PPROC pProc,
-				  param *parms,
-				  param *res,
+				  PyCArgObject **parms,
+				  PyCArgObject *res,
 				  int argcount)
 {
 	int i;
@@ -620,45 +640,42 @@ static int _call_function_pointer(int flags,
 	   __cdecl functions leave this to the caller.
 	*/
 	for (i = argcount-1; i >= 0; --i) {
-
-//		ASSERT_FORMAT(parms[i].format);
-
-		switch(parms[i].format) {
+		switch(parms[i]->tag) {
 		case 'c':
-			push(parms[i].val.c);
+			push(parms[i]->value.c);
 			argbytes += sizeof(int);
 			break;
 		case 'i':
-			push(parms[i].val.i);
+			push(parms[i]->value.i);
 			argbytes += sizeof(int);
 			break;
 		case 'q':
-			push(parms[i].val.l);
+			push(parms[i]->value.l);
 			argbytes += sizeof(LONG_LONG);
 			break;
 		case 'f':
-			push(parms[i].val.f);
+			push(parms[i]->value.f);
 			argbytes += sizeof(float);
 			break;
 		case 'd':
-			push(parms[i].val.d);
+			push(parms[i]->value.d);
 			argbytes += sizeof(double);
 			break;
 		case 'z':
 		case 'Z':
-		case 'p':
-			push(parms[i].val.p);
+		case 'P':
+			push(parms[i]->value.p);
 			argbytes += sizeof(void *);
 			break;
 		default:
-			printf("unhandled FMT char '%c'",
-			       parms[i].format);
-			assert(FALSE);
-			break;
+			PyErr_Format(PyExc_ValueError,
+				     "BUG: Invalid format tag '%c' for argument",
+				     parms[i]->tag);
+			/* try to clean the stack */
+			_asm mov esp, save_esp;
+			return -1;
 		}
 	}
-
-	ASSERT_FORMAT(res->format);
 
 #pragma warning (default: 4087)
 	Py_BEGIN_ALLOW_THREADS
@@ -666,19 +683,23 @@ static int _call_function_pointer(int flags,
 #ifndef DEBUG_EXCEPTIONS
 	__try {
 #endif
-		switch(res->format) {
+		switch(res->tag) {
 		case 'i':
-			res->val.i = ((int(*)())pProc)();
+			res->value.i = ((int(*)())pProc)();
 			break;
 		case 'd':
-			res->val.d = ((double(*)())pProc)();
+			res->value.d = ((double(*)())pProc)();
 			break;
 		case 'f':
-			res->val.f = ((float(*)())pProc)();
+			res->value.f = ((float(*)())pProc)();
 			break;
-		case 's':
-		case 'p':
-			res->val.p = ((char *(*)())pProc)();
+		case 'z':
+		case 'P':
+			res->value.p = ((void *(*)())pProc)();
+			break;
+		default:
+			/* XXX Signal bug */
+			res->tag |= 0x80;
 			break;
 		}
 #ifndef DEBUG_EXCEPTIONS
@@ -696,17 +717,26 @@ static int _call_function_pointer(int flags,
 		SetException(dwExceptionCode);
 		return -1;
 	}
+	if (res->tag & 0x80) {
+		PyErr_Format(PyExc_ValueError,
+			     "BUG: Invalid format tag for restype '%c'",
+			     res->tag & ~0x80);
+		return -1;
+	}
+
 	if (flags & FUNCFLAG_CDECL) /* Clean up stack if needed */
 		new_esp -= argbytes;
 	if (new_esp < 0) {
 		PyErr_Format(PyExc_ValueError,
-			     "Procedure probably called with not enough arguments (%d bytes missing)",
+			     "Procedure probably called with not enough "
+			     "arguments (%d bytes missing)",
 			     -new_esp);
 		return -1;
 	}
 	if (new_esp > 0) {
 		PyErr_Format(PyExc_ValueError,
-			     "Procedure probably called with too many arguments (%d bytes in excess)",
+			     "Procedure probably called with too many "
+			     "arguments (%d bytes in excess)",
 			     new_esp);
 		return -1;
 	}
@@ -722,23 +752,21 @@ static int _call_function_pointer(int flags,
 /*
  * Fill out the format field of 'result', depending on 'restype'.
  */
-static void PrepareResult(PyObject *restype, param *result)
+static void PrepareResult(PyObject *restype, PyCArgObject *result)
 {
-	result->flags = 0;
 	if (restype == NULL) {
-		result->format = 'i';
+		result->tag = 'i';
 		return;
 	}
 
 	if (PyString_Check(restype)) {
 		/* XXX Is it single letter? */
-		result->format = PyString_AS_STRING(restype)[0];
+		result->tag = PyString_AS_STRING(restype)[0];
 		return;
 	}
 
 	if (PointerTypeObject_Check(restype)) {
-		result->format = 'p';
-		result->flags = RESULT_PASTE_INTO;
+		result->tag = 'P';
 		return;
 	}
 
@@ -747,6 +775,9 @@ static void PrepareResult(PyObject *restype, param *result)
 		/* Simple data types as return value don't make too much sense
 		 * (why would you prefer a c_int instance over a plain Python integer?)
 		 * but subclasses DO make sense. Think 'class HRESULT(c_int): pass'.
+		 */
+		/*
+		 * If this would be enabled, it would start with this code:
 		 */
 		StgDictObject *dict;
 
@@ -760,75 +791,50 @@ static void PrepareResult(PyObject *restype, param *result)
 	}
 #endif
 	if (PyCallable_Check(restype)) {
-		result->format = 'i'; /* call with integer result */
-		result->flags = RESULT_CALL_RESTYPE;
+		result->tag = 'i'; /* call with integer result */
 		return;
 	}
 
 	/* XXX This should not occur... */
-	result->format = 'i';
+	result->tag = 'i';
 }
 
-static PyObject *GetResult(PyObject *restype, param *result)
+/*
+ * Convert the C value in result into an instance described by restype
+ */
+static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 {
-	PyObject *value;
-	PyObject *x;
+	PyObject *retval = ToPython(&result->value, result->tag);
 
-	ASSERT_FORMAT(result->format);
-	switch (result->format) {
-	case 'i':
-		value = PyInt_FromLong(result->val.i);
-		break;
-//	case 'q':
-	case 'f':
-		value = PyFloat_FromDouble(result->val.f);
-		break;
-	case 'd':
-		value = PyFloat_FromDouble(result->val.d);
-		break;
-	case 'p':
-		value = PyInt_FromLong((int)result->val.p);
-		break;
-	case 's':
-		if (result->val.p)
-			value = PyString_FromString(result->val.p);
-		else {
-			Py_INCREF(Py_None);
-			value = Py_None;
-		}
-		break;
-	default:
-		PyErr_SetString(PyExc_ValueError,
-				"BUG: invalid restype format");
-		return NULL;
+	if (restype == NULL || PyString_Check(restype)) {
+		Py_INCREF(retval);
+		return retval;
 	}
-	switch (result->flags) {
-	case RESULT_CALL_RESTYPE:
-		x = PyObject_CallFunctionObjArgs(restype, value, NULL);
-		Py_DECREF(value);
-		value = x;
-		break;
 
-	case RESULT_PASTE_INTO:
-		x = PyObject_CallFunctionObjArgs(restype, NULL);
-		if (!x)
+	if (PointerTypeObject_Check(restype)) {
+		CDataObject *pd;
+		/* There is no Python api to set the pointer value, so we
+		   create an empty (NULL) pointer, and modify it afterwards.
+		*/
+		pd = (CDataObject *)PyObject_CallFunctionObjArgs(restype, NULL);
+		if (!pd)
 			return NULL;
-		{
-			CDataObject *pd;
-			Py_DECREF(value);
-			if (!CDataObject_Check(x)) {
-				PyErr_SetString(PyExc_TypeError,
-						"restype call did not return a CDataObject");
-				return NULL;
-			}
-			pd = (CDataObject *)x;
-			/* Even better would be to use the buffer interface */
-			memcpy(pd->b_ptr, &result->val, pd->b_size);
-			value = x;
+		if (!CDataObject_Check(pd)) {
+			Py_DECREF(pd);
+			PyErr_SetString(PyExc_TypeError,
+					"BUG: restype call did not return a CDataObject");
+			return NULL;
 		}
-		break;
+		/* Even better would be to use the buffer interface */
+		memcpy(pd->b_ptr, &result->value, pd->b_size);
+		return (PyObject *)pd;
 	}
-	return value;
+	if (PyCallable_Check(restype))
+		return PyObject_CallFunctionObjArgs(restype,
+						    result->value.i, NULL);
+	/* Should be unreached */
+	assert(FALSE);
+	return NULL; /* to silence the compiler */
 }
 
 /*
@@ -846,8 +852,8 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *restype)
 {
 	int i, n, argcount;
-	param *parms, *pp;
-	param result;
+	PyCArgObject *result = NULL;
+	PyCArgObject **pargs, **pp;
 	PyObject *retval = NULL;
 
 	n = argcount = PyTuple_GET_SIZE(argtuple);
@@ -857,18 +863,20 @@ PyObject *_CallProc(PPROC pProc,
 		++argcount;
 
 #ifdef MS_WIN32
-	parms = (param *)_alloca(sizeof(param) * argcount);
-#else
-	parms = (param *)alloca(sizeof(param) * argcount);
+#define alloca _alloca
 #endif
-	memset(parms, 0, sizeof(param) * argcount);
+	pargs = (PyCArgObject **)alloca(sizeof(PyCArgObject *) * argcount);
+	memset(pargs, 0, sizeof(pargs) * argcount);
 
 	if (pIunk) {
-		parms[0].format = 'p';
-		parms[0].val.p = pIunk;
-		pp = &parms[1];
+		pargs[0] = new_CArgObject();
+		if (pargs[0] == NULL)
+			return NULL;
+		pargs[0]->tag = 'P';
+		pargs[0]->value.p = pIunk;
+		pp = &pargs[1];
 	} else {
-		pp = &parms[0];
+		pp = &pargs[0];
 	}
 
 	/* Convert the arguments */
@@ -885,36 +893,40 @@ PyObject *_CallProc(PPROC pProc,
 			if (arg == NULL)
 				goto error;
 
-			if (-1 == ConvParam(arg, pp, i+1))
-				goto error; /* leak, if ths path is taken */
+			*pp = ConvParam(arg, i+1);
+			if (!*pp)
+				goto error; /* leaking somewhat */
 			Py_DECREF(arg);
 		} else {
-			if (-1 == ConvParam(arg, pp, i+1))
-				goto error;
+			*pp = ConvParam(arg, i+1);
+			if (!*pp)
+				goto error; /* leaking somewhat */
 		}
 	}
 
-	PrepareResult(restype, &result);
-	ASSERT_FORMAT(result.format);
-
-	if (-1 == _call_function_pointer(flags, pProc, parms, &result, argcount))
+	/* This should better be static... */
+	result = new_CArgObject();
+	if (result == NULL)
 		goto error;
+	PrepareResult(restype, result);
+
+	if (-1 == _call_function_pointer(flags, pProc, pargs, result, argcount))
+		goto error;
+
 #ifdef MS_WIN32
 	if (flags & FUNCFLAG_HRESULT) {
-		if (result.val.i & 0x80000000)
-			retval = PyErr_SetFromWindowsErr(result.val.i);
+		if (result->value.i & 0x80000000)
+			retval = PyErr_SetFromWindowsErr(result->value.i);
 		else
-			retval = PyInt_FromLong(result.val.i);
+			retval = PyInt_FromLong(result->value.i);
 	} else
 #endif
-	       {
-		retval = GetResult(restype, &result);
-	}
-
+		retval = GetResult(restype, result);
   error:
 	for (i = 0; i < argcount; ++i) {
-		Py_XDECREF(parms[i].keepref);
+		Py_XDECREF(pargs[i]);
 	}
+	Py_XDECREF(result);
 	return retval;
 }
 
