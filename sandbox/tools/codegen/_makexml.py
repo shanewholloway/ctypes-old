@@ -24,13 +24,8 @@ void do __int64 static volatile double __leave static_cast wmain
 dynamic_cast long __stdcall while far near __forceinline __w64
 __noop""".split()
 
-"""
-PROPSHEETPAGEA_V1_FIELDS
-PROPSHEETPAGEW_V1_FIELDS
-"""
-
 # defines we know that won't work
-EXCLUDED = """\
+EXCLUDED = """
 NOTIFYICONDATAA_V1_SIZE
 NOTIFYICONDATAA_V2_SIZE
 PROPSHEETHEADERA_V1_SIZE
@@ -61,33 +56,45 @@ EXTERN_C
 FIRMWARE_PTR
 STDMETHODIMPV
 STDMETHODIMP
-REFCLSID
-REFFMTID
-REFIID
 DEFAULT_UNREACHABLE
 MAXLONGLONG
 IMAGE_ORDINAL_FLAG64
 SECURITY_NT_AUTHORITY
-FMTID_NULL
-IID_NULL
-CLSID_NULL
-ANONYMOUS_LOGON_LUID
-SYSTEM_LUID
-LOCALSERVICE_LUID
-SECURITY_RESOURCE_MANAGER_AUTHORITY
-SECURITY_NULL_SID_AUTHORITY
-SECURITY_CREATOR_SID_AUTHORITY
-SECURITY_WORLD_SID_AUTHORITY
-SECURITY_LOCAL_SID_AUTHORITY
-SECURITY_NON_UNIQUE_AUTHORITY
-NETWORKSERVICE_LUID
-REFGUID""".split()
+""".strip().split()
+
+EXCLUDED = [text for text in EXCLUDED
+            if not text.startswith("#")]
+
+EXCLUDED_RE = r"""
+^DECLSPEC\w*$
+""".strip().split()
+
+EXCLUDED_RE = [re.compile(pat) for pat in EXCLUDED_RE
+               if not pat.startswith("#")]
+
+# One of these characters as first or last one of the definition will
+# give a syntax error when compiled, so it cannot be a value!
+INVALID_CHARS = "=/{};&"
 
 log = open("skipped.txt", "w")
 
-wordpat = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
+def is_excluded(name, value):
+    if "(" in name:
+        return "macro with parameters"
+    if value in C_KEYWORDS:
+        return "value is keyword"
+    if name in EXCLUDED:
+        return "excluded"
+    for pat in EXCLUDED_RE:
+        if pat.match(name):
+            return "excluded (regex)"
+    if value[0] in INVALID_CHARS or value[-1] in INVALID_CHARS:
+        return "cannot be a value"
+    return False
 
 def _gccxml_get_defines(fname=None):
+    # Helper for gccxml_get_defines.
+    # 
     cmd = "gccxml --preprocess -dM "
     if fname:
         cmd += fname
@@ -105,27 +112,9 @@ def _gccxml_get_defines(fname=None):
             continue
 
         name, value = items
-        if "(" in name: # we want only macros without parameters
-            log.write("has params: #define %s %s\n" % (name, value))
-            continue
-
-        if value in C_KEYWORDS:
-            log.write("rhs is keyword: #define %s %s\n" % (name, value))
-            continue
-
-        if name in EXCLUDED:
-            log.write("excluded: #define %s %s\n" % (name, value))
-            continue
-
-        # This is probably not correct: What when one of these characters is in a string literal?
-        if value and value[0] in r"=/{};" \
-           or value and value[-1] in r"=/{};":
-            log.write("won't work: #define %s %s\n" % (name, value))
-            continue
-
-        if wordpat.match(name) and wordpat.match(value):
-            # XXX aliases should be handled later, when (and if!) the rhs is known
-            log.write("alias: #define %s %s\n" % (name, value))
+        reason = is_excluded(name, value)
+        if reason:
+            log.write("%s: #define %s %s\n" % (reason, name, value))
             continue
 
         result[name] = value
@@ -179,14 +168,24 @@ create_file()
 # find the preprocessor defined symbols
 print "... finding preprocessor symbol names"
 defs = gccxml_get_defines("glut.cpp")
+
 print "%d '#define' symbols found" % len(defs)
 
-names = set(defs.keys())
-values = set(defs.values())
-print "%d unique names, %d unique values" % (len(names), len(values))
-print "removed %d aliases" % (len(names & values))
-for n in (names & values):
-    del defs[n]
+def find_aliases(defs):
+    aliases = {}
+    wordpat = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
+    for name in defs.keys():
+        value = defs[name]
+        if wordpat.match(name) and wordpat.match(value):
+            # aliases are handled later, when (and if!) the rhs is known
+    ##        log.write("alias: #define %s %s\n" % (name, value))
+            aliases[name] = defs[name]
+            del defs[name]
+    return aliases
+
+aliases = find_aliases(defs)
+
+print "%d symbols are name aliases" % len(aliases)
 
 ################################################################
 # parse the standard output
@@ -227,11 +226,6 @@ print "skipped %d symbols, type and value are known from XML" % skipped
 print "Remaining %s items" % len(newdefs)
 
 defs = newdefs
-
-for name in defs.keys():
-    if name.startswith("DECLSPEC") or defs[name].startswith("DECLSPEC"):
-        del defs[name]
-print "Remaining %s items after removing DECLSPEC..." % len(defs)
 
 ################################################################
 # invoke some C++ magic, which will create a lot of functions.
