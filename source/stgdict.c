@@ -24,6 +24,9 @@ static int
 StgDict_clear(StgDictObject *self)
 {
 	Py_CLEAR(self->proto);
+	Py_CLEAR(self->argtypes);
+	Py_CLEAR(self->converters);
+	Py_CLEAR(self->restype);
 	return 0;
 }
 
@@ -35,6 +38,36 @@ StgDict_dealloc(StgDictObject *self)
 	((PyObject *)self)->ob_type->tp_free((PyObject *)self);
 }
 
+int
+StgDict_clone(StgDictObject *dst, StgDictObject *src)
+{
+	char *d, *s;
+	int size;
+
+	StgDict_clear(dst);
+	PyMem_Free(dst->ffi_type.elements);
+	dst->ffi_type.elements = NULL;
+
+	d = (char *)dst;
+	s = (char *)src;
+	memcpy(d + sizeof(PyDictObject),
+	       s + sizeof(PyDictObject),
+	       sizeof(StgDictObject) - sizeof(PyDictObject));
+
+	Py_XINCREF(dst->proto);
+	Py_XINCREF(dst->argtypes);
+	Py_XINCREF(dst->converters);
+	Py_XINCREF(dst->restype);
+
+	if (src->ffi_type.elements == NULL)
+		return 0;
+	size = sizeof(ffi_type *) * (src->length + 1);
+	dst->ffi_type.elements = PyMem_Malloc(size);
+	if (dst->ffi_type.elements == NULL)
+		return -1;
+	memcpy(dst->ffi_type.elements, src->ffi_type.elements, size);
+	return 0;
+}
 
 PyTypeObject StgDict_Type = {
 	PyObject_HEAD_INIT(NULL)
@@ -127,11 +160,23 @@ GetFields(PyObject *desc, int *pindex, int *psize, int *poffset, int *palign, in
 }
 #endif
 
-static int
-_get_packing(PyObject *type)
+/*
+  Retrive the (optional) _pack_ attribute from a type, the _fields_ attribute,
+  and create an StgDictObject.  Used for Structure and Union subclasses.
+*/
+int
+StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 {
+	StgDictObject *stgdict;
+	int len, offset, size, align, i;
+	int union_size, total_align;
+	int field_size = 0;
+	int bitofs;
 	PyObject *isPacked;
 	int pack = 0;
+
+	if (fields == NULL)
+		return 0;
 
 	isPacked = PyObject_GetAttrString(type, "_pack_");
 	if (isPacked) {
@@ -145,60 +190,21 @@ _get_packing(PyObject *type)
 		Py_DECREF(isPacked);
 	} else
 		PyErr_Clear();
-	return pack;
-}
 
-static PyObject *
-_get_fields(PyObject *type, int *plen)
-{
-	PyObject *fields;
-	fields = PyObject_GetAttrString(type, "_fields_");
-	if (!fields) {
-		PyErr_SetString(PyExc_AttributeError,
-				"class must define a '_fields_' attribute");
-		return NULL;
-	}
-
-	*plen = PySequence_Length(fields);
-	if (*plen == -1) {
+	len = PySequence_Length(fields);
+	if (len == -1) {
 		PyErr_SetString(PyExc_AttributeError,
 				"'_fields_' must be a sequence of pairs");
-		Py_DECREF(fields);
-		return NULL;
-	}
-	return fields;
-}
-
-/*
-  Retrieve the (optional) _pack_ attribute from a type, the _fields_ attribute,
-  and create an StgDictObject.  Used for Structure and Union subclasses.
-*/
-PyObject *
-StgDict_ForType(PyObject *type, int isStruct)
-{
-	StgDictObject *stgdict;
-	int len, offset, size, align, i;
-	int union_size, total_align;
-	int field_size = 0;
-	int bitofs;
-	PyObject *fields;
-	int pack;
-
-	pack = _get_packing(type);
-	if (pack == -1)
-		return NULL;
-
-	fields = _get_fields(type, &len);
-	if (fields == NULL)
-		return NULL;
-
-	stgdict = (StgDictObject *)PyObject_CallObject(
-		(PyObject *)&StgDict_Type, NULL);
-	if (!stgdict) {
-		Py_DECREF(fields);
-		return NULL;
+		return -1;
 	}
 
+	stgdict = PyType_stgdict(type);
+	if (!stgdict)
+		return -1;
+
+	if (stgdict->ffi_type.elements)
+		PyMem_Free(stgdict->ffi_type.elements);
+	
 	offset = 0;
 	size = 0;
 	align = 0;
@@ -217,12 +223,11 @@ StgDict_ForType(PyObject *type, int isStruct)
 		StgDictObject *dict;
 		int bitsize = 0;
 
-		if (!pair  || !PyArg_ParseTuple(pair, "OO|i", &name, &desc, &bitsize)) {
+		if (!pair || !PyArg_ParseTuple(pair, "OO|i", &name, &desc, &bitsize)) {
 			PyErr_SetString(PyExc_AttributeError,
 					"'_fields_' must be a sequence of pairs");
-			Py_DECREF(fields);
 			Py_XDECREF(pair);
-			return NULL;
+			return -1;
 		}
 		dict = PyType_stgdict(desc);
 		if (dict)
@@ -250,16 +255,14 @@ StgDict_ForType(PyObject *type, int isStruct)
 				PyErr_Format(PyExc_TypeError,
 					     "bit fields not allowed for type %s",
 					     ((PyTypeObject *)desc)->tp_name);
-				Py_DECREF(fields);
 				Py_DECREF(pair);
-				return NULL;
+				return -1;
 			}
 			if (bitsize <= 0 || bitsize > dict->size * 8) {
 				PyErr_SetString(PyExc_ValueError,
 						"number of bits invalid for bit field");
-				Py_DECREF(fields);
 				Py_DECREF(pair);
-				return NULL;
+				return -1;
 			}
 		} else
 			bitsize = 0;
@@ -279,24 +282,20 @@ StgDict_ForType(PyObject *type, int isStruct)
 		total_align = max(align, total_align);
 
 		if (!prop) {
-			Py_DECREF(fields);
 			Py_DECREF(pair);
 			Py_DECREF((PyObject *)stgdict);
-			return NULL;
+			return -1;
 		}
 		if (-1 == PyDict_SetItem(realdict, name, prop)) {
-			Py_DECREF(fields);
 			Py_DECREF(prop);
 			Py_DECREF(pair);
 			Py_DECREF((PyObject *)stgdict);
-			return NULL;
+			return -1;
 		}
 		Py_DECREF(pair);
 		Py_DECREF(prop);
 	}
 #undef realdict
-	Py_DECREF(fields);
-
 	if (!isStruct)
 		size = union_size;
 
@@ -309,5 +308,5 @@ StgDict_ForType(PyObject *type, int isStruct)
 	stgdict->size = size;
 	stgdict->align = total_align;
 	stgdict->length = len;
-	return (PyObject *)stgdict;
+	return 0;
 }

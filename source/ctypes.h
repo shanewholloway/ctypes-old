@@ -67,7 +67,8 @@ extern PyObject *CData_GetList(CDataObject *mem);
 extern PyTypeObject StgDict_Type;
 #define StgDict_CheckExact(v)	    ((v)->ob_type == &StgDict_Type)
 #define StgDict_Check(v)	    PyObject_TypeCheck(v, &StgDict_Type)
-extern PyObject *StgDict_ForType(PyObject *type, int isStruct);
+
+extern int StructUnionType_update_stgdict(PyObject *fields, PyObject *type, int isStruct);
 extern int PyType_stginfo(PyTypeObject *self, int *psize, int *palign, int *plength);
 extern int PyObject_stginfo(PyObject *self, int *psize, int *palign, int *plength);
 
@@ -173,6 +174,8 @@ extern StgDictObject *PyType_stgdict(PyObject *obj);
 
 /* May return NULL, but does not set an exception! */
 extern StgDictObject *PyObject_stgdict(PyObject *self);
+
+extern int StgDict_clone(StgDictObject *src, StgDictObject *dst);
 
 typedef int(* PPROC)(void);
 
