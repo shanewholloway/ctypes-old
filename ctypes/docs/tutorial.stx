@@ -749,7 +749,7 @@ ctypes tutorial
        >>> cmp_func = CMPFUNC(py_cmp_func)
        >>>
 
-    And we're ready to go:
+    And we're ready to go::
 
        >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
        py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
