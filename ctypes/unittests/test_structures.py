@@ -129,12 +129,17 @@ class StructureTestCase(unittest.TestCase):
         self.failUnless(sizeof(X) == 12)
         self.failUnless(X.b.offset == 4)
 
+        import struct
+        longlong_size = struct.calcsize("q")
+        longlong_align = struct.calcsize("bq") - longlong_size
+
         class X(Structure):
             _fields_ = [("a", "b"),
                         ("b", "q")]
             _pack_ = 8
-        self.failUnless(sizeof(X) == 16)
-        self.failUnless(X.b.offset == 8)
+
+        self.failUnless(sizeof(X) == longlong_align + longlong_size)
+        self.failUnless(X.b.offset == min(8, longlong_align))
 
 
         d = {"_fields_": [("a", "b"),
