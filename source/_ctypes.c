@@ -1218,7 +1218,7 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	stgdict->ffi_type = *fmt->pffi_type;
 	stgdict->align = fmt->pffi_type->alignment;
-	stgdict->length = 1;
+	stgdict->length = 0;
 	stgdict->size = fmt->pffi_type->size;
 	stgdict->setfunc = fmt->setfunc;
 	stgdict->getfunc = fmt->getfunc;
@@ -1581,112 +1581,73 @@ PyTypeObject CFuncPtrType_Type = {
  * Code to keep needed objects alive
  */
 
-/* Return a list of size <size> filled with None's. */
-static PyObject *
-NoneList(int size)
+static CDataObject *
+CData_GetContainer(CDataObject *self)
 {
-	int i;
-	PyObject *list;
-
-	list = PyList_New(size);
-	if (!list)
-		return NULL;
-	for (i = 0; i < size; ++i) {
-		Py_INCREF(Py_None);
-		PyList_SET_ITEM(list, i, Py_None);
-	}
-	return list;
-}
-
-#define ASSERT_CDATA(x) assert(((x)->b_base == NULL) ^ ((x)->b_objects == NULL))
-
-/*
- * Return the list(tree) entry corresponding to a memory object.
- * Borrowed reference!
- */
-static PyObject *
-CData_GetList(CDataObject *mem)
-{
-	PyObject *list;
-	PyObject *obj;
-	ASSERT_CDATA(mem);
-	if (!mem->b_base) {
-		return mem->b_objects;
-	} else {
-//		assert(mem->b_objects == NULL);
-		list = CData_GetList(mem->b_base);
-		if (list == NULL)
-			return NULL;
-		obj = PyList_GetItem(list, mem->b_index);
-		if (obj == NULL)
-			return NULL;
-		if (obj == Py_None) {
-			obj = NoneList(mem->b_length);
-			if (-1 == PyList_SetItem(list, mem->b_index, obj))
-				return NULL;
+	while (self->b_base)
+		self = self->b_base;
+	if (self->b_objects == NULL)
+		if (self->b_length)
+			self->b_objects = PyDict_New();
+		else {
+			Py_INCREF(Py_None);
+			self->b_objects = Py_None;
 		}
-		return obj;
-	}
-}
-
-/*
- * Make sure object <mem> has a list of length <length>
- * at index <index>. Initially all list members are None.
- */
-static int
-CData_EnsureList(CDataObject *mem, int index, int length)
-{
-	PyObject *list;
-	PyObject *obj;
-
-	list = CData_GetList(mem);
-	if (!list)
-		return -1;
-	obj = PyList_GetItem(list, index);
-	if (!obj)
-		return -1;
-
-	if (obj == Py_None) {
-		obj = NoneList(length);
-		if (!obj)
-			return -1;
-		if (-1 == PyList_SetItem(list, index, obj))
-			return -1;
-	}
-	return 0;
+	return self;
 }
 
 static PyObject *
 GetKeepedObjects(CDataObject *target)
 {
-	return CData_GetList(target);
+	return CData_GetContainer(target)->b_objects;
 }
 
-/* set an exception and return -1 if a call to KeepRef will fail, 0 otherwise */
-static int
-CanKeepRef(CDataObject *target, int index)
+static PyObject *
+unique_key(CDataObject *target, int index)
 {
-	PyObject *objects = CData_GetList(target);
-	if (!objects)
-		return -1;
-	if (index < 0 || PyList_Size(objects) <= index) {
-		PyErr_SetString(PyExc_IndexError,
-				"invalid index");
-		return -1;
+	char string[256]; /* XXX is that enough? */
+	char *cp = string;
+	int len;
+	*cp++ = index + '1';
+	while (target->b_base) {
+		*cp++ = target->b_index + '1';
+		target = target->b_base;
 	}
-	return 0;
+	len = cp - string;
+	return PyString_FromStringAndSize(string, cp-string);
 }
-
 /* Keep a reference to 'keep' in the 'target', at index 'index' */
+/*
+ * KeepRef travels the target's b_base pointer down to the root,
+ * building a sequence of indexes during the path.  The indexes, which are a
+ * couple of small integers, are used to build a byte string usable as
+ * key int the root object's _objects dict.
+ */
 static int
 KeepRef(CDataObject *target, int index, PyObject *keep)
 {
 	int result;
-	PyObject *list = CData_GetList(target);
-	result = PyList_SetItem(list, index, keep);
-	if (result == -1)
-		return -1;
-	return 0;
+	CDataObject *ob;
+	PyObject *key;
+
+/* Optimization: no need to store None */
+#if 0
+	if (keep == Py_None) {
+		Py_DECREF(Py_None);
+		return 0;
+	}
+#endif
+	ob = CData_GetContainer(target);
+	if (ob->b_objects == NULL || !PyDict_Check(ob->b_objects)) {
+		Py_XDECREF(ob->b_objects);
+		ob->b_objects = keep; /* refcount consumed */
+		return 0;
+	}
+	key = unique_key(target, index);
+	result = PyDict_SetItem(ob->b_objects, key, keep);
+	Py_DECREF(key);
+	Py_DECREF(keep);
+	return result;
 }
 
 /******************************************************************/
@@ -1889,8 +1850,6 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 
 	cd = (CDataObject *)mem;
 
-	ASSERT_CDATA(cd);
-
 	return mem;
 }
 
@@ -1992,8 +1951,8 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		  a pointer. This has the same effect as converting an array
 		  into a pointer. So, again, we have to keep the whole object
 		  pointed to (which is the array in this case) alive, and not
-		  only it's object list.  So we create a new list, containing
-		  the b_objects list PLUS the array itself, and return that!
+		  only it's object list.  So we create a tuple, containing
+		  b_objects list PLUS the array itself, and return that!
 		*/
 		return Py_BuildValue("(OO)", keep, value);
 	}
@@ -2021,17 +1980,15 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		return -1;
 	}
 
-	/* Make sure KeepRef will not fail! */
-	if (-1 == CanKeepRef(mem, index))
-		return -1;
 	result = _CData_set(mem, type, setfunc, value,
 			    size, ptr);
 	if (result == NULL)
 		return -1;
 
 	/* KeepRef steals a refcount from it's last argument */
-	return KeepRef(mem, index, result);
-}
+	/* If KeepRef fails, we are stumped.  The dst memory block has already
+	   been changed */
+	return KeepRef(mem, index, result); }
 
 
 /******************************************************************/
@@ -2095,15 +2052,10 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			obj->b_ptr = spec->adr;
 			obj->b_size = size;
 			obj->b_needsfree = 0;
-			if (-1 == CData_EnsureList(obj->b_base,
-						    spec->index, length)) {
-				Py_DECREF(obj);
-				return NULL;
-			}
 		} else {
 			obj->b_base = NULL;
 			obj->b_index = 0;
-			obj->b_objects = NoneList(length);
+			obj->b_objects = NULL;
 			obj->b_length = length;
 			
 			obj->b_ptr = spec->adr;
@@ -2119,12 +2071,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	} else {
 		obj->b_base = NULL;
 		obj->b_index = 0;
-
-		/* 1.11 us in Python 2.3 -OO, 30% of total creation time for c_int() */
-		/* 2.2 us in Pyton 2.2 -OO, ~20% of total creation time */
-		/* Should we use an array of objects in the CDataObject structure
-		   instead of the b_objects pointer pointing to a list? */
-		obj->b_objects = NoneList(length);
+		obj->b_objects = NULL;
 		obj->b_length = length;
 
 		/* 0.7 us in Python 2.3, 20 % of total creation time for c_int() */
@@ -2136,7 +2083,6 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		obj->b_needsfree = 1;
 		memset(obj->b_ptr, 0, size);
 	}
-	ASSERT_CDATA(obj);
 	return (PyObject *)obj;
 }
 /*****************************************************************/
