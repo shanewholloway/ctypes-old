@@ -116,9 +116,8 @@ def decode_value(init):
     return int(init) # integer
 
 def get_real_type(tp):
-    # why was this?
-##    if type(tp) is typedesc.Typedef:
-##        return get_real_type(tp.typ)
+    if type(tp) is typedesc.Typedef:
+        return get_real_type(tp.typ)
     return tp
 
 # XXX These should be filtered out in gccxmlparser.
