@@ -98,7 +98,7 @@ TYPES = {
     VT_UI8: "c_ulonglong",
     VT_INT: "c_int",
     VT_UINT: "c_uint",
-    VT_VOID: "c_voidp",
+    VT_VOID: "void",
     VT_HRESULT: "HRESULT", 
     VT_PTR: "VT_PTR",
     VT_LPSTR: "c_char_p",
@@ -181,11 +181,18 @@ class Method:
 
     def declaration(self):
         argtypes = ", ".join(self.argtypes)
-        return '"%s", [%s]' % (self.name, argtypes)
+        return 'STDMETHOD(%s, "%s", %s)' % (self.restype, self.name, argtypes)
+
+class DispMethod(Method):
+    # restype is always HRESULT
+    def declaration(self):
+        argtypes = ", ".join(self.argtypes)
+        return 'STDMETHOD(HRESULT, "%s", %s)' % (self.name, argtypes)
 
 class InterfaceReader(TypeInfoReader):
     baseinterface = "IUnknown"
     nummethods = 3
+    method_class = Method
 
     def _parse_typeattr(self, ta):
         assert ta.cImplTypes == 1
@@ -242,11 +249,15 @@ class InterfaceReader(TypeInfoReader):
                 assert 0
             argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
 
-            restype = fd.elemdescFunc.tdesc.vt
-            # cannot handle other things so far
-            # XXX Strange behaviour on some dispinterfaces
-            assert restype in (VT_HRESULT, VT_VOID, VT_UI4, VT_I4), restype
-            mth = Method(name, restype, argtypes)
+            restype = self._get_type(fd.elemdescFunc.tdesc)
+
+##  Combinations:
+##
+## DispatchInterfaceReader, vt = VT_VOID, invkind = DISPATCH_METHOD
+## InterfaceReader, vt = VT_HRESULT, invkind = DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT
+##            vt = fd.elemdescFunc.tdesc.vt
+##            sys.stderr.write("restype for %s -> %s, kind %d\n" % (self, vt, fd.invkind))
+            mth = self.method_class(name, restype, argtypes)
             methods.append(mth)
             
             self.ti.ReleaseFuncDesc(pfd)
@@ -287,7 +298,7 @@ class InterfaceReader(TypeInfoReader):
                 ti.GetDocumentation(-1, byref(name), None, None, None)
 
                 if ta.typekind == TKIND_INTERFACE:
-                    return name.value + "PTR"
+                    return name.value + "Pointer"
 
                 return "POINTER(%s)" % name.value
 
@@ -307,6 +318,7 @@ class InterfaceReader(TypeInfoReader):
 class DispatchInterfaceReader(InterfaceReader):
     baseinterface = "IDispatch"
     nummethods = 7
+    method_class = DispMethod
 
 class CoClassReader(TypeInfoReader):
     def _parse_typeattr(self, ta):
@@ -356,7 +368,7 @@ class CoClassReader(TypeInfoReader):
         return "\n".join(l)
 
 HEADER = r"""
-from ctcom import IUnknown, GUID, COMPointer
+from ctcom import IUnknown, GUID, COMPointer, STDMETHOD, HRESULT
 from ctcom.typeinfo import IDispatch, BSTR
 
 from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
@@ -442,7 +454,7 @@ if __name__ == '__main__':
         path = sys.argv[1]
     else:
         path = r"c:\tss5\bin\debug\ITInfo.dll"
-##        path = r"c:\sms3a.tlb"
+        path = r"c:\sms3a.tlb"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
 
