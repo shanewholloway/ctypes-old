@@ -10,22 +10,22 @@ class Generator(ctypes.wrap.codegenerator.Generator):
     # top-level typedesc generators
     #
     def CoClass(self, coclass):
-        for itf, idlflags in coclass.interfaces:
-            self.generate(itf)
         print >> self.stream, "class %s(CoClass):" % coclass.name
         doc = getattr(coclass, "doc", None)
         if doc:
             print >> self.stream, "    %r" % doc
         print >> self.stream, "    _clsid_ = GUID(%r)" % coclass.clsid
         print >> self.stream, "    _idlflags_ = %s" % coclass.idlflags
+        for itf, idlflags in coclass.interfaces:
+            self.generate(itf)
         implemented = [i[0].name for i in coclass.interfaces
                        if i[1] & 2 == 0]
         sources = [i[0].name for i in coclass.interfaces
                        if i[1] & 2]
         if implemented:
-            print >> self.stream, "    _com_interfaces_ = [%s]" % ", ".join(implemented)
+            print >> self.stream, "%s._com_interfaces_ = [%s]" % (coclass.name, ", ".join(implemented))
         if sources:
-            print >> self.stream, "    _outgoing_interfaces_ = [%s]" % ", ".join(sources)
+            print >> self.stream, "%s._outgoing_interfaces_ = [%s]" % (coclass.name, ", ".join(sources))
         print >> self.stream
 
     def ComInterface(self, itf):
@@ -35,9 +35,18 @@ class Generator(ctypes.wrap.codegenerator.Generator):
     def ComInterfaceHead(self, head):
         self.generate(head.itf.base)
         basename = self.type_name(head.itf.base)
+
+##        tpl = self.templates.get(head.itf.name, None)
+##        if tpl is not None:
+##            print >> self.stream, tpl
+##            return
+
         print >> self.stream, "class %s(%s):" % (head.itf.name, basename)
         print >> self.stream, "    _iid_ = GUID(%r)" % head.itf.iid
         print >> self.stream, "    _idlflags_ = %s" % head.itf.idlflags
+
+        for m in head.itf.members:
+            is_property = self.make_ComMethodWrapper(m)
 
     def ComInterfaceBody(self, body):
         # make sure we can generate the body
@@ -61,6 +70,11 @@ class Generator(ctypes.wrap.codegenerator.Generator):
     def DispInterfaceHead(self, head):
         self.generate(head.itf.base)
         basename = self.type_name(head.itf.base)
+##        tpl = self.templates.get(head.itf.name, None)
+##        if tpl is not None:
+##            print >> self.stream, tpl
+##            return
+
         print >> self.stream, "class %s(%s):" % (head.itf.name, basename)
         doc = getattr(head.itf, "doc", None)
         if doc:
@@ -202,6 +216,48 @@ class Generator(ctypes.wrap.codegenerator.Generator):
               (p.name, getter, setter, doc)
         print >> self.stream
         return None
+
+    def make_ComMethodWrapper(self, m):
+        funcname = m.name
+        args = m.arguments
+        inargs = []
+        for typ, name, idlflags, default in args:
+            if "in" in idlflags:
+                if default is not None:
+                    inargs.append("%s=%r" % (name, default))
+                elif "optional" in idlflags:
+                    inargs.append("%s=%s" % (name, "MISSING"))
+                else:
+                    inargs.append(name)
+
+        allargs = []
+        flocals = []
+        for typ, name, idlflags, default in args:
+            # XXX What about [in, out] parameters?
+            if "out" in idlflags:
+                assert isinstance(typ, typedesc.PointerType)
+                flocals.append((name, self.type_name(typ.typ)))
+                allargs.append("byref(%s)" % name)
+            else:
+                allargs.append(name)
+
+        # Now that POINTER(<com_interface>) instances have a .value property
+        # which returns the com pointer itself, we can do this FOR ALL types:
+        outargs = ["%s.value" % name for (typ, name, idlflags, default) in args
+                   if "out" in idlflags]
+
+        print >> self.stream, "    def %s(%s):" % (funcname, ", ".join(["self"] + inargs))
+        doc = getattr(m, "doc", None)
+        if doc:
+            print >> self.stream, "        %r" % doc
+        for n, t in flocals:
+            print >> self.stream, "        %s = %s()" % (n, t)
+        if outargs:
+            print >> self.stream, "        self.__com_%s(%s)" % (funcname, ", ".join(allargs))
+            print >> self.stream, "        return %s" % ", ".join(outargs)
+        else:
+            print >> self.stream, "        return self.__com_%s(%s)" % (funcname, ", ".join(allargs))
+
 
     def make_DispMethodWrapper(self, m):
         if isinstance(m, typedesc.DispProperty):
