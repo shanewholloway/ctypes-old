@@ -101,7 +101,6 @@ class Generator(ctypes.wrap.codegenerator.Generator):
     #
     def make_ComMethod(self, m):
         # typ, name, idlflags, default
-        args = [self.type_name(a[0]) for a in m.arguments]
         code = "    COMMETHOD(%r, %s, '%s'" % (
             m.idlflags,
             self.type_name(m.returns),
@@ -115,7 +114,7 @@ class Generator(ctypes.wrap.codegenerator.Generator):
             arglist = []
             for typ, name, idlflags, default in m.arguments:
                 if default is not None:
-                    arglist.append("( %r, '%s', %r )" % (
+                    arglist.append("( %r, %s, '%s', %r )" % (
                         idlflags,
                         self.type_name(typ),
                         name,
@@ -130,7 +129,6 @@ class Generator(ctypes.wrap.codegenerator.Generator):
 
     def make_DispMethod(self, m):
         # typ, name, idlflags, default
-        args = [self.type_name(a[0]) for a in m.arguments]
         code = "    DISPMETHOD(%r, %s, '%s'" % (
             [m.dispid] + m.idlflags,
             self.type_name(m.returns),
