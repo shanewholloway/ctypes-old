@@ -220,6 +220,13 @@ class c_void_p(_SimpleCData):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 c_voidp = c_void_p # backwards compatibility (to a bug)
 
+if _os.name == "nt":
+    class BSTR(_SimpleCData):
+        _type_ = "X"
+        def __repr__(self):
+            return "%s(%r)" % (self.__class__.__name__, self.value)
+
+
 # This cache maps types to pointers to them.
 _pointer_type_cache = {}
 

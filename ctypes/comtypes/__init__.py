@@ -266,14 +266,7 @@ class _compointer_base(c_void_p):
 
 ################################################################
 
-from ctypes import _SimpleCData
-
-class BSTR(_SimpleCData):
-    _type_ = "X"
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.value)
-
-################################################################
+from ctypes import BSTR
 
 class helpstring(object):
     def __init__(self, text):
