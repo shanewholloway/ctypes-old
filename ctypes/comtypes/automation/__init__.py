@@ -34,6 +34,14 @@ DISPATCH_PROPERTYGET = 2
 DISPATCH_PROPERTYPUT = 4
 DISPATCH_PROPERTYPUTREF = 8
 
+tagINVOKEKIND = c_int
+INVOKE_FUNC = DISPATCH_METHOD
+INVOKE_PROPERTYGET = DISPATCH_PROPERTYGET
+INVOKE_PROPERTYPUT = DISPATCH_PROPERTYPUT
+INVOKE_PROPERTYPUTREF = DISPATCH_PROPERTYPUTREF
+INVOKEKIND = tagINVOKEKIND
+
+
 ################################
 # helper constants
 IID_NULL = GUID()
@@ -132,6 +140,10 @@ class tagVARIANT(Structure):
                 ("wReserved3", c_ushort),
                 ("_", U_VARIANT)
     ]
+
+    def __init__(self, *args):
+        if args:
+            self.value = args[0]
 
     # see also c:/sf/pywin32/com/win32com/src/oleargs.cpp 54
     def _set_value(self, value):
