@@ -470,6 +470,7 @@ typedef struct {
 	ffi_cif cif;
 	PyObject *converters;
 	PyObject *callable;
+	char *format;
 	ffi_type *atypes[0];
 } ffi_info;
 
@@ -491,9 +492,11 @@ static void closure_fcn(ffi_cif *cif,
 	}
 
 	/* Fixme: return type */
-	*(int *)resp = CallPythonObject(p->callable,
-					p->converters,
-					pArgs);
+	_CallPythonObject(resp,
+			  p->format,
+			  p->callable,
+			  p->converters,
+			  pArgs);
 }
 
 THUNK AllocFunctionCallback(PyObject *callable,
@@ -521,6 +524,37 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
+
+	PrepareResult(restype, &result);
+	switch (result.tag) {
+		/* "bBhHiIlLqQdfP" */
+	case 'b':
+	case 'B':
+	case 'h':
+	case 'H':
+	case 'i':
+	case 'I':
+	case 'l':
+	case 'L':
+	case 'P':
+		p->format = "i";
+		break;
+#ifdef HAVE_LONG_LONG
+	case 'q':
+	case 'Q':
+		p->format = "L";
+		break;
+#endif
+	case 'd':
+		p->format = "d";
+		break;
+	case 'f':
+		p->format = "f";
+		break;
+	default:
+		PyErr_Format(PyExc_TypeError, "invalid restype %c", result.tag);
+		return NULL;
+	}
 	p->converters = converters;
 	p->callable = callable;
 
