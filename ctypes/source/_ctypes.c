@@ -2025,7 +2025,8 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	/* KeepRef steals a refcount from it's last argument */
 	/* If KeepRef fails, we are stumped.  The dst memory block has already
 	   been changed */
-	return KeepRef(mem, index, result); }
+	return KeepRef(mem, index, result);
+}
 
 
 /******************************************************************/
@@ -2349,7 +2350,7 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	if (!PyArg_ParseTuple(args, "is", &index, &name))
 		return NULL;
-	
+
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
 	self->index = index + 0x1000;
 	return (PyObject *)self;
@@ -2465,12 +2466,24 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
-CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
+_build_callargs(CFuncPtrObject *self, PyObject *argtypes, PyObject *inargs, PyObject *kwds)
+{
+	if (self->index)
+		return PyTuple_GetSlice(inargs, 1, PyTuple_GET_SIZE(inargs));
+	Py_INCREF(inargs);
+	return inargs;
+}
+
+static PyObject *
+CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 {
 	PyObject *restype;
 	PyObject *converters;
 	PyObject *checker;
+	PyObject *argtypes;
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
+	PyObject *result;
+	PyObject *callargs;
 #ifdef MS_WIN32
 	IUnknown *piunk = NULL;
 	void *pProc;
@@ -2480,12 +2493,13 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 	restype = self->restype ? self->restype : dict->restype;
 	converters = self->converters ? self->converters : dict->converters;
 	checker = self->checker ? self->checker : dict->checker;
+	argtypes = self->argtypes ? self->argtypes : dict->argtypes;
 
 #ifdef MS_WIN32
 	if (self->index) {
 		/* It's a COM method */
 		CDataObject *this;
-		this = (CDataObject *)PyTuple_GetItem(args, 0); /* borrowed ref! */
+		this = (CDataObject *)PyTuple_GetItem(inargs, 0); /* borrowed ref! */
 		if (!this) {
 			PyErr_SetString(PyExc_ValueError,
 					"native com method call without 'this' parameter");
@@ -2510,21 +2524,24 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 		pProc = ((void **)piunk->lpVtbl)[self->index - 0x1000];
+	} else {
+		pProc = *(void **)self->b_ptr;
 	}
 #endif
+	callargs = _build_callargs(self, argtypes, inargs, kwds);
+	if (callargs == NULL)
+		return NULL;
 
 	if (converters) {
 		int required = PyTuple_GET_SIZE(converters);
-		int actual = PyTuple_GET_SIZE(args);
-#ifdef MS_WIN32
-		if (piunk)
-			required ++;
-#endif
+		int actual = PyTuple_GET_SIZE(callargs);
+
 		if ((dict->flags & FUNCFLAG_CDECL) == FUNCFLAG_CDECL) {
 			/* For cdecl functions, we allow more actual arguments
 			   than the length of the argtypes tuple.
 			*/
 			if (required > actual) {
+				Py_DECREF(callargs);
 				PyErr_Format(PyExc_TypeError,
 			  "this function takes at least %d argument%s (%d given)",
 					     required,
@@ -2533,6 +2550,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 				return NULL;
 			}
 		} else if (required != actual) {
+			Py_DECREF(callargs);
 			PyErr_Format(PyExc_TypeError,
 			     "this function takes %d argument%s (%d given)",
 				     required,
@@ -2541,28 +2559,20 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 	}
+
+	result = _CallProc(pProc,
+			   callargs,
 #ifdef MS_WIN32
-	if (piunk) {
-		PyObject *a = PyTuple_GetSlice(args, 1, PyTuple_GET_SIZE(args));
-		PyObject *result;
-		result = _CallProc(pProc,
-				   a,
-				   piunk,
-				   dict->flags,
-				   converters,
-				   restype,
-				   checker);
-		Py_DECREF(a);
-		return result;
-	}
+			   piunk,
+#else
+			   NULL,
 #endif
-	return _CallProc(*(void **)self->b_ptr,
-			 args,
-			 NULL,
-			 dict->flags,
-			 converters,
-			 restype,
-			 checker);
+			   dict->flags,
+			   converters,
+			   restype,
+			   checker);
+	Py_DECREF(callargs);
+	return result;
 }
 
 static int
@@ -3162,7 +3172,7 @@ Simple_set_value(CDataObject *self, PyObject *value)
 	result = dict->setfunc(self->b_ptr, value, dict->size);
 	if (!result)
 		return -1;
-       
+
 	/* consumes the refcount the setfunc returns */
 	return KeepRef(self, 0, result);
 }
@@ -3171,7 +3181,8 @@ static int
 Simple_init(CDataObject *self, PyObject *args, PyObject *kw)
 {
 	PyObject *value = NULL;
-
+	int len = PyTuple_GET_SIZE(args);
+	
 	/* XXX Optimize. PyArg_ParseTuple is slow... */
 	if (!PyArg_ParseTuple(args, "|O", &value))
 		return -1;
