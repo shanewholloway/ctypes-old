@@ -514,8 +514,8 @@ class TypeLibReader:
 
         self.coclasses = {}
         self.interfaces = {}
-        self.enums = {}
-        self.records = {}
+        self.enums = []
+        self.records = []
 
         self.types = {}
 
@@ -536,10 +536,10 @@ class TypeLibReader:
                 self.interfaces[rdr.guid] = rdr
             elif kind.value == TKIND_ENUM:
                 rdr = EnumReader(self, ti)
-                self.enums[rdr.guid] = rdr
+                self.enums.append(rdr)
             elif kind.value == TKIND_RECORD:
                 rdr = RecordReader(self, ti)
-                self.records[rdr.guid] = rdr
+                self.records.append(rdr)
                 
         for iid in self.types:
             ti = self.types[iid]
@@ -590,14 +590,14 @@ class TypeLibReader:
         if self.enums:
             print >> ofi
             print >> ofi, "#" * 78
-            for guid, itf in self.enums.iteritems():
+            for itf in self.enums:
                 print >> ofi
                 print >> ofi, itf.declaration()
 
         if self.records:
             print >> ofi
             print >> ofi, "#" * 78
-            for guid, itf in self.records.iteritems():
+            for itf in self.records:
                 print >> ofi
                 print >> ofi, itf.declaration()
 
