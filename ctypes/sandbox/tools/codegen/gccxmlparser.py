@@ -1,13 +1,15 @@
-"""xml2py - create ctypes module from XML file"""
-import sys
+"""gccxmlparser - parse a gccxml created XML file into a sequence type descriptions"""
 import xml.sax
-from sets import Set
 import nodes
+try:
+    set
+except NameError:
+    from sets import Set as set
 
 ################################################################
 
 class GCCXML_Handler(xml.sax.handler.ContentHandler):
-    has_values = Set(["Enumeration", "Function", "FunctionType",
+    has_values = set(["Enumeration", "Function", "FunctionType",
                       "OperatorFunction", "Method", "Constructor",
                       "Destructor", "OperatorMethod"])
 
@@ -264,7 +266,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
 ################################################################
 
-def parse(xmlfile, options=None, verbose=0):
+def parse(xmlfile):
+    # parse an XML file into a sequence of type descriptions
     handler = GCCXML_Handler()
     xml.sax.parse(xmlfile, handler)
     return handler.get_result()
