@@ -133,9 +133,9 @@ class PointerToStructure(unittest.TestCase):
     
         r.a = pointer(p1)
         r.b = pointer(p1)
-        from pprint import pprint as pp
-        pp(p1._objects)
-        pp(r._objects)
+##        from pprint import pprint as pp
+##        pp(p1._objects)
+##        pp(r._objects)
 
         r.a[0].x = 42
         r.a[0].y = 99
