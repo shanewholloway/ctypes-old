@@ -25,7 +25,7 @@ if not os.path.isfile(SumLib.path):
 from ctypes.com.automation import DualObjImpl
 
 class SumObject(DualObjImpl):
-    _reg_clsctx_ = 0
+##    _reg_clsctx_ = 0
     # A sequence of COM interfaces this object implements
     _com_interfaces_ = [IDualSum]
     # The type library we need, SumLib has the correct attributes
@@ -37,7 +37,6 @@ class SumObject(DualObjImpl):
     # and the clsid. We could use the one in the typelib, if the
     # typelib contains a CoClass. The typelib could as well only
     # describe an interface.
-##    _reg_clsid_ = '{2E0504A1-1A23-443F-939D-869A6C731521}'
     _reg_clsid_ = CSum._reg_clsid_
 
     # We *should* implement the methods described in the typelib.  COM
@@ -55,7 +54,7 @@ class SumObject(DualObjImpl):
         presult[0] = a + b
         # The method must return a HRESULT, 0 is the same as S_OK
         return 0
-    
+
 def main():
     # Running this script with "-regserver" registers this object as a
     # LocalServer32 together with the type library, "-unregserver"
@@ -79,19 +78,22 @@ def main():
     #
     # This script prints '6.28'.
     #
+
+    # The following could be moved into a UseCommandLine function:
     import sys
+    from ctypes.com.w_getopt import w_getopt
     from ctypes.com.register import register, unregister
-    if "-regserver" in sys.argv:
-        register(SumObject)
-        return
-    if "-unregserver" in sys.argv:
-        unregister(SumObject)
-        return
-    if "/automation" in sys.argv:
-        from ctypes.com.server import localserver
-        localserver(SumObject)
-        return
-    # Raise an error here?
+    opts, args = w_getopt(sys.argv[1:], "regserver unregserver embedding".split())
+    if not opts:
+        usage()
+    for option, value in opts:
+        if option == "regserver":
+            register(SumObject)
+        elif option == "unregserver":
+            unregister(SumObject)
+        elif option == "embedding":
+            from ctypes.com.server import localserver
+            localserver(SumObject)
     
 if __name__ == '__main__':
     main()
