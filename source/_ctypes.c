@@ -4519,6 +4519,19 @@ EXPORT char * _testfunc_s_s(char *s)
 	return s;
 }
 
+#ifdef HAVE_LONG_LONG
+EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
+				     double d, LONG_LONG q)
+{
+	return (LONG_LONG)(b + h + i + l + f + d + q);
+}
+
+EXPORT LONG_LONG _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
+{
+	return (LONG_LONG)(b + h + i + l + f + d);
+}
+
+#endif
 /*
  Local Variables:
  compile-command: "python ../setup.py -q build install --home ~"

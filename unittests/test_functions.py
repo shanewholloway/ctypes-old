@@ -35,7 +35,24 @@ def test1():
        ...
     ValueError: Value out of range
     
-    
+    >>> f = dll._testfunc_i_bhilfd
+    >>> f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
+    >>> f.restype = "h"
+    >>> f(1, 2, 3, 0x400000, 5.0, 6.0)
+    17
+
+    >>> f = dll._testfunc_q_bhilfd
+    >>> f.restype = "q"
+    >>> f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
+    >>> f(1, 2, 3, 4, 5.0, 6.0)
+    21L
+
+    >>> f = dll._testfunc_q_bhilfdq
+    >>> f.restype = "q"
+    >>> f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double, c_longlong]
+    >>> f(1, 2, 3, 4, 5.0, 6.0, 21)
+    42L
+
     """
 
 def test2():
