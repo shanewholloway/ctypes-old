@@ -194,9 +194,6 @@ class test(Command):
             mask = os.path.join(direct, self.test_prefix + "*.py")
             test_files.extend(glob.glob(mask))
 
-        import pprint
-        pprint.pprint(test_files)
-
         self.announce("testing")
         self.extend_path()
 
@@ -374,7 +371,6 @@ class my_build_ext(build_ext.build_ext):
             return 0
         for ext in self.extensions:
             if ext.name == "_ctypes":
-                print "INCDIR", incdir
                 ext.include_dirs.append(incdir)
                 ext.include_dirs.append(incdir_2)
                 ext.library_dirs.append(libdir)
