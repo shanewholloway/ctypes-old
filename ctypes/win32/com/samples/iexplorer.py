@@ -1,22 +1,19 @@
-from ctypes.com import IUnknown, GUID, PIUnknown, REFCLSID, REFIID
+from ctypes.com import IUnknown, GUID, REFCLSID, REFIID
 from ctypes.com.automation import BSTR, VARIANT
 from ctypes import *
+from ctypes.wintypes import *
+
 user32 = windll.user32
 
 from ie6_gen import InternetExplorer, IWebBrowser2, DWebBrowserEvents2
-
-# XXX
-DWORD = c_ulong
 
 ################################################################
 # This should move into ctypes.com :
 from ctypes import oledll
 from ctypes.com import ole32
 
-oleaut32 = oledll.oleaut32
-
 ole32.CoInitialize(None)
-ole32.CoCreateInstance.argtypes = REFCLSID, c_voidp, DWORD, REFIID, POINTER(PIUnknown)
+ole32.CoCreateInstance.argtypes = REFCLSID, c_voidp, DWORD, REFIID, POINTER(POINTER(IUnknown))
 
 CLSCTX_INPROC_SERVER = 0x1
 CLSCTX_LOCAL_SERVER = 0x4
@@ -70,7 +67,7 @@ browser.Navigate("http://www.python.org/",
 
 v = c_int()
 browser._get_Visible(byref(v))
-print "Is visible?", v
+print "Is visible?", hex(v.value)
 
 from ctypes.wintypes import MSG
 msg = MSG()
