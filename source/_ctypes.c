@@ -13,7 +13,7 @@ PointerType_Type	__new__(), from_address(), __mul__(), from_param(), from_bytes(
 ArrayType_Type		__new__(), from_address(), __mul__(), from_param(), from_bytes()
 SimpleType_Type		__new__(), from_address(), __mul__(), from_param(), from_bytes()
 
-CFunctionType_Type	__new__()
+CFunctionType_Type	__new__(), from_param()
 
 CData_Type
   Struct_Type		__new__(), __init__()
@@ -3691,6 +3691,25 @@ CFunctionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)result;
 }
 
+static PyObject *
+CFunctionType_from_param(PyObject *type, PyObject *value)
+{
+	if (!PyObject_IsInstance(value, type)) {
+		PyErr_Format(PyExc_TypeError,
+			     "expected %s instance",
+			     ((PyTypeObject *)type)->tp_name);
+		return NULL;
+	}
+	Py_INCREF(value);
+	return value;
+}
+
+static PyMethodDef CFunctionType_methods[] = {
+	{ "from_param", CFunctionType_from_param, METH_O,
+	  from_param_doc },
+	{ NULL }
+};
+
 static PyTypeObject CFunctionType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
@@ -3720,7 +3739,7 @@ static PyTypeObject CFunctionType_Type = {
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
 	0,					/* tp_iternext */
-	0,					/* tp_methods */
+	CFunctionType_methods,			/* tp_methods */
 	0,					/* tp_members */
 	0,					/* tp_getset */
 	0,					/* tp_base */
@@ -4551,6 +4570,9 @@ EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
 EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG))
 {
 	LONG_LONG initial = value;
+#ifdef _DEBUG
+	_asm int 3;
+#endif
 
 	while (value != 0) {
 		func(value);

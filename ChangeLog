@@ -1,3 +1,11 @@
+2003-01-23  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: CFunction now has a from_param class
+	method. This means that CFunction subclasses can now be used in
+	the argtypes attribute, and so typechecking is done.
+
+	* unittests: Rewrote the tests from doctest to pyunit.
+
 2003-01-21  Thomas Heller  <theller@python.net>
 
 	* source/: Merged in these changes from the C_FAST_CARGS branch:
