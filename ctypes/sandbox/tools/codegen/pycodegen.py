@@ -147,7 +147,7 @@ def gen_enums(done, items):
     return done, items - done
 
 def gen_structs(done, items):
-    bodies = []
+##    bodies = []
     structs = []
     for i in items:
         if isinstance(i, nodes.Typedef) and isinstance(i.typ, (nodes.Structure, nodes.Union)):
@@ -157,7 +157,7 @@ def gen_structs(done, items):
                 renames[i.typ] = i.name
             isStruct = isinstance(i.typ, nodes.Structure)
             make_struct_header(i.name, i.typ, isStruct)
-            bodies.append((i.name, i.typ))
+##            bodies.append((i.name, i.typ))
             done.add(i)
             done.add(i.typ)
 
@@ -168,11 +168,15 @@ def gen_structs(done, items):
             print "#typedef struct %s;" % i.name
             isStruct = isinstance(i, nodes.Structure)
             make_struct_header(i.name, i, isStruct)
-            bodies.append((i.name, i))
+##            bodies.append((i.name, i))
             done.add(i)
 
-    for name, struct in bodies:
-        make_struct_body(name, struct)
+    for i in items - done:
+        if isinstance(i, nodes.StructureHead):
+            print "#typedef struct %s;" % i.struct.name
+            isStruct = isinstance(i, nodes.Structure)
+            make_struct_header(i.struct.name, i.struct, True)
+            done.add(i)
 
     return done, items - done
 
@@ -283,6 +287,10 @@ def generate(item):
     done, items = gen_arrays(done, items)
     done, items = gen_structs(done, items)
     done, items = gen_functions(done, items)
+    if type(item) is nodes.StructureBody:
+        make_struct_body(item.struct.name, item.struct)
+        done.add(item)
+##    assert done, "no code generated for %s" % item
     return done
 
 ################################################################
@@ -293,16 +301,20 @@ def find(names, fname=None):
         items = cPickle.loads(open(fname, "rb").read())
     else:
         from gccxmlparser import parse
-        items = parse(files=["windows.h"], xmlfile="windows.xml")
+        items = parse(files=["windows.h"], xmlfile="windows.xml", verbose=1)
 
+        print "# creating pickle..",
         import cPickle
         data = cPickle.dumps(items)
         open("windows.pickle", "wb").write(data)
+        print "done"
 
+    print "# searching...",
     result = []
     for i in items:
         if getattr(i, "name", None) in names:
             result.append(i)
+    print "done"
     return result
 
 def depends(i):
@@ -319,7 +331,8 @@ def main():
     todo = set()
 
     import sys
-    todo.update(find(sys.argv[1:], "windows.pickle"))
+##    todo.update(find(sys.argv[1:], "windows.pickle"))
+    todo.update(find(sys.argv[1:]))
 
     print "from ctypes import *"
     print "def c_const(x): return x"
@@ -330,13 +343,15 @@ def main():
     print "    _fields_ = [('lpVtbl', c_void_p)]"
     print
 
-    for howoften in range(50):
+    for howoften in range(200):
         for i in todo.copy():
             needs = set(i.depends())
             assert i not in needs
             if needs.issubset(done): # can generate this one now
 ##                print "# generate", i
 ##                print "#depends", i.depends()
+                if type(i) in (nodes.Structure, nodes.Union):
+                    todo.add(i.get_body())
                 a = generate(i)
                 done.update(a)
                 done.add(i)
@@ -358,14 +373,14 @@ def explain(t, done):
     unresolved = set(done) - set(needs)
     print "for type", t
     print "unresolved", unresolved
-    
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 1:
         sys.argv.append("IDispatch")
     todo, done = main()
-    if todo:
-        print explain(todo[0], done)
+##    if todo:
+##        print explain(todo[0], done)
 
 # TODO-List:
 #
