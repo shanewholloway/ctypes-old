@@ -2,8 +2,8 @@ import unittest
 import ctypes
 import gc
 
-MyCallback = ctypes.CALLBACK(ctypes.c_int, ctypes.c_int)
-OtherCallback = ctypes.CALLBACK(ctypes.c_int, ctypes.c_int, ctypes.c_ulonglong)
+MyCallback = ctypes.CFuncType(ctypes.c_int, ctypes.c_int)
+OtherCallback = ctypes.CFuncType(ctypes.c_int, ctypes.c_int, ctypes.c_ulonglong)
 
 class RefcountTestCase(unittest.TestCase):
     def setUp(self):

@@ -40,7 +40,7 @@ STDMETHOD_(type, name)
 STDAPICALLTYPE
 """
 
-def CALLBACK(restype, *argtypes):
+def CFuncType(restype, *argtypes):
     class X(_CFuncPtr):
         _argtypes_ = argtypes
         _restype_ = restype
@@ -52,7 +52,7 @@ if _os.name == "nt":
          FreeLibrary as _FreeLibrary
     from _ctypes import FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
 
-    def STDAPI(restype, *argtypes):
+    def WinFuncType(restype, *argtypes):
         class X(_CFuncPtr):
             _argtypes_ = argtypes
             _restype_ = restype
