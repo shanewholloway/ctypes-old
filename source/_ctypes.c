@@ -1895,7 +1895,7 @@ CData_AtAddress(PyObject *type, void *buf)
 	return CData_FromBaseObj(type, NULL, 0, buf);
 }
 
-PyObject *
+static PyObject *
 CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	  int index, int size, char *adr)
 {
