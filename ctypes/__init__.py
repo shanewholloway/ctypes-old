@@ -41,7 +41,8 @@ def create_string_buffer(init, size=None):
     create_string_buffer(anInteger) -> character array
     create_string_buffer(aString, anInteger) -> character array
     """
-    if isinstance(init, str):
+    if isinstance(init, (str, unicode)):
+        init = str(init)
         if size is None:
             size = len(init)+1
         buftype = c_char * size
@@ -59,15 +60,16 @@ def create_unicode_buffer(init, size=None):
     create_unicode_buffer(anInteger) -> character array
     create_unicode_buffer(aString, anInteger) -> character array
     """
-    if isinstance(init, str):
+    if isinstance(init, (str, unicode)):
+        init = unicode(init)
         if size is None:
             size = len(init)+1
-        buftype = c_char * size
+        buftype = c_wchar * size
         buf = buftype()
         buf.value = init
         return buf
     elif isinstance(init, (int, long)):
-        buftype = c_char * init
+        buftype = c_wchar * init
         buf = buftype()
         return buf
     raise TypeError, init
