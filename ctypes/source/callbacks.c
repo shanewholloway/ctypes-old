@@ -40,18 +40,6 @@ static void LeavePython(void)
 }
 #endif
 
-/********************************************************************************
- *
- * callback objects: definition
- */
-
-THUNK AllocFunctionCallback(PyObject *callable,
-			    int nArgBytes,
-			    PyObject *converters,
-			    PyObject *restype,
-			    int is_cdecl);
-
-
 static void
 PrintError(char *msg, ...)
 {
@@ -166,6 +154,7 @@ static void _CallPythonObject(void *mem,
 			Py_DECREF(keep);
 		}
 	}
+	Py_XDECREF(result);
   Done:
 	Py_XDECREF(arglist);
 	
