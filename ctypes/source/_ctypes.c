@@ -1,4 +1,23 @@
 /*
+  xyz_asparam(CDataObject *self, struct argument *pa)
+
+  Instance method.
+
+  Copies the contents of self's buffer into pa's buffer,
+  keeps self alive in pa->keep, sets ps'a ffi_type.
+*/
+
+/*
+  xyz_from_param(PyObject *type, PyObject *value)
+
+  Class method (instance method on the metatype to be exact).
+
+  Adapts 'value' to the ctypes 'type', and returns something that can be used
+  as a function call argument.  Should probably create a new CArgObject, the
+  use the type's setfunc to store value in it.
+*/
+
+/*
   ToDo:
 
   Get rid of the checker (and also the converters) field in CFuncPtrObject and
@@ -332,6 +351,7 @@ CDataType_in_dll(PyObject *type, PyObject *args)
 static char from_param_doc[] =
 "Convert a Python object into a function call parameter.";
 
+/* Used for Array, Structure, Union, CFuncPtr */
 static PyObject *
 CDataType_from_param(PyObject *type, PyObject *value)
 {
@@ -1162,6 +1182,13 @@ static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
 static PyObject *
 c_wchar_p_from_param(PyObject *type, PyObject *value)
 {
+	/* Again, this should use setfunc (Z_set).
+	   Z_set handles None, Unicode, String, but not Array, Pointer,
+	   CArgObject.
+
+	   But it handles, although it shouldn't, int and long.
+	   Would be an api change to fix this.
+	*/
 	if (value == Py_None) {
 		Py_INCREF(Py_None);
 		return Py_None;
@@ -1354,6 +1381,7 @@ Simple_asparam(CDataObject *self, struct argument *pa)
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	pa->ffi_type = &dict->ffi_type;
 	/* Hm, Aren't here any little/big endian issues? */
+	assert(sizeof(pa->value) >= self->b_size);
 	memcpy(&pa->value, self->b_ptr, self->b_size);
 	Py_INCREF(self);
 	pa->keep = (PyObject *)self;
@@ -3915,7 +3943,7 @@ init_ctypes(void)
 #endif
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
 	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
-	PyModule_AddStringConstant(m, "__version__", "0.9.6");
+	PyModule_AddStringConstant(m, "__version__", "0.9.7beta");
 	
 	PyExc_ArgError = PyErr_NewException("ctypes.ArgumentError", NULL, NULL);
 	if (PyExc_ArgError) {
