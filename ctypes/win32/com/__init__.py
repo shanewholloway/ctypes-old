@@ -100,7 +100,7 @@ class _interface_meta(type(Structure)):
         result = type(Structure).__new__(cls, name, bases, kwds)
         result.VTable_ptr = VTable_ptr
         if kwds.has_key("_methods_"):
-            cls._init_class()
+            result._init_class()
         return result
 
     def __make_vtable(self):
