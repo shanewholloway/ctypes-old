@@ -205,6 +205,7 @@ class COMObject(object):
         itf = itfclass()
         vtbltype = itfclass._fields_[0][1]._type_
         methods = []
+        from ctypes.com.server import dprint
         for name, proto in vtbltype._fields_:
             # Search for methods named <interface>_<methodname> in the
             # interface, including base interfaces
@@ -217,13 +218,13 @@ class COMObject(object):
                     def __init__(self, name, itfname):
                         self.name, self.itfname = name, itfname
                     def __call__(self, *args):
-                        print "E_NOTIMPL method: %s of %s, args: %s" % \
-                              (self.name, self.itfname, str(args))
+                        dprint("E_NOTIMPL method: %s of %s, args: %s" % \
+                              (self.name, self.itfname, str(args)))
                         return E_NOTIMPL
                 notimpl = NotImpl(name, itfclass.__name__)                        
                 callable = getattr(self, name, notimpl)
             if callable == notimpl:
-                print "# unimplemented %s for interface %s" % (name, itfclass.__name__)
+                dprint("# unimplemented %s for interface %s" % (name, itfclass.__name__))
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
         itf.lpVtbl = pointer(vtbl)
