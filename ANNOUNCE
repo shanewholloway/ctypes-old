@@ -1,4 +1,4 @@
-ctypes 0.9.5 released - Mar 11, 2005
+ctypes 0.9.6 released - Mar 18, 2005
 ====================================
 
 Overview
@@ -29,7 +29,34 @@ Important
     a package that uses ctypes, please test it with this release
     and report problems on the ctypes-users mailing list.
 
-Additions
+Changes in 0.9.6
+
+    Thanks to all of you who reported bugs so quickly, and those who
+    tried out the codegenerator toolchain.
+
+    Bug fixes:
+
+    - keyword arguments in Structure/Union initializers had no effect.
+
+    - it was impossible to override the from_parm class method
+    in subclasses of c_void_p, c_char_p, and c_wchar_p.
+
+    - removed the __del__ method of _CDLL. It caused uncollectable
+    garbage in Python's gc.
+
+    - ctypes.com.register: enclose the Python script to run a com
+    server in quotes, otherwise it won't run correctly when the
+    directory name contains spaces.
+
+    Enhancements:
+
+    - Several changes have been made to the h2xml script from the
+    codegenerator toolchain. See the documentation (linked below) for
+    details.
+
+-----------------------
+
+Additions in 0.9.5
 
     New package ctypes.wrap. This contains decorators usable for
     easier creation of wrapper functions.
