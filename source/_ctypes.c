@@ -1842,6 +1842,13 @@ PyTypeObject CData_Type = {
  *
  */
 
+/*
+  XXX: The trick above is slow...  Much faster is it, as it seems, to create
+  the new instance as if it were standalone, and then patch it afterwards -
+  even if this means we must PyMem_Free the just allocated memory.
+  
+  Fix later.
+ */
 static PyObject *
 CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 {
