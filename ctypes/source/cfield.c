@@ -704,15 +704,26 @@ z_set(void *ptr, PyObject *value, unsigned size)
 		Py_INCREF(value);
 		return value;
 	}
-	if (!PyString_Check(value)) {
-		PyErr_Format(PyExc_TypeError,
-				"string expected instead of %s instance",
-				value->ob_type->tp_name);
-		return NULL;
+	if (PyString_Check(value)) {
+		*(char **)ptr = PyString_AS_STRING(value);
+		Py_INCREF(value);
+		return value;
+	} else if (PyUnicode_Check(value)) {
+		PyObject *str = PyUnicode_AsASCIIString(value);
+		if (str == NULL)
+			return NULL;
+		*(char **)ptr = PyString_AS_STRING(str);
+		Py_INCREF(str);
+		return str;
+	} else if (PyInt_Check(value) || PyLong_Check(value)) {
+		*(char **)ptr = PyInt_AsUnsignedLongMask(value);
+		Py_INCREF(Py_None);
+		return Py_None;
 	}
-	*(char **)ptr = PyString_AS_STRING(value);
-	Py_INCREF(value);
-	return value;
+	PyErr_Format(PyExc_TypeError,
+		     "string or integer address expected instead of %s instance",
+		     value->ob_type->tp_name);
+	return NULL;
 }
 
 static PyObject *
@@ -739,10 +750,14 @@ Z_set(void *ptr, PyObject *value, unsigned size)
 		value = PyUnicode_FromObject(value);
 		if (!value)
 			return NULL;
+	} else if (PyInt_Check(value) || PyLong_Check(value)) {
+		*(wchar_t **)ptr = PyInt_AsUnsignedLongMask(value);
+		Py_INCREF(Py_None);
+		return Py_None;
 	} else if (!PyUnicode_Check(value)) {
 		PyErr_Format(PyExc_TypeError,
-				"unicode string expected instead of %s instance",
-				value->ob_type->tp_name);
+			     "unicode string or integer address expected instead of %s instance",
+			     value->ob_type->tp_name);
 		return NULL;
 	} else
 		Py_INCREF(value);
