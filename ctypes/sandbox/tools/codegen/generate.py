@@ -1,5 +1,4 @@
 # bugs:
-# packing of derived structures (assertion error at build time)
 # packing of unions (assertion errors at import time of generated module)
 # bitfields?
 
@@ -60,9 +59,10 @@ def _calc_packing(struct, fields, pack, verbose):
     assert not isinstance(struct, nodes.Union)
     if struct.bases:
         size = struct.bases[0].size
+        total_align = struct.bases[0].align
     else:
         size = 0
-    total_align = 8 # in bits
+        total_align = 8 # in bits
     for i, f in enumerate(fields):
         if f.bits:
             return -2
@@ -76,7 +76,7 @@ def _calc_packing(struct, fields, pack, verbose):
         size += s
         total_align = max(total_align, a)
     if total_align != struct.align:
-        raise PackingError, "total alignment (%s/%s)" % (total_align / 8, struct.align)
+        raise PackingError, "total alignment (%s/%s)" % (total_align, struct.align)
     a = total_align
     if pack is not None:
         a = min(pack, a)
@@ -90,14 +90,13 @@ def calc_packing(struct, fields, verbose=False):
     for pack in [None, 16*8, 8*8, 4*8, 2*8, 1*8]:
         try:
             _calc_packing(struct, fields, pack, verbose)
-        except PackingError:
+        except PackingError, details:
             continue
         else:
             if pack is None:
                 return None
             return pack/8
-##    assert 0, "PACKING FAILED"
-    print "##WARNING: Packing failed", struct.size
+    assert 0, "PACKING FAILED: %s" % details
 
 def _type_name(t):
     # Return a string, containing an expression which can be used to
