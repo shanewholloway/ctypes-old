@@ -2,14 +2,6 @@
 # Python source code wrapping the classes, types, and interfaces with
 # ctypes.
 #
-# The most important restriction of this code is that a COM method is
-# *always* assumed to return a HRESULT.  This is checked in the C code,
-# but also the whole framework so far has no way to specify a different
-# restype, and pass it to the C code.
-#
-# Fortunately, small integer or long values (smaller than 0x80000000)
-# are HRESULTS signalling success instead of errors, but sooner or later
-# there will be some problems.
 
 #
 # Minor things to do: move the VT_... constants into ctcom.typeinfo
@@ -21,18 +13,21 @@
 
 from ctypes.com.automation import LoadTypeLibEx, LoadTypeLib, ITypeInfo, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT, LPTLIBATTR
+
 from ctypes.com.automation import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS, \
-     TKIND_RECORD
+     TKIND_RECORD, TKIND_UNION, TKIND_MODULE, TKIND_ALIAS
+
 from ctypes.com.automation import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
      DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF
+
 from ctypes.com.automation import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
+
 from ctypes.com.automation import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
      IMPLTYPEFLAG_FSOURCE, IMPLTYPEFLAG_FRESTRICTED, \
      IMPLTYPEFLAG_FDEFAULTVTABLE
 
 from ctypes.com import GUID
-
-from ctypes import byref, c_int, c_ulong, pointer, POINTER
+from ctypes import *
 
 VT_EMPTY	= 0
 VT_NULL	= 1
@@ -202,7 +197,6 @@ class EnumReader(TypeInfoReader):
             v = VARIANT() # destination variant
 
             # change the type to VT_INT which is c_int
-            from ctypes import oledll
             oleaut32 = oledll.oleaut32
             oleaut32.VariantChangeType(byref(v),
                                        byref(vsrc),
@@ -212,9 +206,10 @@ class EnumReader(TypeInfoReader):
             self.ti.ReleaseVarDesc(pvd)
 
 class RecordReader(TypeInfoReader):
+    _baseclass = "Structure"
     def declaration(self):
         l = []
-        l.append("class %s(Structure):" % self.name)
+        l.append("class %s(%s):" % (self.name, self._baseclass))
         if self.docstring:
             l.append('    """%s"""' % self.docstring)
         if self.guid != '{00000000-0000-0000-0000-000000000000}':
@@ -249,6 +244,9 @@ class RecordReader(TypeInfoReader):
             info = (name, self._get_type(vd.elemdescVar.tdesc), vd.u.oInst)
             self.fields.append(info)
             self.ti.ReleaseVarDesc(pvd)
+
+class UnionReader(RecordReader):
+    _baseclass = "Union"
 
 class Method:
     def __init__(self, name, restype, argtypes, dispid):
@@ -480,12 +478,9 @@ HEADER = r"""
 # they will be overwritten next time it is regenerated.       #
 ###############################################################
 
+from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT
-
-from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
-     c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
-     c_float, c_double, Structure, byref, sizeof
 
 class COMObject:
     # later this class will be used to create COM objects.
@@ -534,6 +529,11 @@ class TypeLibReader:
             ti = pointer(ITypeInfo())
             tlb.GetTypeInfo(i, byref(ti))
 
+            # missing:
+            # TKIND_ALIAS
+            # TKIND_MODULE
+            # TKIND_MAX, but this is only a marker
+
             if kind.value == TKIND_COCLASS:
                 rdr = CoClassReader(self, ti)
                 self.coclasses[rdr.guid] = rdr
@@ -548,6 +548,9 @@ class TypeLibReader:
                 self.enums.append(rdr)
             elif kind.value == TKIND_RECORD:
                 rdr = RecordReader(self, ti)
+                self.records.append(rdr)
+            elif kind.value == TKIND_UNION:
+                rdr = UnionReader(self, ti)
                 self.records.append(rdr)
                 
         for iid in self.types:
