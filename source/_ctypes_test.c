@@ -459,6 +459,16 @@ EXPORT(S2H) ret_2h_func(void)
 	return s2h;
 }
 
+typedef struct {
+	int a, b, c, d, e, f, g, h;
+} S8I;
+
+EXPORT(S8I) ret_8i_func(void)
+{
+	S8I s8i = {1, 2, 3, 4, 5, 6, 7, 8};
+	return s8i;
+}
+
 DL_EXPORT(void)
 init_ctypes_test(void)
 {
