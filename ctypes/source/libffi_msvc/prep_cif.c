@@ -144,10 +144,22 @@ ffi_status ffi_prep_cif(/*@out@*/ /*@partial@*/ ffi_cif *cif,
       else
 #endif
 	{
+#ifndef _MSC_VER
+		/* Don't know if this is a libffi bug or not.  At least on
+		   Windows with MSVC, function call parameters are *not*
+		   aligned in the same way as structure fields are, they are
+		   only aligned in integer boundaries.
+
+		   This doesn't do any harm for cdecl functions and closures,
+		   since the caller cleans up the stack, but it is wrong for
+		   stdcall functions where the callee cleans.
+		*/
+
 	  /* Add any padding if necessary */
 	  if (((*ptr)->alignment - 1) & bytes)
 	    bytes = ALIGN(bytes, (*ptr)->alignment);
 	  
+#endif
 	  bytes += STACK_ARG_SIZE((*ptr)->size);
 	}
 #endif
