@@ -1,3 +1,12 @@
+2004-12-02  Thomas Heller  <theller@python.net>
+
+	* (Message): The _fields_ attribute is now handled correctly in
+	Structure sub-subclasses.  It is extended instead of replaced.
+	
+2004-12-01  Thomas Heller  <theller@python.net>
+
+	* The annoying pointer bug has been fixed.
+
 2004-11-19  Thomas Heller  <theller@python.net>
 
 	* (Message): The _fields_ attribute can now be set *after* a
