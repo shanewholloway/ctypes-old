@@ -242,7 +242,7 @@ extern PyObject *_CallProc(PPROC pProc,
 extern PyObject *CData_FromBaseObj(PyObject *type, PyObject *base,
 				   int index, char *adr);
 
-extern intKeepRef(CDataObject *target, int index, PyObject *keep);
+extern int KeepRef(CDataObject *target, int index, PyObject *keep);
 
 extern PyObject *GetKeepedObjects(CDataObject *target);
 
