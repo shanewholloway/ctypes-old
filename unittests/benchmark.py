@@ -19,28 +19,30 @@ if __name__ == "__main__":
 
     t = Timer("ex_func_si('abc', 3)", "from __main__ import ex_func_si")
     # win32: 1.20 us
-    # suse9.1 (vmware): 2.314 us
+    # suse9.1 (vmware): 3.56 us
     t1 = t.timeit(REPEAT) *1e6 / REPEAT
     print >> sys.stderr, "dll call, 2 args:  %.2f us" % t1
     t = Timer("py_func_si('abc', 3)", "from __main__ import py_func_si")
     # win32: 0.65 us
-    # suse9.1(vmware): 0.910 us
+    # suse9.1(vmware): 0.89 us
     t2 = t.timeit(REPEAT) *1e6 / REPEAT
     print >> sys.stderr, "func call, 2 args: %.2f us" % t2
     # win32: ratio 1.9
+    # suse9.1(vmware): 4.0
     print >> sys.stderr, "ratio %.1f" % (t1 / t2)
     print >> sys.stderr
 
     t = Timer("ex_func()", "from __main__ import ex_func")
     # win32: 0.82 us
-    # suse9.1(vmware): 1.521 us
+    # suse9.1(vmware): 1.44 us
     t1 = t.timeit(REPEAT) *1e6 / REPEAT
     print >> sys.stderr, "dll call, no args:  %.2f us" % t1
     t = Timer("py_func()", "from __main__ import py_func")
     # win32: 0.14 us
-    # suse9.1(vmware): 0.231 us
+    # suse9.1(vmware): 0.23 us
     t2 = t.timeit(REPEAT) *1e6 / REPEAT
     print >> sys.stderr, "func call, no args: %.2f us" % t2
     # win32: ratio 5.8
+    # suse9.1(vmware): ratio 6.3
     print >> sys.stderr, "ratio %.1f" % (t1 / t2)
     print >> sys.stderr
