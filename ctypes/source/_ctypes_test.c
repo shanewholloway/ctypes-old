@@ -181,7 +181,6 @@ typedef struct tagpoint {
 
 EXPORT(int) _testfunc_byval(point in, point *pout)
 {
-	static point buf;
 	if (pout) {
 		pout->x = in.x;
 		pout->y = in.y;
