@@ -122,13 +122,16 @@ if _os.name == "nt":
 elif _os.name == "posix":
     from _ctypes import dlopen as _dlopen
     _FreeLibrary = None
-    def _LoadLibrary(name):
-        try:
-            return _dlopen(name)
-        except OSError:
-            if not name.endswith(".so"):
-                return _dlopen(name + ".so")
-            raise
+    if sys.platform != "darwin":
+        def _LoadLibrary(name):
+            try:
+                return _dlopen(name)
+            except OSError:
+                if not name.endswith(".so"):
+                    return _dlopen(name + ".so")
+                raise
+    else:
+        _LoadLibrary = _dlopen
 
 from _ctypes import sizeof, byref, addressof, alignment
 from _ctypes import _SimpleCData
