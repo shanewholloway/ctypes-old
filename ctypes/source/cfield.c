@@ -99,26 +99,6 @@ CField_FromDesc(PyObject *desc, int index,
 	assert(dict->setfunc);
 	setfunc = dict->setfunc;
 
-	/*  Field descriptors for 'c_char * n' are be special cased to
-	    return a Python string instead of an Array object instance...
-	*/
-	/* Special case setfunc for c_char and c_wchar arrays.  We can remove
-	   this code once we have setfunc correct for arrays.
-	 */
-	if (ArrayTypeObject_Check(desc)) {
-		StgDictObject *adict = PyType_stgdict(desc);
-		StgDictObject *idict;
-		if (adict && adict->proto) {
-			idict = PyType_stgdict(adict->proto);
-#ifdef CTYPES_UNICODE
-			if (idict->setfunc == getentry("u")->setfunc) {
-				struct fielddesc *fd = getentry("U");
-				setfunc = fd->setfunc;
-			}
-#endif
-		}
-	}
-
 	self->setfunc = setfunc;
 	self->index = index;
 
