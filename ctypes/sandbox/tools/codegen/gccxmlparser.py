@@ -1,58 +1,8 @@
-import sys, os, tempfile
+"""xml2py - create ctypes module from XML file"""
+import sys
 import xml.sax
 from sets import Set
 import nodes
-
-# XXX
-os.environ["PATH"] = r"c:\sf\buildgcc\bin\release"
-
-################################################################
-
-class CompilerError(Exception):
-    pass
-
-# Create a C file containing #includes to the specified filenames.
-# Run GCCXML to create an XML file, and return the xml filename.
-def run_gccxml(fnames, options, verbose=0, xml_file=None):
-    # fnames is the sequence of include files
-    # options is seuqence of strings containing command line options for GCCXML
-    # verbose - integer specifying the verbosity
-    #
-    # returns the filename of the generated XML file
-
-    # write a temporary C file
-    handle, c_file = tempfile.mkstemp(suffix=".c", text=True)
-    if verbose:
-        print >> sys.stderr, "writing temporary C source file %s" % c_file
-##    os.write(handle, 'extern "C" {\n');
-    for fname in fnames:
-        os.write(handle, '#include <%s>\n' % fname)
-##    os.write(handle, '}');
-    os.close(handle)
-
-    if xml_file is None:
-        handle, xml_file = tempfile.mkstemp(suffix=".xml", text=True)
-        os.close(handle)
-
-    if options:
-        options = " ".join(options)
-    else:
-        options = ""
-
-    try:
-        if verbose:
-            print >> sys.stderr, r"gccxml.exe %s %s -fxml=%s" % (options, c_file, xml_file)
-        i, o = os.popen4(r"gccxml.exe %s %s -fxml=%s" % (options, c_file, xml_file))
-        i.close()
-        sys.stderr.write(o.read())
-        retval = o.close()
-        if retval:
-            raise CompilerError, "gccxml returned error %s" % retval
-        return xml_file
-    finally:
-        if verbose:
-            print >> sys.stderr, "Deleting temporary file %s" % c_file
-        os.remove(c_file)
 
 ################################################################
 
@@ -314,70 +264,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
 ################################################################
 
-def parse(files, options=None, verbose=0, xmlfile=None):
-    # run C files through gccxml, parse the xml output,
-    # and return a sequence of items found.
-    xml_file = run_gccxml(files, options, verbose, xmlfile)
+def parse(xmlfile, options=None, verbose=0):
     handler = GCCXML_Handler()
-    if verbose:
-        print "Parsing...",
-    xml.sax.parse(xml_file, handler)
-    if verbose:
-        print "done"
+    xml.sax.parse(xmlfile, handler)
     return handler.get_result()
 
-################################################################
-
-def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
-    import getopt
-
-    gccxml_options = []
-    verbose = 0
-    try:
-        opts, files = getopt.getopt(args, "hvc:D:U:I:", ["compiler="])
-    except (getopt.GetoptError, ValueError):
-        print >> sys.stderr, __doc__
-        return 1
-    for o, a in opts:
-        if o in ("-c", "--compiler"):
-            gccxml_options.append("--gccxml-compiler %s" % a)
-        elif o in ("-D", "-U", "-I"):
-            gccxml_options.append("%s %s" % (o, a))
-        elif o == "-v":
-            verbose += 1
-        elif o == "-h":
-            print >> sys.stderr, __doc__
-            return 0
-
-    if not files:
-        print "Error: no files to process"
-        print >> sys.stderr, __doc__
-        return 1
-
-    items = parse(files, options=gccxml_options, verbose=verbose)
-
-    interesting = (nodes.FunctionType, nodes.Function,
-                   nodes.Method, nodes.ArrayType)
-
-    interesting = (nodes.Structure, nodes.ArrayType)
-
-    done = 0
-    for i in range(len(items)):
-
-        if not isinstance(items[i], interesting):
-            continue
-##        if isinstance(items[i], (nodes.Field, nodes.Constructor, type(None))):
-##            continue
-        if done > 60:
-            return 1
-        print items[i]
-        done += 1
-    return 0
-
-if __name__ == "__main__":
-    if len(sys.argv) == 1:
-##        sys.argv.extend("-v -I. test.h".split())
-        sys.argv.extend("-v windows.h".split())
-    sys.exit(main())
