@@ -12,8 +12,6 @@ import distutils.core
 
 import os
 
-################ Build the extension module description
-
 kw = {}
 kw["sources"] = ["source/_ctypes.c",
                  "source/callbacks.c",
@@ -139,7 +137,7 @@ if __name__ == '__main__':
           author_email="theller@python.net",
           license="MIT License",
           url="http://starship.python.net/crew/theller/ctypes.html",
-          platforms="windows",
+          platforms=["windows", "linux"],
 
           cmdclass = {'test': test}
           )

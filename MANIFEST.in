@@ -1,5 +1,6 @@
 include MANIFEST MANIFEST.in LICENSE.txt NEWS.txt
 include source/*.c source/*.h
-include test/*.py test/*.bat test/rt
+
 include unittests/*.py
 include docs/*.html docs/*.css docs/*.stx
+include samples/*.py samples/rt samples/rt.bat samples/README*
