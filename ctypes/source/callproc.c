@@ -685,67 +685,25 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 
 	if (restype == NULL) {
 		result->pffi_type = &ffi_type_sint;
-		result->tag = 'i';
 		return;
 	}
 
-	/* XXX Wouldn't it be better to store the 'fmt' directly
-	   in the stgdict? And for the libffi version, store the ffi_type
-	   pointer there?
-	*/
 	dict = PyType_stgdict(restype);
-	if (dict && dict->getfunc && dict->proto && PyString_Check(dict->proto)) {
-		char *fmt = PyString_AS_STRING(dict->proto);
-		/* XXX This should probably be checked when assigning the restype
-		   attribute
-		*/
-		if (strchr("zcbBhHiIlLqQdfP", fmt[0])) {
-			result->tag = fmt[0];
-			result->pffi_type = &dict->ffi_type;
-			return;
-		}
-	}
-
-	if (PointerTypeObject_Check(restype)) {
-		result->pffi_type = &ffi_type_pointer;
-		result->tag = 'P';
+	if (dict && dict->getfunc) {
+		result->pffi_type = &dict->ffi_type;
 		return;
 	}
 
-#if 0
-	if (SimpleTypeObject_Check(restype)) {
-		/* Simple data types as return value don't make too much sense
-		 * (why would you prefer a c_int instance over a plain Python integer?)
-		 * but subclasses DO make sense. Think 'class HRESULT(c_int): pass'.
-		 */
-		/*
-		 * If this would be enabled, it would start with this code:
-		 */
-		StgDictObject *dict;
-
-		dict = PyType_stgdict(restype);
-		if (!dict || !PyString_Check(dict->proto)) {
-			PyErr_SetString(PyExc_TypeError,
-					"invalid restype: has no stgdict or proto invalid");
-			goto error;
-		}
-		format = PyString_AS_STRING(dict->proto)[0];
-	}
-#endif
 	if (PyCallable_Check(restype)) {
-		result->tag = 'i'; /* call with integer result */
 		result->pffi_type = &ffi_type_sint;
 		return;
 	}
 
 	if (restype == Py_None) {
-		result->tag = 'v'; /* call with void result */
 		result->pffi_type = &ffi_type_void;
 		return;
 	}
-
-	/* XXX This should not occur... */
-	result->tag = 'i';
+	/* should not occurr */
 	result->pffi_type = &ffi_type_sint;
 }
 
@@ -915,7 +873,7 @@ PyObject *_CallProc(PPROC pProc,
 		retval = GetResult(restype, &result);
   error:
 	for (i = 0; i < argcount; ++i) {
-		Py_XDECREF(pargs[i]->obj);
+		Py_XDECREF(pargs[i]);
 	}
 	Py_XDECREF(result.obj);
 	return retval;
