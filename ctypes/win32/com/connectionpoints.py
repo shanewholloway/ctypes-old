@@ -1,10 +1,10 @@
 # connect.py - ConnectionPoint support
-from ctypes import POINTER, c_ulong, Structure, c_voidp
+from ctypes import POINTER, c_ulong, Structure, c_voidp, pointer, byref
 from ctypes.com import IUnknown, GUID, REFIID, STDMETHOD, HRESULT
 
 ################
 
-DWORD = c_ulong
+from ctypes.wintypes import DWORD
 
 ################
 
@@ -53,3 +53,12 @@ IConnectionPointContainer._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "EnumConnectionPoints", POINTER(PIEnumConnectionPoints)),
     STDMETHOD(HRESULT, "FindConnectionPoint", REFIID, POINTER(PIConnectionPoint))]
 
+def GetConnectionPoint(comptr, event_interface):
+    # query for IConnectionPointContainer
+    cpc = pointer(IConnectionPointContainer())
+    comptr.QueryInterface(byref(IConnectionPointContainer._iid_), byref(cpc))
+
+    # Find the connection point
+    cp = pointer(IConnectionPoint())
+    cpc.FindConnectionPoint(byref(event_interface._iid_), byref(cp))
+    return cp

@@ -1,16 +1,12 @@
 from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
-     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring, \
-     oledll, byref, sizeof, WinFuncType, SetPointerType, WinError, pointer
+     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, \
+     oledll, byref, sizeof, WINFUNCTYPE, SetPointerType, WinError, pointer
 
 from _ctypes import HRESULT
 
 ole32 = oledll.ole32
 
-##from ctypes.windows import *
-
-DWORD = c_ulong
-WORD = c_ushort
-BYTE = c_byte
+from ctypes.wintypes import DWORD, WORD, BYTE
 
 ################################################################
 # Basic COM data types
@@ -27,12 +23,12 @@ class GUID(Structure):
             ole32.CLSIDFromString(unicode(name), byref(self))
 
     def __repr__(self):
-        s = c_wstring(u'\000' * 39)
+        s = (c_wchar * 39)()
         ole32.StringFromGUID2(byref(self), s, 39)
         return "<guid:%s>" % s.value
 
     def __str__(self):
-        s = c_wstring(u'\000' * 39)
+        s = (c_wchar * 39)()
         ole32.StringFromGUID2(byref(self), s, 39)
         return s.value
 
@@ -61,7 +57,7 @@ def STDMETHOD(restype, name, *argtypes):
     # First argument (this) for COM method implementation is really an
     # IUnknown pointer, but we don't want this to be built all the time,
     # since we probably don't use it, so use c_voidp
-    return name, WinFuncType(restype, c_voidp, *argtypes)
+    return name, WINFUNCTYPE(restype, c_voidp, *argtypes)
 
 def COMPointer__del__(self):
     if self.contents.lpVtbl:
@@ -136,7 +132,7 @@ class _interface_meta(type(Structure)):
             # For this we don't want the first argument - the 'this' pointer.
             restype = PROTO.__dict__["_restype_"]
             argtypes = PROTO.__dict__["_argtypes_"][1:]
-            clientPROTO = WinFuncType(restype, *argtypes)
+            clientPROTO = WINFUNCTYPE(restype, *argtypes)
             mth = new.instancemethod(clientPROTO(index), None, ptrclass)
             setattr(ptrclass, name, mth)
             index += 1
@@ -182,12 +178,15 @@ E_NOINTERFACE = 0x80004002
 
 class COMObject:
     _refcnt = 0
+    _factory = None
 
     def __init__(self):
         # actually this contains (iid, interface) pairs, where iid is
         # a GUID instance, and interface is an IUnknown or subclass instance.
         # The address of this instance is the actual COM interface pointer!
         self._com_pointers_ = []
+        for itf in self._com_interfaces_:
+            self._make_interface_pointer(itf)
 
     def _make_interface_pointer(self, itfclass):
         # Take an interface class like 'IUnknown' and create
@@ -225,10 +224,14 @@ class COMObject:
                 return S_OK
         return E_NOINTERFACE
 
+    # IUnknown methods
+
     def AddRef(self, this):
         self._refcnt += 1
+        self._factory.LockServer(None, 1)
         return self._refcnt
 
     def Release(self, this):
         self._refcnt -= 1
+        self._factory.LockServer(None, 0)
         return self._refcnt
