@@ -3366,6 +3366,23 @@ EXPORT PY_LONG_LONG _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_L
 }
 
 #endif
+
+EXPORT int _testfunc_ppp(char ***p)
+{
+	static char message[] = "Hello, World";
+	if (p) {
+		*p = malloc(sizeof(char *));
+		printf("malloc returned %d\n", *p);
+		**p = message;
+		return 1;
+	}
+	return 0;
+}
+
+EXPORT void my_free(void *p)
+{
+	printf("my_free got %d\n", p);
+}
 /*
  Local Variables:
  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
