@@ -676,7 +676,7 @@ static int _call_function_pointer(int flags,
 #endif
 	return 0;
 }
-#else
+#else /* USE_LIBFFI */
 #pragma optimize ("", off)
 /*
  * Can you figure out what this does? ;-)
@@ -902,7 +902,7 @@ static int _call_function_pointer(int flags,
 }
 #pragma optimize ("", on)
 
-#endif
+#endif /* USE_LIBFFI */
 
 #define RESULT_PASTE_INTO 1
 #define RESULT_CALL_RESTYPE 2
@@ -1222,6 +1222,8 @@ static PyObject *free_library(PyObject *self, PyObject *args)
 	return Py_None;
 }
 
+/* obsolete, should be removed */
+/* Only used by sample code (in samples\Windows\COM.py) */
 static PyObject *
 call_commethod(PyObject *self, PyObject *args)
 {
@@ -1328,60 +1330,6 @@ static PyObject *py_dl_sym(PyObject *self, PyObject *args)
 }
 #endif
 
-/*
- * Only for debugging so far: So that we can call CFunction instances
- *
- * XXX Needs to accept more arguments: flags, argtypes, restype
- */
-static PyObject *
-call_function(PyObject *self, PyObject *args)
-{
-	PPROC func;
-	PyObject *arguments;
-	PyObject *result;
-
-	if (!PyArg_ParseTuple(args,
-			      "iO!",
-			      &func,
-			      &PyTuple_Type, &arguments))
-		return NULL;
-
-	result =  _CallProc(func,
-			    arguments,
-			    NULL,
-			    0, /* flags */
-			    NULL, /* self->argtypes */
-			    NULL); /* self->restype */
-	return result;
-}
-
-/*
- * Only for debugging so far: So that we can call CFunction instances
- *
- * XXX Needs to accept more arguments: flags, argtypes, restype
- */
-static PyObject *
-call_cdeclfunction(PyObject *self, PyObject *args)
-{
-	PPROC func;
-	PyObject *arguments;
-	PyObject *result;
-
-	if (!PyArg_ParseTuple(args,
-			      "iO!",
-			      &func,
-			      &PyTuple_Type, &arguments))
-		return NULL;
-
-	result =  _CallProc(func,
-			    arguments,
-			    NULL,
-			    FUNCFLAG_CDECL, /* flags */
-			    NULL, /* self->argtypes */
-			    NULL); /* self->restype */
-	return result;
-}
-
 PyMethodDef module_methods[] = {
 #ifdef MS_WIN32
 	{"FormatError", format_error, METH_VARARGS, format_error_doc},
@@ -1398,8 +1346,6 @@ PyMethodDef module_methods[] = {
 	{"sizeof", sizeof_func, METH_O},
 	{"byref", byref, METH_O},
 	{"addressof", addressof, METH_O},
-	{"call_function", call_function, METH_VARARGS },
-	{"call_cdeclfunction", call_cdeclfunction, METH_VARARGS },
 	{NULL,      NULL}        /* Sentinel */
 };
 
