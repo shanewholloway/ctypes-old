@@ -23,6 +23,7 @@ import distutils.core
 from distutils.errors import DistutilsOptionError
 from distutils.command import build_py, build_ext, clean
 from distutils.dir_util import mkpath
+from distutils.util import get_platform
 
 kw = {}
 kw["sources"] = ["source/_ctypes.c",
@@ -85,7 +86,7 @@ else:
                             sources=["source/_ctypes_test.c"])
                   ]
 ################################################################
-# This section copied from the PyObjC project
+# Parts of this section copied from the PyObjC project
 if sys.platform == 'darwin':
     # Apple has used build options that don't work with a 'normal' system.
     # Remove '-arch i386' from the LDFLAGS.
@@ -104,6 +105,11 @@ if sys.platform == 'darwin':
 
 if sys.platform == 'win32':
     LIBFFI_SOURCES=None
+
+platform = get_platform()
+
+if platform in ["solaris-2.9-sun4u"]:
+    os.environ["CFLAGS"] = "-fPIC"
 
 ################################################################
 
