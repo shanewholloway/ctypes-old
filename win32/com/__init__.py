@@ -285,6 +285,10 @@ class COMObject(object):
         # Search for methods named <interface>_<methodname> in the
         # interface, including base interfaces
 ##        print str([hasattr(x, "AddRef") and i for i, x in enumerate(proto._argtypes_)])
+
+        # We still have the problem when a COM method is implemented in Python,
+        # that we have to call .AddRef on all received COM interface pointers manually.
+        # This MUST either be fixed here, or in wrap, or in _ctypes' C code.
         for i in itfclass.mro()[:-3]:
             func = getattr(self, "%s_%s" % (i.__name__, name), None)
             if func is not None:
@@ -300,10 +304,12 @@ class COMObject(object):
                 return func
 
         def notimpl(self, *args):
-            dprint("<E_NOTIMPL> method: %s of %s, args: %s" % \
-                      (name, itfclass.__name__, str(args)))
+            if DEBUG:
+                dprint("<called E_NOTIMPL method> %s.%s, args: %s" % \
+                       (name, itfclass.__name__, str(args)))
             return E_NOTIMPL
-        dprint("# unimplemented %s for interface %s" % (name, itfclass.__name__))
+        if DEBUG:
+            dprint("# unimplemented %s for interface %s" % (name, itfclass.__name__))
         return notimpl
 
     def _make_interface_pointer(self, itfclass):
@@ -321,6 +327,9 @@ class COMObject(object):
         for iid in [cls._iid_ for cls in itfclass.mro()[:-3]]:
             self._com_pointers_.append((iid, itf))
 
+    ################################################################
+    # IUnknown methods
+
     def QueryInterface(self, this, refiid, ppiunk):
         iid = refiid[0]
         for i, itf in self._com_pointers_:
@@ -328,8 +337,6 @@ class COMObject(object):
                 # *ppiunk = &itf
                 return CopyComPointer(addressof(itf), ppiunk)
         return E_NOINTERFACE
-
-    # IUnknown methods
 
     def AddRef(self, this):
         self._refcnt += 1
@@ -339,6 +346,10 @@ class COMObject(object):
     def Release(self, this):
         self._refcnt -= 1
         self._factory.LockServer(None, 0)
+# Later
+##        if self._refcnt == 0:
+##            import ctypes.com.server
+##            ctypes.com.server._active_objects.remove(self)
         return self._refcnt
 
 ################################################################
