@@ -864,12 +864,42 @@ Z_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	} else
 		Py_INCREF(value);
-	*(wchar_t **)ptr = PyUnicode_AS_UNICODE(value);
 #ifdef HAVE_USABLE_WCHAR_T
-#else
-//#error FIXME
-#endif
+	/* HAVE_USABLE_WCHAR_T means that Py_UNICODE and wchar_t is the same
+	   type.  So we can copy directly.  Hm, are unicode objects always NUL
+	   terminated in Python, internally?
+	 */
+	*(wchar_t **)ptr = PyUnicode_AS_UNICODE(value);
 	return value;
+#else
+	{
+		/* We must create a wchar_t* buffer from the unicode object,
+		   and keep it alive */
+		PyObject *keep;
+		wchar_t *buffer;
+
+		int size = PyUnicode_GET_SIZE(value);
+		size += 1; /* terminating NUL */
+		size *= sizeof(wchar_t);
+		buffer = (wchar_t *)PyMem_Malloc(size);
+		if (!buffer)
+			return NULL;
+		memset(buffer, 0, size);
+		keep = PyCObject_FromVoidPtr(buffer, PyMem_Free);
+		if (!keep) {
+			PyMem_Free(buffer);
+			return NULL;
+		}
+		*(wchar_t **)ptr = (wchar_t *)buffer;
+		if (-1 == PyUnicode_AsWideChar((PyUnicodeObject *)value,
+					       buffer, PyUnicode_GET_SIZE(value))) {
+			Py_DECREF(value);
+			return NULL;
+		}
+		Py_DECREF(value);
+		return keep;
+	}
+#endif
 }
 
 static PyObject *
