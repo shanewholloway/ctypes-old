@@ -147,7 +147,7 @@ class TypeInfoReader:
             if td.vt == VT_USERDEFINED:
                 # Pointer to a user defined data type.
                 hr = td.u.hreftype
-                ti = pointer(ITypeInfo())
+                ti = POINTER(ITypeInfo)()
                 self.ti.GetRefTypeInfo(hr, byref(ti))
 
                 pta = LPTYPEATTR()
@@ -179,7 +179,7 @@ class TypeInfoReader:
             if td.vt == VT_USERDEFINED:
                 # Array of a user defined data type.
                 hr = td.u.hreftype
-                ti = pointer(ITypeInfo())
+                ti = POINTER(ITypeInfo)()
                 self.ti.GetRefTypeInfo(hr, byref(ti))
 
                 pta = LPTYPEATTR()
@@ -197,7 +197,7 @@ class TypeInfoReader:
         if tdesc.vt == VT_USERDEFINED:
             # use hreftype
             hr = tdesc.u.hreftype
-            ti = pointer(ITypeInfo())
+            ti = POINTER(ITypeInfo)()
             self.ti.GetRefTypeInfo(hr, byref(ti))
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
@@ -343,7 +343,7 @@ class InterfaceReader(TypeInfoReader):
             hr = HREFTYPE()
             self.ti.GetRefTypeOfImplType(i, byref(hr))
 
-            ti = pointer(ITypeInfo())
+            ti = POINTER(ITypeInfo)()
             self.ti.GetRefTypeInfo(hr, byref(ti))
 
             name = BSTR()
@@ -516,7 +516,7 @@ class CoClassReader(TypeInfoReader):
             hr = HREFTYPE()
             self.ti.GetRefTypeOfImplType(i, byref(hr))
 
-            ti = pointer(ITypeInfo())
+            ti = POINTER(ITypeInfo)()
             self.ti.GetRefTypeInfo(hr, byref(ti))
 
             name = BSTR()
@@ -584,7 +584,7 @@ class TypeLibReader:
         for i in range(tlb.GetTypeInfoCount()):
             kind = c_int()
             tlb.GetTypeInfoType(i, byref(kind))
-            ti = pointer(ITypeInfo())
+            ti = POINTER(ITypeInfo)()
             tlb.GetTypeInfo(i, byref(ti))
 
             # missing:
