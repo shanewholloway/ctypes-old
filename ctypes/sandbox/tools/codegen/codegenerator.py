@@ -138,16 +138,11 @@ def _type_name(t):
         return t.name
     return t.name
 
+
 # Is this needed?
 ##renames = {
 ##    "POINTER(const(WCHAR))": "c_wchar_p",
 ##    }
-
-##def type_name(t):
-##    result = _type_name(t)
-##    return renames.get(result, result)
-
-type_name = _type_name
 
 def get_real_type(tp):
     if type(tp) is typedesc.Typedef:
@@ -388,6 +383,27 @@ class Generator(object):
 ##        return "???"
         return None
 
+    _call_as_defined = False
+    def need_call_as(self):
+        if self._call_as_defined:
+            return
+        print >> self.stream, "from deco import call_as"
+        self._call_as_defined = True
+
+    _stdcall_defined = False
+    def need_stdcall(self):
+        if self._stdcall_defined:
+            return
+        print >> self.stream, "from deco import stdcall"
+        self._stdcall_defined = True
+
+    _cdecl_defined = False
+    def need_cdecl(self):
+        if self._cdecl_defined:
+            return
+        print >> self.stream, "from deco import cdecl"
+        self._cdecl_defined = True
+
     _functiontypes = 0
     _notfound_functiontypes = 0
     def Function(self, func):
@@ -399,8 +415,10 @@ class Generator(object):
             self.generate_all(func.arguments)
             args = [type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
+                self.need_stdcall()
                 cc = "stdcall"
             else:
+                self.need_cdecl()
                 cc = "cdecl"
             print >> self.stream
             # decorator
@@ -408,6 +426,7 @@ class Generator(object):
                 print >> self.stream, "@ %s(%s, %s, [%s])" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             else:
+                self.need_call_as()
                 print >> self.stream, "[ call_as(%s(%s, %s, [%s])) ]" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
@@ -503,12 +522,8 @@ def generate_code(xmlfile, outfile,
     gen = Generator(outfile, use_decorators=use_decorators)
     # output header
     print >> outfile, "from ctypes import *"
-##    print >> outfile, "from _support import STDCALL, CDECL"
-    if use_decorators:
-        print >> outfile, "from deco import stdcall"
-    else:
-        print >> outfile, "from deco import stdcall, call_as"
     print >> outfile, "def const(x): return x"
+    print >> outfile, "def volatile(x): return x"
     print >> outfile
     loops = gen.generate_code(items)
     if verbose:
