@@ -1,6 +1,6 @@
 ctypes tutorial
 
-  "overview":index.html :: tutorial ::
+  "overview":index.html :: tutorial :: "codegenerator":codegen.html ::
   "reference":reference.html :: "faq":faq.html
 
   ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
