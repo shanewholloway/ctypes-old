@@ -16,7 +16,13 @@ ole32.CoInitialize(None)
 
 class _Cleaner(object):
     def __del__(self, func=ole32.CoUninitialize):
-        func()
+        # Sometimes, CoUnititialize, running at Python shutdown, raises an exception.
+        # We suppress this when __debug__ is False.
+        if __debug__:
+            func()
+        else:
+            try: func()
+            except WindowsError: pass
 
 __cleaner = _Cleaner()
 del _Cleaner
@@ -224,7 +230,7 @@ def _wrap(func, name, itfclass):
 ##        dprint("XXX", [hasattr(a, "AddRef") for a in args])
         result = func(self, *args)
         dprint("<method call> %s.%s -> %s" % \
-               (itfclass.__name__, name, hex(result)))
+               (itfclass.__name__, name, result))
         return result
     return wrapped
 
