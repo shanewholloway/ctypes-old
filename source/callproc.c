@@ -862,6 +862,9 @@ static int _call_function_pointer(int flags,
 		case 'P':
 			res->value.p = ((void *(*)())pProc)();
 			break;
+		case 'v':
+			((void(*)())pProc)();
+			break;
 		default:
 			/* XXX Signal bug */
 			res->tag |= 0x80;
@@ -988,6 +991,11 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 		return;
 	}
 
+	if (restype == Py_None) {
+		result->tag = 'v'; /* call with void result */
+		return;
+	}
+
 	/* XXX This should not occur... */
 	result->tag = 'i';
 }
@@ -998,6 +1006,11 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 {
 	StgDictObject *dict;
+
+	if (restype == Py_None) {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
 
 	if (restype == NULL)
 		return ToPython(&result->value, result->tag);
