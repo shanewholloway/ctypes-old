@@ -1491,9 +1491,18 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	} else {
 		obj->b_base = NULL;
 		obj->b_index = 0;
+
+		/* 1.11 us in Python 2.3 -OO, 30% of total creation time for c_int() */
+		/* 2.2 us in Pyton 2.2 -OO, ~20% of total creation time */
+		/* Should we use an array of objects in the CDataObject structure
+		   instead of the b_objects pointer pointing to a list? */
 		obj->b_objects = NoneList(length);
 		obj->b_length = length;
 
+		/* 0.7 us in Python 2.3, 20 % of total creation time for c_int() */
+		/* same ABSOLUTE time, but smaller percentage in Python 2.2 */
+		/* We could save this time if the buffer in this case
+		   would be part of the object already */
 		obj->b_ptr = PyMem_Malloc(size);
 		obj->b_size = size;
 		obj->b_needsfree = 1;
