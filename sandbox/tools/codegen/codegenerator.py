@@ -142,7 +142,6 @@ def type_name(t):
         return t.name
     return t.name
 
-
 # Is this needed?
 ##renames = {
 ##    "POINTER(const(WCHAR))": "c_wchar_p",
@@ -353,14 +352,14 @@ class Generator(object):
     def need_stdcall(self):
         if self._stdcall_defined:
             return
-        print >> self.stream, "from deco import stdcall"
+        print >> self.stream, "from ctypes.decorators import stdcall"
         self._stdcall_defined = True
 
     _cdecl_defined = False
     def need_cdecl(self):
         if self._cdecl_defined:
             return
-        print >> self.stream, "from deco import cdecl"
+        print >> self.stream, "from ctypes.decorators import cdecl"
         self._cdecl_defined = True
 
     _functiontypes = 0
@@ -381,7 +380,7 @@ class Generator(object):
                 cc = "cdecl"
             print >> self.stream
             if self.use_decorators:
-                print >> self.stream, "@ %s(%s, '%s', [%s])" % \
+                print >> self.stream, "@ %s(%s, %r, [%s])" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
@@ -389,7 +388,7 @@ class Generator(object):
             print >> self.stream, "    'Function %s in %s'" % (func.name, dllname)
             print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
             if not self.use_decorators:
-                print >> self.stream, "%s = %s(%s, '%s', [%s]) (%s)" % \
+                print >> self.stream, "%s = %s(%s, %r, [%s]) (%s)" % \
                       (func.name, cc, type_name(func.returns), dllname, ", ".join(args), func.name)
             print >> self.stream
             self._functiontypes += 1
@@ -400,6 +399,11 @@ class Generator(object):
     Union = Structure
 
     def FundamentalType(self, item):
+        if item in self.done:
+            return
+        name = ctypes_names[item.name]
+        if name !=  "None":
+            print >> self.stream, "from ctypes import %s" % name
         self.done.add(item)
 
     ########
@@ -496,10 +500,8 @@ def generate_code(xmlfile,
 
     gen = Generator(outfile, use_decorators=use_decorators)
     # output header
-    print >> outfile, "from ctypes import *"
-    print >> outfile, "class _com_interface(Structure): # fake"
-    print >> outfile, "    _fields_ = [('lpVtbl', c_void_p)]"
-    print >> outfile, "def STDMETHOD(*args,**kw): pass # fake"
+    print >> outfile, "from ctypes import Structure, Union, CFUNCTYPE, WINFUNCTYPE, POINTER"
+    print >> outfile, "from ctypes import sizeof, alignment, c_void_p, c_int"
     print >> outfile
     loops = gen.generate_code(items,
                               known_symbols,
