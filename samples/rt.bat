@@ -1,7 +1,7 @@
 @echo off
 @setlocal
-@set _exe=c:\python22\python.exe
-@if "%1"=="-d" set _exe=c:\python22\PCBuild\python_d.exe
+@set _exe=c:\python23\python.exe
+@if "%1"=="-d" set _exe=c:\sf\python\dist\src-maint23\PCBuild\python_d.exe
 
 %_exe% Windows\FindFile.py
 %_exe% Windows\GetDiskFreeSpaceEx.py
