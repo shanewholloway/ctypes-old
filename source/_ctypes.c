@@ -3180,7 +3180,6 @@ Array_init(CDataObject *self, PyObject *args, PyObject *kw)
 static PyObject *
 Array_item(CDataObject *self, int index)
 {
-	int offset, size;
 	PyObject *itemtype;
 	StgDictObject *stgdict;
 
@@ -3194,10 +3193,7 @@ Array_item(CDataObject *self, int index)
 	itemtype = stgdict->itemtype;
 	stgdict = PyType_stgdict(itemtype);
 
-	size = stgdict->size;
-	offset = index * size;
-
-	return stgdict->getfunc(self->b_ptr + offset, size,
+	return stgdict->getfunc(self->b_ptr + stgdict->size * index, stgdict->size,
 				itemtype, self, index);
 }
 
