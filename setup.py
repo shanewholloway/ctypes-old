@@ -417,6 +417,8 @@ class my_clean(clean.clean):
 
 # Use different MANIFEST templates, to minimize the distribution size.
 # Also, the MANIFEST templates behave differently on Windows and Linux (distutils bug?)
+options = {}
+
 if sys.platform == 'win32':
     options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
 else:
