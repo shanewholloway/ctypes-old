@@ -3,6 +3,42 @@ from ctypes import *
 
 class CallbacksTestCase(unittest.TestCase):
 
+    def test_cdecl_callback(self):
+        import _ctypes_test
+        CALLBACK = CFUNCTYPE(c_int, c_int, c_int)
+        e_func = CDLL(_ctypes_test.__file__)._testfunc_callback_i_iif
+
+        def func(a, b):
+##            print "cdecl func called with", a, b
+            return a + b
+
+        result = e_func(10, CALLBACK(func))
+        self.failUnlessEqual(result, 54)
+
+    def test_stdcall_callback(self):
+        import _ctypes_test
+        CALLBACK = WINFUNCTYPE(c_int, c_int, c_int)
+        e_func = CDLL(_ctypes_test.__file__)._testfunc_stdcall_callback_i_iif
+
+        def func(a, b):
+##            print "stdcall func called with", a, b
+            return a + b
+
+        result = e_func(10, CALLBACK(func))
+        self.failUnlessEqual(result, 54)
+
+    def test_simple_callback(self):
+        import _ctypes_test
+        CALLBACK = CFUNCTYPE(c_int, c_int)
+        e_func = CDLL(_ctypes_test.__file__)._testfunc_callback_i_if
+
+        def func(x):
+##            print "func called with", x
+            return x
+
+        result = e_func(10, CALLBACK(func))
+        self.failUnlessEqual(result, 18)
+
     def test_integrate(self):
         # Derived from some then non-working code, posted by David Foster
         import _ctypes_test
