@@ -422,7 +422,7 @@ options = {}
 if sys.platform == 'win32':
     options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
 else:
-    options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
+    options["sdist"] = {"template": "MANIFEST.other.in", "force_manifest": 1}
 
 if __name__ == '__main__':
     setup(name="ctypes",
