@@ -113,6 +113,14 @@ class PointersTestCase(unittest.TestCase):
         self.failUnless(pt.contents.c == 3)
 
         pt.contents.c = 33
+
+    def test_basic(self):
+        p = pointer(c_int(42))
+        # Although a pointer can be indexed, it ha no length
+        self.assertRaises(TypeError, len, p)
+        self.failUnlessEqual(p[0], 42)
+        self.failUnlessEqual(p.contents.value, 42)
+        
     
 def get_suite():
     return unittest.makeSuite(PointersTestCase)

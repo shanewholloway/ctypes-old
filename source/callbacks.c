@@ -10,7 +10,7 @@
 
 static PyInterpreterState *g_interp;	/* need this to create new thread states */
 
-static void EnterPython(char *msg)
+static void EnterPython(void)
 {
 	PyThreadState *pts;
 	PyEval_AcquireLock();
@@ -21,7 +21,7 @@ static void EnterPython(char *msg)
 		Py_FatalError("wincall (EnterPython): thread state not == NULL?");
 }
 
-static void LeavePython(char *msg)
+static void LeavePython(void)
 {
 	PyThreadState *pts = PyThreadState_Get();
 	if (!pts)
@@ -31,9 +31,6 @@ static void LeavePython(char *msg)
 	PyThreadState_Delete(pts);
 	PyEval_ReleaseLock();
 }
-
-#define ENTER_PYTHON(msg)		EnterPython(msg)
-#define LEAVE_PYTHON(msg)		LeavePython(msg)
 
 /********************************************************************************
  *
@@ -91,7 +88,7 @@ static int __stdcall CallPythonObject(PyObject *callable,
 	DWORD dwExceptionCode = 0;
 #endif
 
-	ENTER_PYTHON("CallPythonObject");
+	EnterPython();
 
 	nArgs = PySequence_Length(converters);
 	/* Hm. What to return in case of error?
@@ -185,7 +182,7 @@ static int __stdcall CallPythonObject(PyObject *callable,
 	}
   Done:
 	Py_XDECREF(arglist);
-	LEAVE_PYTHON("CallPythonObject");
+	LeavePython();
 	return retcode;
 }
 
@@ -613,11 +610,11 @@ STDAPI DllGetClassObject(REFCLSID rclsid,
 
 	if (!Py_IsInitialized()) {
 		LoadPython();
-		LeavePython("Loaded");
+		LeavePython();
 	}
-	EnterPython("DllGetClassObject");
+	EnterPython();
 	result = Call_GetClassObject(rclsid, riid, ppv);
-	LeavePython("DllGetClassObject");
+	LeavePython();
 	return result;
 }
 
@@ -664,11 +661,11 @@ STDAPI DllCanUnloadNow(void)
 
 	if (!Py_IsInitialized()) {
 		LoadPython();
-		LeavePython("Loaded");
+		LeavePython();
 	}
-	EnterPython("CanUnloadNow");
+	EnterPython();
 	result = Call_CanUnloadNow();
-	LeavePython("CanUnloadNow");
+	LeavePython();
 	return result;
 }
 
