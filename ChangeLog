@@ -1,3 +1,9 @@
+2004-08-19  Thomas Heller  <theller@python.net>
+
+	* source/callproc.c: The _ctypes.call_function function, although
+	private and deprecated, has been put back in - it is used by Gary
+	Bishop's readline module.
+
 2004-08-18  Thomas Heller  <theller@python.net>
 
 	* (Message): Array and POINTER instance now support slicing, for
