@@ -17,7 +17,9 @@ class RECT(Structure):
 class BOOL(c_long):
     def check_retval(self, val):
         if val == 0:
-            raise WinError()
+            # WindowsError would be bettter, but the tests must run
+            # crossplatform
+            raise ValueError(val)
     _check_retval_ = classmethod(check_retval)
 
 class Test(unittest.TestCase):
@@ -55,7 +57,7 @@ class Test(unittest.TestCase):
         # returns a RECT instance...
         self.assertEqual(type(func(hwnd_desktop)), RECT)
         # ...unless the call fails
-        self.assertRaises(WindowsError, lambda: func(0))
+        self.assertRaises(ValueError, lambda: func(0))
         # TypeError: required argument 'hwnd' missing
         self.assertRaises(TypeError, lambda: func())
         # TypeError: call takes exactly 1 arguments (3 given)
@@ -78,7 +80,7 @@ class Test(unittest.TestCase):
             # returns a RECT instance...
             self.assertEqual(type(func(hwnd=hwnd_desktop)), RECT)
             # ...unless the call fails
-            self.assertRaises(WindowsError, lambda: func(0))
+            self.assertRaises(ValueError, lambda: func(0))
             # TypeError: required argument 'hwnd' missing
             self.assertRaises(TypeError, lambda: func())
             # TypeError: call takes exactly 1 arguments (3 given)

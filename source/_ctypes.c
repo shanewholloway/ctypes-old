@@ -2816,6 +2816,8 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 	checker = self->checker ? self->checker : dict->checker;
 	argtypes = self->argtypes ? self->argtypes : dict->argtypes;
 
+
+	pProc = *(void **)self->b_ptr;
 #ifdef MS_WIN32
 	if (self->index) {
 		/* It's a COM method */
@@ -2845,8 +2847,6 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 			return NULL;
 		}
 		pProc = ((void **)piunk->lpVtbl)[self->index - 0x1000];
-	} else {
-		pProc = *(void **)self->b_ptr;
 	}
 #endif
 	callargs = _build_callargs(self, argtypes, inargs, kwds, &retval);
