@@ -752,55 +752,14 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 	}
 
 	dict = PyType_stgdict(restype);
+	if (dict && dict->size < sizeof(ffi_arg)) {
+		char *p = result;
+		p += sizeof(ffi_arg) - dict->size;
+		result = p;
+	}
 	if (dict && dict->getfunc) {
-		/* This hack is needed for big endian machines.
-		   Is there another way?
-		 */
-		PyObject *retval;
-#if 0
-		char c;
-		short s;
-		int i;
-#if (SIZEOF_LONG != SIZEOF_INT)
-		long l;
-#endif
-		switch (dict->size) {
-		case 1:
-			c = (char)*(long *)result;
-			retval = dict->getfunc(&c, dict->size,
-					       restype, NULL, 0);
-			break;
-		case SIZEOF_SHORT:
-			s = (short)*(long *)result;
-			retval = dict->getfunc(&s, dict->size,
-					       restype, NULL, 0);
-			break;
-		case SIZEOF_INT:
-			i = (int)*(long *)result;
-			retval = dict->getfunc(&i, dict->size,
-					       restype, NULL, 0);
-			break;
-#if (SIZEOF_LONG != SIZEOF_INT)
-		case SIZEOF_LONG:
-			l = (long)*(long *)result;
-			retval = dict->getfunc(&l, dict->size,
-					       restype, NULL, 0);
-			break;
-#endif
-		default:
-			retval = dict->getfunc(result, dict->size,
-					       restype, NULL, 0);
-			break;
-		}
-#else
-		if (dict->size < sizeof(ffi_arg)) {
-			char *p = result;
-			p += sizeof(ffi_arg) - dict->size;
-			result = p;
-		}
-		retval = dict->getfunc(result, dict->size,
-				       restype, NULL, 0);
-#endif
+		PyObject *retval = dict->getfunc(result, dict->size,
+						 restype, NULL, 0);
 		if (retval == NULL)
 			return NULL;
 		if (checker == NULL)
