@@ -1226,6 +1226,7 @@ string_ptr_from_param(PyObject *type, PyObject *value)
 	/* z_set and Z_set accept integers as well. Until that is fixed, we
 	 have to typecheck here. */
 	if (value == Py_None || PyString_Check(value) || PyUnicode_Check(value)) {
+		/* Call setfunc */
 		PyCArgObject *parg;
 		StgDictObject *dict = PyType_stgdict(type);
 
@@ -1320,18 +1321,16 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		}
 	}
 	stgd = PyObject_stgdict(value);
-	if (stgd) {
-		if (stgd->proto == c_char || stgd->proto == c_wchar) {
-			PyCArgObject *parg = new_CArgObject();
-			if (parg == NULL)
-				return NULL;
-			parg->pffi_type = &ffi_type_pointer;
-			Py_INCREF(value);
-			parg->obj = value;
-			/* Remember: b_ptr points to where the pointer is stored! */
-			parg->value.p = *(void **)(((CDataObject *)value)->b_ptr);
-			return (PyObject *)parg;
-		}
+	if (stgd && (stgd->proto == c_char || stgd->proto == c_wchar)) {
+		PyCArgObject *parg = new_CArgObject();
+		if (parg == NULL)
+			return NULL;
+		parg->pffi_type = &ffi_type_pointer;
+		Py_INCREF(value);
+		parg->obj = value;
+		/* Remember: b_ptr points to where the pointer is stored! */
+		parg->value.p = *(void **)(((CDataObject *)value)->b_ptr);
+		return (PyObject *)parg;
 	}
 	/* XXX better message */
 	PyErr_SetString(PyExc_TypeError,
@@ -1386,8 +1385,10 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 	stgdict = (StgDictObject *)PyObject_CallObject(
 		(PyObject *)&StgDict_Type, NULL);
-	if (!stgdict)
+	if (!stgdict) {
+		Py_DECREF(proto);
 		return NULL;
+	}
 
 	fmt = getentry(PyString_AS_STRING(proto));
 
@@ -1398,11 +1399,10 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->setfunc = fmt->setfunc;
 	stgdict->getfunc = fmt->getfunc;
 	stgdict->asparam = Simple_asparam;
-	/* This consumes the refcount on proto which we have */
-	stgdict->proto = proto;
 
-	/* replace the class dict by our updated spam dict */
+	/* replace the class dict by the storage dict */
 	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
+		Py_DECREF(proto);
 		Py_DECREF(result);
 		Py_DECREF((PyObject *)stgdict);
 		return NULL;
@@ -1462,6 +1462,7 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			}
 		}
 	}
+	Py_DECREF(proto);
 	return (PyObject *)result;
 }
 
