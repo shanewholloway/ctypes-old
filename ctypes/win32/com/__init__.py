@@ -39,7 +39,6 @@ class GUID(Structure):
 
     def __nonzero__(self):
         result = str(buffer(self)) != "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        print "__nonzero__", self, result
         return result
 
     def __eq__(self, other, IsEqualGUID=ole32.IsEqualGUID):
