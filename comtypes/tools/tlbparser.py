@@ -218,14 +218,14 @@ class TlbParser(object):
                                     members=members,
                                     base=base,
                                     iid=str(ta.guid),
-                                    idlflags=self.idl_flags(ta.wTypeFlags))
+                                    idlflags=self.idl_flags_interface(ta.wTypeFlags))
         self.items[itf_name] = itf
 
         assert ta.cVars == 0, "vars on an Interface?"
 
         for i in range(ta.cFuncs):
             fd = tinfo.GetFuncDesc(i)
-            func_name = tinfo.GetDocumentation(fd.memid)[0]
+            func_name, func_doc = tinfo.GetDocumentation(fd.memid)[0:2]
             returns = self.make_type(fd.elemdescFunc.tdesc, tinfo)
             names = tinfo.GetNames(fd.memid, fd.cParams+1)
             names.append("rhs")
@@ -234,6 +234,7 @@ class TlbParser(object):
             flags = self.func_flags(fd.wFuncFlags)
             flags += self.inv_kind(fd.invkind)
             mth = typedesc.ComMethod(fd.invkind, func_name, returns, flags)
+            mth.doc = func_doc
             for p in range(fd.cParams):
                 typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
                 name = names[p+1]
@@ -262,7 +263,7 @@ class TlbParser(object):
                                      members=members,
                                      base=base,
                                      iid=str(ta.guid),
-                                     idlflags=self.idl_flags(ta.wTypeFlags))
+                                     idlflags=self.idl_flags_interface(ta.wTypeFlags))
         itf.doc = str(doc)
         self.items[itf_name] = itf
 
@@ -349,7 +350,6 @@ class TlbParser(object):
                  }
         return [NAMES[bit] for bit in NAMES if bit & flags]
 
-    def idl_flags(self, flags):
         # map TYPEFLAGS values to idl attributes
         NAMES = {typeinfo.TYPEFLAG_FAPPOBJECT: "appobject",
                  typeinfo.TYPEFLAG_FLICENSED: "licensed",
@@ -366,11 +366,32 @@ class TlbParser(object):
                  typeinfo.TYPEFLAG_FREVERSEBIND: "reversebind",
                  typeinfo.TYPEFLAG_FPROXY: "proxy",
                  }
-        NEGATIVE_NAMES = {typeinfo.TYPEFLAG_FCANCREATE: "noncreatable"}
 
-        return [NAMES[bit] for bit in NAMES if bit & flags] + \
-               [NEGATIVE_NAMES[bit] for bit in NEGATIVE_NAMES if (bit & flags == 0)]
+    TYPEFLAG_NAMES = {typeinfo.TYPEFLAG_FAPPOBJECT: "appobject",
+                       typeinfo.TYPEFLAG_FLICENSED: "licensed",
+                       # typeinfo.TYPEFLAG_FPREDECLID:
+                       typeinfo.TYPEFLAG_FHIDDEN: "hidden",
+                       typeinfo.TYPEFLAG_FCONTROL: "control",
+                       typeinfo.TYPEFLAG_FDUAL: "dual",
+                       typeinfo.TYPEFLAG_FNONEXTENSIBLE: "nonextensible",
+                       typeinfo.TYPEFLAG_FOLEAUTOMATION: "oleautomation",
+                       typeinfo.TYPEFLAG_FRESTRICTED: "restricted",
+                       typeinfo.TYPEFLAG_FAGGREGATABLE: "aggregatable",
+                       # typeinfo.TYPEFLAG_FREPLACEABLE:
+                       # typeinfo.TYPEFLAG_FDISPATCHABLE # computed, no flag for this
+                       typeinfo.TYPEFLAG_FREVERSEBIND: "reversebind",
+                       typeinfo.TYPEFLAG_FPROXY: "proxy",
+                       }
+    NEGATIVE_TYPEFLAG_NAMES = {typeinfo.TYPEFLAG_FCANCREATE: "noncreatable"}
+
+    def idl_flags_interface(self, flags):
+        return [self.TYPEFLAG_NAMES[bit] for bit in self.TYPEFLAG_NAMES if bit & flags]
     
+    def idl_flags_coclass(self, flags):
+        return [self.TYPEFLAG_NAMES[bit] for bit in self.TYPEFLAG_NAMES if bit & flags] + \
+               [self.NEGATIVE_TYPEFLAG_NAMES[bit] for bit in self.NEGATIVE_TYPEFLAG_NAMES
+                if (bit & flags == 0)]
+
     def var_flags(self, flags):
         NAMES = {typeinfo.VARFLAG_FREADONLY: "readonly",
                  typeinfo.VARFLAG_FSOURCE: "source",
@@ -394,7 +415,8 @@ class TlbParser(object):
         # possible ta.wTypeFlags: helpstring, helpcontext, licensed,
         #        version, control, hidden, and appobject
         coclass_name, doc = tinfo.GetDocumentation(-1)[0:2]
-        coclass = typedesc.CoClass(coclass_name, str(ta.guid), self.idl_flags(ta.wTypeFlags))
+        coclass = typedesc.CoClass(coclass_name, str(ta.guid),
+                                   self.idl_flags_coclass(ta.wTypeFlags))
         if doc is not None:
             coclass.doc = str(doc)
         self.items[coclass_name] = coclass
