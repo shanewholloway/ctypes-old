@@ -49,3 +49,11 @@ class GUID(Structure):
     from_progid = classmethod(from_progid)
 
 assert(sizeof(GUID) == 16), sizeof(GUID)
+
+__all__ = ["GUID"]
+
+if __name__ == "__main__":
+    print GUID()
+    print repr(GUID())
+    print GUID().copy()
+    print GUID(GUID())
