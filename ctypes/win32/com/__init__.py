@@ -1,19 +1,22 @@
 from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
      c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wchar, \
      oledll, byref, sizeof, WINFUNCTYPE, SetPointerType, WinError, pointer
-
 from _ctypes import HRESULT
+from ctypes.wintypes import DWORD, WORD, BYTE
 
 ole32 = oledll.ole32
 
-def __init__():
-    ole32.CoInitialize(None)
-    import atexit
-    atexit.register(ole32.CoUninitialize)
+ole32.CoInitialize(None)
 
-__init__()
+# We need to call CoUninitialze at exit.
+# But we cannot use the atexit module - it runs the cleanup function
+# far too early (before all the modules are cleared).
+class _Cleaner(object):
+    def __del__(self, func=ole32.CoUninitialize):
+        func()
 
-from ctypes.wintypes import DWORD, WORD, BYTE
+__cleaner = _Cleaner()
+del _Cleaner
 
 ################################################################
 # Basic COM data types
@@ -67,6 +70,7 @@ def STDMETHOD(restype, name, *argtypes, **kw):
 
 def COMPointer__del__(self):
     if self:
+        print "COMPointer__del__", self
         self.Release()
 
 class _interface_meta(type(Structure)):
