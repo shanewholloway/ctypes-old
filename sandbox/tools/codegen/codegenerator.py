@@ -1,6 +1,17 @@
 # Create ctypes wrapper code for abstract type descriptions.
 # Type descriptions are collections of typedesc instances.
 
+# Problems:
+#
+# SDL.h somewhere contains #define main SDL_main
+#
+# SDL_main is known to be a Function, but cannot be found in the dll
+# (probably because it is in the static library SDLmain.lib).
+# So, SDL_main cannot be generated because of the unknown dll.
+#
+# Hm, should self.generate() return whether code was actually generated,
+# or would it be better to have a namespace of generated names?
+
 import typedesc, sys
 
 try:
@@ -231,7 +242,7 @@ class Generator(object):
     def Alias(self, alias):
         if alias in self.done:
             return
-        if alias.typ is not None: # we can reslove it
+        if alias.typ is not None: # we can resolve it
             self.generate(alias.typ)
             print >> self.stream, "%s = %s # alias" % (alias.name, alias.alias)
         else: # we cannot resolve it
