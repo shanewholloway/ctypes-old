@@ -125,7 +125,8 @@ class _interface_meta(type(Structure)):
 
     def __make_methods(self):
         """This method attaches methods to the interface POINTER class"""
-        dprint("# making client methods for interface", self.__name__)
+##        from ctypes.com.server import dprint
+##        dprint("# making client methods for interface", self.__name__)
         import new
         index = 0
         ptrclass = POINTER(self)
