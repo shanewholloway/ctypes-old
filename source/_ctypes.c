@@ -975,13 +975,23 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 /*
+ * This is a *class method*.
  * Convert a parameter into something that ConvParam can handle.
  *
- * This is either an integer, or a 3-tuple.
+ * This is either an instance of the requested type, a Python integer, or a
+ * 'magic' 3-tuple.
+ *
+ * (These are somewhat related to Martin v. Loewis 'Enhanced Argument Tuples',
+ * described in PEP 286.)
+ *
  * The tuple must contain
- * - a format tag, currently 'ifdqc' are understood
+ *
+ * - a format character, currently 'ifdqc' are understood
+ *   which will inform ConvParam about how to push the argument on the stack.
+ *
  * - a corresponding Python object: i - integer, f - float, d - float,
  *   q - longlong, c - integer
+ *
  * - any object which can be used to keep the original parameter alive
  *   as long as the tuple lives.
  */
@@ -991,6 +1001,8 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	StgDictObject *dict;
 	char *fmt;
 
+	/* If the value is already an instance of the requested type,
+	   we can use it as is */
 	if (1 == PyObject_IsInstance(value, type)) {
 		Py_INCREF(value);
 		return value;
@@ -998,11 +1010,28 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 
 	dict = PyType_stgdict(type);
 	assert(dict);
+
+	/* I think we can rely on this being a one-character string */
 	fmt = PyString_AsString(dict->proto);
 	assert(fmt);
-
+	
 	switch (*fmt) {
-	case 'c': /* XXX Is this correct? */
+	case 'c':
+		if (PyString_Check(value)) {
+			if (1 == PyString_GET_SIZE(value)) {
+				char *p = PyString_AS_STRING(value);
+				return PyInt_FromLong(p[0]);
+			}
+			PyErr_SetString(PyExc_ValueError,
+					"one character string expected");
+			return NULL;
+		}
+		PyErr_Format(PyExc_TypeError,
+			     "expected one character string "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
 	case 'b':
 	case 'h':
 	case 'i':
@@ -1012,16 +1041,14 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 			Py_INCREF(value);
 			return value;
 		} else if (PyLong_Check(value)) {
-			/* XXX Check exception */
 			return PyInt_FromLong(PyLong_AsLong(value));
-/*
-			return Py_BuildValue("(slO)",
-					     "l",
-					     (long)PyLong_AsLong(value),
-					     Py_None);
-*/
 		}
-		break;
+		PyErr_Format(PyExc_TypeError,
+			     "expected integer "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
 	case 'B':
 	case 'H':
 	case 'I':
@@ -1032,14 +1059,35 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 			return value;
 		} else if (PyLong_Check(value)) {
 			return PyInt_FromLong((long)PyLong_AsUnsignedLong(value));
-/*
-			return Py_BuildValue("(slO)",
-					     "l",
-					     (long)PyLong_AsUnsignedLong(value),
-					     Py_None);
-*/
 		}
-		break;
+		PyErr_Format(PyExc_TypeError,
+			     "expected integer "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
+		
+/* XXX CODE MISSING FOR THESE! Are there any functions expecting LONG_LONG
+   Parameters? Or do we have to write our own, jjust for testing?
+*/
+	case 'q':
+	case 'Q':
+		PyErr_SetString(PyExc_TypeError,
+				"c_longlong and c_ulonglong objects cannot "
+				"be passed as function parameters");
+		return NULL;
+				
+
+		/* XXX All the tuple building could probably be much more
+		   efficient, if we cached the PyStringObjects for the first
+		   item, and built the tuple 'manually' instead of with
+		   Py_BuildValue.
+
+		   Even more performance would be gained, if we would build
+		   a C structure which ConvParam could use directly,
+		   maybe as a PyCObject.
+		*/
+
 	case 'd':
 		if (PyFloat_Check(value))
 			return Py_BuildValue("(sdO)",
@@ -1051,13 +1099,21 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 					     "d",
 					     (double)PyInt_AS_LONG(value),
 					     Py_None);
-		else {
-			PyErr_Format(PyExc_TypeError,
-				     "expected number instead of %s instance",
-				     value->ob_type->tp_name);
-			return NULL;
+		else if (PyLong_Check(value)) {
+			double v = PyLong_AsDouble(value);
+			if (v == -1 && PyErr_Occurred())
+				return NULL;
+			return Py_BuildValue("(sdO)",
+					     "d",
+					     v,
+					     Py_None);
 		}
-		break;
+		PyErr_Format(PyExc_TypeError,
+			     "expected number "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
 	case 'f':
 		if (PyFloat_Check(value))
 			return Py_BuildValue("(sdO)",
@@ -1069,13 +1125,21 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 					     "f",
 					     (double)PyInt_AS_LONG(value),
 					     Py_None);
-		else {
-			PyErr_Format(PyExc_TypeError,
-				     "expected number instead of %s instance",
-				     value->ob_type->tp_name);
-			return NULL;
+		else if (PyLong_Check(value)) {
+			double v = PyLong_AsDouble(value);
+			if (v == -1 && PyErr_Occurred())
+				return NULL;
+			return Py_BuildValue("(sdO)",
+					     "f",
+					     v,
+					     Py_None);
 		}
-		break;
+		PyErr_Format(PyExc_TypeError,
+			     "expected number "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
 	case 'z':
 		if (value == Py_None)
 			return PyInt_FromLong(0);
@@ -1084,7 +1148,26 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 					     "i",
 					     PyString_AS_STRING(value),
 					     value);
-		break;
+		if (PyUnicode_Check(value)) {
+			PyObject *ob = PyUnicode_AsASCIIString(value);
+			if (ob == NULL)
+				return NULL;
+			return Py_BuildValue("(siN)",
+					     "i",
+					     PyUnicode_AS_UNICODE(ob),
+					     ob);
+		}
+		PyErr_Format(PyExc_TypeError,
+			     "expected string or unicode string "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
+/* The Z format character will probably change into 'u',
+ * because Py_BuildValue also uses this.
+ * 'z' - char *
+ * 'u' - UNICODE *
+ */
 	case 'Z':
 		if (value == Py_None)
 			return PyInt_FromLong(0);
@@ -1095,19 +1178,25 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 					     value);
 		if (PyString_Check(value)) {
 			PyObject *ob = PyUnicode_FromObject(value);
+			if (ob == NULL)
+				return NULL;
 			return Py_BuildValue("(siN)",
 					     "i",
 					     PyUnicode_AS_UNICODE(ob),
 					     ob);
 		}
-		break;
+		PyErr_Format(PyExc_TypeError,
+			     "expected string or unicode string "
+			     "instead of %s instance",
+			     value->ob_type->tp_name);
+		return NULL;
+		
 	default:
 		PyErr_Format(PyExc_SystemError,
-			     "unhandled format '%c' in SimpleType_from_param",
+			     "BUG: unhandled format '%c' in SimpleType_from_param",
 			     *fmt);
 		return NULL;
 	}
-	return PyObject_CallFunctionObjArgs(type, value, NULL);
 }
 
 static PyMethodDef SimpleType_methods[] = {
@@ -2426,6 +2515,8 @@ CString_length(CDataObject *self)
 static PyObject *
 CString_repr(CDataObject *self)
 {
+	if (self->b_ptr == NULL)
+		return PyString_FromString("<c_string NULL>");
 	if (self->b_size > 20)
 		return PyString_FromFormat("<c_string '%20s...'>", self->b_ptr);
 	else
@@ -4474,6 +4565,6 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
 
 /*
  Local Variables:
- compile-command: "python setup.py -q build install --home ~"
+ compile-command: "python ../setup.py -q build install --home ~"
  End:
 */
