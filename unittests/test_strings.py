@@ -1,8 +1,8 @@
 import unittest
+from ctypes import *
 
 class StringArrayTestCase(unittest.TestCase):
     def test(self):
-        from ctypes import c_char
         BUF = c_char * 4
 
         buf = BUF("a", "b", "c")
@@ -25,13 +25,11 @@ class StringArrayTestCase(unittest.TestCase):
         self.assertRaises(TypeError, setattr, buf, "value", 42)
 
     def test_param_1(self):
-        from ctypes import c_char, c_char_p
         BUF = c_char * 4
         buf = BUF()
 ##        print c_char_p.from_param(buf)
         
     def test_param_2(self):
-        from ctypes import c_char, c_char_p
         BUF = c_char * 4
         buf = BUF()
 ##        print BUF.from_param(c_char_p("python"))
@@ -39,7 +37,6 @@ class StringArrayTestCase(unittest.TestCase):
 
 class WStringArrayTestCase(unittest.TestCase):
     def test(self):
-        from ctypes import c_wchar
         BUF = c_wchar * 4
 
         buf = BUF(u"a", u"b", u"c")
@@ -56,7 +53,6 @@ class WStringArrayTestCase(unittest.TestCase):
 
 class StringTestCase(unittest.TestCase):
     def XX_test_basic_strings(self):
-        from ctypes import c_string, sizeof
         cs = c_string("abcdef")
 
         # Cannot call len on a c_string any longer
@@ -83,7 +79,6 @@ class StringTestCase(unittest.TestCase):
         self.assertRaises(TypeError, c_string, u"123")
 
     def XX_test_sized_strings(self):
-        from ctypes import c_string
 
         # New in releases later than 0.4.0: 
         self.assertRaises(TypeError, c_string, None)
@@ -101,14 +96,12 @@ class StringTestCase(unittest.TestCase):
         self.failUnless(len(c_string(2).raw) == 2)
 
     def XX_test_initialized_strings(self):
-        from ctypes import c_string
 
         self.failUnless(c_string("ab", 4).raw[:2] == "ab")
         self.failUnless(c_string("ab", 4).raw[-1] == "\000")
         self.failUnless(c_string("ab", 2).raw == "a\000")
 
     def XX_test_toolong(self):
-        from ctypes import c_string
         cs = c_string("abcdef")
         # Much too long string:
         self.assertRaises(ValueError, setattr, cs, "value", "123456789012345")
@@ -120,8 +113,14 @@ class StringTestCase(unittest.TestCase):
 ##        check_perf()
 
 class WStringTestCase(unittest.TestCase):
-    def test_basic_wstrings(self):
-        from ctypes import c_wstring, sizeof
+    def test_wchar(self):
+##        print c_wchar(u"x")
+##        repr(byref(c_wchar(u"x")))
+
+        c_wchar("x")
+        
+
+    def X_test_basic_wstrings(self):
         cs = c_wstring(u"abcdef")
 
         # XXX This behaviour is about to change:
@@ -147,8 +146,7 @@ class WStringTestCase(unittest.TestCase):
         self.assertRaises(TypeError, c_wstring, "123")
         self.assertRaises(ValueError, c_wstring, 0)
 
-    def test_toolong(self):
-        from ctypes import c_wstring
+    def X_test_toolong(self):
         cs = c_wstring(u"abcdef")
         # Much too long string:
         self.assertRaises(ValueError, setattr, cs, "value", u"123456789012345")
@@ -168,7 +166,6 @@ def run_test(rep, msg, func, arg):
 
 def check_perf():
     # Construct 5 objects
-    from ctypes import c_string
 
     REP = 200000
 
@@ -192,9 +189,10 @@ def get_suite():
         return unittest.TestSuite((unittest.makeSuite(StringTestCase),
                                    unittest.makeSuite(StringArrayTestCase)))
     return unittest.TestSuite((unittest.makeSuite(StringTestCase),
-##                               unittest.makeSuite(WStringTestCase),
-                               unittest.makeSuite(StringArrayTestCase),
-                               unittest.makeSuite(WStringArrayTestCase)))
+                               unittest.makeSuite(WStringTestCase),
+                               unittest.makeSuite(StringArrayTestCase)
+##                               unittest.makeSuite(WStringArrayTestCase)
+                              ))
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)

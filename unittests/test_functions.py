@@ -58,6 +58,20 @@ class FunctionTestCase(unittest.TestCase):
             pass
 
 
+    def test_wchar_parm(self):
+        f = dll._testfunc_i_bhilfd
+        f.argtypes = [c_byte, c_wchar, c_int, c_long, c_float, c_double]
+        result = f(1, u"x", 3, 4, 5.0, 6.0)
+        self.failUnless(result == 139)
+        self.failUnless(type(result) == int)
+
+    def test_wchar_result(self):
+        f = dll._testfunc_i_bhilfd
+        f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
+        f.restype = c_wchar
+        result = f(0, 0, 0, 0, 0, 0)
+        self.failUnlessEqual(result, u'\x00')
+
     def test_intresult(self):
         f = dll._testfunc_i_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
