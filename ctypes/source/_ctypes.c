@@ -952,9 +952,9 @@ CFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj = PyDict_GetItemString(typedict, "_restype_"); /* Borrowed ref */
 	if (obj) {
 		StgDictObject *dict = PyType_stgdict(obj);
-		if (!dict) {
+		if (!dict && !PyCallable_Check(obj)) {
 			PyErr_SetString(PyExc_TypeError,
-					"_restype_ must be a type");
+					"_restype_ must be a type or a callable");
 			return NULL;
 		}
 		Py_INCREF(obj);
@@ -1011,6 +1011,7 @@ CFuncPtrType_from_param(PyObject *type, PyObject *value)
 			     ((PyTypeObject *)type)->tp_name);
 		return NULL;
 	}
+/* Hm, shouldn't we return a CArgObject here? */
 	Py_INCREF(value);
 	return value;
 }
@@ -1513,8 +1514,12 @@ CFuncPtr_FromCallable(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		Py_DECREF(self);
 		return NULL;
 	}
-	Py_INCREF(callable);
-	if (-1 == PyList_SetItem(objects, 0, callable)) {
+
+//	Py_INCREF(callable);
+//	if (-1 == PyList_SetItem(objects, 0, callable)) {
+/*XXX HACK ALERT! */
+	Py_INCREF(self);
+	if (-1 == PyList_SetItem(objects, 0, (PyObject *)self)) {
 		Py_DECREF(self);
 		return NULL;
 	}
@@ -1620,7 +1625,7 @@ CFuncPtr_dealloc(CFuncPtrObject *self)
 }
 
 static int
-CFuncPtr_init(PyTypeObject *type, PyObject *args, PyObject *kwds)
+CFuncPtr_init(PyObject *type, PyObject *args, PyObject *kwds)
 {
 	return 0;
 }
@@ -3412,9 +3417,9 @@ static int
 DynFunction_set_restype(DynFunctionObject *self, PyObject *value)
 {
 	StgDictObject *dict = PyType_stgdict(value);
-	if (!dict) {
+	if (!dict && !PyCallable_Check(value)) {
 		PyErr_SetString(PyExc_TypeError,
-				"restype must be a type");
+				"restype must be a type or callable");
 		return -1;
 	}
 	Py_XDECREF(self->restype);
@@ -3789,6 +3794,7 @@ init_ctypes(void)
 	if (PyType_Ready(&CFuncPtr_Type) < 0)
 		return;
 	PyModule_AddObject(m, "CFuncPtr", (PyObject *)&CFuncPtr_Type);
+#if 0
 	{
 		StgDictObject *dict = (StgDictObject *)PyObject_CallObject(
 			(PyObject *)&StgDict_Type, NULL);
@@ -3801,7 +3807,7 @@ init_ctypes(void)
 		Py_DECREF(CFuncPtr_Type.tp_dict);
 		CFuncPtr_Type.tp_dict = (PyObject *)dict;
 	}
-
+#endif
 
 // No: CFunction_Type is NOT a subclass of CData_Type!
 // Why? Currently it cannot, because it does not contain
@@ -3932,6 +3938,19 @@ EXPORT char * _testfunc_p_p(void *s)
 {
 	return s;
 }
+
+typedef struct {
+	int (*c)(int, int);
+	int (__stdcall *s)(int, int);
+} FUNCS;
+
+EXPORT int _testfunc_callfuncp(FUNCS *fp)
+{
+	fp->c(1, 2);
+	fp->s(3, 4);
+	return 0;
+}
+
 
 #ifdef HAVE_LONG_LONG
 EXPORT LONG_LONG _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
