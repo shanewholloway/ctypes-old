@@ -2523,20 +2523,34 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	CDataObject *obj;
 	PyObject *init;
-	int size;
+	int size = -1;
+	int slen;
 	wchar_t *data;
 
-	if (!PyArg_ParseTuple(args, "O", &init))
+	if (!PyArg_ParseTuple(args, "O|i", &init, &size))
 		return NULL;
 
+#ifdef _DEBUG
+	_asm int 3;
+#endif
 	if (PyUnicode_Check(init)) {
 		data = PyUnicode_AS_UNICODE(init);
-		size = PyUnicode_GET_SIZE(init);
-	} else if (init == Py_None) {
-		size = 0;
+		slen = PyUnicode_GET_SIZE(init);
+		if (size == -1)
+			size = slen+1;
+		if (slen > size-1)
+			slen = size-1;
+	} else if (PyInt_Check(init)) {
+		size = PyInt_AS_LONG(init);
+		data = NULL;
 	} else {
 		PyErr_SetString(PyExc_TypeError,
 				"unicode string or None expected");
+		return NULL;
+	}
+	if (size <= 0) {
+		PyErr_SetString(PyExc_ValueError,
+				"string size must be positive");
 		return NULL;
 	}
 
@@ -2548,17 +2562,15 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_objects = NoneList(0);
 	obj->b_length = 0;
 
-	if (size) {
-		obj->b_ptr = PyMem_Malloc((size+1) * sizeof(wchar_t));
-		obj->b_size = (size+1) * sizeof(wchar_t);
-		obj->b_needsfree = 1;
-		memcpy(obj->b_ptr, data, size * sizeof(wchar_t));
-		((wchar_t *)obj->b_ptr)[size] = (wchar_t)0;
-	} else {
-		obj->b_ptr = NULL;
-		obj->b_size = 0;
-		obj->b_needsfree = 0;
-	}
+	obj->b_ptr = PyMem_Malloc(size * sizeof(wchar_t));
+	obj->b_size = size * sizeof(wchar_t);
+	obj->b_needsfree = 1;
+	if (data) {
+		memcpy(obj->b_ptr, data, slen * sizeof(wchar_t));
+		memset(obj->b_ptr+(slen * sizeof(wchar_t)), 0, (size-slen)*sizeof(wchar_t));
+	} else
+		memset(obj->b_ptr, 0, size*sizeof(wchar_t));
+
 	return (PyObject *)obj;
 }
 
