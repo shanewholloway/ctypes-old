@@ -59,9 +59,10 @@ DWORD_PTR = c_ulong #TODO what is this exactly?
 INT_PTR = c_ulong  #TODO what is this exactly?
 COLORREF = c_ulong
 
-WndProc = WinFuncType(c_int, HWND, UINT, WPARAM, LPARAM)
 
-CBTProc = WinFuncType(c_int, c_int, c_int, c_int)
+WndProc = WINFUNCTYPE(c_int, HWND, UINT, WPARAM, LPARAM)
+
+CBTProc = WINFUNCTYPE(c_int, c_int, c_int, c_int)
 MessageProc = CBTProc
 
 class WNDCLASSEX(Structure):
@@ -121,7 +122,7 @@ class MSG(Structure):
     def __str__(self):
         return "MSG {%d %d %d %d %d %s}" % (self.hWnd, self.message, self.wParam, self.lParam,
                                             self.time, str(self.pt))
-        
+
 class ACCEL(Structure):
     _fields_ = [("fVirt", BYTE),
                 ("key", WORD),
