@@ -1,5 +1,16 @@
+2003-02-11  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: The .from_parameter method of POINTER classes now
+	accept Array instances containing elements of exactly the same
+	type.
+
+	* source/callproc.c: Make sure call_comproc checks for valid
+	number of arguments before calling _CallProc.
+	
 2003-02-07  Thomas Heller  <theller@python.net>
 
+	* Version 0.4.0 released and uploaded.
+	
 	* source/_ctypes.c: PointerType_new, ArrayType_new,
 	SimpleType_new, and CFunctionType_new did not check for NULL
 	result from PyType_Type.tp_new() call.  This call will fail in
