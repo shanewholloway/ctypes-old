@@ -50,6 +50,11 @@ class _cominterface_meta(type):
                     for itf in self.__mro__[1:]])
 
     def _make_methods(self, methods):
+        # we insist on an _iid_ in THIS class"
+        try:
+            self.__dict__["_iid_"]
+        except KeyError:
+            raise AttributeError, "must define _iid_"
         vtbl_offset = self.__get_baseinterface_methodcount()
         for i, (restype, name, argtypes) in enumerate(methods):
             # the function prototype
