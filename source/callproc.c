@@ -696,7 +696,7 @@ static int _call_function_pointer(int flags,
 		case 'q':
 		case 'Q':
 			push(parms[i]->value.q);
-			argbytes += sizeof(LONG_LONG);
+			argbytes += sizeof(PY_LONG_LONG);
 			break;
 #endif
 		case 'f':
@@ -763,7 +763,7 @@ static int _call_function_pointer(int flags,
 #ifdef HAVE_LONG_LONG
 		case 'q':
 		case 'Q':
-			res->value.q = ((LONG_LONG(*)())pProc)();
+			res->value.q = ((PY_LONG_LONG(*)())pProc)();
 			break;
 #endif
 		case 'z':

@@ -248,13 +248,13 @@ get_ulong(PyObject *v, unsigned long *p)
 /* Same, but handling native long long. */
 
 static int
-get_longlong(PyObject *v, LONG_LONG *p)
+get_longlong(PyObject *v, PY_LONG_LONG *p)
 {
-	LONG_LONG x;
+	PY_LONG_LONG x;
 
 	if (PyLong_Check(v)) {
 		x = PyLong_AsLongLong(v);
-		if (x == (LONG_LONG)-1 && PyErr_Occurred()) {
+		if (x == (PY_LONG_LONG)-1 && PyErr_Occurred()) {
 			if (PyErr_ExceptionMatches(PyExc_OverflowError))
 				PyErr_SetString(PyExc_ValueError,
 						"Value out of range");
@@ -263,7 +263,7 @@ get_longlong(PyObject *v, LONG_LONG *p)
 		*p = x;
 		return 0;
 	} else if (PyInt_Check(v)) {
-		x = (LONG_LONG)PyInt_AS_LONG(v);
+		x = (PY_LONG_LONG)PyInt_AS_LONG(v);
 		*p = x;
 		return 0;
 	} else {
@@ -277,12 +277,12 @@ get_longlong(PyObject *v, LONG_LONG *p)
 /* Same, but handling native unsigned long long. */
 
 static int
-get_ulonglong(PyObject *v, unsigned LONG_LONG *p)
+get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 {
 	if (PyLong_Check(v)) {
-		unsigned LONG_LONG x;
+		unsigned PY_LONG_LONG x;
 		x = PyLong_AsUnsignedLongLong(v);
-		if (x == (unsigned LONG_LONG)-1 && PyErr_Occurred()) {
+		if (x == (unsigned PY_LONG_LONG)-1 && PyErr_Occurred()) {
 			/* The type is OK (has been checked before),
 			   so we convert OverflowError and
 			   'TypeError: can't convert negative long to unsigned'
@@ -304,7 +304,7 @@ get_ulonglong(PyObject *v, unsigned LONG_LONG *p)
 					"Value out of range");
 			return -1;
 		}
-		*p = (unsigned LONG_LONG)l;
+		*p = (unsigned PY_LONG_LONG)l;
 		return 0;
 	} else {
 		PyErr_Format(PyExc_TypeError,
@@ -367,10 +367,10 @@ f_get(void *ptr, unsigned size)
 static PyObject *
 Q_set(void *ptr, PyObject *value, unsigned size)
 {
-	unsigned LONG_LONG x;
+	unsigned PY_LONG_LONG x;
 	if (get_ulonglong(value, &x) < 0)
 		return NULL;
-	*(unsigned LONG_LONG *)ptr = x;
+	*(unsigned PY_LONG_LONG *)ptr = x;
 	Py_INCREF(value);
 	return value;
 }
@@ -378,16 +378,16 @@ Q_set(void *ptr, PyObject *value, unsigned size)
 static PyObject *
 Q_get(void *ptr, unsigned size)
 {
-	return PyLong_FromUnsignedLongLong(*(unsigned LONG_LONG *)ptr);
+	return PyLong_FromUnsignedLongLong(*(unsigned PY_LONG_LONG *)ptr);
 }
 
 static PyObject *
 q_set(void *ptr, PyObject *value, unsigned size)
 {
-	LONG_LONG x;
+	PY_LONG_LONG x;
 	if (get_longlong(value, &x) < 0)
 		return NULL;
-	*(LONG_LONG *)ptr = x;
+	*(PY_LONG_LONG *)ptr = x;
 	Py_INCREF(value);
 	return value;
 }
@@ -395,7 +395,7 @@ q_set(void *ptr, PyObject *value, unsigned size)
 static PyObject *
 q_get(void *ptr, unsigned size)
 {
-	return PyLong_FromLongLong(*(LONG_LONG *)ptr);
+	return PyLong_FromLongLong(*(PY_LONG_LONG *)ptr);
 }
 #endif
 
@@ -860,8 +860,8 @@ typedef struct { char c; wchar_t *x; } s_wchar_p;
 #endif
 
 #ifdef HAVE_LONG_LONG
-typedef struct { char c; LONG_LONG x; } s_long_long;
-#define LONG_LONG_ALIGN (sizeof(s_long_long) - sizeof(LONG_LONG))
+typedef struct { char c; PY_LONG_LONG x; } s_long_long;
+#define LONG_LONG_ALIGN (sizeof(s_long_long) - sizeof(PY_LONG_LONG))
 #endif
 
 
@@ -880,8 +880,8 @@ static struct fielddesc formattable[] = {
 	{ 'l', sizeof(long),		LONG_ALIGN,		l_set, l_get},
 	{ 'L', sizeof(long),		LONG_ALIGN,		L_set, L_get},
 #ifdef HAVE_LONG_LONG
-	{ 'q', sizeof(LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get},
-	{ 'Q', sizeof(LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
+	{ 'q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get},
+	{ 'Q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
 #endif
 	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
 	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
