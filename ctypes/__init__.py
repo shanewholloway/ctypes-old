@@ -17,7 +17,7 @@ import os as _os
 if _os.name == "nt":
     from _ctypes import FormatError
 
-from _ctypes import FUNCFLAG_CDECL
+from _ctypes import FUNCFLAG_CDECL as _FUNCFLAG_CDECL
 
 """
 WINOLEAPI -> HRESULT
@@ -54,19 +54,20 @@ def CFUNCTYPE(restype, *argtypes):
     class X(_CFuncPtr):
         _argtypes_ = argtypes
         _restype_ = restype
-        _flags_ = FUNCFLAG_CDECL
+        _flags_ = _FUNCFLAG_CDECL
     return X
 
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
          FreeLibrary as _FreeLibrary
-    from _ctypes import FUNCFLAG_HRESULT, FUNCFLAG_STDCALL
+    from _ctypes import FUNCFLAG_HRESULT as _FUNCFLAG_HRESULT, \
+         FUNCFLAG_STDCALL as _FUNCFLAG_STDCALL
 
     def WINFUNCTYPE(restype, *argtypes):
         class X(_CFuncPtr):
             _argtypes_ = argtypes
             _restype_ = restype
-            _flags_ = FUNCFLAG_STDCALL
+            _flags_ = _FUNCFLAG_STDCALL
         return X
 
 elif _os.name == "posix":
@@ -209,7 +210,7 @@ def ARRAY(typ, len):
 
 class CDLL:
     class _CdeclFuncPtr(_CFuncPtr):
-        _flags_ = FUNCFLAG_CDECL
+        _flags_ = _FUNCFLAG_CDECL
         _restype_ = c_int # default, can be overridden in instances
 
     _handle = 0
@@ -237,7 +238,7 @@ if _os.name ==  "nt":
         
     class WinDLL(CDLL):
         class _StdcallFuncPtr(_CFuncPtr):
-            _flags_ = FUNCFLAG_STDCALL
+            _flags_ = _FUNCFLAG_STDCALL
             _restype_ = c_int # default, can be overridden in instances
 
         def __getattr__(self, name):
@@ -250,7 +251,7 @@ if _os.name ==  "nt":
 
     class OleDLL(CDLL):
         class _OlecallFuncPtr(_CFuncPtr):
-            _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
+            _flags_ = _FUNCFLAG_STDCALL | _FUNCFLAG_HRESULT
             _restype_ = c_int # needed, but unused
         def __getattr__(self, name):
             if name[:2] == '__' and name[-2:] == '__':
