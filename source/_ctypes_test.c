@@ -274,7 +274,25 @@ EXPORT(void) GetString(BSTR *pbstr)
 }
 #endif
 
+/*
+ * Two do-nothing functions, for speed tests
+ */
+PyObject *py_func(PyObject *self, PyObject *args)
+{
+	char *name;
+	int i;
+	if (!PyArg_ParseTuple(args, "si", &name, &i))
+		return NULL;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+EXPORT(void) _py_func(char *s, int i)
+{
+}
+
 PyMethodDef module_methods[] = {
+	{"func", py_func, METH_VARARGS},
 #ifdef _DEBUG
 	{"my_debug", my_debug, METH_O},
 #endif
