@@ -1,9 +1,6 @@
-from ctypes.com import IUnknown, COMPointer, GUID, REFIID, REFGUID, \
-     PPUNK, PUNK, STDMETHOD
+from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, PIUnknown
 
-from ctypes.com import HRESULT, STDMETHOD
-
-from ctypes import Structure, Union, POINTER, byref, oledll, \
+from ctypes import Structure, Union, POINTER, pointer, byref, oledll, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
      c_float, c_double, c_byte, c_ubyte
 
@@ -21,8 +18,6 @@ def _mth(*args):
     return args
 
 # fake
-from ctypes.com import IUnknownPointer
-ITypeCompPointer = IUnknownPointer
 ITypeComp = IUnknown
 
 LPOLESTR = c_wchar_p
@@ -32,20 +27,11 @@ HREFTYPE = c_ulong
 class ITypeInfo(IUnknown):
     _iid_ = GUID("{00020401-0000-0000-C000-000000000046}")
                  
-class ITypeInfoPointer(COMPointer):
-    _interface_ = ITypeInfo
-
 class ITypeLib(IUnknown):
     _iid_ = GUID("{00020402-0000-0000-C000-000000000046}")
 
-class ITypeLibPointer(IUnknownPointer):
-    _interface_ = ITypeLib
-
 class IDispatch(IUnknown):
     _iid_ = GUID("{00020400-0000-0000-C000-000000000046}")
-
-class IDispatchPointer(COMPointer):
-    _interface_ = IDispatch
 
 ################################################################
 # constants
@@ -147,8 +133,8 @@ class VARIANT(Structure):
                     ("boolVal", c_int),
                     ("strVal", c_wchar_p), # XXX ???
                     # ...
-                    ("pUnkVal", IUnknownPointer),
-                    ("pDispVal", IDispatchPointer),
+                    ("pUnkVal", POINTER(IUnknown)),
+                    ("pDispVal", POINTER(IDispatch)),
                     ]
 
     _fields_ = [("vt", VARTYPE),
@@ -305,47 +291,47 @@ IMPLTYPEFLAG_FSOURCE      = 0x2
 IMPLTYPEFLAG_FRESTRICTED   = 0x4
 IMPLTYPEFLAG_FDEFAULTVTABLE   = 0x8
 
-ITypeInfo._methods_ = [
+ITypeInfo._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "GetTypeAttr", POINTER(LPTYPEATTR)),
-    STDMETHOD(HRESULT, "GetTypeComp", POINTER(ITypeCompPointer)),
+    STDMETHOD(HRESULT, "GetTypeComp", POINTER(POINTER(ITypeComp))),
     STDMETHOD(HRESULT, "GetFuncDesc", c_uint,  POINTER(POINTER(FUNCDESC))),
     STDMETHOD(HRESULT, "GetVarDesc", c_uint, POINTER(POINTER(VARDESC))),
     STDMETHOD(HRESULT, "GetNames", MEMBERID, POINTER(BSTR), c_uint, POINTER(c_uint)),
     STDMETHOD(HRESULT, "GetRefTypeOfImplType", c_uint, POINTER(HREFTYPE)),
     STDMETHOD(HRESULT, "GetImplTypeFlags", c_uint, POINTER(IMPLTYPEFLAGS)),
     STDMETHOD(HRESULT, "GetIDsOfNames", POINTER(LPOLESTR), c_uint, POINTER(c_int)),
-    STDMETHOD(HRESULT, "Invoke", PUNK, MEMBERID, WORD, POINTER(DISPPARAMS),
+    STDMETHOD(HRESULT, "Invoke", PIUnknown, MEMBERID, WORD, POINTER(DISPPARAMS),
               POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(c_uint)),
     STDMETHOD(HRESULT, "GetDocumentation", MEMBERID, POINTER(BSTR), POINTER(BSTR),
               POINTER(c_ulong), POINTER(BSTR)),
     STDMETHOD(HRESULT, "GetDllEntry", MEMBERID, c_int, POINTER(BSTR), POINTER(BSTR),
               POINTER(c_ushort)),
-    STDMETHOD(HRESULT, "GetRefTypeInfo", HREFTYPE, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetRefTypeInfo", HREFTYPE, POINTER(POINTER(ITypeInfo))),
     STDMETHOD(HRESULT, "AddressOfMember", MEMBERID, c_int, POINTER(c_voidp)),
-    STDMETHOD(HRESULT, "CreateInstance", c_voidp, REFIID, PPUNK),
+    STDMETHOD(HRESULT, "CreateInstance", c_voidp, REFIID, POINTER(PIUnknown)),
     STDMETHOD(HRESULT, "GetMops", MEMBERID, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "GetContainingTypeLib", POINTER(ITypeLibPointer), POINTER(c_uint)),
+    STDMETHOD(HRESULT, "GetContainingTypeLib", POINTER(POINTER(ITypeLib)), POINTER(c_uint)),
     STDMETHOD(HRESULT, "ReleaseTypeAttr", LPTYPEATTR),
     STDMETHOD(HRESULT, "ReleaseFuncDesc", LPFUNCDESC),
     STDMETHOD(HRESULT, "ReleaseVarDesc", LPVARDESC)]
 
-ITypeLib._methods_ = [
+ITypeLib._methods_ = IUnknown._methods_ + [
     STDMETHOD(c_uint, "GetTypeInfoCount"),
-    STDMETHOD(HRESULT, "GetTypeInfo", c_uint, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetTypeInfo", c_uint, POINTER(POINTER(ITypeInfo))),
     STDMETHOD(HRESULT, "GetTypeInfoType", c_int, POINTER(TYPEKIND)),
-    STDMETHOD(HRESULT, "GetTypeInfoOfGuid", REFGUID, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetTypeInfoOfGuid", REFGUID, POINTER(POINTER(ITypeInfo))),
     STDMETHOD(HRESULT, "GetLibAttr", POINTER(TLIBATTR)),
     STDMETHOD(HRESULT, "GetTypeComp", POINTER(ITypeComp)),
     STDMETHOD(HRESULT, "GetDocumentation", c_int, POINTER(BSTR), POINTER(BSTR),
               POINTER(c_ulong), POINTER(BSTR)),
     STDMETHOD(HRESULT, "IsName", c_wchar_p, c_ulong, c_int),
-    STDMETHOD(HRESULT, "FindName", c_wchar_p, c_ulong, POINTER(ITypeInfoPointer),
+    STDMETHOD(HRESULT, "FindName", c_wchar_p, c_ulong, POINTER(POINTER(ITypeInfo)),
               POINTER(MEMBERID), POINTER(c_uint)),
     STDMETHOD(HRESULT, "ReleaseTLibAttr", POINTER(TLIBATTR))]
 
-IDispatch._methods_ = [
+IDispatch._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "GetTypeInfoCount", POINTER(c_uint)),
-    STDMETHOD(HRESULT, "GetTypeInfo", c_uint, LCID, POINTER(ITypeInfoPointer)),
+    STDMETHOD(HRESULT, "GetTypeInfo", c_uint, LCID, POINTER(POINTER(ITypeInfo))),
     STDMETHOD(HRESULT, "GetIDsOfNames", REFIID, POINTER(c_wchar_p), c_uint,
               LCID, POINTER(DISPID)),
     STDMETHOD(HRESULT, "Invoke", DISPID, REFIID, LCID, WORD, POINTER(DISPPARAMS),
@@ -360,12 +346,12 @@ REGKIND_REGISTER = 1
 REGKIND_NONE = 2
 
 def LoadTypeLib(fnm):
-    p = ITypeLibPointer()
+    p = pointer(ITypeLib())
     oleaut32.LoadTypeLib(unicode(fnm), byref(p))
     return p
 
 def LoadTypeLibEx(fnm, regkind=REGKIND_NONE):
-    p = ITypeLibPointer()
+    p = pointer(ITypeLib())
     oleaut32.LoadTypeLibEx(unicode(fnm), regkind, byref(p))
     return p
     
@@ -376,14 +362,17 @@ if __name__ == '__main__':
         return p.Release()
 
     path = r"c:\tss5\bin\debug\ITInfo.dll"
-    p = LoadTypeLibEx(path)
-    print p, "refcount", GetComRefcount(p)
+##    p = LoadTypeLibEx(path)
+    p = LoadTypeLib(path)
+    print p, "refcount 1?", GetComRefcount(p)
 
-    p2 = IUnknownPointer()
-    p.QueryInterface(byref(p2._interface_._iid_),
+    print "TypeInfoCount", p.GetTypeInfoCount()
+
+    p2 = PIUnknown()
+    p.QueryInterface(byref(IUnknown._iid_),
                      byref(p2))
-    print p2, "refcount", GetComRefcount(p)
-    print p, "refcount", GetComRefcount(p)
+    print p2, "refcount 2?", GetComRefcount(p)
+    print p, "refcount 2?", GetComRefcount(p)
     del p2
 
-    print p, "refcount", GetComRefcount(p)
+    print p, "refcount 1?", GetComRefcount(p)

@@ -2,15 +2,6 @@
 # Python source code wrapping the classes, types, and interfaces with
 # ctypes.
 #
-# Status: Nearly works, the only catch currently is that it
-# creates code like this for interface pointers in methods
-#    POINTER(IUnknown)
-# instead of
-#    IUnknownPointer
-#
-# Would it be better to fix the code generation, or to either enhance
-# the POINTER function to return an IUnknownPointer class, or what?
-#
 # The most important restriction of this code is that a COM method is
 # *always* assumed to return a HRESULT.  This is checked in the C code,
 # but also the whole framework so far has no way to specify a different
@@ -24,17 +15,17 @@
 # Minor things to do: move the VT_... constants into ctcom.typeinfo
 # make it into a real tool with command line arguments
 #
-from ctcom.typeinfo import LoadTypeLib, ITypeInfoPointer, BSTR, \
+from ctypes.com.typeinfo import LoadTypeLib, ITypeInfo, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT
-from ctcom.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS
-from ctcom.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
+from ctypes.com.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS
+from ctypes.com.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
      DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF
-from ctcom.typeinfo import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
-from ctcom.typeinfo import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
+from ctypes.com.typeinfo import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
+from ctypes.com.typeinfo import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
      IMPLTYPEFLAG_FSOURCE, IMPLTYPEFLAG_FRESTRICTED, \
      IMPLTYPEFLAG_FDEFAULTVTABLE
 
-from ctypes import byref, c_int, c_ulong
+from ctypes import byref, c_int, c_ulong, pointer
 
 VT_EMPTY	= 0
 VT_NULL	= 1
@@ -84,11 +75,11 @@ TYPES = {
     VT_R4: "c_float",
     VT_R8: "c_double",
     VT_BSTR: "BSTR",
-    VT_DISPATCH: "IDispatchPointer",
+    VT_DISPATCH: "POINTER(IDispatch)",
 
     VT_BOOL: "c_int", # VT_BOOL
     VT_VARIANT: "VARIANT",
-    VT_UNKNOWN: "IUnknownPointer",
+    VT_UNKNOWN: "POINTER(IUnknown)",
 
     VT_I1: "c_byte",
     VT_UI1: "c_ubyte",
@@ -200,7 +191,7 @@ class InterfaceReader(TypeInfoReader):
             hr = HREFTYPE()
             self.ti.GetRefTypeOfImplType(i, byref(hr))
 
-            ti = ITypeInfoPointer()
+            ti = pointer(ITypeInfo())
             self.ti.GetRefTypeInfo(hr, byref(ti))
 
             name = BSTR()
@@ -284,10 +275,10 @@ class InterfaceReader(TypeInfoReader):
             td = tdesc.u.lptdesc[0]
             if td.vt == VT_USERDEFINED:
                 # Pointer to a user defined data type.
-                # If the data type is an Interface, we don't return
-                # POINTER(IUnknown) but IUnknownPointer instead.
+##                # If the data type is an Interface, we don't return
+##                # POINTER(IUnknown) but IUnknownPointer instead.
                 hr = td.u.hreftype
-                ti = ITypeInfoPointer()
+                ti = pointer(ITypeInfo())
                 self.ti.GetRefTypeInfo(hr, byref(ti))
 
                 pta = LPTYPEATTR()
@@ -297,8 +288,8 @@ class InterfaceReader(TypeInfoReader):
                 name = BSTR()
                 ti.GetDocumentation(-1, byref(name), None, None, None)
 
-                if ta.typekind == TKIND_INTERFACE:
-                    return name.value + "Pointer"
+##                if ta.typekind == TKIND_INTERFACE:
+##                    return name.value + "Pointer"
 
                 return "POINTER(%s)" % name.value
 
@@ -307,7 +298,7 @@ class InterfaceReader(TypeInfoReader):
         if tdesc.vt == VT_USERDEFINED:
             # use hreftype
             hr = tdesc.u.hreftype
-            ti = ITypeInfoPointer()
+            ti = pointer(ITypeInfo())
             self.ti.GetRefTypeInfo(hr, byref(ti))
             name = BSTR()
             ti.GetDocumentation(-1, byref(name), None, None, None)
@@ -329,7 +320,7 @@ class CoClassReader(TypeInfoReader):
             hr = HREFTYPE()
             self.ti.GetRefTypeOfImplType(i, byref(hr))
 
-            ti = ITypeInfoPointer()
+            ti = pointer(ITypeInfo())
             self.ti.GetRefTypeInfo(hr, byref(ti))
 
             name = BSTR()
@@ -368,8 +359,8 @@ class CoClassReader(TypeInfoReader):
         return "\n".join(l)
 
 HEADER = r"""
-from ctcom import IUnknown, GUID, COMPointer, STDMETHOD, HRESULT
-from ctcom.typeinfo import IDispatch, BSTR
+from ctypes.com import IUnknown, GUID, COMPointer, STDMETHOD, HRESULT
+from ctypes.com.typeinfo import IDispatch, BSTR
 
 from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
@@ -397,7 +388,7 @@ class TypeLibReader:
         for i in range(tlb.GetTypeInfoCount()):
             kind = c_int()
             tlb.GetTypeInfoType(i, byref(kind))
-            ti = ITypeInfoPointer()
+            ti = pointer(ITypeInfo())
             tlb.GetTypeInfo(i, byref(ti))
 
             if kind.value == TKIND_COCLASS:
@@ -454,7 +445,7 @@ if __name__ == '__main__':
         path = sys.argv[1]
     else:
         path = r"c:\tss5\bin\debug\ITInfo.dll"
-        path = r"c:\sms3a.tlb"
+##        path = r"c:\sms3a.tlb"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
 
