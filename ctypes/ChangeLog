@@ -1,5 +1,18 @@
 2005-03-17  Thomas Heller  <theller@python.net>
 
+	* ctypes\__init__.py: On platforms where dlopen is used, and '.so'
+	is the default shared library extension, if dlopen fails and the
+	filename doesn't end with '.so', try again with '.so' appended to
+	the filename. This allows to use the attribute access syntax to
+	cdll to load libraries in some cases: 'cdll.libm'.
+
+	* ctypes\__init__.py: Removed the __del__ method in _CDLL.  This
+	caused garbage in Python's gc.  Reported by Erik Andersen.
+
+	* ctypes.com.register: Enclose the Python script to run as com
+	server in double quotes in case the path contains spaces.  Fix by
+	Juan Carlos Coruna.
+
 	* ctypes.wrap.h2xml script: Added two command line options to
 	include preprocessor symbols into the xml file (the was the
 	default before), and to not delete temporary files which may help
@@ -20,7 +33,7 @@
 	Reported by Andreas Degert.
 
 	* ctypes\source: Removed the unneeded nArgBytes member from
-	StgDictObject, and change the code accordingly.  Thanks to
+	StgDictObject, and changed the code accordingly.  Thanks to
 	Andreas Degert for spotting this.
 
 	* ctypes\wrap\cparser_config.py: Added some symbols from windows
@@ -30,7 +43,8 @@
 2005-03-14  Thomas Heller  <theller@python.net>
 
 	* _ctypes.c: Fixed refcount leak in functions with 'out'
-	parameters.  This has only relevance for comtypes.
+	parameters.  This has only relevance for the unreleased comtypes
+	package.
 
 	* _ctypes.c: Keyword arguments to Structures/Unions were ignored.
 	Thanks to Jimmy Retzlaff for finding this.
