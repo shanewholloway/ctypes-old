@@ -116,8 +116,9 @@ def decode_value(init):
     return int(init) # integer
 
 def get_real_type(tp):
-    if type(tp) is typedesc.Typedef:
-        return get_real_type(tp.typ)
+    # why was this?
+##    if type(tp) is typedesc.Typedef:
+##        return get_real_type(tp.typ)
     return tp
 
 # XXX These should be filtered out in gccxmlparser.
@@ -373,9 +374,9 @@ class Generator(object):
             print "Could not init", tp.name, tp.init, detail
             return
         print >> self.stream, \
-              "%s = %r # %s" % (tp.name,
-                                value,
-                                self.type_name(tp.typ, False))
+              "%s = %r # Variable %s" % (tp.name,
+                                         value,
+                                         self.type_name(tp.typ, False))
         self.names.add(tp.name)
 
     _enumvalues = 0
@@ -492,7 +493,10 @@ class Generator(object):
 
         self.done.add(body)
 
-    def find_dllname(self, name):
+    def find_dllname(self, func):
+        if hasattr(func, "dllname"):
+            return func.dllname
+        name = func.name
         for dll in self.searched_dlls:
             try:
                 getattr(dll, name)
@@ -620,7 +624,7 @@ class Generator(object):
     def Function(self, func):
         if func in self.done:
             return
-        dllname = self.find_dllname(func.name)
+        dllname = self.find_dllname(func)
         if dllname:
             self.generate(func.returns)
             self.generate_all(func.arguments)
