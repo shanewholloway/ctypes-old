@@ -18,6 +18,103 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
+
+static char *var_field_codes = "sS";
+
+/*
+ * Expects the size, index and offset for the current field in *psize and
+ * *poffset, stores the total size so far in *psize, the offset for the next
+ * field in *poffset, the alignment requirements for the current field in
+ * *palign, and returns a field desriptor for this field.
+ */
+PyObject *
+CField_FromDesc(PyObject *desc, int index,
+		int *psize, int *poffset, int *palign)
+{
+	CFieldObject *self;
+	PyObject *proto;
+	int size, align, length;
+	SETFUNC setfunc = NULL;
+	GETFUNC getfunc = NULL;
+
+	self = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type,
+						   NULL);
+	if (self == NULL)
+		return NULL;
+	if (PyString_Check(desc)) {
+		struct fielddesc *fmt;
+		char *name = PyString_AS_STRING(desc);
+		int fieldsize = 0;
+		
+		while (isdigit(*name)) {
+		        fieldsize = fieldsize * 10 + *name - '0';
+			++name;
+		}
+
+		if (name[1] != '\0') {
+			PyErr_Format(PyExc_ValueError,
+				     "format must be single char, not '%s'",
+				     name);
+			return NULL;
+		}
+
+		if (fieldsize && !strchr(var_field_codes, name[0])) {
+			PyErr_Format(PyExc_ValueError,
+				     "field size not allowed for '%s' format",
+				     name);
+			return NULL;
+		}
+
+		fmt = getentry(name);
+		if (!fmt) {
+			PyErr_Format(PyExc_ValueError,
+				     "invalid format '%s'", name);
+			return NULL;
+		}
+		size = fieldsize ? fieldsize * fmt->size : fmt->size;
+		align = fmt->align;
+		setfunc = fmt->setfunc;
+		getfunc = fmt->getfunc;
+		length = 1;
+		proto = NULL;
+	} else {
+		StgDictObject *dict;
+		dict = PyType_stgdict(desc);
+		if (!dict) {
+			PyErr_SetString(PyExc_TypeError,
+					"has no _stginfo_");
+			Py_DECREF(self);
+			return NULL;
+		}
+		size = dict->size;
+		align = dict->align;
+		length = dict->length;
+		proto = desc;
+	}
+	self->setfunc = setfunc;
+	self->getfunc = getfunc;
+	self->index = index;
+
+	Py_XINCREF(proto);
+	self->proto = proto;
+
+	if (*poffset % align) {
+		int delta = align - (*poffset % align);
+		*psize += delta;
+		*poffset += delta;
+	}
+
+	self->size = size;
+	*psize += size;
+
+	self->offset = *poffset;
+	*poffset += size;
+
+	*palign = align;
+
+	return (PyObject *)self;
+}
+
 static int
 CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 {
