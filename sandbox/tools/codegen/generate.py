@@ -209,11 +209,7 @@ class Generator(object):
                 fields.append(m)
                 if type(m.typ) is nodes.Typedef:
                     self.more.add(m.typ)
-                t = get_real_type(m.typ)
                 self.generate(get_real_type(m.typ))
-                if type(t) in (nodes.Structure, nodes.Union):
-                    assert t.get_body() in self.done
-                
             elif type(m) is nodes.Method:
                 methods.append(m)
                 self.generate(m.returns)
