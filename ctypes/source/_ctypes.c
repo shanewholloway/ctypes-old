@@ -105,13 +105,13 @@ char *conversion_mode_errors = NULL;
 /******************************************************************/
 /*
   StructType_Type - a meta type/class.  Creating a new class using this one as
-  __metaclass__ will call the contructor CDataType_new.  CDataType_new
-  replaces the tp_dict member with a new instance of StgDict, and initializes
-  the C accessible fields somehow.
+  __metaclass__ will call the contructor StructUnionType_new.  It replaces the
+  tp_dict member with a new instance of StgDict, and initializes the C
+  accessible fields somehow.
 */
 
 static PyObject *
-CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
+StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 {
 	PyTypeObject *result;
 	PyObject *dict;
@@ -148,13 +148,13 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 static PyObject *
 StructType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	return CDataType_new(type, args, kwds, 1);
+	return StructUnionType_new(type, args, kwds, 1);
 }
 
 static PyObject *
 UnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	return CDataType_new(type, args, kwds, 0);
+	return StructUnionType_new(type, args, kwds, 0);
 }
 
 static char from_address_doc[] =
