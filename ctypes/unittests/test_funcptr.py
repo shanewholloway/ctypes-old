@@ -79,14 +79,14 @@ class CFuncPtrTestCase(unittest.TestCase):
         self.assertRaises(TypeError, setattr, wndclass,
                           "lpfnWndProc", WNDPROC_2(wndproc))
 
-        self.failUnless(wndclass.lpfnWndProc(1, 2, 3, 4) == 10)
+        self.failUnlessEqual(wndclass.lpfnWndProc(1, 2, 3, 4), 10)
 
         f = wndclass.lpfnWndProc
 
         del wndclass
         del wndproc
 
-        self.failUnless(f(10, 11, 12, 13) == 46)
+        self.failUnlessEqual(f(10, 11, 12, 13), 46)
 
     def test_dllfunctions(self):
 
@@ -102,8 +102,8 @@ class CFuncPtrTestCase(unittest.TestCase):
         strchr = libc.strchr
         strchr.restype = c_char_p
         strchr.argtypes = (c_char_p, c_char)
-        self.failUnless(strchr("abcdefghi", "b") == "bcdefghi")
-        self.failUnless(strchr("abcdefghi", "x") == None)
+        self.failUnlessEqual(strchr("abcdefghi", "b"), "bcdefghi")
+        self.failUnlessEqual(strchr("abcdefghi", "x"), None)
 
         strtok = libc.strtok
         strtok.restype = c_char_p
@@ -122,10 +122,10 @@ class CFuncPtrTestCase(unittest.TestCase):
 ##        b.value = s
 
 ##        b = c_string(s)
-        self.failUnless(strtok(b, "\n") == "a")
-        self.failUnless(strtok(None, "\n") == "b")
-        self.failUnless(strtok(None, "\n") == "c")
-        self.failUnless(strtok(None, "\n") == None)
+        self.failUnlessEqual(strtok(b, "\n"), "a")
+        self.failUnlessEqual(strtok(None, "\n"), "b")
+        self.failUnlessEqual(strtok(None, "\n"), "c")
+        self.failUnlessEqual(strtok(None, "\n"), None)
         
 def get_suite():
     return unittest.makeSuite(CFuncPtrTestCase)
