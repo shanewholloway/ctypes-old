@@ -336,7 +336,7 @@ class FunctionTestCase(unittest.TestCase):
         s2h = dll.ret_2h_func()
         self.failUnlessEqual((s2h.x, s2h.y), (42, 24))
 
-    def test_struct_return_2H(self):
+    def test_struct_return_8H(self):
         class S8I(Structure):
             _fields_ = [("a", c_int),
                         ("b", c_int),
