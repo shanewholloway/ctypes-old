@@ -145,6 +145,12 @@ typedef struct {
 	SETFUNC setfunc;	/* Only for ArrayObject */
 	GETFUNC getfunc;	/* Only for ArrayObject */
 	char fmt;		/* Only for SimpleObject */
+
+	/* Following fields only used by CFuncPtrType_Type instances */
+/*	PyObject *argtypes;	/* tuple of CDataObjects */
+/*	PyObject *converters;	/* tuple( [t.from_param for t in argtypes */
+/*	PyObject *restype;	/* CDataObject or NULL */
+/*	int flags;		/* calling convention and such */
 } StgDictObject;
 
 /* May return NULL, but does not set an exception! */
