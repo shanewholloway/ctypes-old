@@ -71,7 +71,8 @@ class SimpleTypesTestCase(unittest.TestCase):
 
         self.failUnlessEqual(LPINT.from_param(None), 0)
 
-        self.assertRaises(TypeError, LPINT.from_param, pointer(c_long(42)))
+        if c_int != c_long:
+            self.assertRaises(TypeError, LPINT.from_param, pointer(c_long(42)))
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_uint(42)))
         self.assertRaises(TypeError, LPINT.from_param, pointer(c_short(42)))
 
@@ -84,7 +85,8 @@ class SimpleTypesTestCase(unittest.TestCase):
         LPINT.from_param(byref(c_int(42)))
 
         self.assertRaises(TypeError, LPINT.from_param, byref(c_short(22)))
-        self.assertRaises(TypeError, LPINT.from_param, byref(c_long(22)))
+        if c_int != c_long:
+            self.assertRaises(TypeError, LPINT.from_param, byref(c_long(22)))
         self.assertRaises(TypeError, LPINT.from_param, byref(c_uint(22)))
 
     def test_byref_pointerpointer(self):
@@ -95,7 +97,8 @@ class SimpleTypesTestCase(unittest.TestCase):
         LPLPINT.from_param(byref(pointer(c_int(42))))
 
         self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_short(22))))
-        self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_long(22))))
+        if c_int != c_long:
+            self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_long(22))))
         self.assertRaises(TypeError, LPLPINT.from_param, byref(pointer(c_uint(22))))
 
     def test_array_pointers(self):
