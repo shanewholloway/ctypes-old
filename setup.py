@@ -129,6 +129,9 @@ if sys.platform == "win32":
     packages.append("ctypes.com.samples.server.control")
     package_dir["ctypes.com.samples.server.control"] = "win32/com/samples/server/control"
 
+    packages.append("ctypes.com.samples.server.IExplorer")
+    package_dir["ctypes.com.samples.server.IExplorer"] = "win32/com/samples/server/IExplorer"
+
 ################################################################
 
 class test(Command):
@@ -283,7 +286,6 @@ class test(Command):
 
 # class test
 
-options = {}
 if (hasattr(distutils.core, 'setup_keywords') and 
     'classifiers' in distutils.core.setup_keywords):
         kw['classifiers'] = \
@@ -413,6 +415,13 @@ class my_clean(clean.clean):
         self.build_temp = self.build_temp.replace(" ", "")
         clean.clean.run(self)
 
+# Use different MANIFEST templates, to minimize the distribution size.
+# Also, the MANIFEST templates behave differently on Windows and Linux (distutils bug?)
+if sys.platform == 'win32':
+    options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
+else:
+    options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
+
 if __name__ == '__main__':
     setup(name="ctypes",
           ext_modules = extensions,
@@ -429,7 +438,7 @@ if __name__ == '__main__':
           platforms=["windows", "Linux", "MacOS X", "Solaris"],
 
           cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext, 'clean': my_clean},
-          **options
+          options = options
           )
 
 ## Local Variables:
