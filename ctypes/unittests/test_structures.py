@@ -208,6 +208,24 @@ class StructureTestCase(unittest.TestCase):
         self.assertRaises(ValueError, Person, "asldkjaslkdjaslkdj")
         self.assertRaises(TypeError, Person, "Name", "HI")
 
+        # short enough
+        self.failUnlessEqual(Person("12345", 5).name, "12345")
+        # exact fit
+        self.failUnlessEqual(Person("123456", 5).name, "123456")
+        # too long
+        self.assertRaises(ValueError, Person, "1234567", 5)
+
+    def test_intarray_fields(self):
+        class SomeInts(Structure):
+            _fields_ = [("a", c_int * 4)]
+
+        # can use tuple to initialize array (but not list!)
+        self.failUnlessEqual(SomeInts((1, 2)).a[:], [1, 2, 0, 0])
+        self.failUnlessEqual(SomeInts((1, 2, 3, 4)).a[:], [1, 2, 3, 4])
+        # too long
+        # XXX Should raise ValueError?, not RuntimeError
+        self.assertRaises(ValueError, SomeInts, (1, 2, 3, 4, 5))
+
     def test_nested_initializers(self):
         # test initializing nested structures
         class Phone(Structure):
