@@ -1,3 +1,8 @@
+2005-03-22  Thomas Heller  <theller@python.net>
+
+	* (Message): Remove the wrong definition of OLESTR.  This fixes
+	some interfaces in ctypes.com.ole.  Reported by Jürgen Urner.
+
 2004-09-06  Thomas Heller  <theller@python.net>
 
 	* (Message): Patch from Bruce Dodson to fix an infinite loop if a
