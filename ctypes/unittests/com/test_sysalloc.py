@@ -4,10 +4,6 @@ from ctypes.com import mallocspy, ole32
 
 from ctypes.com.automation import BSTR, VARIANT
 
-# We init COM before each test, and uninit afterwards.
-# So we must start UN-initialized!
-ole32.CoUninitialize()
-
 def find_test_dll():
     import sys, os
     if os.name == "nt":
@@ -21,6 +17,9 @@ def find_test_dll():
 
 class MallocSpyTest(unittest.TestCase):
     def setUp(self):
+        # ctypes.com has called CoInitialize, but we must install the spy
+        # in uninitialized state.
+        ole32.CoUninitialize()
         self.expect = None
         self.mallocspy = mallocspy.MallocSpy()
         self.mallocspy.register()
@@ -28,22 +27,26 @@ class MallocSpyTest(unittest.TestCase):
 
     def tearDown(self):
         try:
-            # Even if tests fail or crash, we have to make sure we can
-            # shutdown safely.  The problem is that mallocspy cannot be
-            # revoked completely while there are still unfreed memory
-            # blocks which have been allocated while it was registered.
-            #
-            # So, we must delete *all* COM objects we still have anywhere,
-            # even if an error occurred somewhere, and then shutdown COM,
-            # BEFORE Python exits.
-            try: 1/0
-            except: pass
+            try:
+                # Even if tests fail or crash, we have to make sure we can
+                # shutdown safely.  The problem is that mallocspy cannot be
+                # revoked completely while there are still unfreed memory
+                # blocks which have been allocated while it was registered.
+                #
+                # So, we must delete *all* COM objects we still have anywhere,
+                # even if an error occurred somewhere, and then shutdown COM,
+                # BEFORE Python exits.
+                try: 1/0
+                except: pass
 
-            ole32.CoUninitialize()
-            # Now, check the desired test outcome:
-            self.failUnlessEqual(len(self.mallocspy.active_blocks()), self.expect)
+                ole32.CoUninitialize()
+                # Now, check the desired test outcome:
+                self.failUnlessEqual(len(self.mallocspy.active_blocks()), self.expect)
+            finally:
+                self.mallocspy.revoke(warn=0)
         finally:
-            self.mallocspy.revoke(warn=0)
+            # we must restore the environment to the state we found it!
+            ole32.CoInitialize(None)
 
     ################
 
