@@ -2451,7 +2451,7 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	self->callable = callable;
 
 	self->thunk = thunk;
-	*(void **)self->b_ptr = thunk;
+	*(void **)self->b_ptr = *(void **)thunk;
 
 	objects = CData_GetList((CDataObject *)self);
 	if (!objects) {

@@ -307,6 +307,9 @@ extern int My_PyUnicode_AsWideChar(PyUnicodeObject *, wchar_t *, int);
 
 #endif
 
+extern void FreeExecMem(void *);
+extern void *MallocExecMem(int);
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
