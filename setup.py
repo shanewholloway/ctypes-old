@@ -38,6 +38,11 @@ if os.name == "nt":
                           "source/libffi_msvc/prep_cif.c",
                           "source/libffi_msvc/win32.c",
                           ])
+    if kw.has_key("depends"):
+        kw["depends"].extend(["source/libffi_msvc/ffi.h",
+                              "source/libffi_msvc/fficonfig.h",
+                              "source/libffi_msvc/ffitarget.h",
+                              "source/libffi_msvc/ffi_common.h"])
     extensions = [Extension("_ctypes",
                             define_macros=[("CAN_PASS_BY_VALUE", "1")],
                             export_symbols=["DllGetClassObject,PRIVATE",
