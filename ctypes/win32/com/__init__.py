@@ -91,12 +91,10 @@ class _interface_meta(type(Structure)):
         return result
 
     def __make_vtable(self):
-        print "# making VTable class for", self, id(self)
         _VTable = type(Structure)("%s_VTable" % self.__name__,
                                   (Structure,),
                                   {"_fields_": self._methods_})
         SetPointerType(self.VTable_ptr, _VTable)
-        print "# done", self.VTable_ptr
 
     def _init_class(self):
         self.__make_vtable()
