@@ -3364,6 +3364,12 @@ DL_EXPORT(char *) _testfunc_p_p(void *s)
 }
 
 
+DL_EXPORT(void *) get_strchr(void)
+{
+	return (void *)strchr;
+}
+
+
 #ifndef MS_WIN32
 # ifndef __stdcall
 #  define __stdcall /* */
