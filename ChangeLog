@@ -1,5 +1,9 @@
 2004-10-15  Thomas Heller  <theller@python.net>
 
+	* Reinstalled the magic _abstract_ attribute for Structure and
+	Union types.  If this attribute is defined, the _fields_ attribute
+	looses it's special meaning.  Kept for backwards compatibility.
+
 	* Work around a bug in Python's PyUnicode_FromWideChar and
 	PyUnicode_AsWideChar api functions.
 
