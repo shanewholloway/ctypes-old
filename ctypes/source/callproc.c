@@ -1268,7 +1268,12 @@ static PyObject *py_dl_open(PyObject *self, PyObject *args)
 {
 	char *name;
 	void * handle;
+#ifdef RTLD_LOCAL	
 	int mode = RTLD_NOW | RTLD_LOCAL;
+#else
+	/* cygwin doesn't define RTLD_LOCAL */
+	int mode = RTLD_NOW;
+#endif
 	if (!PyArg_ParseTuple(args, "s:dlopen", &name))
 		return NULL;
 	handle = dlopen(name, mode);

@@ -5,7 +5,9 @@
 #include <windows.h>
 #else
 #include <ffi.h>
-#define __stdcall /* */
+# ifndef __stdcall
+#  define __stdcall /* */
+# endif
 #endif
 
 
@@ -188,6 +190,7 @@ static void _CallPythonObject(void *mem,
 #endif
 }
 
+#ifdef MS_WIN32
 static int __stdcall i_CallPythonObject(PyObject *callable,
 					PyObject *converters,
 					void **pArgs)
@@ -225,8 +228,6 @@ static PY_LONG_LONG __stdcall q_CallPythonObject(PyObject *callable,
 	return result.value.q;
 }
 #endif
-
-#ifdef MS_WIN32
 
 #define NOSTACKFRAME
 //#define BREAKPOINTS
