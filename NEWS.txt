@@ -8,6 +8,9 @@ Changes in 0.9.1
 
   ctypes changes
 
+    Sometimes objects have been freed too early when calling functions
+    where argtypes have been set.
+
     Fixed the create_unicode_buffer function - it was returning c_char
     arrays instead of c_wchar arrays.
 
