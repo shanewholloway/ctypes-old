@@ -1,106 +1,120 @@
-def test_cstrings():
-    # C char * is created from Python strings,
-    # or from None to create a NULL pointer
-    #
-    # XXX How is this related to the c_char_p data type?
-    # c_string is a mutable string, and c_char_p is only a pointer?
-    # In this case, c_string.from_param should allocate a new buffer, probably.
-    """
-    >>> from ctypes import c_string
-    >>> c_string.from_param("123")
-    '123'
+import unittest
 
-    >>> c_string.from_param(u"123")
-    Traceback (most recent call last):
-       ...
-    TypeError: c_string, string, or None expected
+class SimpleTypesTestCase(unittest.TestCase):
 
-    >>> c_string.from_param(c_string("123"))
-    <c_string '123'>
+    def test_cstrings(self):
+        from ctypes import c_string, byref
 
-    >>> c_string.from_param(None)
-    0
+        # c_string.from_param on a Python String returns the argument
+        s = "123"
+        self.failUnless(c_string.from_param(s) is s)
 
-    >>> type(c_string("abc")._as_parameter_)
-    <type 'CArgObject'>
+        self.assertRaises(TypeError, c_string.from_param, u"123")
+        self.assertRaises(TypeError, c_string.from_param, 42)
 
-    >>> c_string(None)
-    <c_string NULL>
-    
-    >>> c_string(None)._as_parameter_
-    <cparam 'z' (00000000)>
+        # calling c_string.from_param with a c_string instance
+        # returns the argument itself:
+        a = c_string("123")
+        self.failUnless(c_string.from_param(a) is a)
 
-    """
+        self.failUnless(c_string.from_param(None) == 0)
 
-def test_cWIDEcstrings():
-    """
-    >>> from ctypes import c_wstring
-    >>> c_wstring.from_param(u"123")
-    u'123'
+        # Since c_string instances are always passed by reference,
+        # calling byref() with them raises an error (XXX although
+        # the error message should be fixed: 'expected CData instance'
+        self.assertRaises(TypeError, byref, c_string("123"))
+        self.assertRaises(TypeError, byref, "123")
 
-    >>> c_wstring.from_param("123")
-    Traceback (most recent call last):
-       ...
-    TypeError: c_wstring, unicode, or None expected
+        # Hm, how to check the c_string(xxx)._as_parameter_ attribute?
 
-    >>> c_wstring.from_param(c_wstring("123"))
-    Traceback (most recent call last):
-       ...
-    TypeError: unicode string or None expected
 
-    >>> c_wstring.from_param(None)
-    0
+    def test_cw_strings(self):
+        from ctypes import byref
+        try:
+            from ctypes import c_wstring
+        except ImportError:
+##            print "(No c_wstring)"
+            return
+        self.failUnless(c_wstring.from_param(u"123") == u"123")
 
-    >>> type(c_wstring(u"abc")._as_parameter_)
-    <type 'CArgObject'>
+        self.assertRaises(TypeError, c_wstring.from_param, "123")
+        self.assertRaises(TypeError, c_wstring.from_param, 42)
 
-    >>> c_wstring(None)
-    <c_wstring NULL>
-    
-    >>> c_wstring(None)._as_parameter_
-    <cparam 'Z' (00000000)>
+        pa = c_wstring.from_param(c_wstring(u"123"))
+        self.failUnless(type(pa) == c_wstring)
+        self.failUnless(c_wstring.from_param(None) == 0)
 
-    """
+        # Since c_wstring instances are always passed by reference,
+        # byref() raises an error:
+        self.assertRaises(TypeError, byref, c_wstring(u"123"))
+        self.assertRaises(TypeError, byref, u"123")
 
-def test_char():
-    """
-    >>> from ctypes import c_char
-    >>> c_char.from_param("x")
-    <cparam 'c' (x)>
+        # Hm, how to check the c_wstring(xxx)._as_parameter_ attribute?
 
-    >>> c_char(42)
-    Traceback (most recent call last):
-        ...
-    TypeError: one character string expected
+    def test_int_pointers(self):
+        from ctypes import c_int, c_long, POINTER, pointer
+        LPINT = POINTER(c_int)
 
-    >>> c_char("abc")
-    Traceback (most recent call last):
-        ...
-    TypeError: one character string expected
+        i = c_int(42)
+        l = c_long(420)
 
-    >>> c_char.from_param(u"x")
-    Traceback (most recent call last):
-        ...
-    TypeError: one character string expected
+        x = LPINT.from_param(pointer(i))        
+        self.failUnless(x.contents.value == 42)
+        self.failUnless(LPINT(i).contents.value == 42)
 
-    >>> c_char.from_param(c_char("x"))
-    c_char('x')
+        self.failUnless(LPINT.from_param(None) == 0)
 
-    >>> c_char("x")._as_parameter_
-    <cparam 'c' (x)>
+        self.assertRaises(TypeError, LPINT.from_param, pointer(l))
 
-    """
+################################################################
 
-def test(*args, **kw):
-    return
-    try:
-        from ctypes import c_wstring
-    except ImportError:
-        # don't try to test c_wstring if it isn't available
-        test_cWIDEcstrings.__doc__ = ""
+def check_perf():
+    # Convert 5 objects into parameters, using different approaches
+    from time import clock
+    from ctypes import c_int, POINTER, pointer, byref
 
-    import doctest, test_parameters
-    doctest.testmod(test_parameters, *args, **kw)
+    REP = 100000
+
+    p = c_int(42)
+    start = clock()
+    for i in range(REP):
+        byref(p); byref(p); byref(p); byref(p); byref(p)
+    stop = clock()
+
+    # My machine, win2k, Python 2.2: 1.38 us
+    # My machine, win2k, Python 2.3: 0.68 us
+    print "byref: %.2f us" % ((stop - start)*1e6/5/REP)
+
+    f = c_int.from_param
+    c = 42
+    start = clock()
+    for i in range(REP):
+        f(c); f(c); f(c); f(c); f(c)
+    stop = clock()
+
+    # My machine, win2k, Python 2.2: 1.76 us
+    # My machine, win2k, Python 2.3: 1.00 us
+    print "from_param(42): %.2f us" % ((stop - start)*1e6/5/REP)
+
+    f = c_int.from_param
+    c = c_int(42)
+    start = clock()
+    for i in range(REP):
+        f(c); f(c); f(c); f(c); f(c)
+    stop = clock()
+
+    # My machine, win2k, Python 2.2: 0.70 us
+    # My machine, win2k, Python 2.3: 0.55 us
+    print "from_param(c_int()): %.2f us" % ((stop - start)*1e6/5/REP)
+
+
+def get_suite():
+    return unittest.makeSuite(SimpleTypesTestCase)
+
+def test(verbose=0):
+    runner = unittest.TextTestRunner(verbosity=verbose)
+    runner.run(get_suite())
 
 if __name__ == '__main__':
-    test()
+    check_perf()
+    unittest.main()
