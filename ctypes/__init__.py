@@ -252,15 +252,15 @@ else:
     else:
         set_conversion_mode("ascii", "strict")
 
-    class c_wchar_p(_SimpleCData):
-        _type_ = "Z"
-        def __repr__(self):
-            return "%s(%r)" % (self.__class__.__name__, self.value)
-
     class c_wchar(_SimpleCData):
         _type_ = "u"
         def __repr__(self):
             return "c_wchar(%r)" % self.value
+
+    class c_wchar_p(_SimpleCData):
+        _type_ = "Z"
+        def __repr__(self):
+            return "%s(%r)" % (self.__class__.__name__, self.value)
 
     POINTER(c_wchar).from_param = c_wchar_p.from_param #_SimpleCData.c_wchar_p_from_param
 
