@@ -25,7 +25,7 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 /* setfunc overloaded by a __to_field__ callable on the fieldtype */
 static PyObject *
 _overloaded_field_setfunc(void *ptr, PyObject *value, unsigned size,
-			  PyObject *fieldtype, CDataObject *dst)
+			  PyObject *fieldtype)
 {
 	PyObject *result;
 	PyObject *func = PyObject_GetAttrString(fieldtype, "__to_field__");
@@ -42,10 +42,12 @@ _overloaded_field_setfunc(void *ptr, PyObject *value, unsigned size,
 
 /* Default setfunc to be used as CFieldObject.setfunc when the field type
    doesn't supply its own getfunc.
+
+   Can eventually be removed when ALL ctypes types supply their own setfunc.
 */
 static PyObject *
 _generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
-		       PyObject *type, CDataObject *dst)
+		       PyObject *type)
 {
 	/* inlined code from _CData_set() */
 	if (CDataObject_Check(value)) {
@@ -85,7 +87,7 @@ _generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
 						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
-			result = _generic_field_setfunc(ptr, ob, size, type, dst);
+			result = _generic_field_setfunc(ptr, ob, size, type);
 			Py_DECREF(ob);
 			return result;
 		}

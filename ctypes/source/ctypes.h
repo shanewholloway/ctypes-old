@@ -129,10 +129,10 @@ extern PyMethodDef module_methods[];
    be used here.  Or we should have FIELDGETFUNC...
 */
 
-// full arglist: (void*, unsigned, PyObject *type, CDataObject *src, int index)
 typedef PyObject *(* GETFUNC)(void *, unsigned size, ...);
-// full arglist: (void*, PyObject*, unsigned, PyObject *type, CDataObject *dst)
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size, ...);
+//typedef PyObject *(* GETFUNC)(void*, unsigned, PyObject *type, CDataObject *src, int index);
+//typedef PyObject *(* SETFUNC)(void*, PyObject*, unsigned, PyObject *type);
 
 /* a table entry describing a predefined ctypes type */
 struct fielddesc {
