@@ -2282,25 +2282,30 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 /* XXX Beware of UNICODE */
 	CDataObject *obj;
 	PyObject *init;
-	int size;
+	int size = -1;
 	char *data;
+	int slen;
 
-	if (!PyArg_ParseTuple(args, "O", &init))
+	if (!PyArg_ParseTuple(args, "O|i", &init, &size))
 		return NULL;
-
+	
 	if (PyString_Check(init)) {
-		PyString_AsStringAndSize(init, &data, &size);
+		PyString_AsStringAndSize(init, &data, &slen);
+		if (size == -1)
+			size = slen+1;
+		if (slen > size-1)
+			slen = size-1;
 	} else if (PyInt_Check(init)) {
 		size = PyInt_AS_LONG(init);
 		data = NULL;
-		if (size < 0) {
-			PyErr_SetString(PyExc_ValueError,
-					"string size must be positive");
-			return NULL;
-		}
 	} else {
 		PyErr_SetString(PyExc_TypeError,
-				"string or None expected");
+				"string or positive integer expected");
+		return NULL;
+	}
+	if (size <= 0) {
+		PyErr_SetString(PyExc_ValueError,
+				"string size must be positive");
 		return NULL;
 	}
 
@@ -2312,14 +2317,14 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_objects = NoneList(0);
 	obj->b_length = 0;
 
-	obj->b_ptr = PyMem_Malloc(size+1);
-	obj->b_size = size+1;
+	obj->b_ptr = PyMem_Malloc(size);
+	obj->b_size = size;
 	obj->b_needsfree = 1;
-	if (data)
-		memcpy(obj->b_ptr, data, size);
-	else
+	if (data) {
+		memcpy(obj->b_ptr, data, slen);
+		memset(obj->b_ptr+slen, 0, size-slen);
+	} else
 		memset(obj->b_ptr, 0, size);
-	obj->b_ptr[size] = '\0';
 	return (PyObject *)obj;
 }
 
@@ -2915,6 +2920,12 @@ CField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
 
 	/* XXX Do we need to check the size here, or do we trust in 'self'? */
 	if (self->proto) {
+		/* We should probably special case here if self->proto->ob_type
+		   is CFunctionType_Type */
+/*
+		if (self->proto->ob_type == &CFunctionType_Type)
+			....
+*/
 		return CData_FromBaseObj(self->proto,
 					 inst,
 					 self->index,
@@ -3828,7 +3839,7 @@ static PyMethodDef CFunctionType_methods[] = {
 	{ NULL }
 };
 
-static PyTypeObject CFunctionType_Type = {
+PyTypeObject CFunctionType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
 	"_ctypes.CFunctionType",		/* tp_name */
@@ -4342,12 +4353,15 @@ sizeof_func(PyObject *self, PyObject *obj)
 		return PyInt_FromLong(dict->size);
 
 	/* Should be able to handle CString and CWString instances? */
-	if (!CDataObject_Check(obj)) {
-		PyErr_SetString(PyExc_TypeError,
-				"no size");
-		return NULL;
-	}
-	return PyInt_FromLong(((CDataObject *)obj)->b_size);
+	if (CDataObject_Check(obj) || CString_Check(obj)
+#ifdef HAVE_USABLE_WCHAR_T
+	    || CWString_Check(obj)
+#endif
+		)
+		return PyInt_FromLong(((CDataObject *)obj)->b_size);
+	PyErr_SetString(PyExc_TypeError,
+			"no size");
+	return NULL;
 }
 
 PyObject *
@@ -4401,13 +4415,15 @@ byref(PyObject *self, PyObject *obj)
 PyObject *
 addressof(PyObject *self, PyObject *obj)
 {
-	/* Should be able to handle CString and CWString instances? */
-	if (!CDataObject_Check(obj)) {
-		PyErr_SetString(PyExc_TypeError,
-				"expected CData instance");
-		return NULL;
-	}
-	return PyInt_FromLong((long)((CDataObject *)obj)->b_ptr);
+	if (CDataObject_Check(obj) || CString_Check(obj)
+#ifdef HAVE_USABLE_WCHAR_T
+	    || CWString_Check(obj)
+#endif
+		)
+		return PyInt_FromLong((long)((CDataObject *)obj)->b_ptr);
+	PyErr_SetString(PyExc_TypeError,
+			"expected CData instance");
+	return NULL;
 }
 
 /*
