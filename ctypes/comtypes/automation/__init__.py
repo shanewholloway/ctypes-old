@@ -309,7 +309,9 @@ class IDispatch(IUnknown):
         self.__com_GetTypeInfoCount(byref(r))
         return r.value
 
-    def GetTypeInfo(self, index, lcid=0):
+    def GetTypeInfo(self, index=0, lcid=0):
+        "Return typeinfo"
+        # index=0 specifies typeinfo for IDispatch
         from typeinfo import ITypeInfo
         p = POINTER(ITypeInfo)()
         self.__com_GetTypeInfo(index, lcid, byref(p))
