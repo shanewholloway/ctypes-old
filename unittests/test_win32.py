@@ -57,7 +57,7 @@ class Structures(unittest.TestCase):
 
             pt = POINT(10, 10)
             rect = RECT(0, 0, 20, 20)
-            self.failUnlessEqual(True, dll.PointInRect(byref(rect), pt))
+            self.failUnlessEqual(1, dll.PointInRect(byref(rect), pt))
 
 if __name__ == '__main__':
     unittest.main()
