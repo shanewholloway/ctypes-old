@@ -85,12 +85,35 @@ def test_callbacks():
     called back with -2
     called back with -1
     -10
-    
+
     """
+
+def test_longlong_callbacks():
+    # Currently not possible, it fails because there's no way to specify the
+    # type of a callback function in argtypes!
+##    """
+##    >>> f = dll._testfunc_callback_q_qf
+##    >>> f.restype = c_longlong
+##    >>> class MyCallback(CFunction):
+##    ...     _stdcall_ = 0
+##    ...     _types_ = "q"
+
+##    >>> f.argtypes = [c_longlong, MyCallback]
+##    >>> def callback(value):
+##    ...     print "called back with", value
+    
+##    >>> cb = MyCallback(callback)
+##    >>> print dir(cb)
+##    >>> print addressof(cb)
+
+##    >>> # f(-10, cb._as_parameter_)
+
+##    """
+    ""
 
 def test(*args, **kw):
     import doctest, test_functions
-    doctest.testmod(test_functions, *args, **kw)
+    doctest.testmod(test_functions, verbose=0)
 
 if __name__ == '__main__':
     test()
