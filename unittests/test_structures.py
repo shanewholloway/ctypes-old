@@ -24,7 +24,7 @@ class StructureTestCase(unittest.TestCase):
             class X(Structure):
                 _fields_ = [("x", c_char),
                             ("y", tp)]
-            self.failUnless(sizeof(X) == calcsize("c%c0%c" % (code, code)))
+            self.failUnlessEqual(sizeof(X), calcsize("c%c0%c" % (code, code)))
 
     def test_unions(self):
         for code, tp in self.formats.items():
@@ -37,33 +37,33 @@ class StructureTestCase(unittest.TestCase):
     def test_struct_alignment(self):
         class X(Structure):
             _fields_ = [("x", c_char * 3)]
-        self.failUnless(alignment(X) == calcsize("s"))
-        self.failUnless(sizeof(X) == calcsize("3s"))
+        self.failUnlessEqual(alignment(X), calcsize("s"))
+        self.failUnlessEqual(sizeof(X), calcsize("3s"))
 
         class Y(Structure):
             _fields_ = [("x", c_char * 3),
                         ("y", c_int)]
-        self.failUnless(alignment(Y) == calcsize("i"))
-        self.failUnless(sizeof(Y) == calcsize("3si"))
+        self.failUnlessEqual(alignment(Y), calcsize("i"))
+        self.failUnlessEqual(sizeof(Y), calcsize("3si"))
 
         class SI(Structure):
             _fields_ = [("a", X),
                         ("b", Y)]
-        self.failUnless(alignment(SI) == max(alignment(Y), alignment(X)))
-        self.failUnless(sizeof(SI) == calcsize("3s0i 3si 0i"))
+        self.failUnlessEqual(alignment(SI), max(alignment(Y), alignment(X)))
+        self.failUnlessEqual(sizeof(SI), calcsize("3s0i 3si 0i"))
         
         class IS(Structure):
             _fields_ = [("b", Y),
                         ("a", X)]
 
-        self.failUnless(alignment(SI) == max(alignment(X), alignment(Y)))
-        self.failUnless(sizeof(IS) == calcsize("3si 3s 0i"))
+        self.failUnlessEqual(alignment(SI), max(alignment(X), alignment(Y)))
+        self.failUnlessEqual(sizeof(IS), calcsize("3si 3s 0i"))
 
         class XX(Structure):
             _fields_ = [("a", X),
                         ("b", X)]
-        self.failUnless(alignment(XX) == alignment(X))
-        self.failUnless(sizeof(XX) == calcsize("3s 3s 0s"))
+        self.failUnlessEqual(alignment(XX), alignment(X))
+        self.failUnlessEqual(sizeof(XX), calcsize("3s 3s 0s"))
 
     def test_emtpy(self):
         # I had problems with these
@@ -83,8 +83,8 @@ class StructureTestCase(unittest.TestCase):
             _fields_ = [("a", X),
                         ("b", X)]
 
-        self.failUnless(alignment(XX) == 1)
-        self.failUnless(sizeof(XX) == 0)
+        self.failUnlessEqual(alignment(XX), 1)
+        self.failUnlessEqual(sizeof(XX), 0)
 
     def test_fields(self):
         # test the offset and size attributes of Structure/Unoin fields.
@@ -92,11 +92,11 @@ class StructureTestCase(unittest.TestCase):
             _fields_ = [("x", c_int),
                         ("y", c_char)]
 
-        self.failUnless(X.x.offset == 0)
-        self.failUnless(X.x.size == sizeof(c_int))
+        self.failUnlessEqual(X.x.offset, 0)
+        self.failUnlessEqual(X.x.size, sizeof(c_int))
 
-        self.failUnless(X.y.offset == sizeof(c_int))
-        self.failUnless(X.y.size == sizeof(c_char))
+        self.failUnlessEqual(X.y.offset, sizeof(c_int))
+        self.failUnlessEqual(X.y.size, sizeof(c_char))
 
         # readonly
         self.assertRaises(TypeError, setattr, X.x, "offset", 92)
@@ -106,11 +106,11 @@ class StructureTestCase(unittest.TestCase):
             _fields_ = [("x", c_int),
                         ("y", c_char)]
 
-        self.failUnless(X.x.offset == 0)
-        self.failUnless(X.x.size == sizeof(c_int))
+        self.failUnlessEqual(X.x.offset, 0)
+        self.failUnlessEqual(X.x.size, sizeof(c_int))
 
-        self.failUnless(X.y.offset == 0)
-        self.failUnless(X.y.size == sizeof(c_char))
+        self.failUnlessEqual(X.y.offset, 0)
+        self.failUnlessEqual(X.y.size, sizeof(c_char))
 
         # readonly
         self.assertRaises(TypeError, setattr, X.x, "offset", 92)
@@ -125,22 +125,22 @@ class StructureTestCase(unittest.TestCase):
                         ("b", c_longlong)]
             _pack_ = 1
 
-        self.failUnless(sizeof(X) == 9, sizeof(X))
-        self.failUnless(X.b.offset == 1, X.b.offset)
+        self.failUnlessEqual(sizeof(X), 9)
+        self.failUnlessEqual(X.b.offset, 1)
 
         class X(Structure):
             _fields_ = [("a", c_byte),
                         ("b", c_longlong)]
             _pack_ = 2
-        self.failUnless(sizeof(X) == 10, sizeof(X))
-        self.failUnless(X.b.offset == 2, X.b.offset)
+        self.failUnlessEqual(sizeof(X), 10)
+        self.failUnlessEqual(X.b.offset, 2)
 
         class X(Structure):
             _fields_ = [("a", c_byte),
                         ("b", c_longlong)]
             _pack_ = 4
-        self.failUnless(sizeof(X) == 12)
-        self.failUnless(X.b.offset == 4)
+        self.failUnlessEqual(sizeof(X), 12)
+        self.failUnlessEqual(X.b.offset, 4)
 
         import struct
         longlong_size = struct.calcsize("q")
@@ -151,8 +151,8 @@ class StructureTestCase(unittest.TestCase):
                         ("b", c_longlong)]
             _pack_ = 8
 
-        self.failUnless(sizeof(X) == longlong_align + longlong_size)
-        self.failUnless(X.b.offset == min(8, longlong_align))
+        self.failUnlessEqual(sizeof(X), longlong_align + longlong_size)
+        self.failUnlessEqual(X.b.offset, min(8, longlong_align))
 
 
         d = {"_fields_": [("a", "b"),
