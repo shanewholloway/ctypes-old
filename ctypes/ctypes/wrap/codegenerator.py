@@ -2,6 +2,10 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.4  2005/03/11 10:18:02  theller
+# Various fixes.  And autodetect whether to generate ctypes.com or
+# comtypes wrapper code for com interfaces.
+#
 # Revision 1.3  2005/02/17 19:22:54  theller
 # Refactoring for easier dynamic code generation.
 #
@@ -274,11 +278,14 @@ class Generator(object):
             self.more.add(struct)
         basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
+            self.need_GUID()
             print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
+            print >> self.stream, "    _iid_ = GUID('{}') # please look up iid and fill in!"
         else:
             methods = [m for m in head.struct.members if type(m) is typedesc.Method]
             if methods:
-                self.need_cominterface()
+                # Hm. We cannot generate code for IUnknown...
+                print >> self.stream, "assert 0, 'cannot generate code for IUnknown'"
                 print >> self.stream, "class %s(_com_interface):" % head.struct.name
             elif type(head.struct) == typedesc.Structure:
                 print >> self.stream, "class %s(Structure):" % head.struct.name
@@ -441,7 +448,11 @@ class Generator(object):
                       (body.struct.name, align, body.struct.name)
 
         if methods:
-            self.need_STDMETHOD()
+            # Ha! Autodetect ctypes.com or comtypes ;)
+            if "COMMETHOD" in self.known_symbols:
+                self.need_COMMETHOD()
+            else:
+                self.need_STDMETHOD()
             # method definitions normally span several lines.
             # Before we generate them, we need to 'import' everything they need.
             # So, call type_name for each field once,
@@ -449,15 +460,37 @@ class Generator(object):
                 self.type_name(m.returns)
                 for a in m.arguments:
                     self.type_name(a)
-            print >> self.stream, "%s._methods_ = [" % body.struct.name
+            if "COMMETHOD" in self.known_symbols:
+                print >> self.stream, "%s._methods_ = [" % body.struct.name
+            else:
+                # ctypes.com needs baseclass methods listed as well
+                if body.struct.bases:
+                    basename = body.struct.bases[0].name
+                    print >> self.stream, "%s._methods_ = %s._methods + [" % \
+                          (body.struct.name, body.struct.bases[0].name)
+                else:
+                    print >> self.stream, "%s._methods_ = [" % body.struct.name
             if body.struct.location:
                 print >> self.stream, "# %s %s" % body.struct.location
-            for m in methods:
-                args = [self.type_name(a) for a in m.arguments]
-                print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
-                    self.type_name(m.returns),
-                    m.name,
-                    ", ".join(args))
+
+            if "COMMETHOD" in self.known_symbols:
+                for m in methods:
+                    if m.location:
+                        print >> self.stream, "    # %s %s" % m.location
+                    print >> self.stream, "    COMMETHOD([], %s, '%s'," % (
+                        self.type_name(m.returns),
+                        m.name)
+                    for a in m.arguments:
+                        print >> self.stream, \
+                              "               ( [], %s, )," % self.type_name(a)
+                    print >> self.stream, "             ),"
+            else:
+                for m in methods:
+                    args = [self.type_name(a) for a in m.arguments]
+                    print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
+                        self.type_name(m.returns),
+                        m.name,
+                        ", ".join(args))
             print >> self.stream, "]"
 
     def find_dllname(self, func):
@@ -488,22 +521,32 @@ class Generator(object):
         basename = os.path.basename(dllname)
         name, ext = os.path.splitext(basename)
         self._loadedlibs[dllname] = name
-        print >> self.stream, "%s = CDLL(%r)" % (name, dllname)
+        # This should be handled in another way!
+##        print >> self.stream, "%s = CDLL(%r)" % (name, dllname)
         return name
-
-    _cominterface_defined = False
-    def need_cominterface(self):
-        if self._cominterface_defined:
-            return
-        print >> self.imports, "from comtypes import _com_interface"
-        self._cominterface_defined = True
 
     _STDMETHOD_defined = False
     def need_STDMETHOD(self):
         if self._STDMETHOD_defined:
             return
-        print >> self.imports, "from comtypes import STDMETHOD"
+        print >> self.imports, "from ctypes.com import STDMETHOD"
         self._STDMETHOD_defined = True
+
+    _COMMETHOD_defined = False
+    def need_COMMETHOD(self):
+        if self._COMMETHOD_defined:
+            return
+        print >> self.imports, "from comtypes import COMMETHOD"
+        self._STDMETHOD_defined = True
+
+    _GUID_defined = False
+    def need_GUID(self):
+        if self._GUID_defined:
+            return
+        self._GUID_defined = True
+        modname = self.known_symbols.get("GUID")
+        if modname:
+            print >> self.imports, "from %s import GUID" % modname
 
     _functiontypes = 0
     _notfound_functiontypes = 0
@@ -520,7 +563,7 @@ class Generator(object):
             libname = self.get_sharedlib(dllname)
             print >> self.stream
             if self.use_decorators:
-                print >> self.stream, "@ %s(%s, %s, [%s])" % \
+                print >> self.stream, "@ %s(%s, '%s', [%s])" % \
                       (cc, self.type_name(func.returns), libname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
@@ -529,7 +572,7 @@ class Generator(object):
                 print >> self.stream, "    # %s %s" % func.location
             print >> self.stream, "    return %s._api_(%s)" % (func.name, ", ".join(argnames))
             if not self.use_decorators:
-                print >> self.stream, "%s = %s(%s, %s, [%s]) (%s)" % \
+                print >> self.stream, "%s = %s(%s, '%s', [%s]) (%s)" % \
                       (func.name, cc, self.type_name(func.returns), libname, ", ".join(args), func.name)
             print >> self.stream
             self.names.add(func.name)
