@@ -332,6 +332,7 @@ class CDLL:
         if name[:2] == '__' and name[-2:] == '__':
             raise AttributeError, name
         func = self._CdeclFuncPtr(name, self)
+        func.__name__ = name
         setattr(self, name, func)
         return func
 
@@ -359,6 +360,7 @@ if _os.name ==  "nt":
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
             func = self._StdcallFuncPtr(name, self)
+            func.__name__ = name
             setattr(self, name, func)
             return func
 
@@ -387,6 +389,7 @@ if _os.name ==  "nt":
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
             func = self._OlecallFuncPtr(name, self)
+            func.__name__ = name
             setattr(self, name, func)
             return func
 
