@@ -30,12 +30,8 @@ class FunctionTestCase(unittest.TestCase):
         self.failUnless(result == 21)
         self.failUnless(type(result) == int)
 
-        # You should NOT do this:
-        f.restype = c_short
-        # because, when the function returns something in the high word,
-        # constructing the result will fail:
-        self.assertRaises(ValueError, f, 1, 2, 3, 0x10004, 5.0, 6.0)
-
+        # You cannot assing C datatypes as restype, except POINTER classes:
+        self.assertRaises(TypeError, setattr, f, "restype", c_short)
 
     def test_floatresult(self):
         f = dll._testfunc_f_bhilfd
@@ -82,12 +78,32 @@ class FunctionTestCase(unittest.TestCase):
 
     def test_stringresult(self):
         f = dll._testfunc_p_p
-        f.restype = "z" # returns a char * pointer
+        f.restype = "z"
         result = f("123")
         self.failUnless(result == "123")
 
         result = f(None)
         self.failUnless(result == None)
+
+    def test_pointers(self):
+        f = dll._testfunc_p_p
+        f.restype = POINTER(c_int)
+        f.argtypes = [POINTER(c_int)]
+
+        # This only works if the value c_int(42) passed to the
+        # function is still alive while the pointer (the result) is
+        # used.
+
+        v = c_int(42)
+
+        result = f(byref(v))
+        self.failUnless(type(result) == POINTER(c_int))
+        self.failUnless(result.contents.value == 42)
+
+        # It is dangerous, however, because you don't control the lifetime
+        # of the pointer:
+        result = f(byref(c_int(99)))
+        self.failUnless(result.contents.value != 99)
 
     def test_callbacks(self):
         f = dll._testfunc_callback_i_if
