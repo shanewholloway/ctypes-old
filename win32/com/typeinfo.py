@@ -121,6 +121,12 @@ assert(sizeof(BSTR) == 4)
 VARTYPE = c_ushort
 SCODE = DWORD
 
+TypeToVT = {
+    3: (3, "iVal"),
+    5: (5, "dblVal"),
+    8: (8, "strVal"),
+    }
+
 
 #fake it, in reality it's a union having 16 bytes
 class VARIANT(Structure):
@@ -185,10 +191,11 @@ class TLIBATTR(Structure):
     _fields_ = [("guid", GUID),
                 ("lcid", LCID),
                 ("syskind", SYSKIND),
-                ("wMajorVersionNum", WORD),
-                ("wMinorVersionNum", WORD),
+                ("wMajorVerNum", WORD),
+                ("wMinorVerNum", WORD),
                 ("wLibFlags", WORD)]
 assert(sizeof(TLIBATTR) == 32), sizeof(TLIBATTR)
+LPTLIBATTR = POINTER(TLIBATTR)
 
 class PARAMDESCEX(Structure):
     _fields_ = [("cBytes", c_ulong),
@@ -281,6 +288,33 @@ class FUNCDESC(Structure):
 LPFUNCDESC = POINTER(FUNCDESC)
 assert(sizeof(FUNCDESC) == 52), sizeof(FUNCDESC)
 
+# For CreateDispTypeInfo
+
+##from ctypes import c_ushort, c_int, c_uint, c_long, c_wchar_p, Structure
+
+##VARTYPE = c_int # enum
+##DISPID = c_long
+##CALLCONV = c_int
+
+##class PARAMDATA(Structure):
+##    _fields_ = [("szName", c_wchar_p),
+##                ("vt", VARTYPE)]
+
+##class METHODDATA(Structure):
+##    _fields_ = [("szName", c_wchar_p),
+##                ("ppdata", POINTER(PARAMDATA)),
+##                ("dispid", DISPID),
+##                ("iMeth", c_uint),
+##                ("cc", CALLCONV),
+##                ("cArgs", c_uint),
+##                ("wFlags", c_ushort),
+##                ("vtReturn", VARTYPE)]
+
+##class INTERFACEDATA(Structure):
+##    _fields_ = [("pmethdata", POINTER(METHODDATA)),
+##                ("cMembers", c_uint)]
+
+
 ################################################################
 # The interfaces COM methods
 
@@ -320,7 +354,7 @@ ITypeLib._methods_ = IUnknown._methods_ + [
     STDMETHOD(HRESULT, "GetTypeInfo", c_uint, POINTER(POINTER(ITypeInfo))),
     STDMETHOD(HRESULT, "GetTypeInfoType", c_int, POINTER(TYPEKIND)),
     STDMETHOD(HRESULT, "GetTypeInfoOfGuid", REFGUID, POINTER(POINTER(ITypeInfo))),
-    STDMETHOD(HRESULT, "GetLibAttr", POINTER(TLIBATTR)),
+    STDMETHOD(HRESULT, "GetLibAttr", POINTER(POINTER(TLIBATTR))),
     STDMETHOD(HRESULT, "GetTypeComp", POINTER(ITypeComp)),
     STDMETHOD(HRESULT, "GetDocumentation", c_int, POINTER(BSTR), POINTER(BSTR),
               POINTER(c_ulong), POINTER(BSTR)),
