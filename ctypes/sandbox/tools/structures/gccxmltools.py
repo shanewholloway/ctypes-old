@@ -391,8 +391,6 @@ class GCCXML_Handler(handler.ContentHandler):
 ################################################################
 
 class Visitor(object):
-    def __init__(self, objects):
-        self.__objects = objects
 
     def _visit(self, obj):
         mth = getattr(self, obj.__class__.__name__, None)
@@ -402,8 +400,8 @@ class Visitor(object):
 ##            import warnings
 ##            warnings.warn(type(obj), Warning)
 
-    def go(self):
-        for o in self.__objects:
+    def go(self, objects):
+        for o in objects:
             self._visit(o)
 
 ################################################################
