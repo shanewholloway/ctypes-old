@@ -535,7 +535,6 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
    have an _as_parameter_ property implemented in C, which returns
    a PyCArgObject?
 */
-#ifdef CAN_PASS_BY_VALUE
 		if (CDataObject_Check(arg)) {
 			CDataObject *mem = (CDataObject *)arg;
 			parm->tag = 'V';
@@ -545,7 +544,6 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 			parm->obj = arg;
 			return parm;
 		}
-#endif
 #endif
 		Py_DECREF(arg);
 		PyErr_Format(PyExc_TypeError,
