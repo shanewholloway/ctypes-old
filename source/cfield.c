@@ -746,7 +746,7 @@ U_set(void *ptr, PyObject *value, unsigned length)
 	} else if (size < length-1)
 		/* copy terminating NUL character */
 		size += 1;
-	PyUnicode_AsWideChar(value, (wchar_t *)ptr, size);
+	PyUnicode_AsWideChar((PyUnicodeObject *)value, (wchar_t *)ptr, size);
 	return value;
 }
 
