@@ -31,9 +31,9 @@ SimpleType_Type		__new__(), from_address(), __mul__(), from_param()
 
 CData_Type
   Struct_Type		__new__(), __init__()
-  Pointer_Type		__new__(), __init__(), _as_parameter_, contents
-  Array_Type		__new__(), __init__(), _as_parameter_, __get/setitem__(), __len__()
-  Simple_Type		__new__(), __init__(), _as_parameter_
+  Pointer_Type		__new__(), __init__(), contents
+  Array_Type		__new__(), __init__(), __get/setitem__(), __len__()
+  Simple_Type		__new__(), __init__()
 
 CField_Type
 StgDict_Type
@@ -54,10 +54,6 @@ from_param(obj)
 
 instance methods/properties
 ---------------------------
-
-_as_parameter_
-	- convert self into a C function call parameter
-	  This is either an integer, or a 3-tuple (typecode, value, obj)
 
 functions
 ---------
@@ -183,6 +179,17 @@ StructUnion_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 	return basic_setfunc(ptr, value, size, type);
 }
 
+static int
+StructUnion_asparam(CDataObject *self, struct argument *pa)
+{
+	StgDictObject *dict = PyObject_stgdict(self);
+	pa->ffi_type = &dict->ffi_type;
+	pa->value.p = self->b_ptr;
+	Py_INCREF(self);
+	pa->keep = (PyObject *)self;
+	return 0;
+}
+
 static PyObject *
 StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 {
@@ -217,6 +224,7 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
 
 	dict->setfunc = StructUnion_setfunc;
 	dict->getfunc = generic_getfunc;
+	dict->asparam = StructUnion_asparam;
 
 	fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
 	if (!fields) {
@@ -3124,30 +3132,6 @@ IBUG(char *msg)
 	return -1;
 }
 
-static PyObject *
-Struct_as_parameter(CDataObject *self)
-{
-	PyCArgObject *parg;
-	StgDictObject *stgdict;
-	
-	parg = new_CArgObject();
-	if (parg == NULL)
-		return NULL;
-
-	parg->tag = 'V';
-	stgdict = PyObject_stgdict((PyObject *)self);
-	parg->pffi_type = &stgdict->ffi_type;
-	/* For structure parameters (by value), parg->value doesn't contain the structure
-	   data itself, instead parg->value.p *points* to the structure's data
-	   See also _ctypes.c, function _call_function_pointer().
-	*/
-	parg->value.p = self->b_ptr;
-	parg->size = self->b_size;
-	Py_INCREF(self);
-	parg->obj = (PyObject *)self;
-	return (PyObject *)parg;	
-}
-
 static int
 Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
@@ -3217,13 +3201,6 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 	return 0;
 }
 
-static PyGetSetDef Struct_getsets[] = {
-	{ "_as_parameter_", (getter)Struct_as_parameter, NULL,
-	  "return a magic value so that this can be converted to a C parameter (readonly)",
-	  NULL },
-	{ NULL, NULL }
-};
-
 static PyTypeObject Struct_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -3255,7 +3232,7 @@ static PyTypeObject Struct_Type = {
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
 	0,					/* tp_members */
-	Struct_getsets,				/* tp_getset */
+	0,					/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
@@ -3298,7 +3275,7 @@ static PyTypeObject Union_Type = {
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
 	0,					/* tp_members */
-	Struct_getsets,				/* tp_getset */
+	0,					/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
