@@ -29,6 +29,7 @@ struct tagCDataObject {
 	PyObject *b_objects;	/* list of references we need to keep */
 };
 
+extern PyObject *CData_GetList(CDataObject *mem);
 
 extern PyTypeObject StgDict_Type;
 #define StgDict_CheckExact(v)	    ((v)->ob_type == &StgDict_Type)
@@ -59,9 +60,15 @@ extern PyTypeObject CFunctionType_Type;
 extern PyTypeObject CFunction_Type;
 #define CFunction_Check(v)		PyObject_TypeCheck(v, &CFunction_Type)
 
+extern PyTypeObject CField_Type;
+extern struct fielddesc *getentry(char *fmt);
+
+
 extern PyObject *
 CField_FromDesc(PyObject *desc, int index,
 		int *psize, int *poffset, int *palign);
+
+
 
 extern PyObject *
 CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs);
@@ -82,6 +89,13 @@ extern PyObject *
 CreateArrayType(PyObject *itemtype, int length);
 
 typedef int (*THUNK)(void);
+
+typedef struct tagFunctionObject {
+	PyObject_HEAD
+	PyObject *callable;		/* python callable object */
+	PyObject *converters;		/* sequence of converters */
+	THUNK callback;			/* C function pointer */
+} CFunctionObject;
 
 #ifdef USE_CALLBACKS
 extern PyTypeObject CFunction_Type;
@@ -106,6 +120,25 @@ extern PyObject *addressof(PyObject *self, PyObject *obj);
 
 typedef PyObject *(* GETFUNC)(void *, unsigned size);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
+
+struct fielddesc {
+    char code;
+    int size;
+    int align;
+    SETFUNC setfunc;
+    GETFUNC getfunc;
+};
+
+typedef struct {
+	PyObject_HEAD
+	int offset;
+	int size;
+	int index;			/* Index into CDataObject's
+					   object array */
+	PyObject *proto;		/* a type or NULL */
+	GETFUNC getfunc;		/* getter function if proto is NULL */
+	SETFUNC setfunc;		/* setter function if proto is NULL */
+} CFieldObject;
 
 typedef struct {
 	PyDictObject dict;	/* a subclass of dict */

@@ -16,7 +16,8 @@ kw = {}
 kw["sources"] = ["source/_ctypes.c",
                  "source/callbacks.c",
                  "source/callproc.c",
-                 "source/stgdict.c"]
+                 "source/stgdict.c",
+                 "source/cfield.c"]
 
 # Support the distutils 'depends' option, if available
 if hasattr(distutils.core, 'get_distutil_options'):
