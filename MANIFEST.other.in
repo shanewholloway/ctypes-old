@@ -1,10 +1,10 @@
-include MANIFEST MANIFEST.in LICENSE.txt NEWS.txt README*
+include MANIFEST MANIFES.other.in LICENSE.txt NEWS.txt README*
 include source/*.c source/*.h
 include source/darwin/*.c source/darwin/*.h
 include ctypes/.CTYPES_DEVEL
 recursive-include source/gcc *
 
-recursive-include unittests *.py
+include unittests *.py
 include docs/*.html
 include docs/*.css
 include docs/*.stx

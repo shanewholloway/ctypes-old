@@ -1,0 +1,10 @@
+include MANIFEST MANIFEST.windows.in LICENSE.txt NEWS.txt README*
+include ctypes/.CTYPES_DEVEL
+
+recursive-include unittests *.py
+include docs/*.html
+include docs/*.css
+include docs/*.stx
+
+include samples/rt
+recursive-include samples *.py
