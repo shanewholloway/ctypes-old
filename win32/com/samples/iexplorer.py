@@ -60,9 +60,9 @@ browser._get_Visible(byref(v))
 print "Is visible?", hex(v.value)
 
 # We are interested in events, so create the event receiver instance...
-pevents = DWebBrowserEvents2Impl()
+events = DWebBrowserEvents2Impl()
 # ...and connect it to the browser (the event source).
-info = pevents.connect(browser)
+info = events.connect(browser)
 
 # Call the Navigate method. We have to supply empty values for all arguments:
 v = VARIANT()
@@ -75,5 +75,6 @@ browser.Navigate("http://www.python.org/",
 pump_messages()
 
 # To be nice, we clean up.
-pevents.disconnect(info)
+events.disconnect(info)
 print "disconnected"
+
