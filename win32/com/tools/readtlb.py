@@ -19,14 +19,14 @@
 # See also: http://archive.devx.com/upload/free/features/vcdj/2000/03mar00/fg0300/fg0300.asp
 #
 
-from ctypes.com.typeinfo import LoadTypeLibEx, LoadTypeLib, ITypeInfo, BSTR, \
+from ctypes.com.automation import LoadTypeLibEx, LoadTypeLib, ITypeInfo, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT, LPTLIBATTR
-from ctypes.com.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS, \
+from ctypes.com.automation import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS, \
      TKIND_RECORD
-from ctypes.com.typeinfo import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
+from ctypes.com.automation import DISPATCH_METHOD, DISPATCH_PROPERTYGET, \
      DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF
-from ctypes.com.typeinfo import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
-from ctypes.com.typeinfo import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
+from ctypes.com.automation import VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
+from ctypes.com.automation import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
      IMPLTYPEFLAG_FSOURCE, IMPLTYPEFLAG_FRESTRICTED, \
      IMPLTYPEFLAG_FDEFAULTVTABLE
 
@@ -452,7 +452,7 @@ class CoClassReader(TypeInfoReader):
 
 HEADER = r"""
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
-from ctypes.com.typeinfo import IDispatch, BSTR, VARIANT
+from ctypes.com.automation import IDispatch, BSTR, VARIANT
 
 from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
