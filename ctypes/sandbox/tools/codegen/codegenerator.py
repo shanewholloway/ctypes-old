@@ -120,8 +120,10 @@ def _type_name(t):
         return "%s * %s" % (type_name(t.typ), int(t.max)+1)
     elif isinstance(t, typedesc.FunctionType):
         args = map(type_name, [t.returns] + t.arguments)
-        # WINFUNCTYPE already *is* a pointer to a function!
-        return "CFUNCTYPE(%s)" % ", ".join(args)
+        if "__stdcall__" in t.attributes:
+            return "WINFUNCTYPE(%s)" % ", ".join(args)
+        else:
+            return "CFUNCTYPE(%s)" % ", ".join(args)
     elif isinstance(t, typedesc.CvQualifiedType):
         return "const(%s)" % type_name(t.typ)
     elif isinstance(t, typedesc.FundamentalType):
@@ -180,6 +182,7 @@ crypt32
 cryptnet
 ws2_32
 opengl32
+glu32
 mswsock
 msvcrt
 msimg32
@@ -368,6 +371,7 @@ class Generator(object):
             else:
                 return dll._name
 ##        print >> sys.stderr, "warning: dll not found for function %s" % name
+        return "???"
         return None
 
     _functiontypes = 0
