@@ -1,4 +1,6 @@
 #include <Python.h>
+
+#include <ffi.h>
 #include "ctypes.h"
 
 #ifdef MS_WIN32

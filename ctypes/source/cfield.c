@@ -1,6 +1,7 @@
 #include "Python.h"
 #include "structmember.h"
 
+#include <ffi.h>
 #include "ctypes.h"
 #ifdef MS_WIN32
 #include <windows.h>
@@ -962,35 +963,38 @@ typedef struct { char c; PY_LONG_LONG x; } s_long_long;
 
 
 static struct fielddesc formattable[] = {
-	{ 's', sizeof(char),		CHAR_ALIGN,		s_set, s_get},
+/* Hm, is sizeof and align really correct? */
+	{ 's', sizeof(char),		CHAR_ALIGN,		s_set, s_get, &ffi_type_pointer},
 #if 1
+/* This one seems unused */
 	/* See comment above S_get() */
-	{ 'S', sizeof(char),		CHAR_ALIGN,		S_set, S_get},
+	{ 'S', sizeof(char),		CHAR_ALIGN,		S_set, S_get, &ffi_type_pointer},
 #endif
-	{ 'B', sizeof(char),		CHAR_ALIGN,		B_set, B_get},
-	{ 'b', sizeof(char),		CHAR_ALIGN,		b_set, b_get},
-	{ 'c', sizeof(char),		CHAR_ALIGN,		c_set, c_get},
-	{ 'd', sizeof(double),		DOUBLE_ALIGN,		d_set, d_get},
-	{ 'f', sizeof(float),		FLOAT_ALIGN,		f_set, f_get},
-	{ 'h', sizeof(short),		SHORT_ALIGN,		h_set, h_get},
-	{ 'H', sizeof(short),		SHORT_ALIGN,		H_set, H_get},
-	{ 'i', sizeof(int),		INT_ALIGN,		i_set, i_get},
-	{ 'I', sizeof(int),		INT_ALIGN,		I_set, I_get},
-	{ 'l', sizeof(long),		LONG_ALIGN,		l_set, l_get},
-	{ 'L', sizeof(long),		LONG_ALIGN,		L_set, L_get},
+	{ 'b', sizeof(char),		CHAR_ALIGN,		b_set, b_get, &ffi_type_schar},
+	{ 'B', sizeof(char),		CHAR_ALIGN,		B_set, B_get, &ffi_type_uchar},
+	{ 'c', sizeof(char),		CHAR_ALIGN,		c_set, c_get, &ffi_type_schar},
+	{ 'd', sizeof(double),		DOUBLE_ALIGN,		d_set, d_get, &ffi_type_double},
+	{ 'f', sizeof(float),		FLOAT_ALIGN,		f_set, f_get, &ffi_type_float},
+	{ 'h', sizeof(short),		SHORT_ALIGN,		h_set, h_get, &ffi_type_sshort},
+	{ 'H', sizeof(short),		SHORT_ALIGN,		H_set, H_get, &ffi_type_ushort},
+	{ 'i', sizeof(int),		INT_ALIGN,		i_set, i_get, &ffi_type_sint},
+	{ 'I', sizeof(int),		INT_ALIGN,		I_set, I_get, &ffi_type_uint},
+	{ 'l', sizeof(long),		LONG_ALIGN,		l_set, l_get, &ffi_type_sint},
+	{ 'L', sizeof(long),		LONG_ALIGN,		L_set, L_get, &ffi_type_uint},
 #ifdef HAVE_LONG_LONG
-	{ 'q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get},
-	{ 'Q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
+	{ 'q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get, &ffi_type_slong},
+	{ 'Q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get, &ffi_type_ulong},
 #endif
-	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
-	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
+	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get, &ffi_type_pointer},
+	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get, &ffi_type_pointer},
 #ifdef HAVE_USABLE_WCHAR_T
-	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get},
-	{ 'U', sizeof(char),		WCHAR_ALIGN,		U_set, U_get},
-	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
+	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get, &ffi_type_sshort},
+/* Hm, is sizeof and align really correct? */
+	{ 'U', sizeof(char),		WCHAR_ALIGN,		U_set, U_get, &ffi_type_pointer},
+	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get, &ffi_type_pointer},
 #endif
 #ifdef MS_WIN32
-	{ 'X', sizeof(wchar_t *),	WCHAR_P_ALIGN,		BSTR_set, BSTR_get},
+	{ 'X', sizeof(wchar_t *),	WCHAR_P_ALIGN,		BSTR_set, BSTR_get, &ffi_type_pointer},
 #endif
 	{ 0,   0,			0,			NULL,  NULL},
 };

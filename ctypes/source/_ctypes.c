@@ -81,6 +81,8 @@ bytes(cdata)
 
 #include "Python.h"
 #include "structmember.h"
+
+#include <ffi.h>
 #include "ctypes.h"
 
 #ifdef MS_WIN32
