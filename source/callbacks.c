@@ -55,6 +55,32 @@ PrintError(char *msg, ...)
 	PyErr_Print();
 }
 
+#ifdef MS_WIN32
+/*
+ * We must call AddRef() on non-NULL COM pointers we receive as arguments
+ * to callback functions - these functions are COM method implementations.
+ * The Python instances we create have a __del__ method which calls Release().
+ *
+ * The presence of a class attribute named '_needs_com_addref_' triggers this
+ * behaviour.  It would also be possible to call the AddRef() Python method,
+ * after checking for PyObject_IsTrue(), but this would probably be somewhat
+ * slower.
+ */
+static void
+TryAddRef(StgDictObject *dict, CDataObject *obj)
+{
+	IUnknown *punk;
+
+	if (NULL == PyDict_GetItemString((PyObject *)dict, "_needs_com_addref_"))
+		return;
+
+	punk = *(IUnknown **)obj->b_ptr;
+	if (punk)
+		punk->lpVtbl->AddRef(punk);
+	return;
+}
+#endif
+
 /******************************************************************************
  *
  * Call the python object with all arguments
@@ -91,7 +117,6 @@ static void _CallPythonObject(void *mem,
 		PrintError("PyTuple_New()");
 		goto Done;
 	}
-
 	for (i = 0; i < nArgs; ++i) {
 		/* Note: new reference! */
 		PyObject *cnv = PySequence_GetItem(converters, i);
@@ -129,6 +154,9 @@ static void _CallPythonObject(void *mem,
 			}
 			memcpy(obj->b_ptr, *pArgs, dict->size);
 			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
+#ifdef MS_WIN32
+			TryAddRef(dict, obj);
+#endif
 		} else {
 			PyErr_SetString(PyExc_TypeError,
 					"cannot build parameter");
