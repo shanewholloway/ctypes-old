@@ -283,6 +283,8 @@ class Generator(object):
         body = struct.get_body()
         self.StructureBody(body)
         self.done.add(struct)
+
+    Union = Structure
         
     _typedefs = 0
     def Typedef(self, tp):
@@ -538,7 +540,7 @@ class Generator(object):
             libname = self.get_sharedlib(dllname)
             print >> self.stream
             if self.use_decorators:
-                print >> self.stream, "@ %s(%s, '%s', [%s])" % \
+                print >> self.stream, "@ %s(%s, %s, [%s])" % \
                       (cc, self.type_name(func.returns), libname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
@@ -547,7 +549,7 @@ class Generator(object):
                 print >> self.stream, "    # %s %s" % func.location
             print >> self.stream, "    return %s._api_(%s)" % (func.name, ", ".join(argnames))
             if not self.use_decorators:
-                print >> self.stream, "%s = %s(%s, '%s', [%s]) (%s)" % \
+                print >> self.stream, "%s = %s(%s, %s, [%s]) (%s)" % \
                       (func.name, cc, self.type_name(func.returns), libname, ", ".join(args), func.name)
             print >> self.stream
             self.names.add(func.name)
@@ -555,8 +557,6 @@ class Generator(object):
         else:
             self._notfound_functiontypes += 1
         self.done.add(func)
-
-    Union = Structure
 
     def FundamentalType(self, item):
         if item in self.done:
