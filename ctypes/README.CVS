@@ -1,5 +1,6 @@
 I added support to run ctypes from a CVS sandbox without the need to
-install the package. This even works for different Python versions.
+install the package. This even works for different Python versions
+on the same machine.
 
 This behaviour is triggered by the presence of a .CTYPE_DEVEL file in
 the ctypes package directory.
