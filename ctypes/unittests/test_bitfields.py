@@ -1,5 +1,6 @@
 from ctypes import *
 import unittest
+import sys
 
 import ctypes
 import _ctypes_test
@@ -196,7 +197,10 @@ class BitFieldTest(unittest.TestCase):
         class X(Structure):
             _fields_ = [("a", c_byte, 4),
                         ("b", c_int, 4)]
-        self.failUnlessEqual(sizeof(X), sizeof(c_int)*2)
+        if sys.platform == "win32":
+            self.failUnlessEqual(sizeof(X), sizeof(c_int)*2)
+        else:
+            self.failUnlessEqual(sizeof(X), sizeof(c_int))
 
         class X(Structure):
             _fields_ = [("a", c_byte, 4),
