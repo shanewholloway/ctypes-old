@@ -17,15 +17,19 @@ import _winreg, sys, imp
 # then the _typelib_ attribute is ignored, and a typelib resource in sys.executable
 # is used instead.
 
+def is_frozen():
+    return hasattr(sys, "importers") or imp.is_frozen("__main__")
+
 def _register(cls):
     h = _winreg.CreateKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s" % cls._reg_clsid_)
     name = "CLSID\\%s" % cls._reg_clsid_
 
     if not hasattr(cls, "_reg_clsctx_") or cls._reg_clsctx_ & CLSCTX_LOCAL_SERVER:
-        if imp.is_frozen("__main__"):
+        if is_frozen():
             value = "%s /automation" % sys.executable
         else:
             value = "%s %s /automation" % (sys.executable, sys.argv[0])
+        print "LocalServer32", value
         _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
 
     if hasattr(cls, "_reg_progid_"):
@@ -51,7 +55,7 @@ def _register(cls):
                          _winreg.REG_SZ,
                          cls._reg_clsid_)
 
-    if hasattr(cls, "_typelib_") and not imp.is_frozen("__main__"):
+    if hasattr(cls, "_typelib_") and not is_frozen():
         from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
         import os
         path = os.path.abspath(cls._typelib_.path)
@@ -71,7 +75,7 @@ def register(*classes):
     register_typelib()
     
 def register_typelib():
-    if imp.is_frozen("__main__"):
+    if is_frozen():
         from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
         try:
             LoadTypeLibEx(sys.executable, REGKIND_REGISTER)
@@ -81,7 +85,7 @@ def register_typelib():
             traceback.print_exc()
 
 def unregister_typelib():
-    if imp.is_frozen("__main__"):
+    if is_frozen():
         from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx, TLIBATTR, oleaut32
         from ctypes.com import GUID
         from ctypes import byref, POINTER
@@ -109,7 +113,7 @@ REG_KEYS = "LocalServer32 InprocServer32 PythonClass PythonPath Control MiscStat
 def _unregister(cls):
     unregister_typelib()
 
-    if hasattr(cls, "_typelib_") and not imp.is_frozen("__main__"):
+    if hasattr(cls, "_typelib_") and not is_frozen():
         from ctypes import byref
         from ctypes.com.automation import oleaut32
         SYS_WIN32 = 1
