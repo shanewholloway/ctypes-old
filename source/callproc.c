@@ -715,6 +715,24 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		return Py_None;
 	}
 
+	dict = PyType_stgdict(restype);
+	if (dict && dict->size < sizeof(ffi_arg)) {
+		int n = 1;
+		char *pn = (char *) &n;
+
+		if (*pn != 1) { /* big endian */
+			/* libffi returns the result in a buffer of
+			   sizeof(ffi_arg).  This causes problems on big
+			   endian machines, since the result buffer cannot
+			   simply be casted to the actual result type.
+			   Instead, we must adjust the pointer:
+			 */
+			char *ptr = result;
+			ptr += sizeof(ffi_arg) - dict->size;
+			result = ptr;
+		}
+	}
+
 	if (PointerTypeObject_Check(restype)) {
 		CDataObject *pd;
 		/* There is no Python api to set the pointer value, so we
@@ -751,12 +769,6 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		return (PyObject *)pd;
 	}
 
-	dict = PyType_stgdict(restype);
-	if (dict && dict->size < sizeof(ffi_arg)) {
-		char *p = result;
-		p += sizeof(ffi_arg) - dict->size;
-		result = p;
-	}
 	if (dict && dict->getfunc) {
 		PyObject *retval = dict->getfunc(result, dict->size,
 						 restype, NULL, 0);
