@@ -1676,6 +1676,23 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)self;
 }
 
+#ifdef MS_WIN32
+static PyObject *
+CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	CFuncPtrObject *self;
+	int index;
+
+	if (!PyArg_ParseTuple(args, "i", &index))
+		return NULL;
+	
+	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
+
+	self->index = index + 0x1000;
+	return (PyObject *)self;
+}
+#endif
+
 static PyObject *
 CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -1691,6 +1708,11 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	if (2 == PyTuple_GET_SIZE(args))
 		return CFuncPtr_FromDll(type, args, kwds);
+
+#ifdef MS_WIN32
+	if (1 == PyTuple_GET_SIZE(args) && PyInt_Check(PyTuple_GET_ITEM(args, 0)))
+		return CFuncPtr_FromVtblIndex(type, args, kwds);
+#endif
 
 	if (!PyArg_ParseTuple(args, "O", &callable))
 		return NULL;
@@ -1766,15 +1788,37 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *restype;
 	PyObject *converters;
+#ifdef MS_WIN32
+	IUnknown *piunk = NULL;
+	void *pProc;
+#endif
 
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	assert(dict); /* if not, it's a bug */
 	restype = self->restype ? self->restype : dict->restype;
 	converters = self->converters ? self->converters : dict->converters;
 
+#ifdef MS_WIN32
+	if (self->index) {
+		CDataObject *this = (CDataObject *)PyTuple_GetItem(args, 0);
+		if (!this || !CDataObject_Check(this)) {
+			PyErr_SetString(PyExc_TypeError,
+					"wrong type for this arg");
+			return NULL;
+		}
+		/* there should be more checks? No, in Python*/
+		piunk = (IUnknown *)*(void **)this->b_ptr;
+		pProc = ((void **)piunk->lpVtbl)[self->index - 0x1000];
+	}
+#endif
+
 	if (converters) {
 		int required = PyTuple_GET_SIZE(converters);
 		int actual = PyTuple_GET_SIZE(args);
+#ifdef MS_WIN32
+		if (piunk)
+			required ++;
+#endif
 		if (required != actual) {
 			PyErr_Format(PyExc_TypeError,
 			     "this function takes %d argument%s (%d given)",
@@ -1784,9 +1828,23 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 	}
+#ifdef MS_WIN32
+	if (piunk) {
+		PyObject *a = PyTuple_GetSlice(args, 1, PyTuple_GET_SIZE(args));
+		PyObject *result;
+		result = _CallProc(pProc,
+				   a,
+				   piunk,
+				   dict->flags,
+				   converters,
+				   restype);
+		Py_DECREF(a);
+		return result;
+	}
+#endif
 	return _CallProc(*(void **)self->b_ptr,
 			 args,
-			 NULL,
+			 piunk,
 			 dict->flags,
 			 converters,
 			 restype);
