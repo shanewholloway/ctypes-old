@@ -66,6 +66,10 @@ Command line flags:
       Increases the verbosity.  Verbosity 1 prints out what the
       program is doing, verbosity 2 additionally prints lines it could
       not parse.
+
+   For a start (on windows), try this:
+
+      inc2py.py -D _WIN32_WINNT=0x500 -c msvc71 -o windows.py windows.h
 """
 
 import sys, re, os, tempfile
@@ -195,6 +199,7 @@ def get_cpp_symbols(options, verbose, *fnames):
             print >> sys.stderr, "Deleting temporary file %s" % c_file
         os.remove(c_file)
 
+################################################################
 
 class IncludeParser(object):
 
@@ -215,8 +220,12 @@ class IncludeParser(object):
         return body
 
     def parse(self, *files):
-        self._parse(*files)
+        remaining = self._parse(*files)
         self._env.pop("__builtins__", None)
+        # self._errlines are lines we do not know how to handle, and
+        # self.lines are the remaining lines where we know how to
+        # handle them but fail.
+        self._errlines = self._errlines + remaining
 
     def _parse(self, *files):
         self.files = files
@@ -239,6 +248,7 @@ class IncludeParser(object):
         if self._verbose:
             print >> sys.stderr, "Parsing done."
 
+        return lines
 
     def create_statement(self, line):
         match = p_define.match(line)
@@ -266,7 +276,7 @@ class IncludeParser(object):
             else:
                 try:
                     exec stmt in self._env
-                except:
+                except Exception:
                     pass
                 else:
                     self._statements.append(stmt)
