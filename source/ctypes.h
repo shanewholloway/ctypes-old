@@ -290,22 +290,17 @@ extern char *conversion_mode_errors;
 #endif
 
 /* Python's PyUnicode_*WideChar functions are broken ... */
-#ifdef Py_USING_UNICODE
+#if defined(Py_USING_UNICODE) && defined(HAVE_WCHAR_H)
+#  define CTYPES_UNICODE
+#endif
 
+
+#ifdef CTYPES_UNICODE
 #  undef PyUnicode_FromWideChar
 #  define PyUnicode_FromWideChar My_PyUnicode_FromWideChar
 
 #  undef PyUnicode_AsWideChar
 #  define PyUnicode_AsWideChar My_PyUnicode_AsWideChar
-
-/* see comment in Python's Include/unicodeobject.h */
-#  ifdef Py_UNICODE_WIDE
-#    define My_PyUnicode_FromWideChar My_PyUnicodeUCS4_FromWideChar
-#    define My_PyUnicode_AsWideChar My_PyUnicodeUCS4_AsWideChar
-#  else
-#    define My_PyUnicode_FromWideChar My_PyUnicodeUCS2_FromWideChar
-#    define My_PyUnicode_AsWideChar My_PyUnicodeUCS2_AsWideChar
-#  endif
 
 extern PyObject *My_PyUnicode_FromWideChar(const wchar_t *, int);
 extern int My_PyUnicode_AsWideChar(PyUnicodeObject *, wchar_t *, int);

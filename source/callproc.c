@@ -500,7 +500,7 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 		return 0;
 	}
 
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 	if (PyUnicode_Check(obj)) {
 #ifdef HAVE_USABLE_WCHAR_T
 		pa->ffi_type = &ffi_type_pointer;
@@ -1243,7 +1243,7 @@ My_Py_DECREF(PyObject *self, PyObject *arg)
 	return arg;
 }
 
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 
 static PyObject *
 set_conversion_mode(PyObject *self, PyObject *args)
@@ -1386,7 +1386,7 @@ PyMethodDef module_methods[] = {
 	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
 	{"memset", c_memset, METH_VARARGS, memset_doc},
 	{"cast", cast, METH_VARARGS, cast_doc},
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
 #endif
 #ifdef MS_WIN32
