@@ -1,3 +1,18 @@
+# Create ctypes python wrapper for everything in windows.h.
+# '#define' preprocessor statements are *not* handled - this will be a
+# separate effort.
+#
+# Bugs:
+#  Structure packing is wrong (gccxml doesn't handle the #pragma statements)
+#
+# COM interfaces are not included, so structures and unions containing
+# pointers to COM interfaces will not be generated (VARIANT, for example)
+#
+# enums are generated as subclasses of c_int, with the enum values as
+# class variables.  This should probably change.
+#
+# Unnamed structure fields will probably not work correctly.
+#
 import gccxmltools
 from sets import Set
 
@@ -78,6 +93,9 @@ class CodeGenerator(gccxmltools.Visitor):
         self._env = {}
         exec "from ctypes import *" in self._env
 
+    def PointerType(self, ptr):
+        pass
+
     def Enumeration(self, enum):
         # generate the ctypes code for an enumeration.
         code = ["class %s(c_int):" % enum.name]
@@ -90,26 +108,54 @@ class CodeGenerator(gccxmltools.Visitor):
         if type(td.typ) is gccxmltools.Structure and td.typ.isClass():
             return
         code = "%s = %s" % (td.name, self.ctypes_name(td.typ))
+        if self.try_code(code):
+            print code
+        else:
+            print "# failed", code
+
+    def Structure(self, struct):
+        code = self.gen_structure(struct)
+        if struct.name.startswith("$_"):
+            return
+        if self.try_code("\n".join(code)):
+            print "\n".join(code)
+        else:
+            print "# failed " + "\n# ".join(code)
+
+    Union = Structure
+
+    def gen_structure(self, struct, indent=""):
+        # create inner classes
+        base = struct.__class__.__name__
+        inner = []
+        name = struct.name
+        if name.startswith("$_"):
+            name = "_inner_" + name[2:]
+        for field in struct.members:
+            if type(field.typ) in (gccxmltools.Structure, gccxmltools.Union) \
+                   and field.typ.name.startswith("$_"):
+                inner.append(field.typ)
+        code = [indent + "class %s(%s):" % (name, base)]
+        for i in inner:
+            code += self.gen_structure(i, indent = indent + "    ")
+        code += [indent + "    _fields_ = ["]
+        code += [indent + "        ('%s', %s)," % self.gen_member(f) for f in struct.members]
+        code += [indent + "    ]"]
+        return code
+
+    def gen_member(self, field):
+        name = field.name
+        if name.startswith("$_"):
+            name = "_inner_" + name[2:]
+        return name, self.ctypes_name(field.typ)
+
+    def try_code(self, code):
+        # code it either a string or a sequence of strings
         try:
             exec code in self._env
         except Exception:
-            print "#", code
-        else:
-            print code
-
-    def Structure(self, struct):
-        if struct.name.startswith("$_"):
-            return
-        code = ["class %s(Structure):" % struct.name]
-        code += ["    _fields_ = []"]
-        try:
-            exec "\n".join(code) in self._env
-        except Exception:
-            print "#", code[0]
-        else:
-            print "\n".join(code)
-
-    Union = Structure
+            return False
+        return True
 
     def ctypes_name(self, obj):
         if type(obj) is gccxmltools.FundamentalType:
@@ -127,7 +173,10 @@ class CodeGenerator(gccxmltools.Visitor):
             assert obj.min == 0
             return "%s * %d" % (self.ctypes_name(obj.typ), obj.max + 1)
         elif type(obj) in (gccxmltools.Typedef, gccxmltools.Enumeration, gccxmltools.Structure, gccxmltools.Union):
-            return obj.name
+            name = obj.name
+            if obj.name.startswith("$_"):
+                name = "_inner_" + name[2:]
+            return name
         raise TypeError, type(obj)
 
 ################################################################
@@ -135,8 +184,8 @@ class CodeGenerator(gccxmltools.Visitor):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 1:
-        sys.argv.extend("-D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc6 -o- windef.h".split())
-##        sys.argv.extend("-D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc6 -o- windows.h".split())
+##        sys.argv.extend("-D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc6 -o- windef.h".split())
+        sys.argv.extend("-D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc6 -o- windows.h".split())
 
     result = gccxmltools.main()
 
