@@ -43,13 +43,14 @@ INVOKEKIND = tagINVOKEKIND
 
 
 ################################
-# helper constants
+# helpers
 IID_NULL = GUID()
 riid_null = byref(IID_NULL)
-_oleaut32 = oledll.oleaut32
+_VariantClear = oledll.oleaut32.VariantClear
+_SysAllocStringLen = oledll.oleaut32.SysAllocStringLen
+
 # 30. December 1899, midnight.  For VT_DATE.
 _com_null_date = datetime.datetime(1899, 12, 30, 0, 0, 0)
-
 
 ################################################################
 # VARIANT, in all it's glory.
@@ -147,7 +148,7 @@ class tagVARIANT(Structure):
 
     # see also c:/sf/pywin32/com/win32com/src/oleargs.cpp 54
     def _set_value(self, value):
-        _oleaut32.VariantClear(byref(self))
+        _VariantClear(byref(self))
         if value is None:
             self.vt = VT_NULL
         # since bool is a subclass of int, this check must be first
@@ -173,13 +174,10 @@ class tagVARIANT(Structure):
         elif isinstance(value, float):
             self.vt = VT_R8
             self._.VT_R8 = value
-        elif isinstance(value, unicode):
+        elif isinstance(value, (str, unicode)):
             self.vt = VT_BSTR
-            self._.c_void_p = _oleaut32.SysAllocStringLen(value, len(value))
-        elif isinstance(value, str):
-            self.vt = VT_BSTR
-            value = unicode(value)
-            self._.c_void_p = _oleaut32.SysAllocStringLen(value, len(value))
+            # do the c_wchar_p auto unicode conversion
+            self._.c_void_p = _SysAllocStringLen(c_wchar_p.from_param(value), len(value))
         elif isinstance(value, datetime.datetime):
             delta = value - _com_null_date
             # a day has 24 * 60 * 60 = 86400 seconds
