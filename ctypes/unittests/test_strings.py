@@ -87,7 +87,7 @@ class WStringTestCase(unittest.TestCase):
         self.failUnless(cs.raw == u"ab\000\000\000\000\000")
 
         self.assertRaises(TypeError, c_wstring, "123")
-        self.assertRaises(TypeError, c_wstring, 0)
+        self.assertRaises(ValueError, c_wstring, 0)
 
     def test_toolong(self):
         from ctypes import c_wstring
