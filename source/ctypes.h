@@ -124,6 +124,10 @@ extern void FreeCallback(THUNK);
 
 extern PyMethodDef module_methods[];
 
+/* XXX The code in cfield.c calls GETFUNC with more parameters.  Once this is
+   also true for code in other files, the full signature should be used here.
+   Or we should have FIELDGETFUNC...
+*/
 typedef PyObject *(* GETFUNC)(void *, unsigned size, ...);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 

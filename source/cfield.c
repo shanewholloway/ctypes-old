@@ -19,6 +19,18 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
+/* Default getfunc to be used in CFieldObject when the field type doesn't
+   supply a custom getfunc.
+*/
+static PyObject *
+_generic_field_getfunc(void *ptr, unsigned size,
+		       PyObject *fieldtype, CDataObject *src,
+		       int index)
+{
+	return CData_FromBaseObj(fieldtype, (PyObject *)src,
+				 index, ptr);
+}
+
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -94,7 +106,7 @@ CField_FromDesc(PyObject *desc, int index,
 	size = dict->size;
 	length = dict->length;
 
-	getfunc = dict->getfunc;
+	getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
 
 	/* Currently, dict->getfunc is only != NULL for SimpleCData types.
 	   If we would set it for array types, we could get rid of the
@@ -209,11 +221,9 @@ CField_get(CFieldObject *self, CDataObject *src, PyTypeObject *type)
 		return (PyObject *)self;
 	}
 
-	if (self->getfunc)
-		return self->getfunc(src->b_ptr + self->offset, self->size);
-
-	return CData_FromBaseObj(self->fieldtype, (PyObject *)src,
-				 self->index, src->b_ptr + self->offset);
+	return self->getfunc(src->b_ptr + self->offset, self->size,
+			     self->fieldtype, src,
+			     self->index);
 }
 
 static PyMemberDef CField_members[] = {
