@@ -2740,21 +2740,20 @@ CFunction_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 		return NULL;
 	}
 
-	if (!PyTuple_Check(types) && !PyString_Check(types)) {
+	if (!PyTuple_Check(types)) {
 		PyErr_SetString(PyExc_TypeError,
-				"second arg to GenCallback must be a tuple or string");
+				"_types_ must be a tuple of types");
 		return NULL;
 	}
 	size = PySequence_Length(types);
 	nArgBytes = 0;
 	for (i = 0; i < size; ++i) {
 		PyObject *ob = PySequence_GetItem(types, i);
-		StgDictObject *dict;
-		if (!PyString_Check(ob) && !PyCallable_Check(ob)) {
-			Py_DECREF(ob);
+		StgDictObject *dict = PyType_stgdict(ob);
+		if (!dict) {
 			PyErr_SetString(PyExc_TypeError,
-					"second arg to GenCallbacks"
-					" must only contain strings or callables");
+					"_types_ must be a tuple"
+					" of ctypes types");
 			return NULL;
 		}
 		dict = PyType_stgdict(ob);
