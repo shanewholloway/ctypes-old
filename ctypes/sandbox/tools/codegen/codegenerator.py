@@ -253,7 +253,7 @@ class Generator(object):
         if head in self.done:
             return
         for struct in head.struct.bases:
-            self.StructureHead(struct.get_head())
+            self.generate(struct.get_head())
             self.more.add(struct)
         basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
@@ -278,10 +278,8 @@ class Generator(object):
         if struct in self.done:
             return
         self._structures += 1
-        head = struct.get_head()
-        self.StructureHead(head)
-        body = struct.get_body()
-        self.StructureBody(body)
+        self.generate(struct.get_head())
+        self.generate(struct.get_body())
         self.done.add(struct)
 
     Union = Structure
@@ -292,7 +290,7 @@ class Generator(object):
             return
         self._typedefs += 1
         if type(tp.typ) in (typedesc.Structure, typedesc.Union):
-            self.StructureHead(tp.typ.get_head())
+            self.generate(tp.typ.get_head())
             self.more.add(tp.typ)
         else:
             self.generate(tp.typ)
@@ -330,9 +328,9 @@ class Generator(object):
             return
         self._pointertypes += 1
         if type(tp.typ) is typedesc.PointerType:
-            self.PointerType(tp.typ)
+            self.generate(tp.typ)
         elif type(tp.typ) in (typedesc.Union, typedesc.Structure):
-            self.StructureHead(tp.typ.get_head())
+            self.generate(tp.typ.get_head())
             self.more.add(tp.typ)
         elif type(tp.typ) is typedesc.Typedef:
             self.generate(tp.typ)
@@ -387,7 +385,7 @@ class Generator(object):
             print >> self.stream
             print >> self.stream, "%s = C.c_int # enum" % tp.name
         for item in tp.values:
-            self.EnumValue(item)
+            self.generate(item)
 
     def StructureBody(self, body):
         if body in self.done:
@@ -420,7 +418,7 @@ class Generator(object):
         if fields:
             if body.struct.bases:
                 assert len(body.struct.bases) == 1
-                self.StructureBody(body.struct.bases[0].get_body())
+                self.generate(body.struct.bases[0].get_body())
             # field definition normally span several lines.
             # Before we generate them, we need to 'import' everything they need.
             # So, call type_name for each field once,
