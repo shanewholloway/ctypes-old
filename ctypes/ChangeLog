@@ -1,3 +1,22 @@
+2003-10-30  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Finally added cycle GC support for all the
+	base-types implemented in this module, without breaking the
+	test-suite.
+
+2003-10-24  Thomas Heller  <theller@python.net>
+
+	* win32\com\__init__.py: Changes to prevent crashes when the
+	interpreter exits, and COM pointers are to be cleaned up.  The
+	problem was that CoUninitialize was registered by the atexit
+	module, and this runs *before* all the modules are cleared out and
+	the final Release() call on the COM pointers is done.  The
+	solution is to create an object in the com\__init__.py module
+	which will call CoUninitialize when it's refcount reaches zero.
+	Even better would probably be to make this an attribute of the sys
+	module, because sys is cleaned last, only __builtins__ is cleaned
+	later.
+	
 2003-07-18  Thomas Heller  <theller@python.net>
 
 	* ctypes\__init__.py (c_buffer): Accept int as well as long
