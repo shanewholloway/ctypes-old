@@ -2024,6 +2024,7 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	thunk = AllocFunctionCallback(callable,
 				      dict->nArgBytes,
 				      dict->argtypes,
+				      dict->restype,
 				      dict->flags & FUNCFLAG_CDECL);
 	if (!thunk)
 		return NULL;
@@ -3456,6 +3457,13 @@ EXPORT int _testfunc_byval(point in, point *pout)
 }
 
 #endif
+
+EXPORT int an_integer = 42;
+
+EXPORT int get_an_integer(void)
+{
+	return an_integer;
+}
 
 EXPORT double 
 integrate(double a, double b, double (*f)(double), long nstep)

@@ -50,6 +50,7 @@ static void LeavePython(void)
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
+			    PyObject *restype,
 			    int is_cdecl);
 
 
@@ -381,8 +382,10 @@ static THUNK AllocCallback(PyObject *callable, int nArgBytes,
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
+			    PyObject *restype,
 			    int is_cdecl)
 {
+	/* XXX restype -> CallPythonObject */
 	return AllocCallback(callable,
 			     nArgBytes,
 			     converters,
