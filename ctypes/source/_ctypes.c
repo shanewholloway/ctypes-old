@@ -2722,12 +2722,6 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	return PyList_SetItem(objects, 0, keep);
 }
 
-static int
-Pointer_length(CDataObject *self)
-{
-	return 1;
-}
-
 static PyObject *
 Pointer_as_parameter(CDataObject *self)
 {
@@ -2778,7 +2772,7 @@ Pointer_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 }
 
 static PySequenceMethods Pointer_as_sequence = {
-	(inquiry)Pointer_length,		/* inquiry sq_length; */
+	0,					/* inquiry sq_length; */
 	0,					/* binaryfunc sq_concat; */
 	0,					/* intargfunc sq_repeat; */
 	(intargfunc)Pointer_item,		/* intargfunc sq_item; */
@@ -2787,8 +2781,8 @@ static PySequenceMethods Pointer_as_sequence = {
 	0,					/* intintobjargproc sq_ass_slice; */
 	0,					/* objobjproc sq_contains; */
 	/* Added in release 2.0 */
-	0,			/* binaryfunc sq_inplace_concat; */
-	0,			/* intargfunc sq_inplace_repeat; */
+	0,					/* binaryfunc sq_inplace_concat; */
+	0,					/* intargfunc sq_inplace_repeat; */
 };
 
 static int
