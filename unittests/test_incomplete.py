@@ -34,12 +34,5 @@ class MyTestCase(unittest.TestCase):
 
 ################################################################
 
-def get_suite():
-    return unittest.makeSuite(MyTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
-    test()
+    unittest.main()

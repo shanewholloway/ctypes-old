@@ -71,12 +71,5 @@ class StringPtrTestCase(unittest.TestCase):
         # x1 will NOT be the same as x, usually:
         x1 = r[0], r[1], r[2], r[3], r[4]
 
-def get_suite():
-    return unittest.makeSuite(StringPtrTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     test()

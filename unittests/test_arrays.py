@@ -91,12 +91,5 @@ class ArrayTestCase(unittest.TestCase):
         self.failUnless(not ARRAY(c_int, 3) is ARRAY(c_int, 4))
         self.failUnless(ARRAY(c_int, 3) is ARRAY(c_int, 3))
 
-def get_suite():
-    return unittest.makeSuite(ArrayTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     unittest.main()

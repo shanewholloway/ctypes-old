@@ -22,15 +22,6 @@ class CallbacksTestCase(unittest.TestCase):
         diff = abs(result - 1./3.)
         
         self.failUnless(diff < 0.01, "%s not less than 0.01" % diff)
-                                   
-        
-
-def get_suite():
-    return unittest.makeSuite(CallbacksTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
 
 if __name__ == '__main__':
     unittest.main()

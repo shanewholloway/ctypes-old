@@ -83,12 +83,5 @@ class RefcountTestCase(unittest.TestCase):
         self.failUnless(grc(func) == 2)
         
 
-def get_suite():
-    return unittest.makeSuite(RefcountTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     unittest.main()

@@ -226,13 +226,6 @@ class StructureTestCase(unittest.TestCase):
             return detail.__class__, str(detail)
                 
 
-def get_suite():
-    return unittest.makeSuite(StructureTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == '__main__':
     unittest.main()
 

@@ -28,12 +28,5 @@ class ReturnFuncPtrTestCase(unittest.TestCase):
         self.assertRaises(TypeError, strchr, "abcdef", 3)
         self.assertRaises(TypeError, strchr, "abcdef")
 
-def get_suite():
-    return unittest.makeSuite(ReturnFuncPtrTestCase)
-
-def test(verbose=0):
-    runner = unittest.TextTestRunner(verbosity=verbose)
-    runner.run(get_suite())
-
 if __name__ == "__main__":
     unittest.main()
