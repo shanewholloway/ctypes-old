@@ -26,6 +26,45 @@ class SubclassesTest(unittest.TestCase):
         self.failUnlessEqual(Z._fields_,
                              [("a", c_int)])
 
+    def test_lazy_subclass(self):
+        class X(Structure):
+            pass
+
+        class Y(X):
+            pass
+
+        class Z(X):
+            pass
+
+        self.assertRaises(TypeError, sizeof, X)
+        self.assertRaises(TypeError, sizeof, Y)
+        self.assertRaises(TypeError, sizeof, Z)
+
+        X._pack_ = 0
+        Y._pack_ = 0
+        Z._pack_ = 0
+
+        X._fields_ = [("a", c_int)]
+        Y._fields_ = X._fields_ + [("b", c_int)]
+        Z._fields_ = X._fields_
+
+        self.failUnlessEqual(sizeof(X), sizeof(c_int))
+        self.failUnlessEqual(sizeof(Y), sizeof(c_int)*2)
+        self.failUnlessEqual(sizeof(Z), sizeof(c_int))
+
+        self.failUnlessEqual(X._fields_,
+                             [("a", c_int)])
+
+        self.failUnlessEqual(Y._fields_,
+                             [("a", c_int), ("b", c_int)])
+
+        self.failUnlessEqual(Z._fields_,
+                             [("a", c_int)])
+
+        self.assertRaises(AttributeError, setattr, X, "_pack_", 32)
+        self.assertRaises(AttributeError, setattr, Y, "_pack_", 32)
+        self.assertRaises(AttributeError, setattr, Z, "_pack_", 32)
+
 class StructureTestCase(unittest.TestCase):
     formats = {"c": c_char,
                "b": c_byte,
@@ -253,20 +292,21 @@ class StructureTestCase(unittest.TestCase):
             return detail.__class__, str(detail)
                 
 
-    def test_subclass_creation(self):
-        meta = type(Structure)
-        # same as 'class X(Structure): pass'
-        # fails, since we need either a _fields_ or a _abstract_ attribute
-        cls, msg = self.get_except(meta, "X", (Structure,), {})
-        self.failUnlessEqual((cls, msg),
-                             (AttributeError, "class must define a '_fields_' attribute"))
+    # no longer true:
+##    def test_subclass_creation(self):
+##        meta = type(Structure)
+##        # same as 'class X(Structure): pass'
+##        # fails, since we need either a _fields_ or a _abstract_ attribute
+##        cls, msg = self.get_except(meta, "X", (Structure,), {})
+##        self.failUnlessEqual((cls, msg),
+##                             (AttributeError, "class must define a '_fields_' attribute"))
 
     def test_abstract_class(self):
         class X(Structure):
-            _abstract_ = "something"
+            pass
         # try 'X()'
         cls, msg = self.get_except(eval, "X()", locals())
-        self.failUnlessEqual((cls, msg), (TypeError, "abstract class"))
+        self.failUnlessEqual((cls, msg), (TypeError, "Cannot create instance: no _fields_"))
 
     def test_methods(self):
 ##        class X(Structure):

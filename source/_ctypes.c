@@ -130,19 +130,13 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	if (!result)
 		return NULL;
 
-	/* If we find an _abstract_ item in the class dict,
-	   don't equip this class with a StgDict. 
-	   The resulting class will not be able to create
-	   instances.
-	   The value of the _abstract_ item is ignored.
-	*/
-
-	if (PyDict_GetItemString(cls_dict, "_abstract_"))
-		return (PyObject *)result;
-
 	fields = PyObject_GetAttrString((PyObject *)result, "_fields_");
+	if (fields == NULL) {
+		PyErr_Clear();
+		return result;
+	}
 	dict = StgDict_FromDict(fields, cls_dict, isStruct);
-	Py_XDECREF(fields);
+	Py_DECREF(fields);
 	if (!dict) {
 		Py_DECREF(result);
 		return NULL;
@@ -312,6 +306,42 @@ static PySequenceMethods CDataType_as_sequence = {
 	0,			/* intargfunc sq_inplace_repeat; */
 };
 
+static int
+StructType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
+{
+	if (PyString_Check(name)
+	    && 0 == strcmp("_fields_", PyString_AS_STRING(name))) {
+		PyObject *dict;
+		if (PyType_stgdict((PyObject *)self)) {
+			PyErr_SetString(PyExc_AttributeError,
+					"_fields_ attribute cannot be overwritten");
+			return -1;
+		}
+		dict = StgDict_FromDict(value,
+					self->tp_dict,
+					TRUE);
+		if (dict == NULL)
+			return -1;
+
+		/* replace the class dict by our updated stgdict, which holds info
+		   about storage requirements of the instances */
+		if (-1 == PyDict_Update(dict, self->tp_dict)) {
+			Py_DECREF(dict);
+			return -1;
+		}
+		Py_DECREF(self->tp_dict);
+		self->tp_dict = dict;
+	}
+	if (PyString_Check(name)
+	    && 0 == strcmp("_pack_", PyString_AS_STRING(name))) {
+		if (PyType_stgdict((PyObject *)self)) {
+			PyErr_SetString(PyExc_AttributeError,
+					"_pack_ attribute cannot be overwritten");
+			return -1;
+		}
+	}
+	return PyObject_GenericSetAttr((PyObject *)self, name, value);
+}
 
 static PyTypeObject StructType_Type = {
 	PyObject_HEAD_INIT(NULL)
@@ -326,13 +356,13 @@ static PyTypeObject StructType_Type = {
 	0,					/* tp_compare */
 	0,			       		/* tp_repr */
 	0,					/* tp_as_number */
-	&CDataType_as_sequence,		/* tp_as_sequence */
+	&CDataType_as_sequence,			/* tp_as_sequence */
 	0,					/* tp_as_mapping */
 	0,					/* tp_hash */
 	0,					/* tp_call */
 	0,					/* tp_str */
 	0,					/* tp_getattro */
-	0,					/* tp_setattro */
+	(setattrofunc)StructType_setattro,	/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
@@ -2687,6 +2717,17 @@ static PyGetSetDef Struct_getsets[] = {
 	{ NULL, NULL }
 };
 
+static PyObject *
+StructUnion_new(PyTypeObject *type, PyObject *args, PyObject *kw)
+{
+	if (!PyType_stgdict((PyObject *)type)) {
+		PyErr_SetString(PyExc_TypeError,
+				"Cannot create instance: no _fields_");
+		return NULL;
+	}
+	return GenericCData_new(type, args, kw);
+}
+
 static PyTypeObject Struct_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -2726,7 +2767,7 @@ static PyTypeObject Struct_Type = {
 	0,					/* tp_dictoffset */
 	Struct_init,				/* tp_init */
 	0,					/* tp_alloc */
-	GenericCData_new,				/* tp_new */
+	StructUnion_new,			/* tp_new */
 	0,					/* tp_free */
 };
 
@@ -2769,7 +2810,7 @@ static PyTypeObject Union_Type = {
 	0,					/* tp_dictoffset */
 	Struct_init,				/* tp_init */
 	0,					/* tp_alloc */
-	GenericCData_new,				/* tp_new */
+	StructUnion_new,			/* tp_new */
 	0,					/* tp_free */
 };
 
@@ -3550,30 +3591,6 @@ addressof(PyObject *self, PyObject *obj)
 }
 
 /*
-static char *Structure_docs =
-"An abstract base class for C struct data types\n"
-"\n"
-"Concrete subclasses must define a _fields_ class attribute\n"
-"which must be a sequence of (name, format) tuples.\n"
-"\n"
-"Abstract subclasses must define an _abstract_ attribute;\n"
-"the value of this is ignored.";
-
-static char *Pointer_docs =
-"An abstract base class for C pointer data types\n"
-"\n"
-"Subclasses must define a _type_ class attribute which must\n"
-"either be a format character or a subclass of Structure.";
-
-
-static char *Array_docs =
-"An abstract base class for C array data types\n"
-"\n"
-"Subclasses must define a _type_ class attribute which must\n"
-"either be a format character or a subclass of Structure.";
-*/
-
-/*
  * XXX What about errors ???
  */
 #ifdef NO_METH_CLASS
@@ -3604,10 +3621,7 @@ void DoClassMethods(PyTypeObject *type)
 #endif
 
 static char *module_docs =
-"Create and manipulate C compatible data types in Python.\n"
-"\n"
-"format descriptors: characters similar to the struct module\n"
-"XXX more";
+"Create and manipulate C compatible data types in Python.";
 
 DL_EXPORT(void)
 init_ctypes(void)
