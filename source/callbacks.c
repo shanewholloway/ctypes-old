@@ -134,6 +134,13 @@ static int __stdcall CallPythonObject(PyObject *callable,
 			pArgs += dict->size / sizeof(int);
 			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
 		} else if (PyString_Check(cnv)) {
+			/* XXX Here shows a bug, which also shows up somewhere else:
+			   Look for PyBuild_Value().
+			   PyBuild_Value, when passed a 'h' format tag, for example,
+			   happily builds int's larger than short!
+			   
+			   Cannot fix it now, but should later.
+			*/
 			p = Py_BuildValue(PyString_AS_STRING(cnv), *pArgs++);
 			if (!p) {
 				PrintError("argument %d:\n", i);
