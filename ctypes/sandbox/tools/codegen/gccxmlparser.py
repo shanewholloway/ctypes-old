@@ -19,6 +19,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         self.context = []
         self.all = {}
         self.artificial = []
+        self.cpp_data = {}
 
     def demangle(self, name):
         if name.startswith("__"):
@@ -51,10 +52,12 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         if name in self.has_values:
             self.context.append(result)
 
+    cdata = None
     def endElement(self, name):
         # if this element has children, pop the context
         if name in self.has_values:
             self.context.pop()
+        self.cdata = None
 
     ################################
     # do-nothing element handlers
@@ -71,6 +74,17 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     ################################
     # real element handlers
+
+    def CPP_DUMP(self, attrs):
+        name = attrs["name"]
+        # Insert a new list for each named section into self.cpp_data,
+        # and point self.cdata to it.  self.cdata will be set to None
+        # again at the end of each section.
+        self.cpp_data[name] = self.cdata = []
+
+    def characters(self, content):
+        if self.cdata is not None:
+            self.cdata.append(content)
 
     def File(self, attrs):
         name = attrs["name"]
@@ -310,6 +324,11 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         for i in self.artificial + self.all.values():
             if isinstance(i, interesting):
                 result.append(i)
+
+        # todo: get cpp_data, and convert it into typedesc nodes.
+        # functions = self.cpp_data.get("functions")
+        # aliases = self.cpp_data.get("aliases")
+
         return result
 
 ################################################################
