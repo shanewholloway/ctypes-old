@@ -1560,9 +1560,8 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		memcpy(ptr,
 		       src->b_ptr,
 		       size);
-		result = CData_GetList(src);
-		Py_INCREF(result); /* reference to keep */
-		return result;
+		Py_INCREF(value);
+		return value;
 	}
 
 	if (PointerTypeObject_Check(type)
@@ -1579,9 +1578,8 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 			return NULL;
 		}
 		*(void **)ptr = src->b_ptr;
-		result = CData_GetList(src);
-		Py_XINCREF(result); /* reference to keep */
-		return result;
+		Py_INCREF(value);
+		return value;
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "incompatible types, %s instance instead of %s instance",
