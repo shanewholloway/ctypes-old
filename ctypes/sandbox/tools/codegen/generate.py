@@ -152,7 +152,7 @@ class Generator(object):
         else:
             self.generate(tp.typ)
         if tp.name != type_name(tp.typ):
-            print "%s = %s" % (tp.name, type_name(tp.typ))
+            print "%s = %s # typedef" % (tp.name, type_name(tp.typ))
         self.done.add(tp)
 
     def ArrayType(self, tp):
@@ -194,9 +194,9 @@ class Generator(object):
         if tp in self.done:
             return
         if tp.name:
-            print "%s = c_int" % tp.name
+            print "%s = c_int # enum" % tp.name
         for n, v in tp.values:
-            print "%s = %s" % (n, v)
+            print "%s = %s # enum" % (n, v)
         self.done.add(tp)
 
     def StructureBody(self, body):
@@ -339,6 +339,6 @@ def main():
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 1:
-        sys.argv.extend("MessageBox".split())
+        sys.argv.extend("WNDCLASS".split())
 ##        sys.argv.extend("ITypeComp".split())
     main()
