@@ -1163,6 +1163,11 @@ static struct fielddesc formattable[] = {
 	{ 0, NULL, NULL, NULL},
 };
 
+/*
+  Ideas: Implement VARIANT in this table, using 'V' code.
+  Use '?' as code for BOOL.
+*/
+
 struct fielddesc *
 getentry(char *fmt)
 {
