@@ -1,13 +1,10 @@
 #include "Python.h"
+#include <ffi.h>
 #include "ctypes.h"
 
 #ifdef MS_WIN32
 #include <windows.h>
-#else
-#include <ffi.h>
-# ifndef __stdcall
-#  define __stdcall /* */
-# endif
+#define alloca _alloca
 #endif
 
 
@@ -187,263 +184,6 @@ static void _CallPythonObject(void *mem,
 #endif
 }
 
-#ifdef MS_WIN32
-static int __stdcall i_CallPythonObject(PyObject *callable,
-					PyObject *converters,
-					void **pArgs)
-{
-	PyCArgObject result;
-	_CallPythonObject(&result.value, "i", callable, converters, pArgs);
-	return result.value.i;
-}
-
-static double __stdcall d_CallPythonObject(PyObject *callable,
-					   PyObject *converters,
-					   void **pArgs)
-{
-	PyCArgObject result;
-	_CallPythonObject(&result.value, "d", callable, converters, pArgs);
-	return result.value.d;
-}
-
-static float __stdcall f_CallPythonObject(PyObject *callable,
-					  PyObject *converters,
-					  void **pArgs)
-{
-	PyCArgObject result;
-	_CallPythonObject(&result.value, "f", callable, converters, pArgs);
-	return result.value.f;
-}
-
-#ifdef HAVE_LONG_LONG
-static PY_LONG_LONG __stdcall q_CallPythonObject(PyObject *callable,
-						 PyObject *converters,
-						 void **pArgs)
-{
-	PyCArgObject result;
-	_CallPythonObject(&result.value, "L", callable, converters, pArgs);
-	return result.value.q;
-}
-#endif
-
-#define NOSTACKFRAME
-//#define BREAKPOINTS
-
-#pragma warning( disable : 4035 )	/* Disable warning about no return value */
-/*
- * Callbacks are small blocks of code which create an interface between code
- * using different calling conventions.
- * In this case, an interface from __stdcall and __cdecl C-functions to python
- * callable objects is provided.
- *
- * Callbacks are created by allocating some memory, copying the bytes from this
- * template into it, and configuring the callback by setting the number of
- * argument bytes and the address of the python object.
- * For copying and configuring the callback we need the addresses of some
- * assembler labels. These addresses are returned when the CallbackTemplate
- * is called directly, without beeing configured.
- */
-static int __declspec ( naked ) CallbackTemplate(DWORD arg)
-{
-    /* This function will be called with the __stdcall calling convention:
-     * Arguments are pushed in right to left order onto the stack.
-     * Callee has to remove its own arguments from stack.
-     */
-    _asm {
-      CallbackStart:
-#ifdef BREAKPOINTS
-	int		3
-#endif
-#ifndef NOSTACKFRAME
-	push	ebp
-	mov	ebp, esp
-#endif
-/* Trick for position independent code, transferring NumberArgs into ecx */
-        call	_1
-_1:
-	pop	eax
-	add	eax, OFFSET NumberArgs
-	sub	eax, OFFSET _1
-	mov	ecx, [eax]
-
-/* Trick for position independent code, transferring CallAddress into edx */
-	call	_2
-_2:
-	pop	eax
-	add	eax, OFFSET CallAddress
-	sub	eax, OFFSET _2
-	mov	edx, [eax]
-
-	or	edx, edx
-	jz	ReturnInfo
-
-	call	_2a
-_2a:
-	pop	eax
-	add	eax, OFFSET ConvertersAddress
-	sub	eax, OFFSET _2a
-	mov	ecx, [eax]
-
-#ifdef NOSTACKFRAME
-	mov	eax, esp
-	add	eax, 4		// return address is on stack
-#else
-        mov	eax, ebp
-	add	eax, 8		// return address and ebp is on stack
-#endif
-	/* push arguments in reverse order
-	 * Register contents:
-	 *	EAX: Pointer to arguments
-	 *	ECX: Pointer to converters
-	 *	EDX: Pointer to python callable object
-	 */
-	push	eax
-	push	ecx
-	push	edx
-
-/* Trick for position independent code, transferring CallAddress into eax */
-	call	_3
-_3:
-	pop	eax
-	add	eax, OFFSET RouterAddress
-	sub	eax, OFFSET _3
-
-	call[eax]
-
-#ifndef NOSTACKFRAME
-	mov	esp, ebp
-	pop	ebp
-#endif 
-#ifdef BREAKPOINTS
-	int	3
-#endif
-/* For __stdcall functions: */
-	_emit	0xC2	/* ret ... */
-/* __cdecl functions would require a simple 'ret' 0xC3 here... */
-/*
- * Static storage for four DWORDS, containing the callbacks number of arguments
- * and the address of the python object to call
- * Note that NumberArgs must follow immediately the 'ret' instruction
- * above!
- */
-NumberArgs:
-	_emit	0
-	_emit	0
-	_emit	0
-	_emit	0
-ConvertersAddress:
-	_emit	0
-	_emit	0
-	_emit	0
-	_emit	0
-CallAddress:			/* Python object to call */
-	_emit	0
-	_emit	0
-	_emit	0
-	_emit	0
-RouterAddress:			/* C-function to route call */
-	_emit	0
-	_emit	0
-	_emit	0
-	_emit	0
-CallbackEnd:
-
-ReturnInfo:
-	mov	eax, OFFSET CallbackStart
-	mov	edx, OFFSET CallbackEnd
-
-#ifndef NOSTACKFRAME
-	mov	esp, ebp
-	pop	ebp
-#endif
-	ret	4
-    }
-}
-#pragma warning( default : 4035 )	/* Reenable warning about no return value */
-
-/*****************************************************************************/
-
-typedef struct {
-    BYTE *pStart;
-    BYTE *pEnd;
-} CALLBACKINFO;
-
-static CALLBACKINFO ti;
-
-/*
- * Allocate a callback and configure it
- */
-static THUNK AllocCallback(PyObject *callable, int nArgBytes,
-			   PyObject *converters, DWORD RouterAddress,
-			   int is_cdecl)
-{
-	BYTE *pCallback, *pNargBytes, *pConverters, *pCalladdr, *pRouter;
-
-	pCallback = malloc(ti.pEnd - ti.pStart);
-	memcpy(pCallback, ti.pStart, ti.pEnd - ti.pStart);
-	pNargBytes = pCallback +(ti.pEnd - ti.pStart) - 16;
-	pConverters = pCallback + (ti.pEnd - ti.pStart) - 12;
-	pCalladdr = pCallback + (ti.pEnd - ti.pStart) - 8;
-	pRouter = pCallback + (ti.pEnd - ti.pStart) - 4;
-	*(DWORD *)pNargBytes = nArgBytes;
-	if (is_cdecl)
-		((BYTE *)pNargBytes)[-1] = 0xC3; /* ret: for cdecl */
-	else
-		((BYTE *)pNargBytes)[-1] = 0xC2; /* ret <args>: for stdcall */
-	*(DWORD *)pConverters = (DWORD)converters;
-	*(DWORD *)pCalladdr = (DWORD)callable;
-	*(DWORD *)pRouter = RouterAddress;
-	return (THUNK)pCallback;
-}
-
-THUNK AllocFunctionCallback(PyObject *callable,
-			    int nArgBytes,
-			    PyObject *converters,
-			    PyObject *restype,
-			    int is_cdecl)
-{
-	PyCArgObject result;
-	DWORD func;
-	PrepareResult(restype, &result);
-	switch (result.tag) {
-		/* "bBhHiIlLqQdfP" */
-	case 'b':
-	case 'B':
-	case 'h':
-	case 'H':
-	case 'i':
-	case 'I':
-	case 'l':
-	case 'L':
-	case 'P':
-		/* Everything is an integer, only float, double, LONG_LONG is different */
-		func = (DWORD)i_CallPythonObject;
-		break;
-#ifdef HAVE_LONG_LONG
-	case 'q':
-	case 'Q':
-		func = (DWORD)q_CallPythonObject;
-		break;
-#endif
-	case 'd':
-		func = (DWORD)d_CallPythonObject;
-		break;
-	case 'f':
-		func = (DWORD)f_CallPythonObject;
-		break;
-	default:
-		PyErr_Format(PyExc_TypeError, "invalid restype %c", result.tag);
-		return NULL;
-	}
-	/* XXX restype -> CallPythonObject */
-	return AllocCallback(callable,
-			     nArgBytes,
-			     converters,
-			     func,
-			     is_cdecl);
-}
-#else /* ! MS_WIN32 */
-
 typedef struct {
 	ffi_closure cl; /* the C callable */
 	ffi_cif cif;
@@ -487,6 +227,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	ffi_info *p;
 	int nArgs, i;
 	PyCArgObject cResult;
+	int abi;
 
 	nArgs = PySequence_Size(converters);
 	p = malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
@@ -496,8 +237,12 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		p->atypes[i] = &ffi_type_sint;
 	}
 
+	if (is_cdecl)
+		abi = FFI_DEFAULT_ABI;
+	else
+		abi = FFI_STDCALL;
 	/* XXX Check for FFI_OK */
-	result = ffi_prep_cif(&p->cif, FFI_DEFAULT_ABI, nArgs,
+	result = ffi_prep_cif(&p->cif, abi, nArgs,
 			      &ffi_type_sint,
 			      &p->atypes[0]);
 
@@ -539,7 +284,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	return (THUNK)p;
 }
-#endif /* MS_WIN32 */
 
 void FreeCallback(THUNK thunk)
 {
@@ -553,12 +297,6 @@ void FreeCallback(THUNK thunk)
 
 void init_callbacks_in_module(PyObject *m)
 {
-#ifdef MS_WIN32
-	CALLBACKINFO (__stdcall *pFunc)(DWORD);
-	pFunc = (CALLBACKINFO (__stdcall *)(DWORD)) CallbackTemplate;
-	ti = pFunc(0);
-#endif
-
 	if (PyType_Ready((PyTypeObject *)&PyType_Type) < 0)
 		return;
 
