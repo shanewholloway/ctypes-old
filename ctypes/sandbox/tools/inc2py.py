@@ -97,20 +97,35 @@ def get_cpp_symbols(*fnames):
         os.write(handle, "#include <%s>\n" % fname)
     os.close(handle)
 
+    def read_stderr(fd):
+        import threading
+
+        def get_errout(fd):
+            errs = fd.read()
+            if errs:
+                sys.stderr.write(errs)
+            retval = fd.close()
+            if retval:
+                raise ParserError, "gccxml returned error %s" % retval
+
+        threading.Thread(target=get_errout, args=(e,)).start()
+
     try:
         # We don't want the predefined symbols. So we get them and
         # remove them later.
-        i, o = os.popen4(r"gccxml.exe --preprocess -dM")
+        i, o, e = os.popen3(r"gccxml.exe --preprocess -dM")
         i.close()
+        read_stderr(e)
         builtin_syms = o.readlines()
         retval = o.close()
         if retval:
             raise ParserError, "gccxml returned error %s" % retval
 
         result = []
-        print (r"# gccxml.exe %s --preprocess -dM" % c_file)
-        i, o = os.popen4(r"gccxml.exe %s --preprocess -dM" % c_file)
+        ##print (r"# gccxml.exe %s --preprocess -dM" % c_file)
+        i, o, e = os.popen3(r"gccxml.exe %s --preprocess -dM" % c_file)
         i.close()
+        read_stderr(e)
         for line in o.readlines():
             if not line in builtin_syms:
                 result.append(line)
@@ -142,7 +157,10 @@ class IncludeParser(object):
 
     def parse(self, *files):
         self._parse(*files)
-        del self.env["__builtins__"]
+        try:
+            del self.env["__builtins__"]
+        except KeyError:
+            pass
 
     def _parse(self, *files):
         self.files = files
@@ -210,7 +228,7 @@ if __name__ == "__main__":
     
     parser = IncludeParser()
     start = time.clock()
-    parser.parse("windows.h", "sqlX.h")
+    parser.parse("windows.h", "sql.h")
     print "%.2f seconds" % (time.clock() - start)
     
     n = 0
