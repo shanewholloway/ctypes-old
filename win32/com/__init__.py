@@ -66,9 +66,8 @@ def STDMETHOD(restype, name, *argtypes):
     return name, WINFUNCTYPE(restype, c_voidp, *argtypes)
 
 def COMPointer__del__(self):
-    if self.contents.lpVtbl:
+    if self:
         self.Release()
-
 
 class _interface_meta(type(Structure)):
     """Metaclass for COM interface classes.
