@@ -399,7 +399,7 @@ if sys.platform == 'win32':
     options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
     data_files = [("ctypes/com/samples/server/control",
                    ["win32/com/samples/server/control/test.html"])
-                  ],
+                  ]
 
 else:
     options["sdist"] = {"template": "MANIFEST.other.in", "force_manifest": 1}
