@@ -124,12 +124,15 @@ extern void FreeCallback(THUNK);
 
 extern PyMethodDef module_methods[];
 
-/* XXX The code in cfield.c calls GETFUNC with more parameters.  Once this is
-   also true for code in other files, the full signature should be used here.
-   Or we should have FIELDGETFUNC...
+/* XXX The code in cfield.c calls GETFUNC and SETFUNC with more parameters.
+   Once this is also true for code in other files, the full signature should
+   be used here.  Or we should have FIELDGETFUNC...
 */
+
+// full arglist: (void*, unsigned, PyObject *type, CDataObject *src, int index)
 typedef PyObject *(* GETFUNC)(void *, unsigned size, ...);
-typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
+// full arglist: (void*, PyObject*, unsigned, PyObject *type, CDataObject *dst)
+typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size, ...);
 
 /* a table entry describing a predefined ctypes type */
 struct fielddesc {
