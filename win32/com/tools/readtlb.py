@@ -429,6 +429,9 @@ class InterfaceReader(TypeInfoReader):
         l.append("]")
 
         if make_properties:
+            # I don't like the code generated here. So it's disabled
+            # by default.  IMO the properties should be created by the
+            # metaclass, it's too verbose *this* way.
             for name, flags in self.properties.items():
                 get = "None"
                 if flags & DISPATCH_PROPERTYGET:
@@ -438,7 +441,7 @@ class InterfaceReader(TypeInfoReader):
                     l.append("def _get_%s(self):" % name)
                     l.append("    result = %s()" % restype)
                     l.append("    self._get_%s(byref(result))" % name)
-                    l.append("    return result.value")
+                    l.append("    return result")
                 put = "None"
                 if flags & DISPATCH_PROPERTYPUT:
                     put = "_put_%s" % name
@@ -743,8 +746,9 @@ def main():
     reader = TypeLibReader(unicode(path))
     stop = time.clock()
     print "# -*- python -*-"
-    reader.dump()
-##    reader.dump(make_properties=1)
+    # As said above, I currently don't really like the code which
+    # make_properties=1 generates.
+    reader.dump(make_properties=0)
     
 
 if __name__ == '__main__':
