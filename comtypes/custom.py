@@ -96,21 +96,33 @@ class _ComProperty(_ComBase):
     def set(self, value):
         self.comcall(self.comobj, value)
 
+def get_custom_interface(comobj, typeinfo):
+    if typeinfo is None:
+        typeinfo = comobj.GetTypeInfo()
+    ta = typeinfo.GetTypeAttr()
+    if ta.typekind == comtypes.automation.typeinfo.TKIND_INTERFACE:
+        # everything ok
+        return typeinfo, comobj
+    if ta.typekind == comtypes.automation.typeinfo.TKIND_DISPATCH:
+        # try to get the dual interface portion from a dispatch interface
+        href = typeinfo.GetRefTypeOfImplType(-1)
+        typeinfo = typeinfo.GetRefTypeInfo(href)
+        ta = typeinfo.GetTypeAttr()
+        if ta.typekind != comtypes.automation.typeinfo.TKIND_INTERFACE:
+            # it didn't work
+            raise TypeError, "could not get custom interface"
+        # we must QI for this interface, but using IDispatch
+        iid = ta.guid
+        comobj = comobj.QueryInterface(comtypes.automation.IDispatch, iid)
+        return typeinfo, comobj
+    raise TypeError, "could not get custom interface"
+
 class _Dynamic(object):
     def __init__(self, comobj, typeinfo=None):
-        if typeinfo is None:
-            # get typeinfo for DUAL interface. See ITypeInfo::GetRefTypeOfImplType docs
-            ti = comobj.GetTypeInfo()
-            href = ti.GetRefTypeOfImplType(-1) # dual interface
-            ti = self.__dict__["_typeinfo"] = ti.GetRefTypeInfo(href)
-            # QI the comobj for this IDispatch derived custom interface
-            comobj = comobj.QueryInterface(comtypes.automation.IDispatch,
-                                           ti.GetTypeAttr().guid)
-        else:
-            self.__dict__["_typeinfo"] = typeinfo
-
-        self.__dict__["_comobj"] = comobj
+        typeinfo, comobj = get_custom_interface(comobj, typeinfo)
+        self.__dict__["_typeinfo"] = typeinfo
         self.__dict__["_typecomp"] = self._typeinfo.GetTypeComp()
+        self.__dict__["_comobj"] = comobj
         
     def __getattr__(self, name):
         kind, desc = self._typecomp.Bind(name, 1 + 2) # only METHOD and PROPGET
