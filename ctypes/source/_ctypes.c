@@ -374,11 +374,6 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 				"class creation without class dict?");
 		return NULL;
 	}
-/* Not yet enabled!
-	if (!PyDict_GetItemString(cls_dict, "__slots__")) {
-		PyDict_SetItemString(cls_dict, "__slots__", PyTuple_New(0));
-	}
-*/
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
@@ -403,7 +398,8 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 		return NULL;
 	}
 
-	/* replace the class dict by our updated spam dict */
+	/* replace the class dict by our updated stgdict, which holds info
+	   about storage requirements of the instances */
 	if (-1 == PyDict_Update(dict, result->tp_dict)) {
 		Py_DECREF(result);
 		Py_DECREF(dict);
@@ -465,15 +461,17 @@ CDataType_from_param(PyObject *type, PyObject *value)
 		PyCArgObject *p = (PyCArgObject *)value;
 		PyObject *ob = p->obj;
 		StgDictObject *dict;
-
 		dict = PyType_stgdict(type);
-		if (dict && ob &&
-		    0 == PyObject_IsInstance(value, dict->proto)) {
+
+		/* If we got a PyCArgObject, we must check if the object packed in it
+		   is the same type as the type's dict->proto */
+		if(dict && ob && dict->proto == (PyObject *)ob->ob_type){
 			Py_INCREF(value);
 			return value;
 		}
 	}
-/* XXX Remove this section ... */
+#if 1
+/* XXX Remove this section ??? */
 	/* tuple returned by byref: */
 	/* ('i', addr, obj) */
 	if (PyTuple_Check(value)) {
@@ -489,6 +487,7 @@ CDataType_from_param(PyObject *type, PyObject *value)
 		}
 	}
 /* ... and leave the rest */
+#endif
 	PyErr_Format(PyExc_TypeError,
 		     "expected %s instance instead of %s",
 		     ((PyTypeObject *)type)->tp_name,
