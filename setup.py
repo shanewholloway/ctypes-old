@@ -336,7 +336,7 @@ if sys.platform == "win32":
                             include_dirs=["source/libffi_msvc"],
                             **kw),
                   Extension("_ctypes_test",
-                            libraries=["oleaut32"],
+                            libraries=["oleaut32", "user32"],
                             sources=["source/_ctypes_test.c"],
                             include_dirs=["source/libffi_msvc"],
                             )
