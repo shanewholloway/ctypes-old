@@ -2,25 +2,28 @@ from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
      c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring
 from ctypes import oledll, byref, sizeof
 ole32 = oledll.ole32
+##from ctypes.windows import *
 
-from windows import *
+DWORD = c_ulong
+WORD = c_uint
+BYTE = c_byte
 
 ################################################################
 
-class POINT(Structure):
-    _fields_ = [("x", c_uint),
-                ("y", c_uint)]
+##class POINT(Structure):
+##    _fields_ = [("x", c_uint),
+##                ("y", c_uint)]
 
-    def __str__(self):
-        return "POINT {x: %d, y: %d}" % (self.x, self.y)
+##    def __str__(self):
+##        return "POINT {x: %d, y: %d}" % (self.x, self.y)
 
-class MSG(Structure):
-    _fields_ = [("hWnd", c_uint),
-                ("message", c_uint),
-                ("wParam", c_uint),
-                ("lParam", c_uint),
-                ("time", c_uint),
-                ("pt", POINT)]
+##class MSG(Structure):
+##    _fields_ = [("hWnd", c_uint),
+##                ("message", c_uint),
+##                ("wParam", c_uint),
+##                ("lParam", c_uint),
+##                ("time", c_uint),
+##                ("pt", POINT)]
 
 ################################################################
 # COM data types
@@ -54,7 +57,7 @@ class GUID(Structure):
         return isinstance(other, GUID) and \
                IsEqualGUID(byref(self), byref(other))               
 
-assert(sizeof(GUID) == 16)
+assert(sizeof(GUID) == 16, sizeof(GUID))
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
 
