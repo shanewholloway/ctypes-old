@@ -272,7 +272,12 @@ class Generator(object):
         else:
             self.generate(tp.typ)
         if tp.name != self.type_name(tp.typ):
-            print >> self.stream, "%s = %s # typedef" % (tp.name, self.type_name(tp.typ))
+            if getattr(tp, "location", None):
+                print >> self.stream, "%s = %s # typedef %s %s" % \
+                      (tp.name, self.type_name(tp.typ), tp.location[0], tp.location[1])
+            else:
+                print >> self.stream, "%s = %s # typedef" % \
+                      (tp.name, self.type_name(tp.typ))
         self.done.add(tp)
 
     _arraytypes = 0
