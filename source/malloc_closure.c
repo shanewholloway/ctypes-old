@@ -1,12 +1,40 @@
-/* Allocate executable memory */
+/*
+ * Memory blocks with executable permission are allocated of size BLOCKSIZE.
+ * They are chained together, and the start of the chain is the global 'start'
+ * pointer.
+ *
+ * Each block has an array of ffi_closure in it.  The ffi_closure.cif field is
+ * used to mark an entry used or free, and the block has a 'used' field which
+ * counts the used entries.
+ *
+ * MallocClosure() returns a pointer to an ffi_closure entry, allocating a new
+ * block when needed.
+ *
+ * FreeClosure(ffi_closure*) marks the ffi_closure entry unused again.
+ * If a memory block has only unused entries, it is freed again - unless it is
+ * the last one in use.
+ */
 #include <Python.h>
 #include <ffi.h>
 #include "ctypes.h"
 
+/* BLOCKSIZE can be adjusted.  Larger blocksize will make MallocClosure() and
+   FreeClosure() somewhat slower, but allocate less blocks from the system.
+   It may be that some systems have a limit of how many mmap'd blocks can be
+   open.
 
-#ifdef Py_DEBUG
-#define MALLOC_CLOSURE_DEBUG
-#endif
+   sizeof(ffi_closure) typically is:
+
+   Windows: 28 bytes
+   Linux x86, OpenBSD x86: 24 bytes
+   Linux x86_64: 48 bytes
+*/
+
+#define BLOCKSIZE _pagesize * 4
+
+/* #define MALLOC_CLOSURE_DEBUG */ /* enable for some debugging output */
+
+/******************************************************************/
 
 #ifdef MS_WIN32
 #include <windows.h>
@@ -26,12 +54,10 @@ typedef struct _tagblock {
 	ffi_closure closure[0];
 } BLOCK;
 
-BLOCK *start;
-unsigned int _pagesize;
+static BLOCK *start; /* points to the list of allocated blocks */
+static unsigned int _pagesize; /* the system's pagesize */
 
-#define BLOCKSIZE _pagesize * 4
-
-static BLOCK *get_block(void)
+static BLOCK *allocate_block(void)
 {
 	BLOCK *block;
 #ifdef MS_WIN32
@@ -64,10 +90,9 @@ static BLOCK *get_block(void)
 	block->count = (BLOCKSIZE - sizeof(block)) / sizeof(ffi_closure);
 
 #ifdef MALLOC_CLOSURE_DEBUG
-	printf("One BLOCK has %d closures\n", block->count);
-
+	printf("One BLOCK has %d closures of %d bytes each\n",
+	       block->count, sizeof(ffi_closure));
 	block->count = 1;
-
 	printf("ALLOCATED block %p\n", block);
 #endif
 	return block;
@@ -93,6 +118,9 @@ void FreeClosure(void *p)
 	int i;
 
 	while (block) {
+		/* We could calculate the entry by pointer arithmetic,
+		   to avoid a linear search.
+		*/
 		for (i = 0; i < block->count; ++i) {
 			if (&block->closure[i] == pcl) {
 				block->closure[i].cif = NULL;
@@ -102,7 +130,7 @@ void FreeClosure(void *p)
 		}
 		block = block->next;
 	}
-	Py_FatalError("ctypes: closure not found in heap");
+	Py_FatalError("ctypes: closure not found in any block");
 
   done:
 	if (block->used == 0) {
@@ -120,13 +148,10 @@ void FreeClosure(void *p)
 			block->prev->next = block->next;
 		} else {
 			start = block->next;
-			if (start)
-				start->prev = NULL;
-			else
-				Py_FatalError("ctypes: no free block left\n");
+			start->prev = NULL;
 		}
 
-		/* now, block can be freed */
+		/* now, the block can be freed */
 		free_block(block);
 #ifdef MALLOC_CLOSURE_DEBUG
 		printf("FREEING block %p\n", block);
@@ -140,7 +165,7 @@ void *MallocClosure(void)
 	int i;
 
 	if (start == NULL)
-		block = start = get_block();
+		block = start = allocate_block();
 
 	while(block) {
 		if (block->used < block->count) {
@@ -160,7 +185,7 @@ void *MallocClosure(void)
 			block = block->next;
 		else {
 			/* need a fresh block */
-			BLOCK *new_block = get_block();
+			BLOCK *new_block = allocate_block();
 			if (new_block == NULL)
 				return NULL;
 			/* insert into chain */
