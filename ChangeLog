@@ -1,3 +1,19 @@
+2003-01-20  Thomas Heller  <theller@python.net>
+
+	* source/*.[ch]: Introduced PyCArgObject objects, which contain a
+	Python object itself and also the data converted to C. This
+	replaces the magic 3-tuples, and should be somewhat faster because
+	no two conversions take place.
+
+	This is now used by SimpleType_from_param(), byref(), and
+	Pointer_as_parameter(), and is understood by ConvParam().
+
+ 	In the long run this should be the only thing (besides primitive
+	Python data types with trivial conversions) used by ConvParam().
+
+ 	Also ConvParam should probably *return* these things.
+
+
 2003-01-17  Thomas Heller  <theller@python.net>
 
 	* source/_ctypes.c: Rewrite of SimpleType_from_param complete.
