@@ -61,6 +61,8 @@ class MallocSpy(COMObject):
     def PreFree(self, this, pRequest, fSpyed):
         if fSpyed:
             del self.blocks [pRequest]
+        else:
+            print "PreFree", pRequest, fSpyed
         return pRequest
 
     def PostFree(self, this, fSpyed):
