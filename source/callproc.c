@@ -629,6 +629,11 @@ static int _call_function_pointer(int flags,
 	ffi_type **atypes;
 	void **values;
 	int i;
+	int abi;
+#ifdef _MSC_VER
+	int delta;
+	DWORD dwExceptionCode = 0;
+#endif
 
 	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
 	values = (void **)alloca(argcount * sizeof(void *));
@@ -642,7 +647,13 @@ static int _call_function_pointer(int flags,
 	}
 	rtype = tag2ffitype(res->tag);
     
-	if (FFI_OK != ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
+	if (flags & FUNCFLAG_CDECL)
+		abi = FFI_DEFAULT_ABI;
+	else
+		abi = FFI_STDCALL;
+
+	if (FFI_OK != ffi_prep_cif(&cif,
+				   abi,
 				   argcount,
 				   rtype,
 				   atypes)) {
@@ -652,9 +663,48 @@ static int _call_function_pointer(int flags,
 	}
 
 	Py_BEGIN_ALLOW_THREADS
+#ifdef _MSC_VER
+# ifndef DEBUG_EXCEPTIONS
+	__try {
+# endif
+		delta = ffi_call(&cif, (void *)pProc, &res->value, values);
+# ifndef DEBUG_EXCEPTIONS
+	} _except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
+		;
+	}
+# endif
+#else
 	ffi_call(&cif, (void *)pProc, &res->value, values);
+#endif
 	Py_END_ALLOW_THREADS
 
+#ifdef _MSC_VER
+	if (dwExceptionCode) {
+		SetException(dwExceptionCode);
+		return -1;
+	}
+	if (delta < 0) {
+		if (flags & FUNCFLAG_CDECL)
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure called with not enough "
+				     "arguments (%d bytes missing) "
+				     "or wrong calling convention",
+				     -delta);
+		else
+			PyErr_Format(PyExc_ValueError,
+				     "Procedure probably called with not enough "
+				     "arguments (%d bytes missing)",
+				     -delta);
+		return -1;
+	}
+	if (delta > 0) {
+		PyErr_Format(PyExc_ValueError,
+			     "Procedure probably called with too many "
+			     "arguments (%d bytes in excess)",
+			     delta);
+		return -1;
+	}
+#endif
 	return 0;
 }
 
