@@ -1311,12 +1311,15 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	if (-1 == ConvParam(obj, 1, &a))
 		return NULL;
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
-	if (result == NULL)
+	if (result == NULL) {
+		Py_XDECREF(a.keep);
 		return NULL;
+	}
 	// result->b_size
 	// a.ffi_type->size
 	memcpy(result->b_ptr, &a.value,
 	       min(result->b_size, a.ffi_type->size));
+	Py_XDECREF(a.keep);
 	return (PyObject *)result;
 }
 
