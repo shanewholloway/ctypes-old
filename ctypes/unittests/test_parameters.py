@@ -137,13 +137,13 @@ def test_strings():
 
     # this returns the addres of the internal string buffer
     >>> type(c_string("abc")._as_parameter_)
-    <type 'int'>
+    <type 'CArgObject'>
 
     >>> c_string(None)
     <c_string NULL>
     
     >>> c_string(None)._as_parameter_
-    0
+    <cparam 'z' (00000000)>
 
     """
 
@@ -215,14 +215,14 @@ def test_byref():
     """
     >>> from ctypes import byref, c_int, addressof
     >>> ci = c_int(42)
-    >>> "<cparam 'p' (%x)>" % addressof(ci) == repr(byref(ci))
+    >>> "<cparam 'P' (%x)>" % addressof(ci) == repr(byref(ci))
     1
     
     >>> from ctypes import pointer
     >>> p = pointer(ci)
     >>> a = addressof(p.contents)
     >>> b = p._as_parameter_
-    >>> "<cparam 'p' (%x)>" % a == repr(p._as_parameter_)
+    >>> "<cparam 'P' (%x)>" % a == repr(p._as_parameter_)
     1
 
     """
