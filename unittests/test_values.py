@@ -72,7 +72,7 @@ else:
                     break
                 items.append((entry.name, entry.size))
             import sys
-            if sys.version_info[:2] == (2, 3):
+            if sys.version_info[:2] >= (2, 3):
                 expected = [("__hello__", 104), ("__phello__", -104), ("__phello__.spam", 104)]
             else:
                 expected = [("__hello__", 100), ("__phello__", -100), ("__phello__.spam", 100)]
