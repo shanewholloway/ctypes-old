@@ -1,3 +1,6 @@
+*.c
+*.h
+*.ilk
 *.pdb
 *.pyc
 *.pyo
@@ -10,3 +13,4 @@ archive
 build
 dist
 extensions
+*.log
