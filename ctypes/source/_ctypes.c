@@ -1940,6 +1940,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
+			/* Doesn't this leak a ref to 'ob'? */
 			return _CData_set(dst, type, setfunc, ob,
 					  size, ptr);
 		} else if (value == Py_None && PointerTypeObject_Check(type)) {
