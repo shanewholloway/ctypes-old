@@ -1054,6 +1054,13 @@ call_commethod(PyObject *self, PyObject *args)
 			      &PyTuple_Type, &argtypes))
 		return NULL;
 
+	if (argtypes && (PyTuple_GET_SIZE(arguments) != PyTuple_GET_SIZE(argtypes))) {
+		PyErr_Format(PyExc_TypeError,
+			     "Method takes %d arguments (%d given)",
+			     PyTuple_GET_SIZE(argtypes), PyTuple_GET_SIZE(argtypes));
+		return NULL;
+	}
+
 	if (!CDataObject_Check(pcom) || (pcom->b_size != sizeof(void *))) {
 		PyErr_Format(PyExc_TypeError,
 			     "COM Pointer expected instead of %s instance",
