@@ -316,10 +316,13 @@ static int
 StructUnion_UpdatePointer_Type(PyObject *self)
 {
 	PyObject *ptr = PyDict_GetItem(PointerType_cache, self);
-	if (ptr
-	    && PyType_Check(ptr)
-	    && (NULL == PointerType_set_type((PyTypeObject *)ptr, self)))
+	if (ptr && PyType_Check(ptr)) {
+		PyObject *r;
+		r = PointerType_set_type((PyTypeObject *)ptr, self);
+		if (r == NULL)
 			return -1;
+		Py_DECREF(r);
+	}
 	return 0;
 }
 
@@ -373,6 +376,24 @@ UnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
 	return StructUnionType_setattro(self, name, value, 0);
 }
 
+static int
+CDataType_clear(PyTypeObject *self)
+{
+	StgDictObject *dict = PyType_stgdict((PyObject *)self);
+	if (dict)
+		Py_CLEAR(dict->proto);
+	return PyType_Type.tp_clear((PyObject *)self);
+}
+
+static int
+CDataType_traverse(PyTypeObject *self, visitproc visit, void *arg)
+{
+	StgDictObject *dict = PyType_stgdict((PyObject *)self);
+	if (dict)
+		Py_VISIT(dict->proto);
+	return PyType_Type.tp_traverse((PyObject *)self, visit, arg);
+}
+
 static PyTypeObject StructType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
@@ -394,10 +415,10 @@ static PyTypeObject StructType_Type = {
 	0,					/* tp_getattro */
 	(setattrofunc)StructType_setattro,	/* tp_setattro */
 	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CDataType_traverse,	/* tp_traverse */
+	(inquiry)CDataType_clear,		/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -437,10 +458,10 @@ static PyTypeObject UnionType_Type = {
 	0,					/* tp_getattro */
 	(setattrofunc)UnionType_setattro,	/* tp_setattro */
 	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
-	0,					/* tp_traverse */
-	0,					/* tp_clear */
+	(traverseproc)CDataType_traverse,	/* tp_traverse */
+	(inquiry)CDataType_clear,		/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
@@ -554,18 +575,23 @@ PointerType_set_type(PyTypeObject *self, PyObject *type)
 	dict = PyType_stgdict((PyObject *)self);
 	assert(dict);
 
-	if (-1 == PointerType_SetProto(dict, type))
-		return NULL;
-
+/* FIXME/CHECKME: What about subclasses? */
 	old_type = PyDict_GetItemString((PyObject *)dict, "_type_");
-	if (old_type && old_type != type) {
+	if (old_type == type)
+		goto done; /* nothing to do */
+
+	if (old_type && old_type != type && type != Py_None) {
 		PyErr_SetString(PyExc_AttributeError,
 				"_type_ already set");
 		return NULL;
 	}
-	if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
+
+	if (-1 == PointerType_SetProto(dict, type))
 		return NULL;
 
+	if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
+		return NULL;
+  done:
 	Py_INCREF(Py_None);
 	return Py_None;
 }
