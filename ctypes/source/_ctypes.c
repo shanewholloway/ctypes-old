@@ -2177,7 +2177,6 @@ CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 	return 0;
 }
 
-
 static int
 CFuncPtr_clear(CFuncPtrObject *self)
 {
@@ -2193,7 +2192,10 @@ CFuncPtr_clear(CFuncPtrObject *self)
 	Py_XDECREF(self->converters);
 	self->converters = NULL;
 
+	if (self->b_needsfree)
+		PyMem_Free(self->b_ptr);
 	self->b_ptr = NULL;
+
 	if (self->thunk)
 		FreeCallback(self->thunk);
 	self->thunk = NULL;
@@ -2208,7 +2210,7 @@ static void
 CFuncPtr_dealloc(CFuncPtrObject *self)
 {
 	CFuncPtr_clear(self);
-	CData_dealloc((PyObject *)self);
+	self->ob_type->tp_free(self);
 }
 
 static PyTypeObject CFuncPtr_Type = {
