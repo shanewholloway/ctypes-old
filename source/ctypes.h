@@ -85,11 +85,6 @@ extern PyObject *
 CField_FromDesc(PyObject *desc, int index,
 		int *psize, int *poffset, int *palign, int pack);
 
-
-
-extern PyObject *
-CData_FromBaseObj(PyObject *type, PyObject *base, int index, int baseofs);
-
 extern PyObject *CData_AtAddress(PyObject *type, void *buf);
 extern PyObject *CData_FromBytes(PyObject *type, char *data, int length);
 
