@@ -103,12 +103,12 @@ def cdecl(restype, dll, argtypes, logging=False):
         else:
             this_dll = dll
         api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, this_dll)
-        if len(func.func_code.co_code) == 4:
-            # Hacky way to detect an empty function body.
-            codestring = _create_func_codestring(func, func.__doc__)
-            d = {}
-            exec codestring in d
-            func = d[func.func_name]
+##        if len(func.func_code.co_code) == 4:
+##            # Hacky way to detect an empty function body.
+##            codestring = _create_func_codestring(func, func.__doc__)
+##            d = {}
+##            exec codestring in d
+##            func = d[func.func_name]
         func._api_ = api
         if logging or LOGGING:
             def f(*args):
