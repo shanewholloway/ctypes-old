@@ -1732,15 +1732,9 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		spec = PyCObject_AsVoidPtr(basespec);
 
 		if (spec->base) {
-			int index = spec->index;
-			CDataObject *base = spec->base;
-			while (base->b_base) {
-				index += base->b_index;
-				base = base->b_base;
-			}
-			Py_INCREF(base);
-			obj->b_base = base;
-			obj->b_index = index;
+			Py_INCREF(spec->base);
+			obj->b_base = spec->base;
+			obj->b_index = spec->index;
 
 			obj->b_objects = NULL;
 			obj->b_length = length;
