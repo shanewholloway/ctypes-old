@@ -234,29 +234,29 @@ if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
 		PyObject *keep;
 		switch (restype->size) {
 		case 1:
-			keep = setfunc(&r, result, 0);
+			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.c;
 			break;
 		case SIZEOF_SHORT:
-			keep = setfunc(&r, result, 0);
+			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.s;
 			break;
 		case SIZEOF_INT:
-			keep = setfunc(&r, result, 0);
+			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.i;
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
-			keep = setfunc(&r, result, 0);
+			keep = setfunc(&r, result, 0, NULL); /* XXX need type */
 			CHECK("'converting callback result'", keep);
 			*(ffi_arg *)mem = r.l;
 			break;
 #endif
 		default:
-			keep = setfunc(mem, result, 0);
+			keep = setfunc(mem, result, 0, NULL); /* XXX need type */
 			CHECK("'converting callback result'", keep);
 			break;
 		}
