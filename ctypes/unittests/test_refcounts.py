@@ -2,13 +2,8 @@ import unittest
 import ctypes
 import gc
 
-class MyCallback(ctypes.CFuncPtr):
-    _flags_ = ctypes.FUNCFLAG_CDECL
-    _argtypes_ = ctypes.c_int,
-
-class OtherCallback(ctypes.CFuncPtr):
-    _flags_ = ctypes.FUNCFLAG_CDECL
-    _argtypes_ = (ctypes.c_int, ctypes.c_ulonglong)
+MyCallback = ctypes.CALLBACK(ctypes.c_int, ctypes.c_int)
+OtherCallback = ctypes.CALLBACK(ctypes.c_int, ctypes.c_int, ctypes.c_ulonglong)
 
 class RefcountTestCase(unittest.TestCase):
     def setUp(self):
