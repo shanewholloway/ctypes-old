@@ -17,7 +17,7 @@ kw["sources"] = ["source/_ctypes.c",
                  "source/callbacks.c",
                  "source/callproc.c"]
 
-# Support the distutils 'depends' option, if availabale
+# Support the distutils 'depends' option, if available
 if hasattr(distutils.core, 'get_distutil_options'):
     # Python 2.3a1
     kw["depends"] = ["source/ctypes.h"]
