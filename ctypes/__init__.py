@@ -65,8 +65,22 @@ def c_buffer(init, size=None):
 ##                  DeprecationWarning, stacklevel=2)
     return create_string_buffer(init, size)
 
+_FUNCTYPE_DOC = """
+restype: the result type
+argtypes: a sequence specifying the argument types
+
+The function prototype can be called in three ways to create a
+callable object:
+
+prototype(vtbl_index, method_name) - a function that calls a COM method
+prototype(vtbl_index, method_name, class) - an unbound method that calls a COM method
+prototype(callable) - returns a C callable function that calls callable
+prototype(funct_name, dll) - a function that calls an exported function in a dll
+"""
+
 _c_functype_cache = {}
 def CFUNCTYPE(restype, *argtypes):
+    "CFUNCTYPE(restype, *argtypes) -> function prototype."
     try:
         return _c_functype_cache[(restype, argtypes)]
     except KeyError:
@@ -76,6 +90,7 @@ def CFUNCTYPE(restype, *argtypes):
             _flags_ = _FUNCFLAG_CDECL
         _c_functype_cache[(restype, argtypes)] = CFunctionType
         return CFunctionType
+CFUNCTYPE.__doc__ += _FUNCTYPE_DOC
 
 if _os.name == "nt":
     from _ctypes import LoadLibrary as _LoadLibrary, \
@@ -85,6 +100,7 @@ if _os.name == "nt":
 
     _win_functype_cache = {}
     def WINFUNCTYPE(restype, *argtypes):
+        "WINFUNCTYPE(restype, *argtypes) -> function prototype."
         try:
             return _win_functype_cache[(restype, argtypes)]
         except KeyError:
@@ -94,6 +110,7 @@ if _os.name == "nt":
                 _flags_ = _FUNCFLAG_STDCALL
             _win_functype_cache[(restype, argtypes)] = WinFunctionType
             return WinFunctionType
+    WINFUNCTYPE.__doc__ += _FUNCTYPE_DOC
 
 elif _os.name == "posix":
     from _ctypes import dlopen as _LoadLibrary
