@@ -657,7 +657,6 @@ CharArray_set_raw(CDataObject *self, PyObject *value)
 
 	memcpy(self->b_ptr, ptr, size);
 
-	/* What about CData_GetList()? We don't care, since we have a copy of the data */
 	return 0;
 }
 
@@ -711,8 +710,6 @@ CharArray_set_value(CDataObject *self, PyObject *value)
 		self->b_ptr[size] = '\0';
 	Py_DECREF(value);
 
-	/* What about CData_GetList()? No need to do something, since we have
-	   a copy of the data */
 	return 0;
 }
 
@@ -769,7 +766,7 @@ WCharArray_set_value(CDataObject *self, PyObject *value)
 		result = 0;
   done:
 	Py_DECREF(value);
-	/* What about CData_GetList()? We don't care, since we have a copy of the data */
+
 	return result;
 }
 
@@ -1583,36 +1580,10 @@ PyTypeObject CFuncPtrType_Type = {
 /*****************************************************************
  * Code to keep needed objects alive
  */
-static int
-CanKeepRef(CDataObject *target, int index)
-{
-	PyObject *objects = CData_GetList(target);
-	if (!objects)
-		return -1;
-	if (index < 0 || PyList_Size(objects) <= index) {
-		PyErr_SetString(PyExc_IndexError,
-				"invalid index");
-		return -1;
-	}
-	return 0;
-}
 
-static int
-KeepRef(CDataObject *target, int index, PyObject *keep)
-{
-	int result;
-	PyObject *list = CData_GetList(target);
-	result = PyList_SetItem(list, index, keep);
-	if (result == -1)
-		return -1;
-	return 0;
-}
-
-/*
- * Return a list of size <size> filled with None's.
- */
+/* Return a list of size <size> filled with None's. */
 static PyObject *
-RepeatedList(PyObject *ob, int size)
+NoneList(int size)
 {
 	int i;
 	PyObject *list;
@@ -1621,16 +1592,10 @@ RepeatedList(PyObject *ob, int size)
 	if (!list)
 		return NULL;
 	for (i = 0; i < size; ++i) {
-		Py_INCREF(ob);
-		PyList_SET_ITEM(list, i, ob);
+		Py_INCREF(Py_None);
+		PyList_SET_ITEM(list, i, Py_None);
 	}
 	return list;
-}
-
-static PyObject *
-NoneList(int size)
-{
-	return RepeatedList(Py_None, size);
 }
 
 #define ASSERT_CDATA(x) assert(((x)->b_base == NULL) ^ ((x)->b_objects == NULL))
@@ -1639,7 +1604,7 @@ NoneList(int size)
  * Return the list(tree) entry corresponding to a memory object.
  * Borrowed reference!
  */
-PyObject *
+static PyObject *
 CData_GetList(CDataObject *mem)
 {
 	PyObject *list;
@@ -1688,6 +1653,39 @@ CData_EnsureList(CDataObject *mem, int index, int length)
 		if (-1 == PyList_SetItem(list, index, obj))
 			return -1;
 	}
+	return 0;
+}
+
+static PyObject *
+GetKeepedObjects(CDataObject *target)
+{
+	return CData_GetList(target);
+}
+
+/* set an exception and return -1 if a call to KeepRef will fail, 0 otherwise */
+static int
+CanKeepRef(CDataObject *target, int index)
+{
+	PyObject *objects = CData_GetList(target);
+	if (!objects)
+		return -1;
+	if (index < 0 || PyList_Size(objects) <= index) {
+		PyErr_SetString(PyExc_IndexError,
+				"invalid index");
+		return -1;
+	}
+	return 0;
+}
+
+/* Keep a reference to 'keep' in the 'target', at index 'index' */
+static int
+KeepRef(CDataObject *target, int index, PyObject *keep)
+{
+	int result;
+	PyObject *list = CData_GetList(target);
+	result = PyList_SetItem(list, index, keep);
+	if (result == -1)
+		return -1;
 	return 0;
 }
 
@@ -1967,7 +1965,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		if (PointerTypeObject_Check(type))
 			/* XXX */;
 
-		value = CData_GetList(src);
+		value = GetKeepedObjects(src);
 		Py_INCREF(value);
 		return value;
 	}
@@ -1988,7 +1986,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		}
 		*(void **)ptr = src->b_ptr;
 
-		keep = CData_GetList(src);
+		keep = GetKeepedObjects(src);
 		/*
 		  We are assigning an array object to a field which represents
 		  a pointer. This has the same effect as converting an array
@@ -3365,7 +3363,7 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	if (-1 == KeepRef(self, 1, value))
 		return -1;
 
-	keep = CData_GetList(dst);
+	keep = GetKeepedObjects(dst);
 	Py_INCREF(keep);
 	return KeepRef(self, 0, keep);
 }
