@@ -18,7 +18,7 @@ The ctypes module
 
     **'ctypes' version 0.6.1 has been released**, and the
     documentation has been updated. The changes are summarized
-    "here":ctypes/changes.html.
+    "here":changes.html.
 
   Testimonials
 
@@ -57,8 +57,7 @@ The ctypes module
   Old news
 
     'ctypes' version 0.6.0 has been released, and the
-    documentation has been updated. The changes are summarized
-    "here":ctypes/changes.html.
+    documentation has been updated.
 
     There have been some (also incompatible) changes, but I'm quite
     pleased with the result: ctypes is much more consistent than before.
@@ -66,8 +65,6 @@ The ctypes module
     A proof-of-concept COM framework has been implemented, and added
     to the package. It is in an early stage, and I would like
     experienced COM developers to look at it, and submit feedback.
-
-    Other changes are documented "here":ctypes/changes.html.
 
     'ctypes' now works on Windows, Linux and MacOSX. Thanks
     to *Robin Becker* and *Just van Rossum* for their help.
@@ -79,13 +76,13 @@ The ctypes module
     'ctypes' Development now takes place on sourceforge's "ctypes
     project page":http://sourceforge.net/projects/ctypes.
 
-    I've started a "FAQ":ctypes/faq.html which should be consulted
+    I've started a "FAQ":faq.html which should be consulted
     in case of problems.
 
   Documentation
 
     An extensive tutorial is included in the source distribution, but
-    also available "online":ctypes/tutorial.html. You should also read
+    also available "online":tutorial.html. You should also read
     the sample files in the source distribution.
 
 
