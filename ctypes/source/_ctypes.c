@@ -575,6 +575,16 @@ Pointer_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 	return basic_setfunc(ptr, value, size, type);
 }
 
+static int
+Pointer_asparam(CDataObject *self, struct argument *pa)
+{
+	pa->ffi_type = &ffi_type_pointer;
+	pa->value.p = *(void **)self->b_ptr;
+	Py_INCREF(self);
+	pa->keep = (PyObject *)self;
+	return 0;
+}
+
 static PyObject *
 PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -622,6 +632,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	stgdict->getfunc = generic_getfunc;
 	stgdict->setfunc = Pointer_setfunc;
+	stgdict->asparam = Pointer_asparam;
 
 	return (PyObject *)result;
 }
@@ -3792,30 +3803,10 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	return KeepRef(self, 0, keep);
 }
 
-static PyObject *
-Pointer_as_parameter(CDataObject *self)
-{
-	PyCArgObject *parg;
-
-	parg = new_CArgObject();
-	if (parg == NULL)
-		return NULL;
-
-	parg->tag = 'P';
-	parg->pffi_type = &ffi_type_pointer;
-	Py_INCREF(self);
-	parg->obj = (PyObject *)self;
-	parg->value.p = *(void **)self->b_ptr;
-	return (PyObject *)parg;
-}
-
 static PyGetSetDef Pointer_getsets[] = {
 	{ "contents", (getter)Pointer_get_contents,
 	  (setter)Pointer_set_contents,
 	  "the object this pointer points to (read-write)", NULL },
-	{ "_as_parameter_", (getter)Pointer_as_parameter, NULL,
-	  "return a magic value so that this can be converted to a C parameter (readonly)",
-	  NULL },
 	{ NULL, NULL }
 };
 
