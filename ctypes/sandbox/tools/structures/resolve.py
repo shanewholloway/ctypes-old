@@ -164,7 +164,7 @@ ctypes_names = {
 
 class FundamentalType(object):
     def __init__(self, name):
-        self.name = ctypes_names[name]
+        self.name = name
 
     def resolve(self, find_typ):
         return
@@ -172,15 +172,26 @@ class FundamentalType(object):
     def __repr__(self):
         return "FundamentalType(%s)" % self.name
 
+    def as_ctype(self):
+        return ctypes_names[self.name]
+
 class Enumeration(object):
     def __init__(self, name):
         self.name = name
+        self.values = []
+
+    def add_value(self, name, value):
+        self.values.append((name, value))
 
     def resolve(self, find_typ):
         return
 
     def __repr__(self):
         return "Enumeration(%s)" % self.name
+
+    def as_ctype(self):
+##        return "enum(%s)" % self.name
+        return "C_INT" # fixme (or not?)
 
 class TypeContainer(object):
     typ = None
@@ -198,18 +209,29 @@ class PointerType(TypeContainer):
     def __repr__(self):
         return "PointerType(%s)" % self.typ
 
+    def as_ctype(self):
+        # fixme: special case POINTER(FUNCTION)
+        # fixme: special case POINTER(void)
+        if type(self.typ) is FunctionType:
+            return self.typ.as_ctype()
+        return "POINTER(%s)" % self.typ.as_ctype()
+
 class Typedef(TypeContainer):
     def __init__(self, name, typ):
         self.name = name
         self._typ = typ
 
+    def as_ctype(self):
+        return self.name
+
     def __repr__(self):
         return "Typedef(%s -> %s)" % (self.name, self.typ)
 
 class Field(TypeContainer):
-    def __init__(self, name, typ):
+    def __init__(self, name, typ, bits=None):
         self.name = name
         self._typ = typ
+        self.bits = bits
 
     def __repr__(self):
         return "Field(%s -> %s)" % (self.name, self.typ)
@@ -221,12 +243,15 @@ class ArrayType(TypeContainer):
         if max == "":
             self.max = -1
         elif max == "ffffffffffffffff":
-            self.max = 0xFFFFFFFFFFFFFFFF
+            self.max = -99 ##0xFFFFFFFFFFFFFFFF
         else:
             self.max = int(max)
 
     def __repr__(self):
         return "Array(%s[%s:%s])" % (self.typ, self.min, self.max)
+
+    def as_ctype(self):
+        return "%s * %s" % (self.typ.as_ctype(), self.max+1)
 
 class CvQualifiedType(TypeContainer):
     def __init__(self, typ, const):
@@ -235,6 +260,9 @@ class CvQualifiedType(TypeContainer):
 
     def __repr__(self):
         return "ConstQualifier(%s)" % (self.typ)
+
+    def as_ctype(self):
+        return "CONST(%s)" % self.typ.as_ctype()
 
 class Union(object):
     members = None
@@ -250,11 +278,17 @@ class Union(object):
         for id in self._members:
             f = find_typ(id)
             f.resolve(find_typ)
-            if isinstance(f, (Field, Method)):
+            if type(f) in (Field, Method):
                 self.members.append(f)
 
     def __repr__(self):
         return "Union(%s)" % self.name
+
+    def as_ctype(self):
+        name = self.name
+        if name.startswith("$_"):
+            name = "__internal_" + name[2:]
+        return name
 
 class Structure(Union):
     bases = None
@@ -292,6 +326,15 @@ class Structure(Union):
                 return True
         return False
 
+    def __repr__(self):
+        return "Structure(%s)" % self.name
+
+    def as_ctype(self):
+        name = self.name
+        if name.startswith("$_"):
+            name = "__internal_" + name[2:]
+        return name
+
 class Constructor(object):
     def resolve(self, find_typ):
         return
@@ -313,10 +356,13 @@ class Method(object):
 
 class FunctionType(object):
     def __repr__(self):
-        return "FUNCTYPE()"
+        return "FUNCTYPE(fixme)"
 
     def resolve(self, find_typ):
         return
+
+    def as_ctype(self):
+        return "FUNCTYPE(fixme)"
 
 class Function(object):
     returns = None
@@ -334,7 +380,8 @@ class Function(object):
 ################
 
 class Enum_Handler(GCCXML_Handler_Base):
-##    has_values = Set("Structure")
+    has_values = Set(["Enumeration"])
+    typedefs = {}
 
     def __init__(self, *args):
         GCCXML_Handler_Base.__init__(self, *args)
@@ -345,7 +392,8 @@ class Enum_Handler(GCCXML_Handler_Base):
         id = attrs["id"]
         name = attrs["name"]
         typ = attrs["type"]
-        self.all[id] = Field(name, typ)
+        bits = attrs.get("bits", None)
+        self.all[id] = Field(name, typ, bits)
 
     def Constructor(self, attrs):
         id = attrs["id"]
@@ -355,7 +403,9 @@ class Enum_Handler(GCCXML_Handler_Base):
         id = attrs["id"]
         name = attrs["name"]
         typ = attrs["type"]
-        self.all[id] = Typedef(name, typ)
+        td = Typedef(name, typ)
+        self.typedefs[name] = td
+        self.all[id] = td
 
     def FundamentalType(self, attrs):
         id = attrs["id"]
@@ -387,7 +437,9 @@ class Enum_Handler(GCCXML_Handler_Base):
         # id, name
         id = attrs["id"]
         name = attrs["name"]
-        self.all[id] = Enumeration(name)
+        e = Enumeration(name)
+        self.all[id] = e
+        self.context[-1] = e
 
     def Struct(self, attrs):
         # id, name, members
@@ -434,12 +486,24 @@ class Enum_Handler(GCCXML_Handler_Base):
         pass
 
     def EnumValue(self, attrs):
-        pass
+        name = attrs["name"]
+        value = attrs["init"]
+        self.context[-1].add_value(name, value)
 
     # OperatorFunction
     # Ellipsis
     # ReferenceType
     # File
+
+################################################################
+
+def dump_enums(handler):
+    for t in handler.all.values():
+        if type(t) is Enumeration:
+            import pprint
+            print t.name
+            pprint.pprint(t.values)
+            print
 
 ################################################################
 
@@ -483,41 +547,59 @@ def main(args=None):
 
     from pprint import pprint as pp
     
-    
-##    pp(handler.all)
-
-##    raise SystemExit()
-
-##    print
     def find_typ(id):
         return handler.all[id]
-
-    print "#include <windows.h>"
-    print "#include <stdio.h>"
-    print "int main(int argc, char **argv) {"
 
     for item in handler.all.values():
         item.resolve(find_typ)
 
-    for obj in handler.all.values():
-        if isinstance(obj, Typedef):
-            if type(obj.typ) is Enumeration:
-                print obj
-        continue
-        if isinstance(obj, Typedef):
-##            obj.resolve(find_typ)
-##            obj.typ.resolve(find_typ)
-            if type(obj.typ) is Structure and not obj.typ.isClass():
-##                print '    printf("sizeof(%s) = %%d\\n", sizeof(%s));' % (obj.name, obj.name)
-                print obj, len(obj.typ.members)
-            elif type(obj.typ) is Union:
-##                print '    printf("sizeof(%s) = %%d\\n", sizeof(%s));' % (obj.name, obj.name)
-                print obj, len(obj.typ.members)
+    if 0:
+        dump_enums(handler)
+        sys.exit()
+    else:
+        pass
 
-    print "}"
+    # Structures and Unions
+    compounds = {}
+
+    for obj in handler.all.values():
+        if type(obj) is Structure and not obj.isClass():
+            compounds[obj.name] = obj
+        elif type(obj) is Union:
+            compounds[obj.name] = obj
+
+    print "from ctypes import *"
+    print
+
+    s_names = compounds.keys()
+    s_names.sort()
+##    for n in s_names:
+##        print "class %s(c_int):" % n
+##        print "    pass"
+##        print
+
+    for n in s_names:
+        s = compounds[n]
+        print "class %s(c_int):" % n
+        for m in s.members:
+            assert type(m) is Field
+##            assert not m.bits, (m.name, m.typ.name, m.bits)
+            if type(m.typ) in (Structure, Union):
+                if m.typ.name.startswith("$_"):
+                    name = m.typ.name.replace("$_", "__internal_")
+                    print "    class %s(c_int):" % name
+                    print "        _fields_ = ["
+                    for mi in m.typ.members:
+                        print "            ('%s', %s)" % (mi.name, mi.typ.as_ctype())
+##        print "%s._fields_ = [" % n
+        print "    _fields_ = ["
+        for m in s.members:
+            print "        ('%s', %s)," % (m.name, m.typ.as_ctype())
+        print "    ]"
+        print
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-##        sys.argv.extend("-D NONAMELESSUNION -I. -D _WIN32_WINNT=0x500 -c msvc71 -o- test.h".split())
-        sys.argv.extend("-D NONAMELESSUNION -I. -D _WIN32_WINNT=0x500 -c msvc6 -o- windows.h".split())
+##        sys.argv.extend("-D NONAMELESSUNION -I. -D _WIN32_WINNT=0x500 -c msvc71 -o- windows.h richedit.h".split())
+        sys.argv.extend("-D NONAMELESSUNION -D _WIN32_WINNT=0x500 -c msvc6 -o- windows.h".split())
     main()
