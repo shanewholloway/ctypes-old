@@ -193,6 +193,48 @@ CDataType_from_address(PyObject *type, PyObject *value)
 	return CData_AtAddress(type, buf);
 }
 
+static PyObject *
+CDataType_in_dll(PyObject *type, PyObject *args)
+{
+	PyObject *dll;
+	char *name;
+	PyObject *obj;
+	void *handle;
+	void *address;
+
+	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
+		return NULL;
+
+	obj = PyObject_GetAttrString(dll, "_handle");
+	if (!obj)
+		return NULL;
+	if (!PyInt_Check(obj)) {
+		/* XXX Error */
+		Py_DECREF(obj);
+		return NULL;
+	}
+	handle = (void *)PyInt_AS_LONG(obj);
+	Py_DECREF(obj);
+
+#ifdef MS_WIN32
+	address = (void *)GetProcAddress(handle, name);
+	if (!address) {
+		PyErr_Format(PyExc_ValueError,
+			     "symbol '%s' not found",
+			     name);
+		return NULL;
+	}
+#else
+	address = (void *)dlsym(handle, name);
+	if (!address) {
+		PyErr_Format(PyExc_ValueError,
+			     dlerror());
+		return NULL;
+	}
+#endif
+	return CData_AtAddress(type, address);
+}
+
 static char from_param_doc[] =
 "Convert a Python object into a function call parameter.";
 
@@ -248,6 +290,8 @@ static PyMethodDef CDataType_methods[] = {
 	  from_param_doc },
 	{ "from_address", CDataType_from_address, METH_O,
 	  "create an instance from an address"},
+	{ "in_dll", CDataType_in_dll, METH_VARARGS,
+	  "access an instance in a dll"},
 	{ NULL, NULL },
 };
 
@@ -491,6 +535,8 @@ PointerType_from_param(PyObject *type, PyObject *value)
 static PyMethodDef PointerType_methods[] = {
 	{ "from_address", CDataType_from_address, METH_O,
 	  "create an instance from an address"},
+	{ "in_dll", CDataType_in_dll, METH_VARARGS,
+	  "access an instance in a dll"},
 	{ "from_param", (PyCFunction)PointerType_from_param, METH_O,
 	  from_param_doc},
 	{ "set_type", (PyCFunction)PointerType_set_type, METH_O },
@@ -987,6 +1033,8 @@ static PyMethodDef SimpleType_methods[] = {
 	  from_param_doc },
 	{ "from_address", CDataType_from_address, METH_O,
 	  "create an instance from an address"},
+	{ "in_dll", CDataType_in_dll, METH_VARARGS,
+	  "access an instance in a dll"},
 	{ NULL, NULL },
 };
 
@@ -1818,6 +1866,7 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!obj)
 		return NULL;
 	if (!PyInt_Check(obj)) {
+		/* XXX Error message */
 		Py_DECREF(obj);
 		return NULL;
 	}
