@@ -74,7 +74,7 @@ class OLEINPLACEFRAMEINFO(Structure):
 class IOleWindow(IUnknown):
     _iid_ = GUID("{00000114-0000-0000-C000-000000000046}")
     _methods_ = IUnknown._methods_ + [
-        STDMETHOD(HRESULT, "GetWindow", POINTER(c_int)),
+        STDMETHOD(HRESULT, "GetWindow", POINTER(HWND)),
         STDMETHOD(HRESULT, "ContextSensitiveHelp", c_int)]
 
 class IOleInPlaceUIWindow(IOleWindow):
