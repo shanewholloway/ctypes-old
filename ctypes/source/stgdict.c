@@ -127,16 +127,28 @@ GetFields(PyObject *desc, int *pindex, int *psize, int *poffset, int *palign, in
 */
 
 PyObject *
-StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
+StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 {
 	StgDictObject *stgdict;
 	int len, offset, size, align, i;
 	int union_size, total_align;
 	PyObject *prev_desc = NULL;
 	int bitofs;
+	PyObject *isPacked;
+	int pack = 0;
 
 	if (!typedict)
 		return NULL;
+
+	isPacked = PyDict_GetItemString(typedict, "_pack_");
+	if (isPacked) {
+		pack = PyInt_AsLong(isPacked);
+		if (pack < 0 || PyErr_Occurred()) {
+			PyErr_SetString(PyExc_ValueError,
+					"_pack_ must be a non-negative integer");
+			return NULL;
+		}
+	}
 
 	if (!fields) {
 		PyErr_SetString(PyExc_AttributeError,
