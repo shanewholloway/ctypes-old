@@ -684,6 +684,7 @@ static int _call_function_pointer(int flags,
 		case 'B':
 		case 'H':
 		case 'I':
+		case 'u':
 			push(parms[i]->value.i);
 			argbytes += sizeof(int);
 			break;
