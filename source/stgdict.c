@@ -132,6 +132,7 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 	StgDictObject *stgdict;
 	int len, offset, size, align, i;
 	int union_size, total_align;
+	int field_size = 0;
 	PyObject *prev_desc = NULL;
 	int bitofs;
 	PyObject *isPacked;
@@ -231,14 +232,14 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 			bitsize = 0;
 		if (isStruct) {
 			prop = CField_FromDesc(desc, i,
-					       prev_desc, bitsize, &bitofs,
+					       &field_size, bitsize, &bitofs,
 					       &size, &offset, &align, pack);
 		} else /* union */ {
 			size = 0;
 			offset = 0;
 			align = 0;
 			prop = CField_FromDesc(desc, i,
-					       prev_desc, bitsize, &bitofs,
+					       &field_size, bitsize, &bitofs,
 					       &size, &offset, &align, pack);
 			union_size = max(size, union_size);
 		}
@@ -257,7 +258,6 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct)
 		}
 		Py_DECREF(pair);
 		Py_DECREF(prop);
-		prev_desc = desc; /* store, in case of continued bitfield */
 	}
 #undef realdict
 
