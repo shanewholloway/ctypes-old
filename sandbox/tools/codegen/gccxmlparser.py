@@ -57,7 +57,6 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def GCC_XML(self, attrs): pass
     def Namespace(self, attrs): pass
 
-    def Variable(self, attrs): pass
     def Base(self, attrs): pass
     def Ellipsis(self, attrs): pass
     def File(self, attrs): pass
@@ -67,6 +66,18 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     # real element handlers
 
     # simple types and modifiers
+
+    def Variable(self, attrs):
+        name = attrs["name"]
+        if name.startswith("cpp_sym_"):
+            # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx fix me!
+            name = name[len("cpp_sym_"):]
+        init = attrs["init"]
+        typ = attrs["type"]
+        return typedesc.Variable(name, typ, init)
+
+    def _fixup_Variable(self, t):
+        t.typ = self.all[t.typ]
 
     def Typedef(self, attrs):
         name = self.demangle(attrs["name"])
@@ -259,7 +270,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def get_result(self):
         interesting = (typedesc.Typedef, typedesc.Enumeration, typedesc.EnumValue,
-                       typedesc.Function, typedesc.Structure, typedesc.Union)
+                       typedesc.Function, typedesc.Structure, typedesc.Union,
+                       typedesc.Variable)
         result = []
         remove = []
         for n, i in self.all.items():
@@ -283,4 +295,3 @@ def parse(xmlfile):
     handler = GCCXML_Handler()
     xml.sax.parse(xmlfile, handler)
     return handler.get_result()
-

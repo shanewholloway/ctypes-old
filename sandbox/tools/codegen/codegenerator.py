@@ -251,6 +251,13 @@ class Generator(object):
         self.generate(tp.typ)
         self.done.add(tp)
 
+    def Variable(self, tp):
+        if tp in self.done:
+            return
+        self.done.add(tp)
+        print >> self.stream, \
+              "%s = %s # Variable" % (tp.name, tp.init)
+
     def EnumValue(self, tp):
         if tp in self.done:
             return
