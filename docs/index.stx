@@ -11,26 +11,24 @@ The ctypes module
     in Python, and to call functions in dynamic link libraries/shared
     dlls. It allows wrapping these libraries in pure Python.
 
-    It works on Windows, Linux and MacOS X (the latter two require
-    that your machine is supported by libffi).
+    It works on Windows, Linux and MacOS X and other systems. The
+    latter require that your machine is supported by libffi.
 
   News
+
+    **'ctypes' version 0.6.3 has been released**. The changes are
+    summarized "here":changes.html.
 
     Yasushi Masuda has translated the docs into
     "japanese":http://www.python.jp/pub/doc_jp/contrib/ctypes/.
 
-    Bradley Schatz has started porting 'ctypes' to 'java'. The code is
-    already in
-    "CVS":http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/ctypes/ctypes-java/,
-    and here are the preliminary "docs":http://tinyurl.com/jel2 fresh from
-    CVS.
+    A 'ctypes'
+    "Wiki":http://starship.python.net/crew/theller/moin.cgi/CtypesModule,
+    and a mailing list which should be used to discuss the
+    usage and further development of 'ctypes'.  More info can be found
+    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
 
-    There is now a mailing list for discussion of "ctypes
-    development":http://lists.sourceforge.net/lists/listinfo/ctypes-devel,
-    and a "Wiki":http://starship.python.net/crew/theller/moin.cgi/CtypesModule.
 
-    **'ctypes' version 0.6.2 has been released**. The changes are
-    summarized "here":changes.html.
 
   Testimonials
 
@@ -80,10 +78,6 @@ The ctypes module
 
     'ctypes' now works on Windows, Linux and MacOSX. Thanks
     to *Robin Becker* and *Just van Rossum* for their help.
-
-    There is now a mailing list which should be used to discuss the
-    usage and further development of 'ctypes'.  More info can be found
-    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
 
     'ctypes' Development now takes place on sourceforge's "ctypes
     project page":http://sourceforge.net/projects/ctypes.
