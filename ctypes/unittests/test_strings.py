@@ -40,13 +40,17 @@ class StringTestCase(unittest.TestCase):
         self.assertRaises(ValueError, c_string, -1)
         self.assertRaises(ValueError, c_string, 0)
 
-        self.failUnless(c_string(2).value == "")
-        self.failUnless(c_string(2).raw == "\000\000")
+        # These tests fail, because it is no longer initialized
+##        self.failUnless(c_string(2).value == "")
+##        self.failUnless(c_string(2).raw == "\000\000")
+        self.failUnless(c_string(2).raw[-1] == "\000")
+        self.failUnless(len(c_string(2).raw) == 2)
 
     def test_initialized_strings(self):
         from ctypes import c_string
 
-        self.failUnless(c_string("ab", 4).raw == "ab\000\000")
+        self.failUnless(c_string("ab", 4).raw[:2] == "ab")
+        self.failUnless(c_string("ab", 4).raw[-1] == "\000")
         self.failUnless(c_string("ab", 2).raw == "a\000")
 
     def test_toolong(self):
