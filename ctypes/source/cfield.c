@@ -31,6 +31,26 @@ _generic_field_getfunc(void *ptr, unsigned size,
 				 index, ptr);
 }
 
+#ifdef EXPERIMENTAL
+/* getfunc overloaded by a __from_field__ callable on the fieldtype */
+static PyObject *
+_overloaded_field_getfunc(void *ptr, unsigned size,
+			  PyObject *fieldtype, CDataObject *src,
+			  int index)
+{
+	PyObject *result;
+	PyObject *arg;
+	PyObject *func = PyObject_GetAttrString(fieldtype, "__from_field__");
+	if (func == NULL)
+		return NULL;
+	result = PyObject_CallFunctionObjArgs(func,
+					      PyLong_FromVoidPtr(ptr), NULL);
+	Py_DECREF(func);
+	return result;
+}
+#endif
+
+
 /*
  * Expects the size, index and offset for the current field in *psize and
  * *poffset, stores the total size so far in *psize, the offset for the next
@@ -106,7 +126,14 @@ CField_FromDesc(PyObject *desc, int index,
 	size = dict->size;
 	length = dict->length;
 
+#ifdef EXPERIMENTAL
+	if (PyObject_HasAttrString(desc, "__from_field__"))
+		getfunc = _overloaded_field_getfunc;
+	else
+		getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
+#else
 	getfunc = dict->getfunc ? dict->getfunc : _generic_field_getfunc;
+#endif
 
 	/* Currently, dict->getfunc is only != NULL for SimpleCData types.
 	   If we would set it for array types, we could get rid of the
