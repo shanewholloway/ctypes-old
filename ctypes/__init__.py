@@ -23,7 +23,8 @@ import os as _os
 if _os.name == "nt":
     from _ctypes import FormatError
 
-from _ctypes import FUNCFLAG_CDECL as _FUNCFLAG_CDECL
+from _ctypes import FUNCFLAG_CDECL as _FUNCFLAG_CDECL, \
+     FUNCFLAG_PYTHONAPI as _FUNCFLAG_PYTHONAPI
 
 """
 WINOLEAPI -> HRESULT
@@ -276,6 +277,11 @@ class CDLL:
             FreeLibrary(self._handle)
         self._handle = 0
 
+class PyDLL(CDLL):
+    class _CdeclFuncPtr(_CFuncPtr):
+        _flags_ = _FUNCFLAG_CDECL | _FUNCFLAG_PYTHONAPI
+        _restype_ = c_int # default, can be overridden in instances
+
 if _os.name ==  "nt":
         
     class WinDLL(CDLL):
@@ -320,6 +326,7 @@ class _DLLS:
         return self._dlltype(name)
 
 cdll = _DLLS(CDLL)
+pydll = _DLLS(PyDLL)
 if _os.name == "nt":
     windll = _DLLS(WinDLL)
     oledll = _DLLS(OleDLL)
