@@ -16,10 +16,20 @@ class _cominterface_meta(type):
         # or does it not matter?
         if methods:
             setattr(cls, "_methods_", methods)
+
+        # If we sublass a COM interface, for example:
+        # class IDispatch(IUnknown):
+        #     ....
+        # then we want (need?) that
+        # POINTER(IDispatch) is a subclass of POINTER(IUnknown).
+        if bases == (object,):
+            _ptr_bases = (cls, _compointer_base)
+        else:
+            _ptr_bases = (cls, POINTER(bases[0]))
         # The interface 'cls' is used as a mixin.
         # XXX "POINTER(<interface>)" looks nice as class name, but is it ok?
         p = type(_compointer_base)("POINTER(%s)" % cls.__name__,
-                                   (cls, _compointer_base),
+                                   _ptr_bases,
                                    {})
         from ctypes import _pointer_type_cache
         _pointer_type_cache[cls] = p
@@ -79,6 +89,8 @@ def STDMETHOD(restype, name, argtypes=()):
 class _com_interface(object):
     __metaclass__ = _cominterface_meta
 
+################################################################
+
 class IUnknown(_com_interface):
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
 
@@ -106,6 +118,13 @@ class IUnknown(_com_interface):
 __all__ = "IUnknown GUID HRESULT BSTR STDMETHOD".split()
 
 if __name__ == "__main__":
+
+    class IMyInterface(IUnknown):
+        pass
+
+    assert issubclass(IMyInterface, IUnknown)
+    assert issubclass(POINTER(IMyInterface), POINTER(IUnknown))
+
     POINTER(IUnknown)()
 
     p = POINTER(IUnknown)()
