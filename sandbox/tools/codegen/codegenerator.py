@@ -419,21 +419,21 @@ class Generator(object):
         return loops
 
     def print_stats(self, stream):
-        print >> stream, "######################"
+        print >> stream, "###########################"
         print >> stream, "# Symbols defined:"
         print >> stream, "#"
-        print >> stream, "# Struct/Unions: %5d" % self._structures
-        print >> stream, "# Functions:     %5d" % self._functiontypes
-        print >> stream, "# Enums:         %5d" % self._enumtypes
-        print >> stream, "# Typedefs:      %5d" % self._typedefs
-        print >> stream, "# Pointertypes:  %5d" % self._pointertypes
-        print >> stream, "# Arraytypes:    %5d" % self._arraytypes
-        print >> stream, "# Functions not located:    %5d" % self._notfound_functiontypes
+        print >> stream, "# Struct/Unions:      %5d" % self._structures
+        print >> stream, "# Functions:          %5d" % self._functiontypes
+        print >> stream, "# Enums:              %5d" % self._enumtypes
+        print >> stream, "# Typedefs:           %5d" % self._typedefs
+        print >> stream, "# Pointertypes:       %5d" % self._pointertypes
+        print >> stream, "# Arraytypes:         %5d" % self._arraytypes
+        print >> stream, "# unknown functions:  %5d" % self._notfound_functiontypes
         print >> stream, "#"
         total = self._structures + self._functiontypes + self._enumtypes + self._typedefs +\
                 self._pointertypes + self._arraytypes
         print >> stream, "# Total symbols: %5d" % total
-        print >> stream, "######################"
+        print >> stream, "###########################"
 
 ################################################################
 
