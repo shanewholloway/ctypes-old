@@ -127,8 +127,29 @@ GetFields(PyObject *desc, int *pindex, int *psize, int *poffset, int *palign, in
 }
 #endif
 
+static int
+_get_packing(PyObject *type)
+{
+	PyObject *isPacked;
+	int pack = 0;
+
+	isPacked = PyObject_GetAttrString(type, "_pack_");
+	if (isPacked) {
+		pack = PyInt_AsLong(isPacked);
+		if (pack < 0 || PyErr_Occurred()) {
+			Py_XDECREF(isPacked);
+			PyErr_SetString(PyExc_ValueError,
+					"_pack_ must be a non-negative integer");
+			return -1;
+		}
+		Py_DECREF(isPacked);
+	} else
+		PyErr_Clear();
+	return pack;
+}
+
 /*
-  Retrive the (optional) _pack_ attribute from a type, the _fields_ attribute,
+  Retrieve the (optional) _pack_ attribute from a type, the _fields_ attribute,
   and create an StgDictObject.  Used for Structure and Union subclasses.
 */
 PyObject *
@@ -139,22 +160,12 @@ StgDict_ForType(PyObject *type, int isStruct)
 	int union_size, total_align;
 	int field_size = 0;
 	int bitofs;
-	PyObject *isPacked;
 	PyObject *fields;
-	int pack = 0;
+	int pack;
 
-	isPacked = PyObject_GetAttrString(type, "_pack_");
-	if (isPacked) {
-		pack = PyInt_AsLong(isPacked);
-		if (pack < 0 || PyErr_Occurred()) {
-			Py_XDECREF(isPacked);
-			PyErr_SetString(PyExc_ValueError,
-					"_pack_ must be a non-negative integer");
-			return NULL;
-		}
-		Py_DECREF(isPacked);
-	} else
-		PyErr_Clear();
+	pack = _get_packing(type);
+	if (pack == -1)
+		return NULL;
 
 	fields = PyObject_GetAttrString(type, "_fields_");
 	if (!fields) {
