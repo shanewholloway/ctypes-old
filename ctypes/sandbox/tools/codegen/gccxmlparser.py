@@ -66,6 +66,9 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         self.all = {}
         self.artificial = []
 
+    def demangle(self, name):
+        return "_py_" + name.replace("$", "_")
+
     def startElement(self, name, attrs):
         # find and call the handler for this element
         mth = getattr(self, name)
@@ -233,6 +236,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         align = attrs["align"]
         size = attrs.get("size")
         artificial = attrs.get("artificial")
+        if name is None:
+            name = self.demangle(attrs["mangled"]) # for debug only
 ##        if abstract:
 ##            return nodes.Class(name, members, bases)
 ##        else:
@@ -240,7 +245,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
             return nodes.Structure(name, align, members, bases, size)
         else:
 ##            struct = nodes.Structure(name, align, members, bases, size)
-            struct = nodes.Structure(None, align, members, bases, size)
+            struct = nodes.Structure(name, align, members, bases, size)
             self.artificial.append(nodes.Typedef(name, struct))
             return struct
 
@@ -257,6 +262,8 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         align = attrs["align"]
         size = attrs.get("size")
         artificial = attrs.get("artificial")
+        if name is None:
+            name = self.demangle(attrs["mangled"]) # for debug only
         return nodes.Union(name, align, members, bases, size)
 
     def Field(self, attrs):
