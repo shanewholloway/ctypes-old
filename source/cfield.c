@@ -124,7 +124,7 @@ CField_FromDesc(PyObject *desc, int index,
 	self->index = index;
 
 	Py_XINCREF(proto);
-	self->proto = proto;
+	self->fieldtype = proto;
 
 	switch (fieldtype) {
 	case NEW_BITFIELD:
@@ -193,7 +193,7 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 	assert(CDataObject_Check(inst));
 	dst = (CDataObject *)inst;
 	ptr = dst->b_ptr + self->offset;
-	return CData_set(inst, self->proto, self->setfunc, value,
+	return CData_set(inst, self->fieldtype, self->setfunc, value,
 			 self->index, self->size, ptr);
 }
 
@@ -213,11 +213,11 @@ CField_get(CFieldObject *self, CDataObject *src, PyTypeObject *type)
 	/* If we would set self->getfunc in the CFieldObject constructor,
 	   we could delete the following 3 lines of code
 	*/
-	dict = PyType_stgdict(self->proto);
+	dict = PyType_stgdict(self->fieldtype);
 	if (dict && dict->getfunc)
 		return dict->getfunc(src->b_ptr + self->offset, self->size);
 
-	return CData_FromBaseObj(self->proto, (PyObject *)src,
+	return CData_FromBaseObj(self->fieldtype, (PyObject *)src,
 				 self->index, src->b_ptr + self->offset);
 }
 
@@ -234,14 +234,14 @@ static PyMemberDef CField_members[] = {
 static int
 CField_traverse(CFieldObject *self, visitproc visit, void *arg)
 {
-	Py_VISIT(self->proto);
+	Py_VISIT(self->fieldtype);
 	return 0;
 }
 
 static int
 CField_clear(CFieldObject *self)
 {
-	Py_CLEAR(self->proto);
+	Py_CLEAR(self->fieldtype);
 	return 0;
 }
 
@@ -260,7 +260,7 @@ CField_repr(CFieldObject *self)
 	int size = self->size & 0xFFFF;
 	char *name;
 
-	name = ((PyTypeObject *)self->proto)->tp_name;
+	name = ((PyTypeObject *)self->fieldtype)->tp_name;
 
 	if (bits)
 		result = PyString_FromFormat("<Field type=%s, ofs=%d, bits=%d>",

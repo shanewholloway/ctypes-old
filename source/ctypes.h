@@ -142,7 +142,7 @@ typedef struct {
 					
 	int index;			/* Index into CDataObject's
 					   object array */
-	PyObject *proto;		/* a type or NULL */
+	PyObject *fieldtype;		/* ctypes type of field */
 	GETFUNC getfunc;		/* getter function if proto is NULL */
 	SETFUNC setfunc;		/* setter function if proto is NULL */
 } CFieldObject;
