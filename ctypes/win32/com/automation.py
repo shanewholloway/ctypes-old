@@ -109,51 +109,301 @@ class ITypeLib(IUnknown):
 class IDispatch(IUnknown):
     _iid_ = GUID("{00020400-0000-0000-C000-000000000046}")
 
+PIDispatch = POINTER(IDispatch)
+
 ################################################################
 # VARIANT
+"""
+/*
+ * VARENUM usage key,
+ *
+ * * [V] - may appear in a VARIANT
+ * * [T] - may appear in a TYPEDESC
+ * * [P] - may appear in an OLE property set
+ * * [S] - may appear in a Safe Array
+ *
+ *
+ *  VT_EMPTY            [V]   [P]     nothing
+ *  VT_NULL             [V]   [P]     SQL style Null
+ *  VT_I2               [V][T][P][S]  2 byte signed int
+ *  VT_I4               [V][T][P][S]  4 byte signed int
+ *  VT_R4               [V][T][P][S]  4 byte real
+ *  VT_R8               [V][T][P][S]  8 byte real
+ *  VT_CY               [V][T][P][S]  currency
+ *  VT_DATE             [V][T][P][S]  date
+ *  VT_BSTR             [V][T][P][S]  OLE Automation string
+ *  VT_DISPATCH         [V][T][P][S]  IDispatch *
+ *  VT_ERROR            [V][T][P][S]  SCODE
+ *  VT_BOOL             [V][T][P][S]  True=-1, False=0
+ *  VT_VARIANT          [V][T][P][S]  VARIANT *
+ *  VT_UNKNOWN          [V][T]   [S]  IUnknown *
+ *  VT_DECIMAL          [V][T]   [S]  16 byte fixed point
+ *  VT_RECORD           [V]   [P][S]  user defined type
+ *  VT_I1               [V][T][P][s]  signed char
+ *  VT_UI1              [V][T][P][S]  unsigned char
+ *  VT_UI2              [V][T][P][S]  unsigned short
+ *  VT_UI4              [V][T][P][S]  unsigned short
+ *  VT_I8                  [T][P]     signed 64-bit int
+ *  VT_UI8                 [T][P]     unsigned 64-bit int
+ *  VT_INT              [V][T][P][S]  signed machine int
+ *  VT_UINT             [V][T]   [S]  unsigned machine int
+ *  VT_VOID                [T]        C style void
+ *  VT_HRESULT             [T]        Standard return type
+ *  VT_PTR                 [T]        pointer type
+ *  VT_SAFEARRAY           [T]        (use VT_ARRAY in VARIANT)
+ *  VT_CARRAY              [T]        C style array
+ *  VT_USERDEFINED         [T]        user defined type
+ *  VT_LPSTR               [T][P]     null terminated string
+ *  VT_LPWSTR              [T][P]     wide null terminated string
+ *  VT_FILETIME               [P]     FILETIME
+ *  VT_BLOB                   [P]     Length prefixed bytes
+ *  VT_STREAM                 [P]     Name of the stream follows
+ *  VT_STORAGE                [P]     Name of the storage follows
+ *  VT_STREAMED_OBJECT        [P]     Stream contains an object
+ *  VT_STORED_OBJECT          [P]     Storage contains an object
+ *  VT_BLOB_OBJECT            [P]     Blob contains an object 
+ *  VT_CF                     [P]     Clipboard format
+ *  VT_CLSID                  [P]     A Class ID
+ *  VT_VECTOR                 [P]     simple counted array
+ *  VT_ARRAY            [V]           SAFEARRAY*
+ *  VT_BYREF            [V]           void* for local use
+ *  VT_BSTR_BLOB                      Reserved for system use
+ */
+"""
+VT_EMPTY = 0
+VT_NULL = 1
+VT_I2 = 2
+VT_I4 = 3
+VT_R4 = 4
+VT_R8 = 5
+VT_CY = 6
+VT_DATE = 7
+VT_BSTR = 8
+VT_DISPATCH = 9
+VT_ERROR = 10
+VT_BOOL = 11
+VT_VARIANT = 12
+VT_UNKNOWN = 13
+VT_DECIMAL = 14
+VT_I1 = 16
+VT_UI1 = 17
+VT_UI2 = 18
+VT_UI4 = 19
+VT_I8 = 20 # not allowed in VARIANT
+VT_UI8 = 21 # not allowed in VARIANT
+VT_INT = 22
+VT_UINT = 23
+VT_VOID = 24 # not allowed in VARIANT
+VT_HRESULT = 25 # not allowed in VARIANT
+VT_PTR = 26 # not allowed in VARIANT
+VT_SAFEARRAY = 27 # not allowed in VARIANT
+VT_CARRAY = 28 # not allowed in VARIANT
+VT_USERDEFINED = 29 # not allowed in VARIANT
+VT_LPSTR = 30 # not allowed in VARIANT
+VT_LPWSTR = 31 # not allowed in VARIANT
+VT_RECORD = 36
+VT_FILETIME = 64 # not allowed in VARIANT
+VT_BLOB = 65 # not allowed in VARIANT
+VT_STREAM = 66 # not allowed in VARIANT
+VT_STORAGE = 67 # not allowed in VARIANT
+VT_STREAMED_OBJECT = 68 # not allowed in VARIANT
+VT_STORED_OBJECT = 69 # not allowed in VARIANT
+VT_BLOB_OBJECT = 70 # not allowed in VARIANT
+VT_CF = 71 # not allowed in VARIANT
+VT_CLSID = 72 # not allowed in VARIANT
+VT_BSTR_BLOB = 0xfff # not allowed in VARIANT
+VT_VECTOR = 0x1000 # not allowed in VARIANT
+VT_ARRAY = 0x2000
+VT_BYREF = 0x4000
+# VT_RESERVED = 0x8000
+# VT_ILLEGAL = 0xffff
+# VT_ILLEGALMASKED = 0xfff
+VT_TYPEMASK = 0xfff
 
-TypeToVT = {
-    3: (3, "iVal"),
-    5: (5, "dblVal"),
-    8: (8, "strVal"),
-    11: (3, "iVal"),
-    }
+"""
+/* VARIANT STRUCTURE
+ *
+ *  VARTYPE vt;
+ *  WORD wReserved1;
+ *  WORD wReserved2;
+ *  WORD wReserved3;
+ *  union {
+ *    LONG           VT_I4
+ *    BYTE           VT_UI1
+ *    SHORT          VT_I2
+ *    FLOAT          VT_R4
+ *    DOUBLE         VT_R8
+ *    VARIANT_BOOL   VT_BOOL
+ *    SCODE          VT_ERROR
+ *    CY             VT_CY
+ *    DATE           VT_DATE
+ *    BSTR           VT_BSTR
+ *    IUnknown *     VT_UNKNOWN
+ *    IDispatch *    VT_DISPATCH
+ *    SAFEARRAY *    VT_ARRAY
+ *    BYTE *         VT_BYREF|VT_UI1
+ *    SHORT *        VT_BYREF|VT_I2
+ *    LONG *         VT_BYREF|VT_I4
+ *    FLOAT *        VT_BYREF|VT_R4
+ *    DOUBLE *       VT_BYREF|VT_R8
+ *    VARIANT_BOOL * VT_BYREF|VT_BOOL
+ *    SCODE *        VT_BYREF|VT_ERROR
+ *    CY *           VT_BYREF|VT_CY
+ *    DATE *         VT_BYREF|VT_DATE
+ *    BSTR *         VT_BYREF|VT_BSTR
+ *    IUnknown **    VT_BYREF|VT_UNKNOWN
+ *    IDispatch **   VT_BYREF|VT_DISPATCH
+ *    SAFEARRAY **   VT_BYREF|VT_ARRAY
+ *    VARIANT *      VT_BYREF|VT_VARIANT
+ *    PVOID          VT_BYREF (Generic ByRef)
+ *    CHAR           VT_I1
+ *    USHORT         VT_UI2
+ *    ULONG          VT_UI4
+ *    INT            VT_INT
+ *    UINT           VT_UINT
+ *    DECIMAL *      VT_BYREF|VT_DECIMAL
+ *    CHAR *         VT_BYREF|VT_I1
+ *    USHORT *       VT_BYREF|VT_UI2
+ *    ULONG *        VT_BYREF|VT_UI4
+ *    INT *          VT_BYREF|VT_INT
+ *    UINT *         VT_BYREF|VT_UINT
+ *  }
+ */
+"""
 
-# XXX get_value must be improved. And should it be exposed as value property?
 class VARIANT(Structure):
     class U(Union):
-        _fields_ = [("bVal", c_byte),
-                    ("iVal", c_int),
-                    ("lVal", c_long),
-                    ("fltVal", c_float),
-                    ("dblVal", c_double),
-                    ("boolVal", c_int),
-                    ("strVal", c_wchar_p), # XXX ???
-                    # ...
-                    ("pUnkVal", POINTER(IUnknown)),
-                    ("pDispVal", POINTER(IDispatch)),
+        _fields_ = [("VT_BOOL", c_short),
+                    ("VT_BSTR", BSTR),
+                    ("VT_DISPATCH", POINTER(IDispatch)),
+                    ("VT_I1", c_char),
+                    ("VT_I2", c_short),
+                    ("VT_I4", c_long),
+                    ("VT_INT", c_int),
+                    ("VT_R4", c_float),
+                    ("VT_R8", c_double),
+                    ("VT_SCODE", c_ulong),
+                    ("VT_UI1", c_byte),
+                    ("VT_UI2", c_ushort),
+                    ("VT_UI4", c_ulong),
+                    ("VT_UINT", c_uint),
+                    ("VT_UNKNOWN", POINTER(IUnknown)),
+                    # faked fields, only for our convenience:
+                    ("wstrVal", c_wchar_p),
+                    ("voidp", c_void_p),
                     ]
-
     _fields_ = [("vt", VARTYPE),
                 ("wReserved1", c_ushort),
                 ("wReserved2", c_ushort),
                 ("wReserved3", c_ushort),
                 ("_", U)]
 
-    def __repr__(self):
-        return "<VARIANT %d at %x>" % (self.vt, id(self))
+    def _set_value(self, value):
+        typ = type(value)
+        if typ is int:
+            oleaut32.VariantClear(byref(self))
+            self.vt = VT_INT
+            self._.VT_INT = value
+        elif typ is str:
+            oleaut32.VariantClear(byref(self))
+            self.vt = VT_BSTR
+            self._.voidp = oleaut32.SysAllocString(unicode(value))
+        elif typ is unicode:
+            oleaut32.VariantClear(byref(self))
+            self.vt = VT_BSTR
+            self._.voidp = oleaut32.SysAllocString(value)
+        elif value is None:
+            oleaut32.VariantClear(byref(self))
+        elif typ is bool:
+            oleaut32.VariantClear(byref(self))
+            self.vt = VT_BOOL
+            self._.VT_BOOL = value and -1 or 0
+        elif hasattr(typ, "_type_") and issubclass(typ._type_, IDispatch):
+            p = POINTER(IDispatch)()
+            value.QueryInterface(byref(IDispatch._iid_), byref(p))
+            p.AddRef()
+            oleaut32.VariantClear(byref(self))
+            self.vt = VT_DISPATCH
+            self._.VT_DISPATCH = p
+        elif issubclass(typ._type_, IUnknown) and issubclass(typ._type_, IUnknown):
+            p = POINTER(IUnknown)()
+            value.QueryInterface(byref(IUnknown._iid_), byref(p))
+            p.AddRef()
+            oleaut32.VariantClear(byref(self))
+            self.vt = VT_UNKNOWN
+            self._.VT_UNKNOWN = p
+        else:
+            raise TypeError, "don't know how to store %r in a VARIANT" % value
 
-    def get_value(self, type=None):
+    def _get_value(self):
+        if self.vt == VT_EMPTY:
+            return None
+        elif self.vt == VT_I1:
+            return self._.VT_I1
+        elif self.vt == VT_I2:
+            return self._.VT_I2
+        elif self.vt == VT_I4:
+            return self._.VT_I4
+        elif self.vt == VT_UI1:
+            return self._.VT_UI1
+        elif self.vt == VT_UI2:
+            return self._.VT_UI2
+        elif self.vt == VT_UI4:
+            return self._.VT_UI4
+        elif self.vt == VT_INT:
+            return self._.VT_INT
+        elif self.vt == VT_UINT:
+            return self._.VT_UINT
+        elif self.vt == VT_R4:
+            return self._.VT_R4
+        elif self.vt == VT_R8:
+            return self._.VT_R8
+        elif self.vt == VT_BSTR:
+            return self._.wstrVal
+        elif self.vt == VT_UNKNOWN:
+            result = self._.VT_UNKNOWN
+            if result:
+                result.AddRef()
+            return result
+        elif self.vt == VT_DISPATCH:
+            result = self._.VT_DISPATCH
+            if result:
+                result.AddRef()
+            return result
+        elif self.vt == VT_BOOL:
+            return bool(self._.VT_BOOL)
+        elif self.vt & VT_BYREF:
+            var = VARIANT.from_address(self._.voidp)
+            return var
+        elif self.vt == VT_ERROR:
+            return ("Error", self._.VT_SCODE)
+        elif self.vt == VT_NULL:
+            return None
+        else:
+            raise TypeError, "don't know how to convert typecode %d" % self.vt
+        # not yet done:
+        # VT_ARRAY
+        # VT_CY
+        # VT_DATE
+
+    value = property(_get_value, _set_value)
+
+    def __repr__(self):
+        return "<VARIANT 0x%X at %x>" % (self.vt, id(self))
+
+##    def __del__(self, _clear = oleaut32.VariantClear):
+##        _clear(byref(self))
+
+    def optional(cls):
         var = VARIANT()
-        if type is None:
-            type = self.vt
-        vt, field = TypeToVT.get(type, (None, None))
-        if vt is None:
-            return "(%d)" % type
-        oleaut32.VariantChangeType(byref(var), byref(self),
-                                   0, vt)
-        return getattr(var._, field)
+        var.vt = VT_ERROR
+        var._.VT_SCODE = 0x80020004L
+        return var
+    optional = classmethod(optional)
+
 assert(sizeof(VARIANT) == 16)
+
+################################################################
 
 class DISPPARAMS(Structure):
     _fields_ = [("rgvarg", POINTER(VARIANT)),
@@ -447,3 +697,57 @@ class dispinterface(IDispatch):
 
 def DISPMETHOD(dispid, restype, name, *argtypes):
     return dispid, name, STDMETHOD(HRESULT, name, *argtypes)
+
+################################################################
+# some more automation COM interfaces
+class IEnumVARIANT(IUnknown):
+    _iid_ = GUID("{00020404-0000-0000-C000-000000000046}")
+
+IEnumVARIANT._methods_ = IUnknown._methods_ + [
+        STDMETHOD(HRESULT, "Next", c_ulong, POINTER(VARIANT), POINTER(c_ulong)),
+        STDMETHOD(HRESULT, "Skip", c_ulong),
+        STDMETHOD(HRESULT, "Reset"),
+        STDMETHOD(HRESULT, "Clone", POINTER(POINTER(IEnumVARIANT)))
+        ]
+
+if __name__ == "__main__":
+    v = VARIANT()
+    v.value = "String"
+    print repr(v.value)
+
+    v.value = u"Unicode"
+    print repr(v.value)
+
+    v.value = bool(0)
+    print repr(v.value), v._.VT_BOOL
+
+    v.value = bool(1)
+    print repr(v.value), v._.VT_BOOL
+
+    v = VARIANT.optional()
+    print v.value
+
+    tlb = LoadTypeLibEx(r"c:\windows\system32\shdocvw.dll")
+    v.value = tlb
+    print v.value, (tlb.AddRef(), tlb.Release())
+    v.value = tlb
+    print v.value, (tlb.AddRef(), tlb.Release())
+    v.value = u"-1"
+    print v.value, (tlb.AddRef(), tlb.Release())
+
+    v.value = 42
+    for i in range(32):
+        dst = VARIANT()
+        try:
+            oleaut32.VariantChangeType(byref(dst), byref(v), 0, i)
+        except WindowsError, detail:
+            print i, detail
+        else:
+            try:
+                x = dst.value
+            except:
+                pass
+            else:
+                print i, repr(dst.value)
+
+
