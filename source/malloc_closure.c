@@ -14,6 +14,12 @@
  * If a memory block has only unused entries, it is freed again - unless it is
  * the last one in use.
  */
+
+/*
+ * The functions would probably be much faster if we would maintain a linked
+ * list of free and used entries - this would avoid the linear searches.
+ */
+
 #include <Python.h>
 #include <ffi.h>
 #include "ctypes.h"
