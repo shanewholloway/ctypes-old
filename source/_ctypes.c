@@ -1640,8 +1640,13 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 	dict = PyType_stgdict((PyObject *)type);
-	/* XXXX Fails if we do: 'CFuncPtr(lambda x: x)'
-	assert(dict);
+	/* XXXX Fails if we do: 'CFuncPtr(lambda x: x)' */
+	if (!dict || !dict->argtypes) {
+		PyErr_SetString(PyExc_TypeError,
+		       "cannot construct instance of this class:"
+			" no argtypes");
+		return NULL;
+	}
 
 	/*****************************************************************/
 	/*

@@ -96,18 +96,26 @@ static int __stdcall CallPythonObject(PyObject *callable,
 {
 	int i;
 	PyObject *result;
-	PyObject *arglist;
+	PyObject *arglist = NULL;
 	int nArgs;
-	int retcode;
+	int retcode = -1;
+
+	ENTER_PYTHON("CallPythonObject");
 
 	nArgs = PySequence_Length(converters);
 	/* Hm. What to return in case of error?
 	   For COM, 0xFFFFFFFF seems better than 0.
 	*/
-	retcode = 0xFFFFFFFF;
+	if (nArgs < 0) {
+		PrintError("BUG: PySequence_Length");
+		goto Done;
+	}
 
-	ENTER_PYTHON("CallPythonObject");
 	arglist = PyTuple_New(nArgs);
+	if (!arglist) {
+		PrintError("PyTuple_New()");
+		goto Done;
+	}
 	for (i = 0; i < nArgs; ++i) {
 		/* Note: new reference! */
 		PyObject *cnv = PySequence_GetItem(converters, i);
@@ -162,7 +170,7 @@ static int __stdcall CallPythonObject(PyObject *callable,
 			PyErr_Print();
 	}
   Done:
-	Py_DECREF(arglist);
+	Py_XDECREF(arglist);
 	LEAVE_PYTHON("CallPythonObject");
 	return retcode;
 }
