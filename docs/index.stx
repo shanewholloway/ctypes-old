@@ -16,6 +16,10 @@ The ctypes module
     wrap libraries in pure Python.  It is even possible to implement C
     callback functions in pure Python.
 
+    ctypes now includes a code generator toolchain which allows
+    automatic creation of library wrappers from C header files.
+    This feature is still experimental and beta quality.
+
     ctypes works on Windows, Mac OS X, Linux, Solaris, FreeBSD, OpenBSD.
     It may also run on other systems, provided that libffi supports
     this platform.
@@ -26,7 +30,7 @@ The ctypes module
     Detailed changelogs are in CVS (well, sometimes I forget to update
     them):
     
-    "ANNOUNCE":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ANNOUNCE?rev=release_0_9_5
+    "ANNOUNCE":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ANNOUNCE?rev=release_0_9_6
 
     "ChangeLog":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD
 
@@ -38,6 +42,9 @@ The ctypes module
 
     Thanks to all of you who reported bugs so quickly, and those who
     tried out the codegenerator toolchain.
+
+    **The code generator if brand new and still experimental, although
+    hopefully better than in the 0.9.5 release.**
 
     Bug fixes:
 
