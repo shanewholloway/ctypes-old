@@ -33,6 +33,11 @@ struct tagCDataObject {
 extern PyTypeObject StgDict_Type;
 #define StgDict_CheckExact(v)	    ((v)->ob_type == &StgDict_Type)
 #define StgDict_Check(v)	    PyObject_TypeCheck(v, &StgDict_Type)
+extern PyObject *StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct);
+extern int PyType_stginfo(PyTypeObject *self, int *psize, int *palign, int *plength);
+extern int PyObject_stginfo(PyObject *self, int *psize, int *palign, int *plength);
+
+
 
 extern PyTypeObject CData_Type;
 #define CDataObject_CheckExact(v)	((v)->ob_type == &CData_Type)
@@ -53,13 +58,6 @@ extern PyTypeObject CWString_Type;
 extern PyTypeObject CFunctionType_Type;
 extern PyTypeObject CFunction_Type;
 #define CFunction_Check(v)		PyObject_TypeCheck(v, &CFunction_Type)
-
-extern int
-PyType_stginfo(PyTypeObject *self, int *psize, int *palign, int *plength);
-
-
-extern int
-PyObject_stginfo(PyObject *self, int *psize, int *palign, int *plength);
 
 extern PyObject *
 CField_FromDesc(PyObject *desc, int index,
