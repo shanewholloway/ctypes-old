@@ -43,6 +43,12 @@ class SumObject(DualObjImpl):
 
     _reg_clsctx_ = CLSCTX_LOCAL_SERVER | CLSCTX_INPROC_SERVER
 
+    # It is absolutely essential that you call the base class __init__
+    # method if you override it here. The best way to do it is
+    # probably with super():
+    def __init__(self):
+        super(SumObject, self).__init__()
+
     # We *should* implement the methods described in the typelib.  COM
     # servers receive an additional 'this' parameter, which is the COM
     # 'this' pointer (an integer), although we don't need it.
