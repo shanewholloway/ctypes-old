@@ -1,3 +1,10 @@
+2003-03-04  Thomas Heller  <theller@python.net>
+
+	* ctypes.py (cdll): Changed the __getattr__ implementations for
+	all *DLL classes to raise an attribute error if the requested name
+	both starts and ends with a double underscore.  Thanks to Wolfgang
+	Strobl for pointing at this.
+
 2003-02-26  Thomas Heller  <theller@python.net>
 
 	* source\_ctypes.c: Removed the unused from_bytes stuff.
