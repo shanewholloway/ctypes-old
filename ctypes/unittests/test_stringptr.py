@@ -1,6 +1,20 @@
 import unittest
 from ctypes import *
 
+import os, sys
+if os.name == "nt":
+    libc = cdll.msvcrt
+    
+elif os.name == "posix":
+    if sys.platform == "darwin":
+        libc = cdll.LoadLibrary("/usr/lib/libc.dylib")
+    elif sys.platform == "cygwin":
+        libc = cdll.LoadLibrary("/bin/cygwin1.dll")
+    elif sys.platform == "sunos5":
+        libc = cdll.LoadLibrary("/lib/libc.so")
+    else:
+        libc = cdll.LoadLibrary("/lib/libc.so.6")
+
 class StringPtrTestCase(unittest.TestCase):
 
     def test__POINTER_c_char(self):
@@ -38,11 +52,7 @@ class StringPtrTestCase(unittest.TestCase):
 
 
     def test_functions(self):
-        try:
-            clib = cdll.msvcrt
-        except OSError:
-            clib = CDLL("/lib/libc.so.6")
-        strchr = clib.strchr
+        strchr = libc.strchr
         strchr.restype = c_char_p
 
         # c_char_p and Python string is compatible
