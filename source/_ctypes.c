@@ -1732,9 +1732,16 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		spec = PyCObject_AsVoidPtr(basespec);
 
 		if (spec->base) {
-			Py_INCREF(spec->base);
-			obj->b_base = spec->base;
-			obj->b_index = spec->index;
+			int index = spec->index;
+			CDataObject *base = spec->base;
+			while (base->b_base) {
+				index += base->b_index;
+				base = base->b_base;
+			}
+			Py_INCREF(base);
+			obj->b_base = base;
+			obj->b_index = index;
+
 			obj->b_objects = NULL;
 			obj->b_length = length;
 			
@@ -2732,6 +2739,7 @@ Pointer_item(CDataObject *self, int index)
 				"NULL pointer access");
 		return NULL;
 	}
+
 
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
