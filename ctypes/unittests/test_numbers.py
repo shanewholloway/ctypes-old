@@ -92,6 +92,16 @@ class NumberTestCase(unittest.TestCase):
             parm = t()._as_parameter_
             self.failUnless(ArgType == type(parm))
 
+            # _as_parameter_ is readonly!
+            self.assertRaises(TypeError, setattr, t(), "_as_parameter_", None)
+
+    def test_byref(self):
+        # calling byref returns also a PyCArgObject instance
+        for t in signed_types + unsigned_types + float_types:
+            parm = byref(t())
+            self.failUnless(ArgType == type(parm))
+
+
     def test_floats(self):
         # c_float and c_double can be created from
         # Python int, long and float
@@ -99,6 +109,11 @@ class NumberTestCase(unittest.TestCase):
             self.failUnless(t(2.0).value == 2.0)
             self.failUnless(t(2).value == 2.0)
             self.failUnless(t(2L).value == 2.0)
+
+    def test_integers(self):
+        # integers cannot be constructed from floats
+        for t in signed_types + unsigned_types:
+            self.assertRaises(TypeError, t, 3.14)
 
             
 def test(verbose=0):
