@@ -4,7 +4,6 @@
 
 #ifdef MS_WIN32
 #include <windows.h>
-#define alloca _alloca
 #endif
 
 /* For 2.3, use the PyGILState_ calls, see PEP 311 */
