@@ -673,8 +673,8 @@ static int _call_function_pointer(int flags,
 			     delta);
 		return -1;
 	}
-	return 0;
 #endif
+	return 0;
 }
 #else
 #pragma optimize ("", off)
