@@ -27,7 +27,7 @@ def CreateInstance(coclass, interface=None,
     if interface is None:
         interface = coclass._com_interfaces_[0]
     p = pointer(interface())
-    clsid = GUID(coclass._regclsid_)
+    clsid = GUID(coclass._reg_clsid_)
     ole32.CoCreateInstance(byref(clsid),
                            0,
                            clsctx,
