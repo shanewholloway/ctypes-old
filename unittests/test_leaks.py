@@ -31,6 +31,9 @@ class LeakTestCase(unittest.TestCase):
             self.fail("it seems the total refcounts grows without bounds")
 
     def test_no_cycles_objcount(self):
+        # not correct - gc.get_objects() returns only thos objects
+        # that the garbage collector tracks.  Correct would be to use
+        # sys.getobjects(), but this is only available in debug build.
         last_objcount = 0
         for x in xrange(20):
             self.make_noncyclic_structures(1000)
@@ -67,6 +70,9 @@ class LeakTestCase(unittest.TestCase):
             self.fail("it seems the total refcounts grows without bounds")
 
     def test_cycles_objcount(self):
+        # not correct - gc.get_objects() returns only thos objects
+        # that the garbage collector tracks.  Correct would be to use
+        # sys.getobjects(), but this is only available in debug build.
         last_objcount = 0
         for x in xrange(5):
             self.make_cyclic_structures(1000)
