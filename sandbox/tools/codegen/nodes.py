@@ -97,6 +97,8 @@ class Typedef(object):
         self.typ = typ
 
     def depends(self):
+        if type(self.typ) in (Structure, Union):
+            return [self.typ.get_head()]
         return [self.typ]
 
     def __repr__(self):
@@ -117,7 +119,7 @@ class ArrayType(object):
 # Structures (and Unions, as well) are split into three objects.
 # Structure depends on StructureHead and StructureBody
 # StructureHead depends on bases,
-# StructureBody depends on members.
+# StructureBody depends on head and members.
 #
 # Pointer to Structure depends on StructureHead only
 
@@ -126,6 +128,7 @@ class StructureHead(object):
         self.struct = struct
 
     def depends(self):
+        # XXX Hm, does it depend on bases, or does it depends on the bases' head?
         return self.struct.bases
 
 class StructureBody(object):
@@ -134,12 +137,17 @@ class StructureBody(object):
 
     def depends(self):
         result = set()
+        # needed, so that the head is defined before the body
+        result.add(self.struct.get_head())
         for m in self.struct.members:
             if type(m) is Field:
                 result.add(m.typ)
             if type(m) is Method:
                 result.update(m.depends())
         return result
+
+    def __repr__(self):
+        return "<StructureBody(%s) at %x>" % (self.struct.name, id(self))
 
 class _Struct_Union_Base(object):
     def depends(self):

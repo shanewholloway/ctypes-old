@@ -131,6 +131,8 @@ class Generator(object):
 
         for i in range(80):
             for td in todo.copy():
+                if type(td) in (nodes.StructureBody, nodes.StructureHead):
+                    todo.add(td.struct)
                 if type(td) is nodes.PointerType \
                        and type(td.typ) in (nodes.Structure, nodes.Union):
                     # pointers to struct or union only depend on their head,
@@ -148,7 +150,14 @@ class Generator(object):
                     todo.update(needs)
             todo -= self.done
             if not todo:
-                return
+                break
+
+        for i in self.done:
+            if type(i) in (nodes.StructureBody, nodes.StructureHead):
+                assert i.struct in self.done
+            if type(i) in (nodes.Structure,):
+                assert i.get_body() in self.done
+                assert i.get_head() in self.done
         if todo:
             raise "Not enough loops???", (len(todo), todo)
 
