@@ -31,7 +31,8 @@ class StructureTestCase(unittest.TestCase):
             class X(Union):
                 _fields_ = [("x", c_char),
                             ("y", tp)]
-            self.failUnless(sizeof(X) == calcsize("%c" % (code)))
+            self.failUnlessEqual((sizeof(X), code),
+                                 (calcsize("%c" % (code)), code))
 
     def test_struct_alignment(self):
         class X(Structure):
