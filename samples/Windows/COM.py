@@ -356,9 +356,10 @@ class Dispatch:
             else:
                 clsid = CLSIDFromProgID(progid)
             pdisp = IDispatchPointer()
-            ole32.CoCreateInstance.argtypes = [POINTER(GUID), c_int, c_int,
-                                               POINTER(GUID),
-                                               POINTER(IUnknownPointer)]
+## The following line doesn't work any longer after 0.4.0 for the 5th parameter
+##            ole32.CoCreateInstance.argtypes = [POINTER(GUID), c_int, c_int,
+##                                               POINTER(GUID),
+##                                               POINTER(IUnknownPointer)]
             ole32.CoCreateInstance(byref(clsid),
                                    0,
                                    1 | 4, # CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER
