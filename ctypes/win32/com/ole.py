@@ -30,3 +30,5 @@ IOleInPlaceActiveObject._methods_ = IOleWindow._methods_ + [
     STDMETHOD(HRESULT, "OnDocWindowActivate", c_int),
     STDMETHOD(HRESULT, "ResizeBorder", POINTER(RECT), POINTER(IOleInPlaceUIWindow), c_int),
     STDMETHOD(HRESULT, "EnableModeless", c_int)]
+
+__all__ = ["IOleWindow", "IOleInPlaceUIWindow", "IOleInPlaceActiveObject"]
