@@ -46,16 +46,18 @@ def method_proto(name, ti, fd):
     return proto
 
 def get_custom_interface(comobj, typeinfo=None):
-    # Hm, IDispatch? or IUnknown? or what?
+    # return comobj, typeinfo where typeinfo describes a custom
+    # interface, and comobj implements it
     if typeinfo is None:
+        # If the caller didn't specify typeinfo, and comobj doesn't
+        # provide any, we're stumped - and the caller should handle
+        # whatever exception this raises.
         typeinfo = comobj.GetTypeInfo()
     ta = typeinfo.GetTypeAttr()
     if ta.typekind == comtypes.automation.typeinfo.TKIND_INTERFACE:
         # correct typeinfo, still need to QI for this interface
-        ta = typeinfo.GetTypeAttr()
-        comobj = comobj.QueryInterface(comtypes.automation.IDispatch, ta.guid)
-        return comobj, typeinfo
-    if ta.typekind == comtypes.automation.typeinfo.TKIND_DISPATCH:
+        iid = ta.guid
+    elif ta.typekind == comtypes.automation.typeinfo.TKIND_DISPATCH:
         # try to get the dual interface portion from a dispatch interface
         href = typeinfo.GetRefTypeOfImplType(-1)
         typeinfo = typeinfo.GetRefTypeInfo(href)
@@ -63,11 +65,15 @@ def get_custom_interface(comobj, typeinfo=None):
         if ta.typekind != comtypes.automation.typeinfo.TKIND_INTERFACE:
             # it didn't work
             raise TypeError, "could not get custom interface"
-        # we must QI for this interface, but using IDispatch
         iid = ta.guid
-        comobj = comobj.QueryInterface(comtypes.automation.IDispatch, iid)
-        return comobj, typeinfo
-    raise TypeError, "could not get custom interface"
+    else:
+        raise TypeError, "could not get custom interface"
+    # XXX We should make sure that our custom interface derives from IDispatch,
+    # if not, we need to specify IUnknown in the following call.
+    comobj = comobj.QueryInterface(comtypes.automation.IDispatch, iid)
+    return comobj, typeinfo
+
+################
 
 PDisp = ctypes.POINTER(comtypes.automation.IDispatch)
 PUnk = ctypes.POINTER(comtypes.IUnknown)
