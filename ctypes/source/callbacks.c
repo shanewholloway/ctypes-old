@@ -63,10 +63,6 @@ staticforward THUNK AllocCallback(PyObject *callable,
 
 #endif
 
-static int __stdcall i_CallPythonObject(PyObject *callable,
-					PyObject *converters,
-					void **pArgs);
-
 static void
 PrintError(char *msg, ...)
 {
