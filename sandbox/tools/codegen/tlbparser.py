@@ -26,13 +26,14 @@ SCODE_type = typedesc.Typedef("SCODE", int_type)
 VARIANT_BOOL_type = typedesc.Typedef("VARIANT_BOOL", short_type)
 HRESULT_type = typedesc.Typedef("HRESULT", ulong_type)
 
-VARIANT_type = typedesc.Typedef("VARIANT", None) #
-IDISPATCH_type = typedesc.Typedef("IDispatch", None) #
-IUNKNOWN_type = typedesc.Typedef("IUnknown", None) #
-# faked COM data types
+VARIANT_type = typedesc.Typedef("VARIANT", None)
+IDISPATCH_type = typedesc.Typedef("IDispatch", None)
+IUNKNOWN_type = typedesc.Typedef("IUnknown", None)
+SAFEARRAY_type = typedesc.Typedef("SAFEARRAY", None)
 
+# faked COM data types
 CURRENCY_type = float_type # wrong
-DATE_type = double_type # not toally wrong...
+DATE_type = double_type # not *that* wrong...
 DECIMAL_type = double_type # wrong - it's a 12 byte structure (or was it 16 bytes?)
 
 COMTYPES = {
@@ -58,34 +59,21 @@ COMTYPES = {
     automation.VT_UI8: ulonglong_type, # 21
     automation.VT_INT: int_type, # 22
     automation.VT_UINT: uint_type, # 23
-    automation.VT_VOID: typedesc.Typedef("None", None), # 24
+    automation.VT_VOID: typedesc.FundamentalType("void", 0, 0), # 24
     automation.VT_HRESULT: HRESULT_type, # 25
-
-    automation.VT_SAFEARRAY: typedesc.Typedef("SAFEARRAY", None), # 27
-
+#automation.VT_PTR = 26 # enum VARENUM
+    automation.VT_SAFEARRAY: SAFEARRAY_type, # 27
+#automation.VT_CARRAY = 28 # enum VARENUM
     automation.VT_LPSTR: PTR(char_type), # 30
     automation.VT_LPWSTR: PTR(wchar_t_type), # 31
 }
 
-#automation.VT_PTR = 26 # enum VARENUM
-#automation.VT_CARRAY = 28 # enum VARENUM
 #automation.VT_USERDEFINED = 29 # enum VARENUM
 
 #automation.VT_RECORD = 36 # enum VARENUM
 
 #automation.VT_ARRAY = 8192 # enum VARENUM
 #automation.VT_BYREF = 16384 # enum VARENUM
-
-known_symbols = {#"VARIANT": "comtypes",
-                 "None": "XXX",
-                 }
-
-for name in ("comtypes.automation", "comtypes", "ctypes"):
-    mod = __import__(name)
-    for submodule in name.split(".")[1:]:
-        mod = getattr(mod, submodule)
-    for name in mod.__dict__:
-        known_symbols[name] = mod.__name__
 
 ################################################################
 
@@ -228,7 +216,7 @@ class TlbParser(object):
                                     members=members,
                                     base=base,
                                     iid=str(ta.guid),
-                                    wTypeFlags=ta.wTypeFlags)
+                                    idlflags=self.idl_flags(ta.wTypeFlags))
         self.items[itf_name] = itf
 
         assert ta.cVars == 0, "vars on an Interface?"
@@ -241,8 +229,10 @@ class TlbParser(object):
             names.append("rhs")
             names = names[:fd.cParams + 1]
             assert len(names) == fd.cParams + 1
-            mth = typedesc.ComMethod(fd.invkind, func_name, returns, fd.wFuncFlags)
-            assert fd.cParamsOpt == 0, "optional parameters not yet implemented"
+            flags = self.func_flags(fd.wFuncFlags)
+            flags += self.inv_kind(fd.invkind)
+            mth = typedesc.ComMethod(fd.invkind, func_name, returns, flags)
+##            assert fd.cParamsOpt == 0, "optional parameters not yet implemented"
             for p in range(fd.cParams):
                 typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
                 name = names[p+1]
@@ -259,7 +249,7 @@ class TlbParser(object):
                         raise "NYI", var.n1.n2.vt
                 else:
                     default = None
-                mth.add_argument(typ, name, flags, default)
+                mth.add_argument(typ, name, self.param_flags(flags), default)
             itf.members.append(mth)
 
         return itf
@@ -277,7 +267,8 @@ class TlbParser(object):
                                      members=members,
                                      base=base,
                                      iid=str(ta.guid),
-                                     wTypeFlags=ta.wTypeFlags)
+                                     idlflags=self.idl_flags(ta.wTypeFlags))
+        itf.doc = str(doc)
         self.items[itf_name] = itf
 
         flags = ta.wTypeFlags & (automation.TYPEFLAG_FDISPATCHABLE | automation.TYPEFLAG_FDUAL)
@@ -292,9 +283,10 @@ class TlbParser(object):
         for i in range(ta.cVars):
             vd = tinfo.GetVarDesc(i)
             assert vd.varkind == automation.VAR_DISPATCH
-            var_name = tinfo.GetDocumentation(vd.memid)[0]
+            var_name, doc = tinfo.GetDocumentation(vd.memid)[0:2]
             typ = self.make_type(vd.elemdescVar.tdesc, tinfo)
-            mth = typedesc.DispProperty(vd.memid, vd.varkind, var_name, typ, vd.wVarFlags)
+            mth = typedesc.DispProperty(vd.memid, var_name, typ, self.var_flags(vd.wVarFlags))
+            mth.doc = str(doc)
             itf.members.append(mth)
 
         for i in range(basemethods, ta.cFuncs):
@@ -305,7 +297,9 @@ class TlbParser(object):
             names.append("rhs")
             names = names[:fd.cParams + 1]
             assert len(names) == fd.cParams + 1 # function name first, then parameter names
-            mth = typedesc.DispMethod(fd.memid, fd.invkind, func_name, returns, fd.wFuncFlags)
+            flags = self.func_flags(fd.wFuncFlags)
+            flags += self.inv_kind(fd.invkind)
+            mth = typedesc.DispMethod(fd.memid, fd.invkind, func_name, returns, flags)
             doc = tinfo.GetDocumentation(fd.memid)[1]
             if doc is not None:
                 mth.doc = str(doc)
@@ -325,17 +319,92 @@ class TlbParser(object):
                         raise "NYI", var.n1.n2.vt
                 else:
                     default = None
-                mth.add_argument(typ, name, flags, default)
+                mth.add_argument(typ, name, self.param_flags(flags), default)
             itf.members.append(mth)
 
         return itf
+
+    def inv_kind(self, invkind):
+        NAMES = {automation.DISPATCH_METHOD: [],
+                 automation.DISPATCH_PROPERTYPUT: ["propput"],
+                 automation.DISPATCH_PROPERTYPUTREF: ["propputref"],
+                 automation.DISPATCH_PROPERTYGET: ["propget"]}
+        return NAMES[invkind]
+
+    def func_flags(self, flags):
+        # map FUNCFLAGS values to idl attributes
+        NAMES = {automation.FUNCFLAG_FRESTRICTED: "restricted",
+                 automation.FUNCFLAG_FSOURCE: "source",
+                 automation.FUNCFLAG_FBINDABLE: "bindable",
+                 automation.FUNCFLAG_FREQUESTEDIT: "requestedit",
+                 automation.FUNCFLAG_FDISPLAYBIND: "displaybind",
+                 automation.FUNCFLAG_FDEFAULTBIND: "defaultbind",
+                 automation.FUNCFLAG_FHIDDEN: "hidden",
+                 automation.FUNCFLAG_FUSESGETLASTERROR: "usesgetlasterror",
+                 automation.FUNCFLAG_FDEFAULTCOLLELEM: "defaultcollelem",
+                 automation.FUNCFLAG_FUIDEFAULT: "uidefault",
+                 automation.FUNCFLAG_FNONBROWSABLE: "nonbrowsable",
+                 # automation.FUNCFLAG_FREPLACEABLE: "???",
+                 automation.FUNCFLAG_FIMMEDIATEBIND: "immediatebind"}
+        return [NAMES[bit] for bit in NAMES if bit & flags]
+                 
+    def param_flags(self, flags):
+        # map PARAMFLAGS values to idl attributes
+        NAMES = {automation.PARAMFLAG_FIN: "in",
+                 automation.PARAMFLAG_FOUT: "out",
+                 automation.PARAMFLAG_FLCID: "lcid",
+                 automation.PARAMFLAG_FRETVAL: "retval",
+                 automation.PARAMFLAG_FOPT: "optional",
+                 # automation.PARAMFLAG_FHASDEFAULT: "",
+                 # automation.PARAMFLAG_FHASCUSTDATA: "",
+                 }
+        return [NAMES[bit] for bit in NAMES if bit & flags]
+
+    def idl_flags(self, flags):
+        # map TYPEFLAGS values to idl attributes
+        NAMES = {automation.TYPEFLAG_FAPPOBJECT: "appobject",
+                 # automation.TYPEFLAG_FCANCREATE:
+                 automation.TYPEFLAG_FLICENSED: "licensed",
+                 # automation.TYPEFLAG_FPREDECLID:
+                 automation.TYPEFLAG_FHIDDEN: "hidden",
+                 automation.TYPEFLAG_FCONTROL: "control",
+                 automation.TYPEFLAG_FDUAL: "dual",
+                 automation.TYPEFLAG_FNONEXTENSIBLE: "nonextensible",
+                 automation.TYPEFLAG_FOLEAUTOMATION: "oleautomation",
+                 automation.TYPEFLAG_FRESTRICTED: "restricted",
+                 automation.TYPEFLAG_FAGGREGATABLE: "aggregatable",
+                 # automation.TYPEFLAG_FREPLACEABLE:
+                 # automation.TYPEFLAG_FDISPATCHABLE # computed, no flag for this
+                 automation.TYPEFLAG_FREVERSEBIND: "reversebind",
+                 automation.TYPEFLAG_FPROXY: "proxy",
+                 }
+        return [NAMES[bit] for bit in NAMES if bit & flags]
+    
+    def var_flags(self, flags):
+        NAMES = {automation.VARFLAG_FREADONLY: "readonly",
+                 automation.VARFLAG_FSOURCE: "source",
+                 automation.VARFLAG_FBINDABLE: "bindable",
+                 automation.VARFLAG_FREQUESTEDIT: "requestedit",
+                 automation.VARFLAG_FDISPLAYBIND: "displaybind",
+                 automation.VARFLAG_FDEFAULTBIND: "defaultbind",
+                 automation.VARFLAG_FHIDDEN: "hidden",
+                 automation.VARFLAG_FRESTRICTED: "restricted",
+                 automation.VARFLAG_FDEFAULTCOLLELEM: "defaultcollelem",
+                 automation.VARFLAG_FUIDEFAULT: "uidefault",
+                 automation.VARFLAG_FNONBROWSABLE: "nonbrowsable",
+                 automation.VARFLAG_FREPLACEABLE: "replaceable",
+                 automation.VARFLAG_FIMMEDIATEBIND: "immediatebind"
+                 }
+        return [NAMES[bit] for bit in NAMES if bit & flags]
+    
 
     # TKIND_COCLASS = 5
     def ParseCoClass(self, tinfo, ta):
         # possible ta.wTypeFlags: helpstring, helpcontext, licensed,
         #        version, control, hidden, and appobject
-        coclass_name = tinfo.GetDocumentation(-1)[0]
-        coclass = typedesc.CoClass(coclass_name, str(ta.guid), ta.wTypeFlags)
+        coclass_name, doc = tinfo.GetDocumentation(-1)[0:2]
+        coclass = typedesc.CoClass(coclass_name, str(ta.guid), self.idl_flags(ta.wTypeFlags))
+        coclass.doc = str(doc)
         self.items[coclass_name] = coclass
         for i in range(ta.cImplTypes):
             hr = tinfo.GetRefTypeOfImplType(i)
@@ -418,13 +487,11 @@ class TlbParser(object):
 def main():
     import sys
 
-##    path = r"hnetcfg.dll"
+    path = r"hnetcfg.dll"
 ##    path = r"simpdata.tlb"
 ##    path = r"nscompat.tlb"
 ##    path = r"mshtml.tlb"
-    path = r"stdole32.tlb"
-##    path = r"c:\tss5\include\MeasurementModule.tlb"
-##    path = r"c:\tss5\include\fpanel.tlb"
+##    path = r"stdole32.tlb"
 ##    path = "msscript.ocx"
 ##    path = r"x.tlb"
 ##    path = r"shdocvw.dll"
@@ -432,25 +499,35 @@ def main():
 ##    path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 ##    path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
 ##    path = r"msi.dll"
-##    path = r"c:\tss5\include\ITDPersist.tlb"
 
 ##    path = r"PICCLP32.OCX"
-##    path = r"Macromed\Flash\swflash.ocx"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
 ##    path = r"MSHFLXGD.OCX"
-    path = r"scrrun.dll"
+##    path = r"scrrun.dll"
 ##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\threadapi.tlb"
-##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
+    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
 
-    path = "mytlb.tlb"
+##    path = "mytlb.tlb"
+##    # this has a IUnknown* default parameter
+##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
     
+    known_symbols = {}
+
+    for name in ("comtypes.automation", "comtypes", "ctypes"):
+        mod = __import__(name)
+        for submodule in name.split(".")[1:]:
+            mod = getattr(mod, submodule)
+        for name in mod.__dict__:
+            known_symbols[name] = mod.__name__
+
     p = TlbParser(path)
     items = p.parse()
     from codegenerator import Generator
 
     gen = Generator(sys.stdout)
+    print >> gen.imports, "from helpers import *"
     loops = gen.generate_code(items.values(), known_symbols, [])
 
 if __name__ == "__main__":
