@@ -55,27 +55,29 @@ CField_FromDesc(PyObject *desc, int index,
 		align = dict->align;
 	length = dict->length;
 	proto = desc;
-#if 0
-	/* XXX This is the place where field descriptors like
-	   'c_char * n' should be scpecial cased to return a Python
-	   string instead of an Array object instance...
+
+	/*  Field descriptors for 'c_char * n' are be scpecial cased to
+	   return a Python string instead of an Array object instance...
 	*/
 	if (ArrayTypeObject_Check(proto)) {
 		StgDictObject *adict = PyType_stgdict(proto);
 		StgDictObject *idict;
 		if (adict && adict->proto) {
-			struct fielddesc *fd;
 			idict = PyType_stgdict(adict->proto);
-			fd = getentry("c");
-			if (idict->getfunc == fd->getfunc) {
+			if (idict->getfunc == getentry("c")->getfunc) {
+				struct fielddesc *fd = getentry("s");
+				getfunc = fd->getfunc;
+				setfunc = fd->setfunc;
+			}
+/*
+			if (idict->getfunc == getentry("u")->getfunc) {
 				fd = getentry("s");
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
+*/
 		}
-			
 	}
-#endif
 
 	self->setfunc = setfunc;
 	self->getfunc = getfunc;
