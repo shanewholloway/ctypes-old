@@ -149,6 +149,31 @@ PyObject *_CallProc(PPROC pProc,
 #define FUNCFLAG_CDECL 0x1
 #define FUNCFLAG_HRESULT 0x2
 
+typedef struct {
+	PyObject_HEAD
+	char tag;
+	union {
+		char c;
+		char b;
+		short h;
+		int i;
+		long l;
+#ifdef HAVE_LONG_LONG
+		LONG_LONG q;
+#endif
+		double d;
+		float f;
+		void *p;
+	} value;
+	PyObject *obj;
+} PyCArgObject;
+
+extern PyTypeObject PyCArg_Type;
+
+extern PyCArgObject *new_CArgObject(void);
+
+#define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"

@@ -448,6 +448,19 @@ CDataType_from_param(PyObject *type, PyObject *value)
 		Py_INCREF(value);
 		return value;
 	}
+	if (PyCArg_CheckExact(value)) {
+		PyCArgObject *p = (PyCArgObject *)value;
+		PyObject *ob = p->obj;
+		StgDictObject *dict;
+
+		dict = PyType_stgdict(type);
+		if (dict && ob &&
+		    0 == PyObject_IsInstance(value, dict->proto)) {
+			Py_INCREF(value);
+			return value;
+		}
+	}
+/* XXX Remove this section ... */
 	/* tuple returned by byref: */
 	/* ('i', addr, obj) */
 	if (PyTuple_Check(value)) {
@@ -462,6 +475,7 @@ CDataType_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
+/* ... and leave the rest */
 	PyErr_Format(PyExc_TypeError,
 		     "expected %s instance instead of %s",
 		     ((PyTypeObject *)type)->tp_name,
@@ -1000,6 +1014,8 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *dict;
 	char *fmt;
+	PyCArgObject *parg;
+	struct fielddesc *fd;
 
 	/* If the value is already an instance of the requested type,
 	   we can use it as is */
@@ -1015,188 +1031,20 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	fmt = PyString_AsString(dict->proto);
 	assert(fmt);
 	
-	switch (*fmt) {
-	case 'c':
-		if (PyString_Check(value)) {
-			if (1 == PyString_GET_SIZE(value)) {
-				char *p = PyString_AS_STRING(value);
-				return PyInt_FromLong(p[0]);
-			}
-			PyErr_SetString(PyExc_ValueError,
-					"one character string expected");
-			return NULL;
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected one character string "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
+	fd = getentry(fmt);
+	assert(fd);
+	
+	parg = new_CArgObject();
+	if (parg == NULL)
 		return NULL;
-		
-	case 'b':
-	case 'h':
-	case 'i':
-	case 'l':
-		/* XXX Hm, range checks are missing */
-		if (PyInt_Check(value)) {
-			Py_INCREF(value);
-			return value;
-		} else if (PyLong_Check(value)) {
-			return PyInt_FromLong(PyLong_AsLong(value));
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected integer "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
-		return NULL;
-		
-	case 'B':
-	case 'H':
-	case 'I':
-	case 'L':
-		/* XXX Hm, range checks are missing */
-		if (PyInt_Check(value)) {
-			Py_INCREF(value);
-			return value;
-		} else if (PyLong_Check(value)) {
-			return PyInt_FromLong((long)PyLong_AsUnsignedLong(value));
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected integer "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
-		return NULL;
-		
-		
-/* XXX CODE MISSING FOR THESE! Are there any functions expecting LONG_LONG
-   Parameters? Or do we have to write our own, jjust for testing?
-*/
-	case 'q':
-	case 'Q':
-		PyErr_SetString(PyExc_TypeError,
-				"c_longlong and c_ulonglong objects cannot "
-				"be passed as function parameters");
-		return NULL;
-				
 
-		/* XXX All the tuple building could probably be much more
-		   efficient, if we cached the PyStringObjects for the first
-		   item, and built the tuple 'manually' instead of with
-		   Py_BuildValue.
-
-		   Even more performance would be gained, if we would build
-		   a C structure which ConvParam could use directly,
-		   maybe as a PyCObject.
-		*/
-
-	case 'd':
-		if (PyFloat_Check(value))
-			return Py_BuildValue("(sdO)",
-					     "d",
-					     PyFloat_AS_DOUBLE(value),
-					     Py_None);
-		else if (PyInt_Check(value))
-			return Py_BuildValue("(sdO)",
-					     "d",
-					     (double)PyInt_AS_LONG(value),
-					     Py_None);
-		else if (PyLong_Check(value)) {
-			double v = PyLong_AsDouble(value);
-			if (v == -1 && PyErr_Occurred())
-				return NULL;
-			return Py_BuildValue("(sdO)",
-					     "d",
-					     v,
-					     Py_None);
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected number "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
-		return NULL;
-		
-	case 'f':
-		if (PyFloat_Check(value))
-			return Py_BuildValue("(sdO)",
-					     "f",
-					     PyFloat_AS_DOUBLE(value),
-					     Py_None);
-		else if (PyInt_Check(value))
-			return Py_BuildValue("(sdO)",
-					     "f",
-					     (double)PyInt_AS_LONG(value),
-					     Py_None);
-		else if (PyLong_Check(value)) {
-			double v = PyLong_AsDouble(value);
-			if (v == -1 && PyErr_Occurred())
-				return NULL;
-			return Py_BuildValue("(sdO)",
-					     "f",
-					     v,
-					     Py_None);
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected number "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
-		return NULL;
-		
-	case 'z':
-		if (value == Py_None)
-			return PyInt_FromLong(0);
-		if (PyString_Check(value))
-			return Py_BuildValue("(siO)",
-					     "i",
-					     PyString_AS_STRING(value),
-					     value);
-		if (PyUnicode_Check(value)) {
-			PyObject *ob = PyUnicode_AsASCIIString(value);
-			if (ob == NULL)
-				return NULL;
-			return Py_BuildValue("(siN)",
-					     "i",
-					     PyUnicode_AS_UNICODE(ob),
-					     ob);
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected string or unicode string "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
-		return NULL;
-		
-/* The Z format character will probably change into 'u',
- * because Py_BuildValue also uses this.
- * 'z' - char *
- * 'u' - UNICODE *
- */
-	case 'Z':
-		if (value == Py_None)
-			return PyInt_FromLong(0);
-		if (PyUnicode_Check(value))
-			return Py_BuildValue("(siO)",
-					     "i",
-					     PyUnicode_AS_UNICODE(value),
-					     value);
-		if (PyString_Check(value)) {
-			PyObject *ob = PyUnicode_FromObject(value);
-			if (ob == NULL)
-				return NULL;
-			return Py_BuildValue("(siN)",
-					     "i",
-					     PyUnicode_AS_UNICODE(ob),
-					     ob);
-		}
-		PyErr_Format(PyExc_TypeError,
-			     "expected string or unicode string "
-			     "instead of %s instance",
-			     value->ob_type->tp_name);
-		return NULL;
-		
-	default:
-		PyErr_Format(PyExc_SystemError,
-			     "BUG: unhandled format '%c' in SimpleType_from_param",
-			     *fmt);
+	parg->tag = fmt[0];
+	parg->obj = fd->setfunc(&parg->value, value, 0);
+	if (parg->obj == NULL) {
+		Py_DECREF(parg);
 		return NULL;
 	}
+	return (PyObject *)parg;
 }
 
 static PyMethodDef SimpleType_methods[] = {
@@ -2043,58 +1891,21 @@ Simple_as_parameter(CDataObject *self)
 {
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	char *fmt = PyString_AsString(dict->proto);
-
-/* XXX What about signed/unsigned? Really don't care? No... */
-
-	/* And: What about these "c", "b", "h" codes?
-	   ConvParam must also be able to use them...
-	   Or should we use 'i' instead?
-	*/
-	switch(fmt[0]) {
-	case 'c':
-		return Py_BuildValue("(siO)",
-				     "c",
-				     *(char *)self->b_ptr,
-				     self);
-	case 'b':
-	case 'B':
-		return Py_BuildValue("(siO)",
-				     "b",
-				     *(char *)self->b_ptr,
-				     self);
-	case 'h':
-	case 'H':
-		return Py_BuildValue("(siO)",
-				     "h",
-				     *(short int *)self->b_ptr,
-				     self);
-	case 'i':
-	case 'I':
-		return Py_BuildValue("(siO)",
-				     "i",
-				     *(int *)self->b_ptr,
-				     self);
-	case 'l':
-	case 'L':
-		return Py_BuildValue("(siO)",
-				     "l",
-				     *(long int *)self->b_ptr,
-				     self);
-	case 'f':
-		return Py_BuildValue("(sfO)",
-				     "f",
-				     *(float *)self->b_ptr,
-				     self);
-	case 'd':
-		return Py_BuildValue("(sdO)",
-				     "d",
-				     *(double *)self->b_ptr,
-				     self);
-	}
-	PyErr_BadInternalCall();
-	return NULL;
-//	/* This requires that sizeof(int) == sizeof(void *) */
-//	return PyInt_FromLong(*(int *)self->b_ptr);
+	PyCArgObject *parg;
+	struct fielddesc *fd;
+	
+	fd = getentry(fmt);
+	assert(fd);
+	
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+	
+	parg->tag = fmt[0];
+	Py_INCREF(self);
+	parg->obj = (PyObject *)self;
+	memcpy(&parg->value, self->b_ptr, self->b_size);
+	return (PyObject *)parg;	
 }
 
 static PyGetSetDef Simple_getsets[] = {
@@ -2236,14 +2047,17 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 static PyObject *
 Pointer_as_parameter(CDataObject *self)
 {
-	/* This requires that sizeof(int) == sizeof(void *) */
-/*
-	return Py_BuildValue("(siO)",
-			     "i",
-			     *(int *)self->b_ptr,
-			     self);
-*/
-	return PyInt_FromLong(*(int *)self->b_ptr);
+	PyCArgObject *parg;
+
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+
+	parg->tag = 'p';
+	Py_INCREF(self);
+	parg->obj = (PyObject *)self;
+	parg->value.p = *(void **)self->b_ptr;
+	return (PyObject *)parg;
 }
 
 static PyGetSetDef Pointer_getsets[] = {
@@ -4294,13 +4108,22 @@ sizeof_func(PyObject *self, PyObject *obj)
 PyObject *
 byref(PyObject *self, PyObject *obj)
 {
+	PyCArgObject *parg;
 	if (!CDataObject_Check(obj)) {
 		PyErr_SetString(PyExc_TypeError,
 				"expected CData instance");
 		return NULL;
 	}
-	return Py_BuildValue("(siO)", "i",
-			     ((CDataObject *)obj)->b_ptr, obj);
+
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+
+	parg->tag = 'p';
+	Py_INCREF(obj);
+	parg->obj = obj;
+	parg->value.p = ((CDataObject *)obj)->b_ptr;
+	return (PyObject *)parg;
 }
 
 /*
