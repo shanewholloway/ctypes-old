@@ -21,7 +21,7 @@ StgDict_init(StgDictObject *self, PyObject *args, PyObject *kwds)
 static int
 StgDict_clear(StgDictObject *self)
 {
-	Py_CLEAR(self->proto);
+	Py_CLEAR(self->itemtype);
 	Py_CLEAR(self->argtypes);
 	Py_CLEAR(self->converters);
 	Py_CLEAR(self->restype);
@@ -53,7 +53,7 @@ StgDict_clone(StgDictObject *dst, StgDictObject *src)
 	       s + sizeof(PyDictObject),
 	       sizeof(StgDictObject) - sizeof(PyDictObject));
 
-	Py_XINCREF(dst->proto);
+	Py_XINCREF(dst->itemtype);
 	Py_XINCREF(dst->argtypes);
 	Py_XINCREF(dst->converters);
 	Py_XINCREF(dst->restype);

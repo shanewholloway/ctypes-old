@@ -222,7 +222,7 @@ typedef struct {
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
 	ffi_type ffi_type;
-	PyObject *proto;
+	PyObject *itemtype;	/* for pointer and array classes */
 	SETFUNC setfunc;
 	GETFUNC getfunc;
 	ASPARAM asparam;
