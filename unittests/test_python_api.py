@@ -1,5 +1,5 @@
 from ctypes import *
-import unittest
+import unittest, sys
 
 ################################################################
 # This section should be moved into ctypes\__init__.py, when it's ready.
@@ -10,7 +10,10 @@ from _ctypes import _SimpleCData
 class PyObject(_SimpleCData):
     _type_ = "O"
 
-python = getattr(pydll, "python%s%s" % sys.version_info[:2])
+if sys.platform == "win32":
+    python = getattr(pydll, "python%s%s" % sys.version_info[:2])
+else:
+    python = PyDLL(None)
 
 ################################################################
 
