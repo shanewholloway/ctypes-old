@@ -23,9 +23,9 @@ def _register(cls):
 
     if not hasattr(cls, "_reg_clsctx_") or cls._reg_clsctx_ & CLSCTX_LOCAL_SERVER:
         if imp.is_frozen("__main__"):
-            value = sys.executable
+            value = "%s /automation" % sys.executable
         else:
-            value = "%s %s" % (sys.executable, sys.argv[0])
+            value = "%s %s / automation" % (sys.executable, sys.argv[0])
         _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
 
     if hasattr(cls, "_reg_progid_"):
