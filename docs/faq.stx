@@ -43,9 +43,17 @@ ctypes FAQ - frequently asked questions
        using the __stdcall calling convention (load the Delphi dll
        with 'windll').
 
+    How can I call functions written in "C++" ?
+
+       Jimmy Retzlaff explains how the C++ compiler mangles function names
+       and how it can be avoided in this
+       "*post*":http://sourceforge.net/mailarchive/forum.php?thread_id=1604647&forum_id=24606
+       to the ctypes-users mailing list.
+
+
   General topics
 
     How can I help to improve this FAQ?
 
-      Send new questions, better answers, or oether comments to
-      "me":mailto:theller@python.net.
+      Send new questions, better answers, or other comments to the
+      "ctypes-users":mailto:ctypes-users@lists.sourceforge.net mailing list.
