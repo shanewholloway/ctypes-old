@@ -85,7 +85,7 @@ class PointerType(object):
         # The header will suffice.
         t = get_pointed_to(self)
         if type(t) in (Structure, Union):
-            return []
+            return [t.get_head()]
         return [t]
 
     def __repr__(self):
@@ -114,31 +114,47 @@ class ArrayType(object):
     def __repr__(self):
         return "<Array(%s[%s]) at %x>" % (self.typ, self.max, id(self))
 
-class Structure(object):
-    def __init__(self, name, align, members, bases, size, artificial=None):
-        self.name = name
-        assert int(align) % 8 == 0
-        self.align = int(align) / 8
-        self.members = members
-        self.bases = bases
-        self.artificial = artificial
-        if size is not None:
-            self.size = int(size)
-        else:
-            self.size = None
+# Structures (and Unions, as well) are split into three objects.
+# Structure depends on StructureHead and StructureBody
+# StructureHead depends on bases,
+# StructureBody depends on members.
+#
+# Pointer to Structure depends on StructureHead only
+
+class StructureHead(object):
+    def __init__(self, struct):
+        self.struct = struct
+
+    def depends(self):
+        return self.struct.bases
+
+class StructureBody(object):
+    def __init__(self, struct):
+        self.struct = struct
 
     def depends(self):
         result = set()
-        if self.bases:
-            result.update(self.bases)
-        for m in self.members:
-            result.update(m.depends())
+        for m in self.struct.members:
+            if type(m) is Field:
+                result.add(m.typ)
+            if type(m) is Method:
+                result.update(m.depends())
         return result
+
+class _Struct_Union_Base(object):
+    def depends(self):
+        return [self.struct_head, self.struct_body]
         
-    def __repr__(self):
-        return "<Structure(%s) at %x>" % (self.name, id(self))
+    def get_body(self):
+        return self.struct_body
 
-class Union(object):
+    def get_head(self):
+        return self.struct_head
+
+    def __repr__(self):
+        return "<%s(%s) at %x>" % (self.__class__.__name__, self.name, id(self))
+
+class Structure(_Struct_Union_Base):
     def __init__(self, name, align, members, bases, size, artificial=None):
         self.name = name
         assert int(align) % 8 == 0
@@ -150,20 +166,23 @@ class Union(object):
             self.size = int(size)
         else:
             self.size = None
+        self.struct_body = StructureBody(self)
+        self.struct_head = StructureHead(self)
 
-    def depends(self):
-        result = set()
-        if self.bases:
-            result.update(self.bases)
-        for m in self.members:
-            result.update(m.depends())
-        return result
-
-##class Class(object):
-##    def __init__(self, name, members, bases):
-##        self.name = name
-##        self.members = members
-##        self.bases = bases
+class Union(_Struct_Union_Base):
+    def __init__(self, name, align, members, bases, size, artificial=None):
+        self.name = name
+        assert int(align) % 8 == 0
+        self.align = int(align) / 8
+        self.members = members
+        self.bases = bases
+        self.artificial = artificial
+        if size is not None:
+            self.size = int(size)
+        else:
+            self.size = None
+        self.struct_body = StructureBody(self)
+        self.struct_head = StructureHead(self)
 
 class Field(object):
     def __init__(self, name, typ, bits, offset):
