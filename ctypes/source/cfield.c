@@ -22,25 +22,6 @@ CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)obj;
 }
 
-#ifdef EXPERIMENTAL
-/* setfunc overloaded by a __to_field__ callable on the fieldtype */
-static PyObject *
-_overloaded_field_setfunc(void *ptr, PyObject *value, unsigned size,
-			  PyObject *fieldtype)
-{
-	PyObject *result;
-	PyObject *func = PyObject_GetAttrString(fieldtype, "__to_field__");
-	if (func == NULL)
-		return NULL;
-	result = PyObject_CallFunctionObjArgs(func,
-					      PyLong_FromVoidPtr(ptr),
-					      value,
-					      NULL);
-	Py_DECREF(func);
-	return result;
-}
-#endif
-
 /* Default setfunc to be used as CFieldObject.setfunc when the field type
    doesn't supply its own setfunc.
 
@@ -105,25 +86,6 @@ _generic_field_setfunc(char *ptr, PyObject *value, unsigned size,
 		     ((PyTypeObject *)type)->tp_name);
 	return NULL;
 }
-
-#ifdef EXPERIMENTAL
-/* getfunc overloaded by a __from_field__ callable on the fieldtype */
-static PyObject *
-_overloaded_field_getfunc(void *ptr, unsigned size,
-			  PyObject *fieldtype, CDataObject *src,
-			  int index)
-{
-	PyObject *result;
-	PyObject *func = PyObject_GetAttrString(fieldtype, "__from_field__");
-	if (func == NULL)
-		return NULL;
-	result = PyObject_CallFunctionObjArgs(func,
-					      PyLong_FromVoidPtr(ptr), NULL);
-	Py_DECREF(func);
-	return result;
-}
-#endif
-
 
 /*
  * Expects the size, index and offset for the current field in *psize and
@@ -203,19 +165,7 @@ CField_FromDesc(PyObject *desc, int index,
 	assert(dict->getfunc);
 	getfunc = dict->getfunc;
 
-#ifdef EXPERIMENTAL
-	if (PyObject_HasAttrString(desc, "__from_field__"))
-		getfunc = _overloaded_field_getfunc;
-#endif
-
-#ifdef EXPERIMENTAL
-	if (PyObject_HasAttrString(desc, "__to_field__"))
-		setfunc = _overloaded_field_setfunc;
-	else
-		setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
-#else
 	setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
-#endif
 
 	/*  Field descriptors for 'c_char * n' are be special cased to
 	    return a Python string instead of an Array object instance...
