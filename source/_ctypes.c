@@ -2690,6 +2690,8 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 							  v,
 							  NULL);
 			Py_DECREF(v);
+			if (ob == 0)
+				goto error;
 			PyTuple_SET_ITEM(callargs, i, _byref(ob));
 			outmask |= (1 << i);
 			break;
