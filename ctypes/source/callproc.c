@@ -939,7 +939,9 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *argtuple,
 		    void *pIunk,
 		    int flags,
-		    PyObject *argtypes,
+		    PyObject *argtypes, /* misleading name: This is a method,
+					   not a type (the .from_param class
+					   nethod) */
 		    PyObject *restype)
 {
 	int i, n, argcount;
@@ -978,6 +980,7 @@ PyObject *_CallProc(PPROC pProc,
 		arg = PyTuple_GET_ITEM(argtuple, i);	/* borrowed ref */
 		if (argtypes) {
 			converter = PyTuple_GET_ITEM(argtypes, i);
+			/* new ref */
 			arg = PyObject_CallFunctionObjArgs(converter,
 							   arg,
 							   NULL);
@@ -985,17 +988,18 @@ PyObject *_CallProc(PPROC pProc,
 				goto error;
 
 			*pp = ConvParam(arg, i+1);
-			if (!*pp)
-				goto error; /* leaking somewhat */
 			Py_DECREF(arg);
+			if (!*pp)
+				goto error; /* leaking ? */
 		} else {
 			*pp = ConvParam(arg, i+1);
 			if (!*pp)
-				goto error; /* leaking somewhat */
+				goto error; /* leaking ? */
 		}
 	}
 
-	/* This should better be static... */
+	/* Is it possible to allocate Python objects on the stack
+	   instead of on the heap? */
 	result = new_CArgObject();
 	if (result == NULL)
 		goto error;

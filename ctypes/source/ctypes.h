@@ -27,6 +27,22 @@ struct tagCDataObject {
 	PyObject *b_objects;	/* list of references we need to keep */
 };
 
+typedef struct {
+	PyObject_HEAD
+	char *b_ptr;		/* pointer to memory block */
+	int  b_needsfree;	/* need _we_ free the memory? */
+	CDataObject *b_base;	/* pointer to base object or NULL */
+	int b_size;		/* size of memory block in bytes */
+	int b_length;		/* number of references we need */
+	int b_index;		/* index of this object into base's
+				   b_object list */
+
+	PyObject *b_objects;	/* list of references we need to keep */
+
+	THUNK thunk;
+	PyObject *callable;
+} CFuncPtrObject;
+
 extern PyObject *CData_GetList(CDataObject *mem);
 
 extern PyTypeObject StgDict_Type;
