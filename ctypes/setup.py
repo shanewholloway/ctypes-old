@@ -229,7 +229,7 @@ class test(Command):
         self.test_dir = 'unittests'
         self.test_prefix = 'test_'
         self.test_suffixes = None
-        self.verbosity = 0
+        self.verbosity = 1
 
     # initialize_options()
 
