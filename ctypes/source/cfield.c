@@ -371,7 +371,15 @@ i_set(void *ptr, PyObject *value, unsigned size)
 static PyObject *
 O_get(void *ptr, unsigned size)
 {
-	return *(PyObject **)ptr;
+	PyObject *ob = *(PyObject **)ptr;
+	if (ob == NULL) {
+		if (!PyErr_Occurred())
+			/* Set an error if not yet set */
+			PyErr_SetString(PyExc_ValueError,
+					"PyObject is NULL?");
+		return NULL;
+	}
+	return ob;
 }
 
 static PyObject *
