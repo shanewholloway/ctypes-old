@@ -51,7 +51,7 @@ else:
                   ]
 
 packages = ["ctypes"]
-package_dir = ["ctypes": "lib"]
+package_dir = {"ctypes": "lib"}
 
 if sys.platform == "win32":
     packages.append("ctypes.com")
