@@ -617,20 +617,6 @@ static void __stdcall push(void)
 {
 }
 
-typedef struct {
-	int format;	// 'i', 'q', 'f', 'd', 'p'
-	union {
-		char c;
-		int i;
-		LONG_LONG l;
-		float f;
-		double d;
-		void *p;
-	} val;
-	PyObject *keepref;
-	int flags;	/* only used for results, not for parameters */
-} param;
-
 static int _call_function_pointer(int flags,
 				  PPROC pProc,
 				  PyCArgObject **parms,
