@@ -13,16 +13,16 @@ dlls. It allows wrapping these libraries in pure Python.
 ##LIBFFI_SOURCES='libffi-src'
 LIBFFI_SOURCES='../gcc/libffi'
 
+################################################################
+
+import os, sys
+
 
 from distutils.core import setup, Extension, Command
 import distutils.core
 from distutils.errors import DistutilsOptionError
-from distutils.command import build_py
-from distutils.command import build_ext
-
-
-
-import os, sys
+from distutils.command import build_py, build_ext
+from distutils.dir_util import mkpath
 
 kw = {}
 kw["sources"] = ["source/_ctypes.c",
@@ -269,11 +269,9 @@ class my_build_ext(build_ext.build_ext):
             sys.exit(res)
 
         for ext in self.extensions:
-            if "$LIBFFI" in ext.include_dirs:
-                ext.include_dirs.append(inc_dir)
-                ext.include_dirs.append(os.path.join(lib_dir, "gcc/3.5.0/include/libffi"))
-            if "$LIBFFI" in ext.library_dirs:
-                ext.library_dirs.append(lib_dir)
+            ext.include_dirs.append(inc_dir)
+            ext.include_dirs.append(os.path.join(lib_dir, "gcc/3.5.0/include/libffi"))
+            ext.library_dirs.append(lib_dir)
 
 
 if __name__ == '__main__':
