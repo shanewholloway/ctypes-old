@@ -44,10 +44,10 @@ def get_file_version(filename):
     uLen = c_int()
 
     lpffi = POINTER(VS_FIXEDFILEINFO) ()
-    windll.version.VerQueryValueA.argtypes = [c_string,
-                                              c_char_p,
-                                              POINTER(POINTER(VS_FIXEDFILEINFO)),
-                                              POINTER(c_int)]
+##    windll.version.VerQueryValueA.argtypes = [c_string,
+##                                              c_char_p,
+##                                              POINTER(POINTER(VS_FIXEDFILEINFO)),
+##                                              POINTER(c_int)]
     res = windll.version.VerQueryValueA(buffer,
                                  "\\",
                                  pointer(lpffi),
