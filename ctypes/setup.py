@@ -93,13 +93,29 @@ class test(Command):
         self.announce("testing")
         # build include path for test
 
+        test_suites = []
+
         for case in self.test_suffixes:
             TEST = __import__(self.test_prefix+case,
                               globals(), locals(),
                               [''])
 
-            self.announce("\t%s" % (self.test_prefix+case))
-            TEST.test(verbose=self.verbose)
+            # Test modules must either expose a test() function which
+            # will be called to run the test, or a get_suite() function
+            # which returns a TestSuite.
+            try:
+                test_suites.append(TEST.get_suite())
+            except AttributeError:
+                self.announce("\t%s" % (self.test_prefix+case))
+                TEST.test(verbose=self.verbose)
+
+        if test_suites:
+            import unittest
+            suite = unittest.TestSuite(test_suites)
+            self.announce("running unittests")
+
+            runner = unittest.TextTestRunner(verbosity=self.verbose)
+            runner.run(suite)
 
         # restore sys.path
         sys.path = old_path[:]
