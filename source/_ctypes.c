@@ -879,7 +879,6 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 	return 0;
 }
 
-/* Array_getfunc is exactly the same as StructUnion_getfunc */
 static PyObject *
 Array_getfunc(void *ptr, unsigned size,
 	      PyObject *type, CDataObject *src, ...)
@@ -889,16 +888,32 @@ Array_getfunc(void *ptr, unsigned size,
 				"ctypes bug: Array_getfunc called with NULL type");
 		return NULL;
 	}
-	/* XXX This must be special cased to get rid of the Array checks in
-	   cfield.c :: CField_FromDesc, which installs custom getfuncs in
-	   fields.
-
-	   For c_char and c_wchar arrays, the c_char and c_wchar getfuncs must
-	   be used.
-	*/
-
 	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
 }
+
+static PyObject *
+CharArray_getfunc(char *ptr, unsigned size,
+		  PyObject *type, CDataObject *src, ...)
+{
+	int i;
+	for (i = 0; i < size; ++i)
+		if (ptr[i] == '\0')
+			break;
+	return PyString_FromStringAndSize(ptr, i);
+}
+
+#ifdef CTYPES_UNICODE
+static PyObject *
+WCharArray_getfunc(wchar_t *ptr, unsigned size,
+		   PyObject *type, CDataObject *src, ...)
+{
+	unsigned int i;
+	for (i = 0; i < size/sizeof(wchar_t); ++i)
+		if (ptr[i] == (wchar_t)0)
+			break;
+	return PyUnicode_FromWideChar((wchar_t *)ptr, i);
+}
+#endif
 
 static PyObject *
 ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -937,8 +952,6 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!stgdict)
 		return NULL;
 
-	stgdict->getfunc = Array_getfunc;
-
 	itemdict = PyType_stgdict(proto);
 	if (!itemdict) {
 		PyErr_SetString(PyExc_TypeError,
@@ -972,16 +985,22 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
 
-	/* Special case for character arrays.
+	stgdict->getfunc = Array_getfunc;
+	/* Special casing character arrays.
 	   A permanent annoyance: char arrays are also strings!
 	*/
+	/*
+	  What we really want to check here is if proto is c_char or c_wchar.
+	 */
 	if (itemdict->getfunc == getentry("c")->getfunc) {
 		if (-1 == add_getset(result, CharArray_getsets))
 			return NULL;
+		stgdict->getfunc = CharArray_getfunc;
 #ifdef CTYPES_UNICODE
 	} else if (itemdict->getfunc == getentry("u")->getfunc) {
 		if (-1 == add_getset(result, WCharArray_getsets))
 			return NULL;
+		stgdict->getfunc = WCharArray_getfunc;
 #endif
 	}
 
@@ -3699,6 +3718,10 @@ Pointer_item(CDataObject *self, int index)
 	else
 		base = self;
 
+	/* XXX There MUST be some types which doen't have a getfunc, so this
+	   cannot be correct.
+	   Was calling CData_get before...
+	*/
 	return itemdict->getfunc((*(char **)self->b_ptr) + offset, size,
 				 proto, base, index);
 }
