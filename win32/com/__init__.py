@@ -70,7 +70,6 @@ def STDMETHOD(restype, name, *argtypes, **kw):
 
 def COMPointer__del__(self):
     if self:
-        print "COMPointer__del__", self
         self.Release()
 
 class _interface_meta(type(Structure)):
