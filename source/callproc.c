@@ -709,50 +709,6 @@ static int _call_function_pointer(int flags,
 	return 0;
 }
 
-/*
-	Py_BEGIN_ALLOW_THREADS
-	dwExceptionCode = 0;
-#ifndef DEBUG_EXCEPTIONS
-	__try {
-#endif
-			res->value = pProc)();
-#ifndef DEBUG_EXCEPTIONS
-	}
-	__except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
-		;
-	}
-#endif
-	Py_END_ALLOW_THREADS
-
-	if (dwExceptionCode) {
-		SetException(dwExceptionCode);
-		return -1;
-	}
-	if (new_esp < 0) {
-		if (flags & FUNCFLAG_CDECL)
-			PyErr_Format(PyExc_ValueError,
-				     "Procedure called with not enough "
-				     "arguments (%d bytes missing) "
-				     "or wrong calling convention",
-				     -new_esp);
-		else
-			PyErr_Format(PyExc_ValueError,
-				     "Procedure probably called with not enough "
-				     "arguments (%d bytes missing)",
-				     -new_esp);
-		return -1;
-	}
-	if (new_esp > 0) {
-		PyErr_Format(PyExc_ValueError,
-			     "Procedure probably called with too many "
-			     "arguments (%d bytes in excess)",
-			     new_esp);
-		return -1;
-	}
-	return 0;
-}
-*/
-
 #define RESULT_PASTE_INTO 1
 #define RESULT_CALL_RESTYPE 2
 
