@@ -34,6 +34,25 @@ STDMETHOD_(type, name)
 STDAPICALLTYPE
 """
 
+def c_buffer(init, size=None):
+    """c_buffer(aString) -> character array
+    c_buffer(anInteger) -> character array
+    c_buffer(aString, anInteger) -> character array
+    """
+    if isinstance(init, str):
+        if size is None:
+            size = len(init)+1
+        buftype = c_char * size
+        buf = buftype()
+        buf.value = init
+        return buf
+    elif isinstance(init, int):
+        buftype = c_char * init
+        buf = buftype()
+        return buf
+    raise TypeError, init
+
+
 def CFUNCTYPE(restype, *argtypes):
     class X(_CFuncPtr):
         _argtypes_ = argtypes
