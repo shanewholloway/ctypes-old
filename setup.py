@@ -138,8 +138,8 @@ class test(Command):
     description = "test the distribution prior to install"
 
     user_options = [
-        ('test-dir=', None,
-         "directory that contains the test definitions"),
+        ('test-dirs=', None,
+         "comma-separated list of directories that contain the test definitions"),
         ('test-prefix=', None,
          "prefix to the testcase filename"),
         ('verbosity=', 'V', "verbosity"),
@@ -149,9 +149,12 @@ class test(Command):
         self.build_base = 'build'
         # these are decided only after 'build_base' has its final value
         # (unless overridden by the user or client)
-        self.test_dir = 'unittests'
         self.test_prefix = 'test_'
         self.verbosity = 1
+        if sys.platform == "win32":
+            self.test_dirs = r"unittests,unittests\com"
+        else:
+            self.test_dirs = "unittests"
 
     # initialize_options()
 
@@ -165,6 +168,8 @@ class test(Command):
         build = self.get_finalized_command('build')
         self.build_purelib = build.build_purelib
         self.build_platlib = build.build_platlib
+
+        self.test_dirs = self.test_dirs.split(",")
 
     # finalize_options()
 
@@ -184,8 +189,13 @@ class test(Command):
         import glob, unittest, time
         self.run_command('build')
 
-        mask = os.path.join(self.test_dir, self.test_prefix + "*.py")
-        test_files = [os.path.basename(f) for f in glob.glob(mask)]
+        test_files = []
+        for direct in self.test_dirs:
+            mask = os.path.join(direct, self.test_prefix + "*.py")
+            test_files.extend(glob.glob(mask))
+
+        import pprint
+        pprint.pprint(test_files)
 
         self.announce("testing")
         self.extend_path()
@@ -196,7 +206,7 @@ class test(Command):
 
         start_time = time.time()
         for t in test_files:
-            testcases = self.run_test(os.path.join(self.test_dir, t))
+            testcases = self.run_test(t)
             for case in testcases:
                 if self.verbosity > 1:
                     print >> sys.stderr, case
