@@ -4,6 +4,15 @@
 from ctypes import *
 from comtypes import IUnknown, GUID, BSTR, STDMETHOD
 
+PARAMFLAG_NONE = 0 # Variable c_int
+PARAMFLAG_FIN = 1 # Variable c_int
+PARAMFLAG_FOUT = 2 # Variable c_int
+PARAMFLAG_FLCID = 4 # Variable c_int
+PARAMFLAG_FRETVAL = 8 # Variable c_int
+PARAMFLAG_FOPT = 16 # Variable c_int
+PARAMFLAG_FHASDEFAULT = 32 # Variable c_int
+PARAMFLAG_FHASCUSTDATA = 64 # Variable c_int
+
 UINT = c_uint # typedef
 LONG = c_long # typedef
 INT = c_int # typedef
@@ -219,8 +228,13 @@ class ITypeInfo(IUnknown):
                                     byref(helpcontext), byref(helpfile))
         return name.value, doc.value, helpcontext.value, helpfile.value
 
-    def GetDllEntry(self, p0, p1, p2, p3, p4):
-        pass
+    def GetDllEntry(self, memid, invkind):
+        "Return the dll name, function name, and ordinal for a function and invkind."
+        dllname = BSTR()
+        name = BSTR()
+        ordinal = c_ushort()
+        self.__com_GetDllEntry(memid, invkind, byref(dllname), byref(name), byref(ordinal))
+        return dllname.value, name.value, ordinal.value
 
     def GetRefTypeInfo(self, hreftype):
         "Return a referenced typeinfo"
