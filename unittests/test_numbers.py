@@ -135,7 +135,7 @@ class NumberTestCase(unittest.TestCase):
             self.failUnless(alignment(t()) == align)
             
 def get_suite():
-    return unittest.makeSuite(NumberTestCase, 'test')
+    return unittest.makeSuite(NumberTestCase)
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)

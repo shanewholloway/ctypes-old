@@ -75,7 +75,7 @@ class StructureTestCase(unittest.TestCase):
 
 
 def get_suite():
-    return unittest.makeSuite(StructureTestCase, 'test')
+    return unittest.makeSuite(StructureTestCase)
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
