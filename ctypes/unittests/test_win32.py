@@ -31,7 +31,12 @@ if sys.platform == "win32":
         def test_SEH(self):
             """Call functions with invalid arguments, and make sure that access violations
             are trapped and raise an exception"""
-            self.assertRaises(WindowsError, windll.kernel32.GetModuleHandleA, 32)
+            # Normally, in a debug build of the _ctypes extension
+            # module, exceptions are not trapped, so we can only run
+            # this test in a release build.
+            import sys
+            if not hasattr(sys, "getobjects"):
+                self.assertRaises(WindowsError, windll.kernel32.GetModuleHandleA, 32)
 
         # TODO: Add tests for passing structures (and unions?) by value.
         def test_struct_by_value(self):
