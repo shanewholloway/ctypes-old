@@ -2548,6 +2548,9 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 
+/*
+  _byref consumes a refcount to its argument
+*/
 static PyObject *
 _byref(PyObject *obj)
 {
@@ -2559,12 +2562,13 @@ _byref(PyObject *obj)
 	}
 
 	parg = new_CArgObject();
-	if (parg == NULL)
+	if (parg == NULL) {
+		Py_DECREF(obj);
 		return NULL;
+	}
 
 	parg->tag = 'P';
 	parg->pffi_type = &ffi_type_pointer;
-	Py_INCREF(obj);
 	parg->obj = obj;
 	parg->value.p = ((CDataObject *)obj)->b_ptr;
 	return (PyObject *)parg;
@@ -2675,14 +2679,19 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 			break;
 		case PARAMFLAG_FOUT:
 			/* 'out' parameter.
-			   It's argtypes must be a POINTER of a c type.
+			   argtypes[i] must be a POINTER to a c type.
 			*/
 			ob = PyTuple_GET_ITEM(argtypes, i);
 			dict = PyType_stgdict(ob);
 			/* Create an instance of the pointed-to type */
 			ob = PyObject_CallObject(dict->proto, NULL);
+			if (ob == NULL)
+				goto error;
 			/* Insert as byref parameter */
-			PyTuple_SET_ITEM(callargs, i, _byref(ob));
+			ob = _byref(ob);
+			if (ob == NULL)
+				goto error;
+			PyTuple_SET_ITEM(callargs, i, ob);
 			outmask |= (1 << i);
 			break;
 		case (PARAMFLAG_FIN | PARAMFLAG_FOUT):
@@ -2703,7 +2712,10 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 			Py_DECREF(v);
 			if (ob == 0)
 				goto error;
-			PyTuple_SET_ITEM(callargs, i, _byref(ob));
+			ob = _byref(ob);
+			if (ob == NULL)
+				goto error;
+			PyTuple_SET_ITEM(callargs, i, ob);
 			outmask |= (1 << i);
 			break;
 		default:
@@ -2787,8 +2799,10 @@ _get_one(PyObject *obj)
 	if (dict-> proto && PyString_CheckExact(dict->proto)) {
 		char *tag = PyString_AS_STRING(dict->proto);
 		/* simple data type, but no pointer */
-		if (tag[0] == 'P')
+		if (tag[0] == 'P') {
+			Py_INCREF(result);
 			return result;
+		}
 	}
 	if (dict->getfunc) {
 		CDataObject *c = (CDataObject *)result;
