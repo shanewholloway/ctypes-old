@@ -59,7 +59,7 @@ if sys.platform == "win32":
     packages.append("ctypes.com.samples")
     package_dir["ctypes.com.samples"] = "win32/com/samples"
     packages.append("ctypes.com.tools")
-    package_dir["ctypes.com"] = "win32/com/tools"
+    package_dir["ctypes.com.tools"] = "win32/com/tools"
 
 ################################################################
 
