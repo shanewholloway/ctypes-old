@@ -27,7 +27,7 @@ def type_name(t):
         # what now?  WINFUNCTYPE already *is* a pointer to a function
         return "WINFUNCTYPE(%s)" % ", ".join(args)
     elif isinstance(t, nodes.CvQualifiedType):
-        return "c_const(%s)" % type_name(t.typ)
+        return "const(%s)" % type_name(t.typ)
     elif isinstance(t, nodes.FundamentalType):
         return ctypes_names[t.name]
     elif isinstance(t, nodes.Structure):
@@ -66,6 +66,9 @@ struct_packing = {
 
     "_SHFILEOPSTRUCTW": 2,
     "_SHFILEOPSTRUCTA": 2,
+
+    "_SENDCMDOUTPARAMS": 1,
+    "_SENDCMDINPARAMS": 1,
     }
 
 dont_assert_size = set(
@@ -147,7 +150,7 @@ class Generator(object):
             self.StructureHead(tp.typ.get_head())
             self.more.add(tp.typ)
         else:
-            self.generate([tp.typ])
+            self.generate(tp.typ)
         if tp.name != type_name(tp.typ):
             print "%s = %s" % (tp.name, type_name(tp.typ))
         self.done.add(tp)
@@ -157,14 +160,14 @@ class Generator(object):
             return
         if type(tp.typ) is nodes.Typedef:
             self.more.add(tp.typ)
-        self.generate([get_real_type(tp.typ)])
+        self.generate(get_real_type(tp.typ))
         self.done.add(tp)
 
     def FunctionType(self, tp):
         if tp in self.done:
             return
-        self.generate([tp.returns])
-        self.generate(tp.arguments)
+        self.generate(tp.returns)
+        self.generate_all(tp.arguments)
         self.done.add(tp)
         
     def PointerType(self, tp):
@@ -176,15 +179,15 @@ class Generator(object):
             self.StructureHead(tp.typ.get_head())
             self.more.add(tp.typ)
         elif type(tp.typ) is nodes.Typedef:
-            self.generate([tp.typ])
+            self.generate(tp.typ)
         else:
-            self.generate([tp.typ])
+            self.generate(tp.typ)
         self.done.add(tp)
 
     def CvQualifiedType(self, tp):
         if tp in self.done:
             return
-        self.generate([tp.typ])
+        self.generate(tp.typ)
         self.done.add(tp)
 
     def Enumeration(self, tp):
@@ -207,14 +210,14 @@ class Generator(object):
                 if type(m.typ) is nodes.Typedef:
                     self.more.add(m.typ)
                 t = get_real_type(m.typ)
-                self.generate([get_real_type(m.typ)])
+                self.generate(get_real_type(m.typ))
                 if type(t) in (nodes.Structure, nodes.Union):
                     assert t.get_body() in self.done
                 
             elif type(m) is nodes.Method:
                 methods.append(m)
-                self.generate([m.returns])
-                self.generate(m.arguments)
+                self.generate(m.returns)
+                self.generate_all(m.arguments)
             elif type(m) is nodes.Constructor:
                 pass
         try:
@@ -265,50 +268,45 @@ class Generator(object):
     def Function(self, func):
         if func in self.done:
             return
+        if func.name == "qsort":
+            import pdb
+            pdb.set_trace()
         dllname = self.find_dllname(func.name)
         if dllname and func.extern:
-            self.generate([func.returns])
-            self.generate(func.arguments)
+            self.generate(func.returns)
+            self.generate_all(func.arguments)
             args = [type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
-                print "STDCALL('%s', %s, '%s', %s)" % \
-                      (dllname, type_name(func.returns), func.name, ", ".join(args))
+                print "%s = STDCALL('%s', %s, '%s', (%s))" % \
+                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
             else:
-                print "CDECL('%s', %s, '%s', %s)" % \
-                      (dllname, type_name(func.returns), func.name, ", ".join(args))
+                print "%s = CDECL('%s', %s, '%s', (%s))" % \
+                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
         self.done.add(func)
 
-    def generate(self, items):
+    Union = Structure
+
+    def FundamentalType(self, item):
+        self.done.add(item)
+
+    ########
+
+    def generate(self, item):
+        mth = getattr(self, type(item).__name__)
+        mth(item)
+
+    def generate_all(self, items):
         for item in items:
-            tp = type(item)
-            if tp in (nodes.Structure, nodes.Union):
-                self.Structure(item)
-            elif tp == nodes.Typedef:
-                self.Typedef(item)
-            elif tp == nodes.FundamentalType:
-                pass
-            elif tp == nodes.PointerType:
-                self.PointerType(item)
-            elif tp == nodes.CvQualifiedType:
-                self.CvQualifiedType(item)
-            elif tp == nodes.ArrayType:
-                self.ArrayType(item)
-            elif tp == nodes.Enumeration:
-                self.Enumeration(item)
-            elif tp == nodes.StructureHead:
-                self.StructureHead(item)
-            elif tp == nodes.FunctionType:
-                self.FunctionType(item)
-            elif tp == nodes.Function:
-                self.Function(item)
-            else:
-                raise "NYI", tp
+            self.generate(item)
 
 ################################################################
 
 def find_names(names):
     from gccxmlparser import parse
-    items = parse(files=["windows.h"], xmlfile="windows.xml")
+    items = parse(files=["windows.h"], xmlfile="windows.xml", options=["-D _WIN32_WINNT=0x500"])
+
+    if "*" in names:
+        return items
 
     result = []
     for i in items:
@@ -318,20 +316,21 @@ def find_names(names):
 
 def main():
     from gccxmlparser import parse
-    items = parse(files=["windows.h"], xmlfile="windows.xml")
-##    items = find_names(sys.argv[1:])
+##    items = parse(files=["windows.h"], xmlfile="windows.xml")
+    items = find_names(sys.argv[1:])
     gen = Generator()
     print "from ctypes import *"
-    print "def STDMETHOD(*args): pass"
-    print "def c_const(x): return x"
-    print "STDCALL = CDECL = STDMETHOD"
-    print "class _com_interface(Structure):"
-    print "    _fields_ = [('lpVtbl', c_void_p)]"
+    print "from _support import STDMETHOD, const, STDCALL, CDECL, _com_interface"
+##    print "def STDMETHOD(*args): pass"
+##    print "def const(x): return x"
+##    print "STDCALL = CDECL = STDMETHOD"
+##    print "class _com_interface(Structure):"
+##    print "    _fields_ = [('lpVtbl', c_void_p)]"
     print
 
     for i in range(20):
         gen.more = set()
-        gen.generate(items)
+        gen.generate_all(items)
         items = gen.more
         if not items:
             break
@@ -343,6 +342,6 @@ def main():
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 1:
-        sys.argv.extend("IDispatch".split())
+        sys.argv.extend("MessageBox".split())
 ##        sys.argv.extend("ITypeComp".split())
     main()
