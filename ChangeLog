@@ -1,6 +1,6 @@
 2004-05-07  Thomas Heller  <theller@python.net>
 
-	*  (Message): Tag the HEAD with 2004_05_07_libffi
+	*  (Message): Tag the HEAD with 2004_05_07_before_libffi
 
 	* ctypes\source\callbacks.c: Callback functions can now return
 	c_char and c_char_p data types.
