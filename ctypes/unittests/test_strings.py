@@ -5,7 +5,7 @@ class StringTestCase(unittest.TestCase):
         from ctypes import c_string
         cs = c_string("abcdef")
 
-        # XXX Thsi behaviour is about to change:
+        # XXX This behaviour is about to change:
         # len returns the size of the internal buffer in bytes.
         # This includes the terminating NUL character.
         self.failUnless(len(cs) == 7)
@@ -27,6 +27,10 @@ class StringTestCase(unittest.TestCase):
         self.failUnless(cs.value == "XY")
         self.failUnless(cs.raw == "XY\000\000\000\000\000")
 
+        self.assertRaises(TypeError, c_string, u"123")
+        self.assertRaises(TypeError, c_string, 0)
+        
+
     def test_toolong(self):
         from ctypes import c_string
         cs = c_string("abcdef")
@@ -39,39 +43,42 @@ class StringTestCase(unittest.TestCase):
 ##    def test_perf(self):
 ##        check_perf()
 
-class UNUSED:
+class WStringTestCase(unittest.TestCase):
     def test_basic_wstrings(self):
         from ctypes import c_wstring
         cs = c_wstring(u"abcdef")
 
-        # XXX Thsi behaviour is about to change:
+        # XXX This behaviour is about to change:
         # len returns the size of the internal buffer in bytes.
         # This includes the terminating NUL character.
         self.failUnless(len(cs) == 14)
 
         # The value property is the string up to the first terminating NUL.
-        print repr(cs.value)
         self.failUnless(cs.value == u"abcdef")
-        self.failUnless(c_string("abc\000def").value == "abc")
+        self.failUnless(c_wstring(u"abc\000def").value == u"abc")
+
+        self.failUnless(c_wstring(u"abc\000def").value == u"abc")
 
         # The raw property is the total buffer contents:
-        self.failUnless(cs.raw == "abcdef\000")
-        self.failUnless(c_string("abc\000def").raw == "abc\000def\000")
+        self.failUnless(cs.raw == u"abcdef\000")
+        self.failUnless(c_wstring(u"abc\000def").raw == u"abc\000def\000")
 
         # We can change the value:
-        cs.value = "ab"
-        self.failUnless(cs.value == "ab")
-        self.failUnless(cs.raw == "ab\000\000\000\000\000")
+        cs.value = u"ab"
+        self.failUnless(cs.value == u"ab")
+        self.failUnless(cs.raw == u"ab\000\000\000\000\000")
 
+        self.assertRaises(TypeError, c_wstring, "123")
+        self.assertRaises(TypeError, c_wstring, 0)
 
     def test_toolong(self):
-        from ctypes import c_string
-        cs = c_string("abcdef")
+        from ctypes import c_wstring
+        cs = c_wstring(u"abcdef")
         # Much too long string:
-        self.assertRaises(ValueError, setattr, cs, "value", "123456789012345")
+        self.assertRaises(ValueError, setattr, cs, "value", u"123456789012345")
 
         # One char too long values:
-        self.assertRaises(ValueError, setattr, cs, "value", "1234567")
+        self.assertRaises(ValueError, setattr, cs, "value", u"1234567")
 
         
 def run_test(rep, msg, func, arg):
@@ -103,13 +110,18 @@ def check_perf():
 #     c_string('abc'): 3.67 us
 
 def get_suite():
-    import unittest
-    return unittest.makeSuite(StringTestCase)
+    try:
+        from ctypes import c_wstring
+    except ImportError:
+        return unittest.makeSuite(StringTestCase)
+    return unittest.TestSuite((unittest.makeSuite(StringTestCase),
+                                unittest.makeSuite(WStringTestCase)))
 
 def test(verbose=0):
     runner = unittest.TextTestRunner(verbosity=verbose)
     runner.run(get_suite())
 
 if __name__ == '__main__':
-    check_perf()
-    unittest.main()
+##    check_perf()
+##    unittest.main()
+    test()
