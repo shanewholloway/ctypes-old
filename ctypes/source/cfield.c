@@ -737,37 +737,6 @@ s_set(void *ptr, PyObject *value, unsigned length)
 	return value;
 }
 
-
-/* XXX Seems the S format is no longer used anywhere, remove after 0.6.0 release */
-#if 1
-static PyObject *
-S_get(void *ptr, unsigned length)
-{
-	return PyString_FromStringAndSize((char *)ptr, length);
-}
-
-static PyObject *
-S_set(void *ptr, PyObject *value, unsigned length)
-{
-	char *data;
-	unsigned size;
-
-	if (-1 == PyString_AsStringAndSize(value, &data, &size)) {
-		return NULL;
-	}
-	if (size > length) {
-		PyErr_Format(PyExc_ValueError,
-			     "string too long (%d instead of at most than %d)",
-			     size, length);
-		return NULL;
-	}
-	/* No terminating NUL character */
-	memcpy((char *)ptr, data, size);
-	Py_INCREF(value);
-	return value;
-}
-#endif
-
 static PyObject *
 z_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -932,11 +901,6 @@ P_get(void *ptr, unsigned size)
 
 static struct fielddesc formattable[] = {
 	{ 's', s_set, s_get, &ffi_type_pointer},
-#if 1
-/* XXX This one seems unused */
-	/* See comment above S_get() */
-	{ 'S', S_set, S_get, &ffi_type_schar},
-#endif
 	{ 'b', b_set, b_get, &ffi_type_schar},
 	{ 'B', B_set, B_get, &ffi_type_uchar},
 	{ 'c', c_set, c_get, &ffi_type_schar},
