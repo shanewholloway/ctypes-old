@@ -668,6 +668,8 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+	if (result == NULL)
+		return NULL;
 
 	/* replace the class dict by our updated spam dict */
 	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
@@ -876,6 +878,8 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+	if (result == NULL)
+		return NULL;
 
 	/* replace the class dict by our updated spam dict */
 	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
@@ -957,6 +961,8 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+	if (result == NULL)
+		return NULL;
 
 	proto = PyObject_GetAttrString((PyObject *)result, "_type_"); /* new ref */
 	if (!proto
@@ -3768,6 +3774,8 @@ CFunctionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+	if (result == NULL)
+		return NULL;
 
 	/* replace the class dict by our updated spam dict */
 	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {

@@ -15,6 +15,49 @@ class FunctionTestCase(unittest.TestCase):
         import _ctypes
         dll = CDLL(_ctypes.__file__)
 
+    def test_mro(self):
+        # in Python 2.3, this raises TypeError: MRO conflict among bases classes,
+        # in Python 2.2 it works.
+        #
+        # But in early versions of _ctypes.c, the result of tp_new
+        # wasn't checked, and it even crashed Python.
+        # Found by Greg Chapman.
+        try:
+            class X(object, CFunction):
+                _types_ = "ii"
+                _stdcall_ = 1
+        except TypeError:
+            pass
+        
+        try:
+            class X(object, Array):
+                _length_ = 5
+                _type_ = "i"
+        except TypeError:
+            pass
+                
+
+        from _ctypes import _Pointer
+        try:
+            class X(object, _Pointer):
+                pass
+        except TypeError:
+            pass
+
+        from _ctypes import _SimpleCData
+        try:
+            class X(object, _SimpleCData):
+                _type_ = "i"
+        except TypeError:
+            pass
+
+        try:
+            class X(object, Structure):
+                _fields_ = []
+        except TypeError:
+            pass
+
+
     def test_intresult(self):
         f = dll._testfunc_i_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
@@ -120,6 +163,29 @@ class FunctionTestCase(unittest.TestCase):
             _fields_ = [("y", "i")]
 
         self.assertRaises(TypeError, f, X()) #cannot convert parameter
+
+    ################################################################
+    def test_shorts(self):
+        # FIXME, CLEAN ME UP!
+        f = dll._testfunc_callback_i_if
+
+        args = []
+        expected = [262144, 131072, 65536, 32768, 16384, 8192, 4096, 2048,
+                    1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+
+        def callback(v):
+            args.append(v)
+
+        class CallBack(CFunction):
+            _stdcall_ = 0
+            _types_ = "i"
+
+        cb = CallBack(callback)
+        f(2**18, cb)
+        self.failUnless(args == expected)
+
+    ################################################################
+        
 
     def test_callbacks(self):
         f = dll._testfunc_callback_i_if

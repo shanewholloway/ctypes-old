@@ -1,3 +1,11 @@
+2003-02-07  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: PointerType_new, ArrayType_new,
+	SimpleType_new, and CFunctionType_new did not check for NULL
+	result from PyType_Type.tp_new() call.  This call will fail in
+	Python 2.3 when 'object' is listed as the first base class with a
+	TypeError: MRO conflict among bases.  Spotted by Greg Chapman.
+
 2003-02-05  Thomas Heller  <theller@python.net>
 
 	* The 'raw' and 'value' properties of c_wstring are back, also
