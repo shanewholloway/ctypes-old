@@ -15,6 +15,8 @@ from _ctypes import _Pointer
 from _ctypes import CFuncPtr as _CFuncPtr
 from _ctypes import __version__ as _ctypes_version
 
+from _ctypes import ArgumentError
+
 if __version__ != _ctypes_version:
     raise Exception, ("Version number mismatch", __version__, _ctypes_version)
 

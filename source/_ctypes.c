@@ -96,6 +96,7 @@ bytes(cdata)
 #define NO_METH_CLASS
 #endif
 
+PyObject *PyExc_ArgError;
 
 
 /******************************************************************/
@@ -1865,7 +1866,8 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 			PyObject *ob;
 			ob = PyObject_CallObject(type, value);
 			if (ob == NULL) {
-				Extend_Error_Info("(%s) ", ((PyTypeObject *)type)->tp_name);
+				Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
+						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
 			return _CData_set(dst, type, setfunc, ob,
@@ -3734,7 +3736,12 @@ init_ctypes(void)
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
 	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
 	PyModule_AddStringConstant(m, "__version__", "0.9.1");
-
+	
+	PyExc_ArgError = PyErr_NewException("ctypes.ArgumentError", NULL, NULL);
+	if (PyExc_ArgError) {
+		Py_INCREF(PyExc_ArgError);
+		PyModule_AddObject(m, "ArgumentError", PyExc_ArgError);
+	}
 	/*************************************************
 	 *
 	 * Others...

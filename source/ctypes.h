@@ -242,7 +242,7 @@ extern int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	  int index, int size, char *ptr);
 
-extern void Extend_Error_Info(char *fmt, ...);
+extern void Extend_Error_Info(PyObject *exc_class, char *fmt, ...);
 
 struct basespec {
 	CDataObject *base;
@@ -253,6 +253,9 @@ struct basespec {
 extern char basespec_string[];
 
 extern ffi_type *GetType(PyObject *obj);
+
+/* exception classes */
+extern PyObject *PyExc_ArgError;
 
 /*
  Local Variables:

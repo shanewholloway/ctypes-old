@@ -169,7 +169,7 @@ static void _CallPythonObject(void *mem,
 	}
 	result = PyObject_CallObject(callable, arglist);
 	if (!result) {
-		Extend_Error_Info("(in callback) ");
+		Extend_Error_Info(PyExc_RuntimeError, "(in callback) ");
 		PyErr_Print();
 	} else if (result != Py_None) {
 		/* another big endian hack */
@@ -204,7 +204,7 @@ static void _CallPythonObject(void *mem,
 			break;
 		}
 		if (keep == NULL) {
-			Extend_Error_Info("(callback return type) ");
+			Extend_Error_Info(PyExc_RuntimeError, "(callback return type) ");
 			PyErr_Print();
 		} else {
 			/* assert (keep == Py_None); */
