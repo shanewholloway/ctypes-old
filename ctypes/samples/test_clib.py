@@ -1,6 +1,14 @@
 # Demonstrate some functions from the standard C library.
 
-from ctypes import cdll, POINTER, CFunction, CFuncPtr, FUNCFLAG_CDECL, FUNCFLAG_STDCALL
+from ctypes import cdll, POINTER, CFunction, CFuncPtr, FUNCFLAG_CDECL
+
+import os
+
+if os.name == "nt":
+    from ctypes import FUNCFLAG_STDCALL
+else:
+    # The test funcions define __stdcall avay in C code.
+    FUNCFLAG_STDCALL = FUNCFLAG_CDECL
 
 from ctypes import c_char_p, c_double
 
