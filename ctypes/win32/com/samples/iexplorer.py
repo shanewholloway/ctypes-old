@@ -46,14 +46,14 @@ class DWebBrowserEvents2Impl(dispinterface_EventReceiver):
 
     def BeforeNavigate2(self, this, pDisp, URL, Flags, TargetFrameName,
                         PostData, Headers, Cancel):
-        print "BeforeNavigate2", pDisp, URL.value, Flags.value, \
-              TargetFrameName.value, Headers.value, Cancel.value
+        print "BeforeNavigate2", pDisp, URL, Flags, \
+              TargetFrameName, Headers, Cancel
 ##        if URL.value == "http://www.python.org/download/":
 ##            Cancel.value = True
 ##            print "CANCEL!!!"
 
     def NavigateComplete2(self, this, pDisp, URL):
-        print "NavigateComplete2", URL.value
+        print "NavigateComplete2", URL
 
     def FileDownload(self, this, spam, cancel):
         print "FileDownload", this, spam, cancel
