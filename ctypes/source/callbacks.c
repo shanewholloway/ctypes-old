@@ -252,8 +252,8 @@ static void closure_fcn(ffi_cif *cif,
 
 void FreeCallback(THUNK thunk)
 {
-	PyMem_Free(*(void **)thunk);
-	FreeExecMem(thunk);
+	FreeExecMem(*(void **)thunk);
+	PyMem_Free(thunk);
 }
 
 THUNK AllocFunctionCallback(PyObject *callable,
