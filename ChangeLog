@@ -1,8 +1,29 @@
+2005-01-15  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: WINFUNCTYPE (and CFUNCTYPE) can now be called
+	with three parameters: integer, string, class.  It returns an
+	unbound method fpr class, calling into a COM vtable at the integer
+	index. string is the method name.
+
+	Better error chcking, and fix a compiler warning in CFuncPtr_New.
+
+2004-12-30  Thomas Heller  <theller@python.net>
+
+	* _ctypes.c (_CData_set): Assinging None to a POINTER structure
+	field makes a NULL pointer.
+
+	* source\_ctypes.c (Pointer_ass_item): Prevent NULL pointer access
+	when assigning to pointer instances.
+
+2004-12-17  Thomas Heller  <theller@python.net>
+
+	* source/callbacks.c: Corrected the exception handling in callback
+	functions. SystemExit in a callback now actually exits Python.
+
 2004-12-02  Thomas Heller  <theller@python.net>
 
-	* Structure types as restype of functions do work now. But I have
-	severe doubts that passing structures by values works.  Not to
-	speak about callback functions!
+	* Structure types as restype and in argtypes of functions do work
+	now. Not sure about callback functions.
 
 	The _fields_ attribute is now handled correctly in Structure
 	sub-subclasses.  It is extended instead of replaced.
