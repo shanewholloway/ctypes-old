@@ -4390,6 +4390,8 @@ addressof(PyObject *self, PyObject *obj)
 #endif
 		)
 		return PyInt_FromLong((long)((CDataObject *)obj)->b_ptr);
+	if (CFunction_Check(obj))
+		return PyInt_FromLong((long)((CFunctionObject *)obj)->callback);
 	PyErr_SetString(PyExc_TypeError,
 			"expected CData instance");
 	return NULL;
