@@ -223,9 +223,6 @@ class named_property(object):
             return self
         return bound_named_property(self.getter, self.setter, im_inst)
 
-class NotYetImplemented(Warning):
-    pass
-            
 # metaclass for COM interface pointer classes
 class _compointer_meta(type(c_void_p), _cominterface_meta):
     pass
