@@ -13,6 +13,13 @@
 # interface, coclass, typelib
 from sum_gen import IDualSum, CSum, SumLib
 
+# special code for this sample, to make sure sum_gen contains
+# a valid path to the type library:
+import os
+if not os.path.isfile(SumLib.path):
+    raise RuntimeError, \
+          "please recreate the sum_gen file or adjust the .tlb pathname"
+
 # This object implements a dual interface described in a type library,
 # and ctypes.com provides a handy bas class we can use:
 from ctypes.com.automation import DualObjImpl
