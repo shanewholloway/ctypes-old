@@ -23,7 +23,7 @@ CData_Type
 
   CString_Type class	from_param()
   CString_Type		__new__(), __init__(), _as_parameter_, raw, value
-  CWString_Type		_as_parameter_
+  CWString_Type		_as_parameter_, raw, value
 
 CFunction_Type		__new__(), __init__(), _as_parameter_, callable
 DynFunction_Type	__new__(), __init__(), result_type, restype, argtypes
@@ -2281,6 +2281,7 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	obj->b_base = NULL;
 	obj->b_index = 0;
+	/* No python objects referenced... */
 	obj->b_objects = NoneList(0);
 	obj->b_length = 0;
 
@@ -2534,6 +2535,7 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	obj->b_base = NULL;
 	obj->b_index = 0;
+	/* No python objects referenced... */
 	obj->b_objects = NoneList(0);
 	obj->b_length = 0;
 
@@ -2542,7 +2544,7 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		obj->b_size = (size+1) * sizeof(wchar_t);
 		obj->b_needsfree = 1;
 		memcpy(obj->b_ptr, data, size * sizeof(wchar_t));
-		obj->b_ptr[size] = (wchar_t)0;
+		((wchar_t *)obj->b_ptr)[size] = (wchar_t)0;
 	} else {
 		obj->b_ptr = NULL;
 		obj->b_size = 0;
@@ -2571,6 +2573,52 @@ CWString_get_value(CDataObject *self)
 }
 
 static PyObject *
+CWString_get_value_raw(CDataObject *self)
+{
+	if (self->b_ptr == NULL) {
+		PyErr_SetString(PyExc_ValueError,
+				"NULL pointer access");
+		return NULL;
+	}
+	return PyUnicode_FromWideChar((wchar_t *)self->b_ptr,
+				      self->b_size/sizeof(wchar_t));
+}
+
+static int
+CWString_set_value(CDataObject *self, PyObject *value)
+{
+	wchar_t *data;
+	unsigned int size;
+
+	if (self->b_ptr == NULL) {
+		PyErr_SetString(PyExc_ValueError,
+				"NULL pointer access");
+		return -1;
+	}
+
+	if (PyUnicode_Check(value)) {
+		data = PyUnicode_AS_UNICODE(value);
+		size = PyUnicode_GET_SIZE(value);
+	} else {
+		PyErr_SetString(PyExc_TypeError,
+				"unicode string expected");
+		return -1;
+	}
+	size *= sizeof(wchar_t);
+
+	if (size+sizeof(wchar_t) > (unsigned)self->b_size) {
+		PyErr_SetString(PyExc_ValueError,
+				"unicode string too long");
+		return -1;
+	}
+	/* clear old contents of buffer, just in case */
+	memset(self->b_ptr, 0, self->b_size);
+	/* copy new contents */
+	memcpy(self->b_ptr, data, size);
+	return 0;
+}
+
+static PyObject *
 CWString_as_parameter(CDataObject *self)
 {
 	PyCArgObject *p = new_CArgObject();
@@ -2587,8 +2635,11 @@ static PyGetSetDef CWString_getsets[] = {
 	{ "_as_parameter_", (getter)CWString_as_parameter,
 	  (setter)NULL, "convert to a parameter", NULL },
 	{ "value", (getter)CWString_get_value,
-	  NULL, //(setter)CString_set_value,
+	  (setter)CWString_set_value,
 	  "the string contents", NULL },
+	{ "raw", (getter)CWString_get_value_raw,
+	  (setter)CWString_set_value,
+	  "the raw string contents", NULL },
 	{ NULL },
 };
 
