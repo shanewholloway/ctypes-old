@@ -56,7 +56,7 @@ class PointersTestCase(unittest.TestCase):
             for i in range(10):
 ##                print arg[i],
                 self.result.append(arg[i])
-            print
+##            print
             return 0
         callback = PROTOTYPE(func)
 
@@ -72,9 +72,9 @@ class PointersTestCase(unittest.TestCase):
 ##        self.failUnless(i.value == 84)
 
         doit(callback)
-        print self.result
+##        print self.result
         doit(callback)
-        print self.result
+##        print self.result
         
     def test_basics(self):
         from operator import delitem
