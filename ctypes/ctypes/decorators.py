@@ -74,7 +74,11 @@ def _create_func_codestring(func, doc=None):
 
 def stdcall(restype, dll, argtypes, logging=False):
     def decorate(func):
-        api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, dll)
+        if isinstance(dll, basestring):
+            this_dll = ctypes.CDLL(dll)
+        else:
+            this_dll = dll
+        api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, this_dll)
         if len(func.func_code.co_code) == 4:
             # Hacky way to detect an empty function body.
             codestring = _create_func_codestring(func, func.__doc__)
@@ -94,7 +98,11 @@ def stdcall(restype, dll, argtypes, logging=False):
 
 def cdecl(restype, dll, argtypes, logging=False):
     def decorate(func):
-        api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, dll)
+        if isinstance(dll, basestring):
+            this_dll = ctypes.CDLL(dll)
+        else:
+            this_dll = dll
+        api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, this_dll)
         if len(func.func_code.co_code) == 4:
             # Hacky way to detect an empty function body.
             codestring = _create_func_codestring(func, func.__doc__)
