@@ -7,7 +7,7 @@ import os
 if os.path.isfile(os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")):
     # magic to allow using ctypes from the CVS tree
     import sys
-    __path__.append(os.path.abspath(
+    __path__.insert(0, os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", sys.platform)))
     del sys
 del os
