@@ -38,13 +38,25 @@ if sys.platform == "win32":
             if not hasattr(sys, "getobjects"):
                 self.assertRaises(WindowsError, windll.kernel32.GetModuleHandleA, 32)
 
-        # TODO: Add tests for passing structures (and unions?) by value.
+class Structures(unittest.TestCase):
+
         def test_struct_by_value(self):
-            from ctypes.wintypes import POINT, RECT
+            class POINT(Structure):
+                _fields_ = [("x", c_long),
+                            ("y", c_long)]
+
+            class RECT(Structure):
+                _fields_ = [("left", c_long),
+                            ("top", c_long),
+                            ("right", c_long),
+                            ("bottom", c_long)]
+
+            import _ctypes_test
+            dll = CDLL(_ctypes_test.__file__)
 
             pt = POINT(10, 10)
             rect = RECT(0, 0, 20, 20)
-            self.failUnlessEqual(True, windll.user32.PtInRect(byref(rect), pt))
+            self.failUnlessEqual(True, dll.PointInRect(byref(rect), pt))
 
 if __name__ == '__main__':
     unittest.main()
