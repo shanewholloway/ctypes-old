@@ -9,11 +9,9 @@ Python, and to call functions in dynamic link libraries/shared
 dlls. It allows wrapping these libraries in pure Python.
 """
 
-from __future__ import generators
-
 LIBFFI_SOURCES='source/gcc/libffi'
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 ################################################################
 
