@@ -298,7 +298,7 @@ class ITypeInfo(IUnknown):
         self.__com_GetImplTypeFlags(index, byref(flags))
         return flags.value
 
-    def GetIDsOfNames(self, names):
+    def GetIDsOfNames(self, *names):
         "Maps function and argument names to identifiers"
         rgsznames = (c_wchar_p * len(names))(*names)
         ids = (MEMBERID * len(names))()
