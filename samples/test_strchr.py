@@ -1,10 +1,13 @@
 from ctypes import c_char, c_string, byref, cdll, c_int
 
-import os
+import os, sys
 if os.name == "nt":
     strchr = cdll.msvcrt.strchr
 elif os.name == "posix":
-    strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
+    if sys.platform == "darwin":
+        strchr = cdll.LoadLibrary("/usr/lib/libc.dylib").strchr
+    else:
+        strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
 
 strchr.restype = "z"
 

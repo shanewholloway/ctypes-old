@@ -23,11 +23,15 @@ class tm(Structure):
             else:
                 print "%s%30s: %r" % (indent, name, val)
         print
-import os
+
+import os, sys
 if os.name == "nt":
     clib = cdll.msvcrt
 elif os.name == "posix":
-    clib = cdll.LoadLibrary("/lib/libc.so.6")
+    if sys.platform == "darwin":
+        clib = cdll.LoadLibrary("/usr/lib/libc.dylib")
+    else:
+        clib = cdll.LoadLibrary("/lib/libc.so.6")
 
 def test_time():
     # Assigning argtypes to a function retrieves the 'from_param' attribute

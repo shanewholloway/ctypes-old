@@ -10,7 +10,7 @@ dynamic link libraries."""
 from distutils.core import setup, Extension, Command
 import distutils.core
 
-import os
+import os, sys
 
 kw = {}
 kw["sources"] = ["source/_ctypes.c",
@@ -30,8 +30,16 @@ if os.name == "nt":
                             **kw)
                   ]
 else:
+    include_dirs = []
+    extra_link_args = []
+    if sys.platform == "darwin":
+        sources.append("source/darwin/dlfcn_simple.c")
+        extra_link_args.extend(['-read_only_relocs', 'warning'])
+
     extensions = [Extension("_ctypes",
                             libraries=["ffi"],
+                            include_dirs=include_dirs,
+                            extra_link_args=extra_link_args,
                             **kw),
                   ]
 

@@ -2,7 +2,7 @@
 
 from ctypes import cdll, POINTER
 
-import os
+import os, sys
 if os.name == "nt":
     libc = cdll.msvcrt
     printf = libc.printf
@@ -13,11 +13,15 @@ if os.name == "nt":
     msvcrt = cdll.msvcrt
     
 elif os.name == "posix":
-    libc = cdll.LoadLibrary("/lib/libc.so.6")
+    if sys.platform == "darwin":
+        libc = cdll.LoadLibrary("/usr/lib/libc.dylib")
+        libmath = cdll.LoadLibrary("/usr/lib/libm.dylib")
+    else:
+        libc = cdll.LoadLibrary("/lib/libc.so.6")
+        libmath = cdll.LoadLibrary("/lib/libm.so.6")
     printf = libc.printf
     sscanf = libc.sscanf
     snprintf = libc.snprintf
-    libmath = cdll.LoadLibrary("/lib/libm.so.6")
 
 from ctypes import Structure, c_int, c_double, c_float, c_string, byref
 
