@@ -23,9 +23,9 @@
 # endif
 #endif
 
-typedef struct _tagITEM {
+typedef union _tagITEM {
 	ffi_closure closure;
-	struct _tagITEM *next;
+	union _tagITEM *next;
 } ITEM;
 
 static ITEM *free_list;
@@ -45,7 +45,6 @@ static void more_core(void)
 	}
 #else
 	if (!_pagesize) {
-//		_pagesize = sysconf(_SC_PAGESIZE);
 		_pagesize = getpagesize();
 	}
 #endif
