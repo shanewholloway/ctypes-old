@@ -55,8 +55,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 			    int stdcall);
 
 
-staticforward PyTypeObject callbackobject_type;
-
 #ifdef MS_WIN32
 staticforward THUNK AllocCallback(PyObject *callable,
 				  int nArgBytes,
@@ -72,49 +70,6 @@ static int __stdcall CallPythonVTableEntry(PyObject *callable,
 static int __stdcall CallPythonObject(PyObject *callable,
 				      PyObject *converters,
 				      void **pArgs);
-
-typedef struct {
-	PyObject_HEAD
-	PyObject *callable;		/* python callable object */
-	PyObject *converters;		/* sequence of converters */
-	THUNK callback;			/* C function pointer */
-} callbackobject;
-
-
-static PyObject *callback_getattr(callbackobject *self, char *name)
-{
-	if (strcmp(name, "_as_parameter_") == 0)
-		return Py_BuildValue("i", self->callback);
-	PyErr_SetString(PyExc_AttributeError, name);
-	return NULL;
-}
-
-/********************************************************************************
- *
- * callback objects: creation, destruction
- */
-static void callback_dealloc(callbackobject *obj)
-{
-	Py_XDECREF(obj->callable);
-	Py_XDECREF(obj->converters);
-	free(obj->callback);
-	PyObject_DEL(obj);
-}
-
-static PyTypeObject callbackobject_type = {
-	PyObject_HEAD_INIT(NULL)
-	0,					// ob_size
-	"CallbackObject",			// tp_name
-	sizeof(callbackobject),			// tp_size
-	0,					// tp_itemsize
-	(destructor) callback_dealloc,		// tp_dealloc
-	0,					// tp_print
-	(getattrfunc) callback_getattr,		// tp_getattr
-	0,					// tp_setattr
-	0,					// tp_compare
-	0,					// tp_repr
-	0,					// tp_as_number
-};
 
 static void
 PrintError(char *msg, ...)
