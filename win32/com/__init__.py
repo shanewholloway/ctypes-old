@@ -100,7 +100,7 @@ class _interface_meta(type(Structure)):
         result = type(Structure).__new__(cls, name, bases, kwds)
         result.VTable_ptr = VTable_ptr
         if kwds.has_key("_methods_"):
-            self._init_class()
+            cls._init_class()
         return result
 
     def __make_vtable(self):
@@ -154,7 +154,7 @@ PIUnknown = POINTER(IUnknown)
 # Custom argument checking function for POINTER(PIUnknown)
 _PyCArgType = type(byref(c_int()))
 from ctypes import _Pointer
-def from_param(self_, obj):
+def from_param(self, obj):
     # We accept two types of arguments here:
     # - pointer to pointer to an instance of an IUnknown (sub)class
     # - PyCArgObjects containing pointer to an instance of an IUnknown (sub)class
@@ -214,7 +214,7 @@ class COMObject:
         for i, itf in self._com_pointers_:
             if i == iid:
                 # *ppiunk = &itf
-                from ctypes import addressof, c_voidp
+                from ctypes import addressof
                 addr = c_voidp.from_address(addressof(ppiunk)).value
                 comptr = addressof(itf)
                 c_voidp.from_address(addr).value = comptr
