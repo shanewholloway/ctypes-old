@@ -55,7 +55,10 @@ class CallbacksTestCase(unittest.TestCase):
         integrate.argtypes = (c_double, c_double, CALLBACK, c_long)
         integrate.restype = c_double
 
+        import sys
+
         def func(x):
+            print >> sys.stderr, "func got", x
             return x**2
 
         result = integrate(0.0, 1.0, CALLBACK(func), 10)
