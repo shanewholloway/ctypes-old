@@ -3418,6 +3418,24 @@ EXPORT  int getSPAMANDEGGS(EGG **eggs)
 	return 1;
 }
 
+#ifdef CAN_PASS_BY_VALUE
+typedef struct tagpoint {
+	int x;
+	int y;
+} point;
+
+EXPORT int _testfunc_byval(point in, point *pout)
+{
+	static point buf;
+	if (pout) {
+		pout->x = in.x;
+		pout->y = in.y;
+	}
+	return in.x + in.y;
+}
+
+#endif
+
 /*
  Local Variables:
  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"

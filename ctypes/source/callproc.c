@@ -428,6 +428,17 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 		return parm;
 	}
 #endif
+#ifdef CAN_PASS_BY_VALUE
+	if (CDataObject_Check(obj)) {
+		CDataObject *mem = (CDataObject *)obj;
+		parm->tag = 'V';
+		parm->value.p = mem->b_ptr;
+		parm->size = mem->b_size;
+		Py_INCREF(obj);
+		parm->obj = obj;
+		return parm;
+	}
+#endif
 	{
 		PyObject *arg;
 		arg = PyObject_GetAttrString(obj, "_as_parameter_");
@@ -719,6 +730,27 @@ static int _call_function_pointer(int flags,
 			push(parms[i]->value.p);
 			argbytes += sizeof(void *);
 			break;
+#ifdef CAN_PASS_BY_VALUE
+		case 'V':
+		{
+			int n;
+			int *p;
+#ifdef _DEBUG
+			_asm int 3;
+#endif			
+			n = parms[i]->size;
+			if (n % sizeof(int))
+				n += sizeof(int);
+			n /= sizeof(int);
+			n -= 1;
+			p = (int *)parms[i]->value.p;
+			while (n >= 0) {
+				push(p[n--]);
+				argbytes += sizeof(int);
+			}
+		}
+		break;
+#endif
 		default:
 			PyErr_Format(PyExc_ValueError,
 				     "BUG: Invalid format tag '%c' for argument",
