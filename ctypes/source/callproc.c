@@ -1032,10 +1032,11 @@ void Extend_Error_Info(char *fmt, ...)
 	if (msg) {
 		PyString_ConcatAndDel(&s, msg);
 		Py_DECREF(v);
-		v = s;
-	} else
+		PyErr_Restore(tp, s, tb);
+	} else {
 		PyErr_Clear();
-	PyErr_Restore(tp, v, tb);
+		PyErr_Restore(tp, v, tb);
+	}
 }
 
 /*
