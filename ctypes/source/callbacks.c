@@ -190,7 +190,8 @@ static void _CallPythonObject(void *mem,
 		}
 
 		if (dict && dict->getfunc) {
-			PyObject *v = dict->getfunc(*pArgs, dict->size);
+			PyObject *v = dict->getfunc(*pArgs, dict->size,
+						    cnv, NULL, 0);
 			if (!v) {
 				PrintError("create argument %d:\n", i);
 				goto Done;

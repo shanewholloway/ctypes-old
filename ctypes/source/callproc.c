@@ -706,7 +706,8 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 	StgDictObject *dict;
 
 	if (restype == NULL) {
-		return getentry("i")->getfunc(result, sizeof(int));
+		return getentry("i")->getfunc(result, sizeof(int),
+					      NULL, NULL, 0);
 	}
 
 	if (restype == Py_None) {
@@ -765,24 +766,29 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		switch (dict->size) {
 		case 1:
 			c = (char)*(long *)result;
-			retval = dict->getfunc(&c, dict->size);
+			retval = dict->getfunc(&c, dict->size,
+					       restype, NULL, 0);
 			break;
 		case SIZEOF_SHORT:
 			s = (short)*(long *)result;
-			retval = dict->getfunc(&s, dict->size);
+			retval = dict->getfunc(&s, dict->size,
+					       restype, NULL, 0);
 			break;
 		case SIZEOF_INT:
 			i = (int)*(long *)result;
-			retval = dict->getfunc(&i, dict->size);
+			retval = dict->getfunc(&i, dict->size,
+					       restype, NULL, 0);
 			break;
 #if (SIZEOF_LONG != SIZEOF_INT)
 		case SIZEOF_LONG:
 			l = (long)*(long *)result;
-			retval = dict->getfunc(&l, dict->size);
+			retval = dict->getfunc(&l, dict->size,
+					       restype, NULL, 0);
 			break;
 #endif
 		default:
-			retval = dict->getfunc(result, dict->size);
+			retval = dict->getfunc(result, dict->size,
+					       restype, NULL, 0);
 			break;
 		}
 		if (retval == NULL)
