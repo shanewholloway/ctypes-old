@@ -1965,7 +1965,11 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	objects = CData_GetList(mem);
 	if (!objects)
 		return -1;
-
+	if (index < 0 || PyList_Size(objects) <= index) {
+		PyErr_SetString(PyExc_IndexError,
+				"invalid index");
+		return -1;
+	}
 	result = _CData_set(mem, type, setfunc, value,
 			    size, ptr);
 	if (result == NULL)
