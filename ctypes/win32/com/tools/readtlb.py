@@ -454,7 +454,7 @@ class CoClassReader(TypeInfoReader):
         l.append("class %s(COMObject):" % self.name)
         if self.docstring:
             l.append('    """%s"""' % self.docstring)
-        l.append("    _regclsid_ = %r" % self.guid)
+        l.append("    _reg_clsid_ = %r" % self.guid)
 
         interfaces = ", ".join(self.interfaces)
         l.append("    _com_interfaces_ = [%s]" % interfaces)
@@ -466,10 +466,10 @@ class CoClassReader(TypeInfoReader):
         return "\n".join(l)
 
 HEADER = r"""
-##################################################################
-# NOTE: This is a GENERATED file. Please do not make changes,    #
-# they will probably be overwritten next time it is regenerated. #
-##################################################################
+###############################################################
+# NOTE: This is a GENERATED file. Please do not make changes, #
+# they will be overwritten next time it is regenerated.       #
+###############################################################
 
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT
