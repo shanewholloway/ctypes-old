@@ -1,0 +1,9 @@
+*.pdb
+*.pyc
+*.pyo
+*.tlb
+*.zip
+MANIFEST
+archive
+build
+dist
