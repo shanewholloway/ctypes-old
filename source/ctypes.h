@@ -109,6 +109,7 @@ extern void init_callbacks_in_module(PyObject *m);
 extern THUNK AllocFunctionCallback(PyObject *callable,
 				   int nArgBytes,
 				   PyObject *converters,
+				   PyObject *restype,
 				   int stdcall);
 extern void FreeCallback(THUNK);
 
