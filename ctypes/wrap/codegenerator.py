@@ -2,12 +2,11 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.2  2005/02/04 18:04:24  theller
+# The code generator now assumes decorators are present in the ctypes module.
+#
 # Revision 1.1  2005/02/04 17:01:24  theller
 # Moved the code generation stuff from the sandbox to it's final location.
-#
-# Revision 1.49  2005/02/04 08:14:29  theller
-# Oops.
-#
 #
 
 import typedesc, sys
@@ -494,14 +493,6 @@ class Generator(object):
         print >> self.imports, "from comtypes import STDMETHOD"
         self._STDMETHOD_defined = True
 
-    _decorators_defined = False
-    def need_decorators(self):
-        if self._decorators_defined:
-            return "decorators"
-        print >> self.imports, "from ctypes import decorators"
-        self._decorators_defined = True
-        return "decorators"
-
     _functiontypes = 0
     _notfound_functiontypes = 0
     def Function(self, func):
@@ -510,11 +501,10 @@ class Generator(object):
             self.generate(func.returns)
             self.generate_all(func.arguments)
             args = [self.type_name(a) for a in func.arguments]
-            prefix = self.need_decorators()
             if "__stdcall__" in func.attributes:
-                cc = "%s.stdcall" % prefix
+                cc = "stdcall"
             else:
-                cc = "%s.cdecl" % prefix
+                cc = "cdecl"
             libname = self.get_sharedlib(dllname)
             print >> self.stream
             if self.use_decorators:
