@@ -1531,7 +1531,6 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	StgDictObject *dict;
 	char *fmt;
 	PyCArgObject *parg;
-	struct fielddesc *fd;
 
 	/* If the value is already an instance of the requested type,
 	   we can use it as is */
@@ -1541,22 +1540,17 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	}
 
 	dict = PyType_stgdict(type);
-	assert(dict);
 
-	/* I think we can rely on this being a one-character string */
-	fmt = PyString_AsString(dict->proto);
-	assert(fmt);
-	
-	fd = getentry(fmt);
-	assert(fd);
-	
 	parg = new_CArgObject();
 	if (parg == NULL)
 		return NULL;
 
+	/* We should get rid of the tag member, probably */
+	fmt = PyString_AsString(dict->proto);
 	parg->tag = fmt[0];
-	parg->pffi_type = fd->pffi_type;
-	parg->obj = fd->setfunc(&parg->value, value, 0, type);
+	parg->pffi_type = &dict->ffi_type;
+
+	parg->obj = dict->setfunc(&parg->value, value, 0, type);
 	if (parg->obj == NULL) {
 		Py_DECREF(parg);
 		return NULL;
