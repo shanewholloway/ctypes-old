@@ -225,7 +225,7 @@ extern PyObject *ToPython(void *, char tag);
 
 extern PyObject *
 CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
-	  int index, int offset, int size);
+	  int index, int size, char *ptr);
 
 extern int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,

@@ -1297,13 +1297,19 @@ PyTypeObject CData_Type = {
  */
 
 static PyObject *
-CData_FromBaseObj(PyObject *type, CDataObject *base, int index, char *adr)
+CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 {
 	struct basespec spec;
 	PyObject *cobj;
 	PyObject *mem;
 	PyObject *args, *kw;
 	CDataObject *cd;
+
+	if (base && !CDataObject_Check(base)) {
+		PyErr_SetString(PyExc_TypeError,
+				"expected a ctype type");
+		return NULL;
+	}
 
 	spec.base = (CDataObject *)base;
 	spec.adr = adr;
@@ -1335,25 +1341,14 @@ CData_AtAddress(PyObject *type, void *buf)
 
 PyObject *
 CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
-	  int index, int offset, int size)
+	  int index, int size, char *adr)
 {
-	CDataObject *mem;
-	StgDictObject *dict;
-	char *adr;
-
-	if (!CDataObject_Check(src)) {
-		PyErr_SetString(PyExc_TypeError,
-				"not a ctype instance");
-		return NULL;
-	}
-	mem = (CDataObject *)src;
-	adr = mem->b_ptr + offset;
-
 	if (type) {
+		StgDictObject *dict;
 		dict = PyType_stgdict(type);
 		if (dict && dict->getfunc)
 			return dict->getfunc(adr, dict->size);
-		return CData_FromBaseObj(type, mem, index, adr);
+		return CData_FromBaseObj(type, src, index, adr);
 	}
 	return getfunc(adr, size);
 }
@@ -2171,7 +2166,7 @@ Array_item(CDataObject *self, int index)
 	offset = index * size;
 
 	return CData_get(stgdict->proto, stgdict->getfunc, (PyObject *)self,
-			 index, offset, size);
+			 index, size, self->b_ptr + offset);
 }
 
 static int
