@@ -3068,46 +3068,46 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 				"args not a tuple?");
 		return -1;
 	}
-	if (PyTuple_GET_SIZE(args) == 0)
-		return 0; /* no initializers: nothing to do */
-	fields = PyObject_GetAttrString(self, "_fields_");
-	if (!fields) {
-		PyErr_Clear();
-		fields = PyTuple_New(0);
-	}
-
-	if (PyTuple_GET_SIZE(args) > PySequence_Length(fields)) {
-		Py_DECREF(fields);
-		PyErr_SetString(PyExc_ValueError,
-				"too many initializers");
-		return -1;
-	}
-
-	for (i = 0; i < PyTuple_GET_SIZE(args); ++i) {
-		PyObject *pair = PySequence_GetItem(fields, i);
-		PyObject *name;
-		PyObject *val;
-		if (!pair) {
-			Py_DECREF(fields);
-			return IBUG("_fields_[i] failed");
+	if (PyTuple_GET_SIZE(args)) {
+		fields = PyObject_GetAttrString(self, "_fields_");
+		if (!fields) {
+			PyErr_Clear();
+			fields = PyTuple_New(0);
 		}
 
-		name = PySequence_GetItem(pair, 0);
-		if (!name) {
+		if (PyTuple_GET_SIZE(args) > PySequence_Length(fields)) {
 			Py_DECREF(fields);
-			return IBUG("_fields_[i][0] failed");
-		}
-
-		val = PyTuple_GET_ITEM(args, i);
-		if (-1 == PyObject_SetAttr(self, name, val)) {
-			Py_DECREF(fields);
+			PyErr_SetString(PyExc_ValueError,
+					"too many initializers");
 			return -1;
 		}
 
-		Py_DECREF(name);
-		Py_DECREF(pair);
+		for (i = 0; i < PyTuple_GET_SIZE(args); ++i) {
+			PyObject *pair = PySequence_GetItem(fields, i);
+			PyObject *name;
+			PyObject *val;
+			if (!pair) {
+				Py_DECREF(fields);
+				return IBUG("_fields_[i] failed");
+			}
+
+			name = PySequence_GetItem(pair, 0);
+			if (!name) {
+				Py_DECREF(fields);
+				return IBUG("_fields_[i][0] failed");
+			}
+
+			val = PyTuple_GET_ITEM(args, i);
+			if (-1 == PyObject_SetAttr(self, name, val)) {
+				Py_DECREF(fields);
+				return -1;
+			}
+
+			Py_DECREF(name);
+			Py_DECREF(pair);
+		}
+		Py_DECREF(fields);
 	}
-	Py_DECREF(fields);
 
 	if (kwds) {
 		PyObject *key, *value;
