@@ -230,13 +230,12 @@ CField_FromDesc(PyObject *desc, int index,
 	setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
 #endif
 
-	/* Currently, dict->getfunc is only != NULL for SimpleCData types.
-	   If we would set it for array types, we could get rid of the
-	   following code block.
-	 */
 	/*  Field descriptors for 'c_char * n' are be special cased to
 	    return a Python string instead of an Array object instance...
 	*/
+	/* Special case setfunc for c_char and c_wchar arrays.  We can remove
+	   this code once we have setfunc correct for arrays.
+	 */
 	if (ArrayTypeObject_Check(desc)) {
 		StgDictObject *adict = PyType_stgdict(desc);
 		StgDictObject *idict;
@@ -244,13 +243,11 @@ CField_FromDesc(PyObject *desc, int index,
 			idict = PyType_stgdict(adict->proto);
 			if (idict->getfunc == getentry("c")->getfunc) {
 				struct fielddesc *fd = getentry("s");
-				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
 #ifdef CTYPES_UNICODE
 			if (idict->getfunc == getentry("u")->getfunc) {
 				struct fielddesc *fd = getentry("U");
-				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
 #endif
