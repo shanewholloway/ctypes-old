@@ -182,7 +182,7 @@ StructUnion_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 static int
 StructUnion_asparam(CDataObject *self, struct argument *pa)
 {
-	StgDictObject *dict = PyObject_stgdict(self);
+	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	pa->ffi_type = &dict->ffi_type;
 	pa->value.p = self->b_ptr;
 	Py_INCREF(self);
@@ -777,73 +777,66 @@ CharArray_get_value(CDataObject *self)
 	return PyString_FromStringAndSize(self->b_ptr, i);
 }
 
+/* Returns number of characters copied.  -1 on error, -2 when value is not a
+   string or unicode object.
+*/
 static int
-CharArray_set_value(CDataObject *self, PyObject *value)
+Store_EncodedString(char *ptr, PyObject *value, unsigned size)
 {
-	char *ptr;
-	int size;
-
-	if (PyUnicode_Check(value)) {
-		value = PyUnicode_AsEncodedString(value,
-						  conversion_mode_encoding,
-						  conversion_mode_errors);
-		if (!value)
-			return -1;
-	} else if (!PyString_Check(value)) {
-		PyErr_Format(PyExc_TypeError,
-			     "string expected instead of %s instance",
-			     value->ob_type->tp_name);
-		return -1;
-	} else
-		Py_INCREF(value);
-	size = PyString_GET_SIZE(value);
-	if (size > self->b_size) {
-		PyErr_SetString(PyExc_ValueError,
-				"string too long");
-		Py_DECREF(value);
-		return -1;
-	}
-
-	ptr = PyString_AS_STRING(value);
-	memcpy(self->b_ptr, ptr, size);
-	if (size < self->b_size)
-		self->b_ptr[size] = '\0';
-	Py_DECREF(value);
-
-	return 0;
-}
-
-/* DRY: This function should be refactored with CharArray_set_value */
-static PyObject *
-CharArray_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
-{
+	unsigned len;
 	if (PyUnicode_Check(value)) {
 		value = PyUnicode_AsEncodedString(value,
 						  conversion_mode_encoding,
 						  conversion_mode_errors);
 		if (value == NULL)
-			return NULL;
-	} else
+			return -1;
+	} else if (PyString_Check(value)) {
 		Py_INCREF(value);
-	if (PyString_Check(value)) {
-		char *data = PyString_AS_STRING(value);
-		unsigned len = PyString_GET_SIZE(value);
-		if (len < size)
-			++len; /* try to copy the terminating NUL if there is space */
-		else if (len > size) {
-			Py_DECREF(value);
-			PyErr_Format(PyExc_ValueError,
-				     "string too long (%d, maximum length %d)",
-				     size, len);
-			return NULL;
-		}
-		memcpy(ptr, data, size);
+	} else
+		return -2;
+	len = PyString_GET_SIZE(value);
+	if (len < size)
+		++len; /* We'll copy the terminating NUL if there is space */
+	else if (len > size) {
 		Py_DECREF(value);
-		Py_INCREF(Py_None);
-		return Py_None;
+		PyErr_Format(PyExc_ValueError,
+			     "string too long (%d, maximum length %d)",
+			     size, len);
+		return -1;
 	}
+	memcpy(ptr, PyString_AS_STRING(value), len);
 	Py_DECREF(value);
-	return StructUnion_setfunc(ptr, value, size, type);
+	return len;
+}
+
+static int
+CharArray_set_value(CDataObject *self, PyObject *value)
+{
+	int result = Store_EncodedString(self->b_ptr,
+					 value,
+					 self->b_size);
+	if (result == -1)
+		return -1;
+	if (result == -2) {
+		PyErr_Format(PyExc_TypeError,
+			     "string expected instead of %s instance",
+			     value->ob_type->tp_name);
+		return -1;
+	}
+	return 0;
+}
+
+static PyObject *
+CharArray_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
+{
+	int result = Store_EncodedString(ptr, value, size);
+	if (result == -1)
+		return NULL;
+	if (result == -2) {
+		return StructUnion_setfunc(ptr, value, size, type);
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
