@@ -184,10 +184,12 @@ class IUnknown(object):
         STDMETHOD(c_ulong, "Release")
     ]
 
-    def QueryInterface(self, interface):
+    def QueryInterface(self, interface, iid=None):
         "QueryInterface(klass) -> instance"
         p = POINTER(interface)()
-        self.__com_QueryInterface(byref(interface._iid_), byref(p))
+        if iid is None:
+            iid = interface._iid_
+        self.__com_QueryInterface(byref(iid), byref(p))
         return p
 
     def AddRef(self):
