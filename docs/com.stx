@@ -1,0 +1,12 @@
+ctypes.com
+
+  "overview":overview.html :: "tutorial":tutorial.html ::
+  "reference":reference.html :: "faq":faq.html
+
+  ( Work in progress: COM :: "COM sample":sum_sample.html )
+
+  **Warning: work in progress**
+
+  The ctypes COM framework
+
+    On Windows, the 'ctypes' distribution contains a simple COM framework.

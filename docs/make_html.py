@@ -74,15 +74,18 @@ def main():
         children = doc.getChildNodes()
         title = children[0].getChildNodes()[0].getNodeValue()
 
+        pathname = f.replace('.stx','.html')
+        basename = os.path.splitext(pathname)[0]
+
         header = '''\
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <head>
     <meta HTTP-EQUIV="content-type" CONTENT="text/html; charset=ISO-8859-1">
-<title>%s</title>
+<title>%(title)s</title>
     <link rel="STYLESHEET" href="default.css">
   </head>
-<body>\n''' % title
+<body>\n''' % locals()
 
         counter = '''
 <!--WEBBOT bot="HTMLMarkup" startspan ALT="Site Meter" -->
@@ -109,7 +112,6 @@ width="88" height="31" border="0" alt="SourceForge.net Logo">
 <small>Page updated: %s</small>
 </body></html>
 '''
-        pathname = f.replace('.stx','.html')
         outfile = open(pathname, "w")
         outfile.write(header)
         outfile.write(html)

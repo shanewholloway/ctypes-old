@@ -1,6 +1,9 @@
 ctypes tutorial
 
-  "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
+  "overview":overview.html :: tutorial ::
+  "reference":reference.html :: "faq":faq.html
+
+  ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
 
   This tutorial describes version 0.6.1 of 'ctypes'. There have been
   quite some changes to previous versions, the most important are

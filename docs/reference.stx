@@ -1,6 +1,9 @@
-CType types and instances
+ctypes reference
 
-  "ctypes home":../ctypes.html :: "tutorial":tutorial.html :: reference :: "faq":faq.html
+  "overview":overview.html :: "tutorial":tutorial.html ::
+  reference :: "faq":faq.html
+
+  ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
 
   Common operations on CType instances
 
