@@ -1,24 +1,15 @@
-from ctypes.com import IUnknown, PIUnknown, COMObject, ole32, \
-     GUID, HRESULT, STDMETHOD, REFIID
-from ctypes.com.automation import IDispatch, oleaut32
+import _winreg, sys
 from ctypes import *
+from ctypes.wintypes import DWORD
+from ctypes.com import IUnknown, COMObject, ole32, \
+     GUID, HRESULT, STDMETHOD, REFIID, CLSCTX_INPROC_SERVER, CLSCTX_LOCAL_SERVER
+from ctypes.com.hresult import *
+from ctypes.com.w_getopt import w_getopt
+from ctypes.com.register import register, unregister
 
 user32 = windll.user32
-kernel32 = windll.kernel32
-
-S_OK = 0
-E_NOTIMPL = 0x80004001
-E_NOINTERFACE = 0x80004002
-
-DWORD = c_ulong
-
-CLASS_E_NOAGGREGATION = 0x80040110
-CLASS_E_CLASSNOTAVAILABLE = 0x80040111
 
 EXTCONN_STRONG = 0x0001
-
-CLSCTX_INPROC_SERVER = 0x1
-CLSCTX_LOCAL_SERVER = 0x4
 
 REGCLS_SINGLEUSE         = 0
 REGCLS_MULTIPLEUSE       = 1
@@ -43,12 +34,14 @@ class IExternalConnection(IUnknown):
 
 ################################################################
 
+# XXX Replace by the python 2.3 logging module?
 def dprint(*args):
     parts = [str(arg) for arg in args] + ["\n"]
-    kernel32.OutputDebugStringA(" ".join(parts))
+    windll.kernel32.OutputDebugStringA(" ".join(parts))
+
+################################################################
 
 def inproc_find_class(clsid):
-    import _winreg, sys
     key = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s\\InprocServer32" % clsid)
     try:
         pathdir = _winreg.QueryValueEx(key, "PythonPath")[0]
@@ -57,27 +50,12 @@ def inproc_find_class(clsid):
     else:
         if not pathdir in sys.path:
             sys.path.insert(0, str(pathdir))
-##            dprint("appended %s to sys.path" % pathdir)
-##            dprint("SYS.PATH", sys.path)
     pythonclass = _winreg.QueryValueEx(key, "PythonClass")[0]
     parts = pythonclass.split(".")
     modname = ".".join(parts[:-1])
     classname = parts[-1]
     __import__(modname)
     mod = sys.modules[modname]
-##    dprint("imported", mod)
-
-    # It was a nice idea to 'reload' the module, so that during
-    # debugging we would always run uptodate versions of the code.
-    # The problem is that super(type, obj) sometimes doesn't work
-    # correctly anymore because 'obj' would not be an instance of
-    # 'type' anymore.
-    #
-    # So, unfortuately, we cannot use this.
-##    if __debug__:
-##        reload(mod)
-
-##    dprint("returning", getattr(mod, classname))
     return getattr(mod, classname)
 
 def DllGetClassObject(rclsid, riid, ppv):
@@ -87,11 +65,9 @@ def DllGetClassObject(rclsid, riid, ppv):
     # interface.
     iid = GUID.from_address(riid)
     clsid = GUID.from_address(rclsid)
-    p = PIUnknown.from_address(ppv)
 
     # Use the clsid to find additional info in the registry.
     cls = inproc_find_class(clsid)
-##    dprint("DllGetClassObject", clsid, cls)
 
     # XXX Hm, does inproc_findclass return None, or raise an Exception?
     if not cls:
@@ -106,11 +82,14 @@ def DllGetClassObject(rclsid, riid, ppv):
     obj.AddRef()
 
     # QueryInterface, if successful, increments the refcount itself.
+    p = POINTER(IUnknown).from_address(ppv)
     return obj.QueryInterface(byref(iid), byref(p))
 
-S_FALSE = 0x00000001
-S_OK = 0x00000000
-
+# XXX
+#
+# COMObject should probably insert itself into _active_objects in its
+# __init__ method, and remove it again if the refcount falls to zero
+# again.
 _active_objects = []
 g_locks = 0
 
@@ -120,7 +99,7 @@ def DllCanUnloadNow():
         dprint("* DllCanUnloadNow -> S_FALSE", _active_objects)
         return S_FALSE
     else:
-        dprint("* DllCanUnloadNow -> S_OK")
+        dprint("* DllCanUnloadNow -> S_OK", _active_objects)
         return S_OK
     # Hm Call ole32.CoUnitialize here?
 
@@ -130,10 +109,8 @@ class _ClassFactory(COMObject):
     _com_interfaces_ = [IClassFactory]
 
     def __init__(self, objclass):
-        COMObject.__init__(self)
-        for itf in self._com_interfaces_:
-            self._make_interface_pointer(itf)
         self.objclass = objclass
+        super(_ClassFactory, self).__init__()
 
     # IClassFactory methods
 
@@ -242,9 +219,6 @@ def localserver(objclass):
     factory._revoke_class()
 
 def UseCommandLine(cls):
-    import sys
-    from ctypes.com.w_getopt import w_getopt
-    from ctypes.com.register import register, unregister
     opts, args = w_getopt(sys.argv[1:], "regserver unregserver embedding".split())
     if not opts:
         return 0 # nothing for us to do

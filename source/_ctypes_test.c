@@ -1,6 +1,4 @@
 #include <Python.h>
-
-#include <ffi.h>
 #include "ctypes.h"
 
 #ifdef MS_WIN32
@@ -154,26 +152,6 @@ EXPORT(int) _testfunc_callback_i_if(int value, int (*func)(int))
 	return sum;
 }
 
-EXPORT(int) _testfunc_callback_i_iif(int value, int (*func)(int, int))
-{
-	int sum = 0;
-	while (value != 0) {
-		sum += func(value, value*2);
-		value /= 2;
-	}
-	return sum;
-}
-
-EXPORT(int) _testfunc_stdcall_callback_i_iif(int value, int (__stdcall *func)(int, int))
-{
-	int sum = 0;
-	while (value != 0) {
-		sum += func(value, value*2);
-		value /= 2;
-	}
-	return sum;
-}
-
 EXPORT(PY_LONG_LONG) _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
 {
 	PY_LONG_LONG sum = 0;
@@ -259,16 +237,8 @@ EXPORT(double)
 integrate(double a, double b, double (*f)(double), long nstep)
 {
 	double x, sum=0.0, dx=(b-a)/(double)nstep;
-/*
-	fprintf(stderr, "\nintegrate got %f %f %ld\n",
-		a, b, nstep);
-*/
-	for(x=a+0.5*dx; (b-x)*(x-a)>0.0; x+=dx) {
-		double result = f(x);
-/*		fprintf(stderr, "called f(%f) -> %f\n", x, result);*/
-		sum += result;
-	}
-/*	fprintf(stderr, "\nintegrate returns %f\n", sum/(double)nstep);*/
+	for(x=a+0.5*dx; (b-x)*(x-a)>0.0; x+=dx)
+		sum += f(x);
 	return sum/(double)nstep;
 }
 

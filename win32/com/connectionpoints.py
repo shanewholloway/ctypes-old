@@ -1,9 +1,6 @@
 # connect.py - ConnectionPoint support
-from ctypes import POINTER, c_ulong, Structure, c_voidp, pointer, byref
-from ctypes.com import IUnknown, GUID, REFIID, STDMETHOD, HRESULT
-
-################
-
+from ctypes import *
+from ctypes.com import IUnknown, GUID, REFIID, STDMETHOD, HRESULT, COMObject
 from ctypes.wintypes import DWORD
 
 ################
@@ -31,13 +28,14 @@ PIConnectionPoint = POINTER(IConnectionPoint)
 ################
 
 IEnumConnections._methods_ = IUnknown._methods_ + [
+    # MSDN docs get this wrong: the header files say it is LPCONNECTDATA, not a pointer to that.
     STDMETHOD(HRESULT, "Next", c_ulong, POINTER(CONNECTDATA), POINTER(c_ulong)),
     STDMETHOD(HRESULT, "Skip", c_ulong),
     STDMETHOD(HRESULT, "Reset"),
     STDMETHOD(HRESULT, "Clone", POINTER(PIEnumConnections))]
 
 IEnumConnectionPoints._methods_ = IUnknown._methods_ + [
-    STDMETHOD(HRESULT, "Next", c_ulong, POINTER(IConnectionPoint), POINTER(c_ulong)),
+    STDMETHOD(HRESULT, "Next", c_ulong, POINTER(POINTER(IConnectionPoint)), POINTER(c_ulong)),
     STDMETHOD(HRESULT, "Skip", c_ulong),
     STDMETHOD(HRESULT, "Reset"),
     STDMETHOD(HRESULT, "Clone", POINTER(PIEnumConnectionPoints))]
@@ -66,7 +64,6 @@ def GetConnectionPoint(comptr, event_interface):
 ################################################################
 # A Base class for events delivered to a dispinterface
 #
-from ctypes.com import COMObject
 
 class dispinterface_EventReceiver(COMObject):
     # We fake the reference counts...

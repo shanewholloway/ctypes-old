@@ -1,5 +1,7 @@
-from ctypes.com.server import CLSCTX_LOCAL_SERVER, CLSCTX_INPROC_SERVER
 import _winreg, sys, imp, os
+from ctypes import byref, POINTER
+from ctypes.com import GUID, CLSCTX_LOCAL_SERVER, CLSCTX_INPROC_SERVER
+from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx, TLIBATTR, oleaut32
 
 ################################################################
 # Registration
@@ -72,7 +74,7 @@ class Registrar(object):
                  ]
             
             table.extend(e)
-                
+            
         if self._reg_clsctx_ & CLSCTX_LOCAL_SERVER:
             if main_is_frozen():
                 exe = sys.executable
@@ -117,7 +119,6 @@ class Registrar(object):
                 register_typelib(lib.path)
 
 def register_typelib(path):
-    from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
     try:
         LoadTypeLibEx(path, REGKIND_REGISTER)
 ##        print "Registered Typelib", path
@@ -126,9 +127,6 @@ def register_typelib(path):
         traceback.print_exc()
 
 def unregister_typelib(path):
-    from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx, TLIBATTR, oleaut32
-    from ctypes.com import GUID
-    from ctypes import byref, POINTER
     try:
         tlib = LoadTypeLibEx(path, REGKIND_REGISTER)
         pta = POINTER(TLIBATTR)()
@@ -156,8 +154,8 @@ def unregister(*classes):
     for cls in classes:
         cls._get_registrar().unregister()
 
-if __name__ == '__main__':
-    import sys
-    sys.path.insert(0, "samples\\server")
-    import sum, ctypes.com.server
-    ctypes.com.server.UseCommandLine(sum.SumObject)
+if __debug__:
+    if __name__ == '__main__':
+        sys.path.insert(0, "samples\\server")
+        import sum, ctypes.com.server
+        ctypes.com.server.UseCommandLine(sum.SumObject)

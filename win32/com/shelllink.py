@@ -1,26 +1,7 @@
 # -*- coding: latin-1 -*-
-from ctypes.com import IUnknown, STDMETHOD, HRESULT, GUID
-
 from ctypes import *
-from ctypes.wintypes import WORD, DWORD, FILETIME
-
-LPSTR = LPCSTR = c_char_p
-LPWSTR = LPCWSTR = c_char_p
-HWND = c_ulong
-
-MAX_PATH = 260
-
-class WIN32_FIND_DATAA(Structure):
-    _fields_ = [("dwFileAttributes", DWORD),
-                ("ftCreationTime", FILETIME),
-                ("ftLastAccessTime", FILETIME),
-                ("ftLastWriteTime", FILETIME),
-                ("nFileSizeHigh", DWORD),
-                ("nFileSizeLow", DWORD),
-                ("dwReserved0", DWORD),
-                ("dwReserved1", DWORD),
-                ("cFileName", c_char * MAX_PATH),
-                ("cAlternameFileName", c_char * 14)]
+from ctypes.com import IUnknown, STDMETHOD, HRESULT, GUID, ole32
+from ctypes.wintypes import WORD, DWORD, FILETIME, LPSTR, LPCSTR, LPWSTR, LPCWSTR, HWND, WIN32_FIND_DATAA
 
 class SHITEMID(Structure):
     _fields_ = [("cb", c_ushort),
@@ -79,9 +60,9 @@ class IShellLinkW(IUnknown):
 
 if __debug__:
     if __name__ == "__main__":
-        from ctypes.com import *
         from ctypes.com.persist import IPersistFile
-        p = POINTER(IShellLinkW)()
+        from ctypes.com import CLSCTX_INPROC_SERVER
+        p = POINTER(IShellLinkA)()
         ole32.CoCreateInstance(byref(CLSID_ShellLink),
                                0,
                                CLSCTX_INPROC_SERVER,
@@ -96,5 +77,5 @@ if __debug__:
 
         pp = POINTER(IPersistFile)()
         p.QueryInterface(byref(IPersistFile._iid_), byref(pp))
-        print pp.Save(r"c:\XXX.lnk", True)
+        print pp.Save(ur"c:\XXX.lnk", True)
 

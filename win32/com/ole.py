@@ -1,25 +1,8 @@
+from ctypes import *
+from ctypes.wintypes import DWORD, MSG, SIZEL, RECTL, RECT, OLESTR, HDC
 from ctypes.com import IUnknown, STDMETHOD, HRESULT, GUID
 
-from ctypes import *
-from ctypes.wintypes import DWORD, MSG, RECT, OLESTR, HANDLE
-HDC = HANDLE
-
 BORDERWIDTHS = RECT
-
-class RECTL(Structure):
-    _fields_ = [("left", c_long),
-                ("top", c_long),
-                ("right", c_long),
-                ("bottom", c_long)]
-
-    def _get_height(self):
-        return self.bottom - self.top
-    height = property(_get_height)
-
-class SIZEL(Structure):
-    _fields_ = [("cx", c_long),
-                ("cy", c_long)]
-
 
 class IOleWindow(IUnknown):
     _iid_ = GUID("{00000114-0000-0000-C000-000000000046}")
@@ -49,7 +32,7 @@ IOleInPlaceActiveObject._methods_ = IOleWindow._methods_ + [
 
 
 # Fakes:
-void = c_int
+void = c_int # Can we use None instead? Seems so, but not yet tested...
 FORMATETC = c_int
 STGMEDIUM = c_int
 IMoniker = c_int

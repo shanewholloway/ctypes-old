@@ -24,6 +24,24 @@ class StringArrayTestCase(unittest.TestCase):
         self.assertRaises(ValueError, setattr, buf, "value", "aaaaaaaa")
         self.assertRaises(TypeError, setattr, buf, "value", 42)
 
+    def test_c_buffer_value(self):
+        buf = c_buffer(32)
+
+        buf.value = "Hello, World"
+        self.failUnlessEqual(buf.value, "Hello, World")
+
+        self.failUnlessRaises(TypeError, setattr, buf, "value", buffer("Hello, World"))
+        self.assertRaises(TypeError, setattr, buf, "value", buffer("abc"))
+        self.assertRaises(ValueError, setattr, buf, "raw", buffer("x" * 100))
+
+    def test_c_buffer_raw(self):
+        buf = c_buffer(32)
+
+        buf.raw = buffer("Hello, World")
+        self.failUnlessEqual(buf.value, "Hello, World")
+        self.assertRaises(TypeError, setattr, buf, "value", buffer("abc"))
+        self.assertRaises(ValueError, setattr, buf, "raw", buffer("x" * 100))
+
     def test_param_1(self):
         BUF = c_char * 4
         buf = BUF()

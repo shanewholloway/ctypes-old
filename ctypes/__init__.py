@@ -33,10 +33,10 @@ STDMETHOD_(type, name)
 STDAPICALLTYPE
 """
 
-def c_buffer(init, size=None):
-    """c_buffer(aString) -> character array
-    c_buffer(anInteger) -> character array
-    c_buffer(aString, anInteger) -> character array
+def create_string_buffer(init, size=None):
+    """create_string_buffer(aString) -> character array
+    create_string_buffer(anInteger) -> character array
+    create_string_buffer(aString, anInteger) -> character array
     """
     if isinstance(init, str):
         if size is None:
@@ -51,6 +51,31 @@ def c_buffer(init, size=None):
         return buf
     raise TypeError, init
 
+def create_unicode_buffer(init, size=None):
+    """create_unicode_buffer(aString) -> character array
+    create_unicode_buffer(anInteger) -> character array
+    create_unicode_buffer(aString, anInteger) -> character array
+    """
+    if isinstance(init, str):
+        if size is None:
+            size = len(init)+1
+        buftype = c_char * size
+        buf = buftype()
+        buf.value = init
+        return buf
+    elif isinstance(init, (int, long)):
+        buftype = c_char * init
+        buf = buftype()
+        return buf
+    raise TypeError, init
+
+
+def c_buffer(init, size=None):
+##    "deprecated, use create_string_buffer instead"
+##    import warnings
+##    warnings.warn("c_buffer is deprecated, use create_string_buffer instead",
+##                  DeprecationWarning, stacklevel=2)
+    return create_string_buffer(init, size)
 
 def CFUNCTYPE(restype, *argtypes):
     class CFunctionType(_CFuncPtr):
@@ -189,6 +214,11 @@ def POINTER(cls):
                                {'_type_': cls})
         _pointer_type_cache[cls] = klass
     return klass
+
+POINTER(c_char).from_param = c_char_p.from_param #_SimpleCData.c_char_p_from_param
+
+if _os.name == "nt":
+    POINTER(c_wchar).from_param = c_wchar_p.from_param #_SimpleCData.c_wchar_p_from_param
     
 def SetPointerType(pointer, cls):
     if _pointer_type_cache.get(cls, None) is not None:

@@ -71,14 +71,10 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
-#endif
-
 #include <ffi.h>
-#include "ctypes.h"
-
-#ifdef MS_WIN32
-#define alloca _alloca
 #endif
+
+#include "ctypes.h"
 
 #ifdef _DEBUG
 #define DEBUG_EXCEPTIONS /* */
@@ -98,7 +94,7 @@ static char *FormatError(DWORD code)
 	return (char *)lpMsgBuf;
 }
 
-void SetException(DWORD code)
+void SetException(DWORD code, EXCEPTION_RECORD *pr)
 {
 	char *lpMsgBuf;
 	lpMsgBuf = FormatError(code);
@@ -111,8 +107,14 @@ void SetException(DWORD code)
 			/* The thread attempted to read from or write
 			   to a virtual address for which it does not
 			   have the appropriate access. */
-			PyErr_SetString(PyExc_WindowsError,
-					"exception: access violation");
+			if (pr->ExceptionInformation[0] == 0)
+				PyErr_Format(PyExc_WindowsError,
+					     "exception: access violation reading %p",
+					     pr->ExceptionInformation[1]);
+			else
+				PyErr_Format(PyExc_WindowsError,
+					     "exception: access violation writing %p",
+					     pr->ExceptionInformation[1]);
 			break;
 		case EXCEPTION_BREAKPOINT:
 			/* A breakpoint was encountered. */
@@ -534,6 +536,8 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 	}
 }
 
+
+#ifndef MS_WIN32
 /*
   There's a problem with current CVS versions of libffi (2003-01-21).
   It redefines ffi_type_slong and ffi_type_ulong to
@@ -566,9 +570,6 @@ ffi_type *tag2ffitype(char tag)
 		return &ffi_type_sint8;
 	case 'B':
 		return &ffi_type_uint8;
-#ifdef HAVE_USABLE_WCHAR_T
-	case 'u': /* is wchar_t == signed short ? */
-#endif		
 	case 'h':
 		return &ffi_type_sshort;
 	case 'H':
@@ -629,11 +630,6 @@ static int _call_function_pointer(int flags,
 	ffi_type **atypes;
 	void **values;
 	int i;
-	int abi;
-#ifdef _MSC_VER
-	int delta;
-	DWORD dwExceptionCode = 0;
-#endif
 
 	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
 	values = (void **)alloca(argcount * sizeof(void *));
@@ -647,14 +643,7 @@ static int _call_function_pointer(int flags,
 	}
 	rtype = tag2ffitype(res->tag);
     
-	abi = FFI_DEFAULT_ABI;
-#ifdef _MSC_VER
-	if (0 == (flags & FUNCFLAG_CDECL))
-		abi = FFI_STDCALL;
-#endif
-
-	if (FFI_OK != ffi_prep_cif(&cif,
-				   abi,
+	if (FFI_OK != ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
 				   argcount,
 				   rtype,
 				   atypes)) {
@@ -664,71 +653,216 @@ static int _call_function_pointer(int flags,
 	}
 
 	Py_BEGIN_ALLOW_THREADS
-#ifdef _MSC_VER
-# ifndef DEBUG_EXCEPTIONS
-	__try {
-# endif
-		delta = ffi_call(&cif, (void *)pProc, &res->value, values);
-# ifndef DEBUG_EXCEPTIONS
-	} _except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
-		;
-	}
-# endif
-#else
 	ffi_call(&cif, (void *)pProc, &res->value, values);
-#endif
 	Py_END_ALLOW_THREADS
 
-#ifdef _MSC_VER
-	if (dwExceptionCode) {
-		SetException(dwExceptionCode);
-		return -1;
-	}
-	if (delta < 0) {
-		if (flags & FUNCFLAG_CDECL)
-			PyErr_Format(PyExc_ValueError,
-				     "Procedure called with not enough "
-				     "arguments (%d bytes missing) "
-				     "or wrong calling convention",
-				     -delta);
-		else
-			PyErr_Format(PyExc_ValueError,
-				     "Procedure probably called with not enough "
-				     "arguments (%d bytes missing)",
-				     -delta);
-		return -1;
-	}
-	if (delta > 0) {
-		PyErr_Format(PyExc_ValueError,
-			     "Procedure probably called with too many "
-			     "arguments (%d bytes in excess)",
-			     delta);
-		return -1;
-	}
-#endif
 	return 0;
 }
-
+#else
+#pragma optimize ("", off)
 /*
+ * Can you figure out what this does? ;-)
+ */
+static void __stdcall push(void)
+{
+}
+
+static DWORD HandleException(EXCEPTION_POINTERS *ptrs,
+			     DWORD *pdw, EXCEPTION_RECORD *record)
+{
+	*pdw = ptrs->ExceptionRecord->ExceptionCode;
+	*record = *ptrs->ExceptionRecord;
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+static int _call_function_pointer(int flags,
+				  PPROC pProc,
+				  PyCArgObject **parms,
+				  PyCArgObject *res,
+				  int argcount)
+{
+	int i;
+	DWORD dwExceptionCode;
+	EXCEPTION_RECORD record;
+	int new_esp, save_esp;
+	int argbytes = 0;
+	
+	/*
+	  The idea was to do this in C, without assembler. But how can we
+	  guard against passing the wrong number of arguments? How do we
+	  save and restore the stack pointer?
+
+	  Apparently MSVC does not use ESP addressing but EBP addressing,
+	  so we can use local variables (on the stack) for saving and
+	  restoring the value of ESP!
+	*/
+
+	_asm mov save_esp, esp;
+	new_esp = save_esp;
+
+#pragma warning (disable: 4087)
+	/* Both __stdcall and __cdecl calling conventions pass the arguments
+	   'right to left'. The difference is in the stack cleaning: __stdcall
+	   __stdcall functions pop their arguments off the stack themselves,
+	   __cdecl functions leave this to the caller.
+	*/
+	for (i = argcount-1; i >= 0; --i) {
+		float f;
+
+		switch(parms[i]->tag) {
+		case 'c':
+			push(parms[i]->value.c);
+			argbytes += sizeof(int);
+			break;
+		
+			/* This works, although it doesn't look correct! */
+		case 'b':
+		case 'h':
+		case 'i':
+		case 'B':
+		case 'H':
+		case 'I':
+		case 'u':
+			push(parms[i]->value.i);
+			argbytes += sizeof(int);
+			break;
+		case 'l':
+		case 'L':
+			push(parms[i]->value.l);
+			argbytes += sizeof(long);
+			break;
+#ifdef HAVE_LONG_LONG
+		case 'q':
+		case 'Q':
+			push(parms[i]->value.q);
+			argbytes += sizeof(PY_LONG_LONG);
+			break;
+#endif
+		case 'f':
+			/* Cannot use push(parms[i]->value.f) here, because
+			   the C compiler would promote it to a double
+			*/
+			f = parms[i]->value.f;
+			_asm push f;
+			argbytes += sizeof(float);
+			break;
+		case 'd':
+			push(parms[i]->value.d);
+			argbytes += sizeof(double);
+			break;
+		case 'z':
+		case 'Z':
+		case 'P':
+		case 'X': /* BSTR */
+			push(parms[i]->value.p);
+			argbytes += sizeof(void *);
+			break;
+#ifdef CAN_PASS_BY_VALUE
+		case 'V':
+		{
+			int n;
+			int *p;
+			n = parms[i]->size;
+			if (n % sizeof(int))
+				n += sizeof(int);
+			n /= sizeof(int);
+			n -= 1;
+			p = (int *)parms[i]->value.p;
+			while (n >= 0) {
+				push(p[n--]);
+				argbytes += sizeof(int);
+			}
+		}
+		break;
+#endif
+		default:
+			PyErr_Format(PyExc_ValueError,
+				     "BUG: Invalid format tag '%c' for argument",
+				     parms[i]->tag);
+			/* try to clean the stack */
+			_asm mov esp, save_esp;
+			return -1;
+		}
+	}
+
+#pragma warning (default: 4087)
 	Py_BEGIN_ALLOW_THREADS
 	dwExceptionCode = 0;
 #ifndef DEBUG_EXCEPTIONS
 	__try {
 #endif
-			res->value = pProc)();
+		switch(res->tag) {
+		case 'c':
+			res->value.c = ((char(*)())pProc)();
+			break;
+		case 'B':
+		case 'b':
+			res->value.b = ((char(*)())pProc)();
+			break;
+		case 'H':
+		case 'h':
+			res->value.h = ((short(*)())pProc)();
+			break;
+		case 'I':
+		case 'i':
+			res->value.i = ((int(*)())pProc)();
+			break;
+		case 'l':
+		case 'L':
+			res->value.l = ((long(*)())pProc)();
+			break;
+		case 'd':
+			res->value.d = ((double(*)())pProc)();
+			break;
+		case 'f':
+			res->value.f = ((float(*)())pProc)();
+			break;
+#ifdef HAVE_LONG_LONG
+		case 'q':
+		case 'Q':
+			res->value.q = ((PY_LONG_LONG(*)())pProc)();
+			break;
+#endif
+		case 'z':
+		case 'Z':
+		case 'P':
+			res->value.p = ((void *(*)())pProc)();
+			break;
+		case 'v':
+			((void(*)())pProc)();
+			break;
+		default:
+			/* XXX Signal bug */
+			res->tag |= 0x80;
+			break;
+		}
 #ifndef DEBUG_EXCEPTIONS
 	}
-	__except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
+	__except (HandleException(GetExceptionInformation(),
+				  &dwExceptionCode, &record)) {
 		;
 	}
 #endif
+	_asm sub new_esp, esp;
+	_asm mov esp, save_esp;
+
 	Py_END_ALLOW_THREADS
 
 	if (dwExceptionCode) {
-		SetException(dwExceptionCode);
+		SetException(dwExceptionCode, &record);
 		return -1;
 	}
+	if (res->tag & 0x80) {
+		PyErr_Format(PyExc_ValueError,
+			     "BUG: Invalid format tag for restype '%c'",
+			     res->tag & ~0x80);
+		return -1;
+	}
+
+	if (flags & FUNCFLAG_CDECL) /* Clean up stack if needed */
+		new_esp -= argbytes;
 	if (new_esp < 0) {
+		/* Try to give a better error message */
 		if (flags & FUNCFLAG_CDECL)
 			PyErr_Format(PyExc_ValueError,
 				     "Procedure called with not enough "
@@ -751,7 +885,9 @@ static int _call_function_pointer(int flags,
 	}
 	return 0;
 }
-*/
+#pragma optimize ("", on)
+
+#endif
 
 #define RESULT_PASTE_INTO 1
 #define RESULT_CALL_RESTYPE 2

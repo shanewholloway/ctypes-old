@@ -1,22 +1,34 @@
-from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
-     c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wchar, \
-     oledll, byref, sizeof, WINFUNCTYPE, SetPointerType, WinError, pointer
-from _ctypes import HRESULT
+from ctypes import *
+from ctypes.com.hresult import *
+import _ctypes
 from ctypes.wintypes import DWORD, WORD, BYTE
+
+HRESULT = _ctypes.HRESULT
+CopyComPointer = windll[_ctypes.__file__].CopyComPointer
 
 ole32 = oledll.ole32
 
+################################################################
+
+# Still experimenting with COM shutdown without crashes...
+
 ole32.CoInitialize(None)
 
-# We need to call CoUninitialze at exit.
-# But we cannot use the atexit module - it runs the cleanup function
-# far too early (before all the modules are cleared).
 class _Cleaner(object):
     def __del__(self, func=ole32.CoUninitialize):
         func()
 
 __cleaner = _Cleaner()
 del _Cleaner
+
+def _clean_exc_info():
+    # the purpose of this function is to ensure that no com object
+    # pointers are in sys.exc_info()
+    try: 1/0
+    except: pass
+
+import atexit
+atexit.register(_clean_exc_info)
 
 ################################################################
 # Basic COM data types
@@ -54,6 +66,16 @@ class GUID(Structure):
     def __eq__(self, other, IsEqualGUID=ole32.IsEqualGUID):
         return isinstance(other, GUID) and \
                IsEqualGUID(byref(self), byref(other))               
+
+##    def __hash__(self):
+##        return hash(repr(self))
+
+    def from_progid(cls, progid):
+        inst = cls()
+        ole32.CLSIDFromProgID(unicode(progid), byref(inst))
+        return inst
+    from_progid = classmethod(from_progid)
+
 assert(sizeof(GUID) == 16), sizeof(GUID)
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
@@ -63,14 +85,20 @@ REFCLSID = REFGUID = REFIID = POINTER(GUID)
 #
 
 def STDMETHOD(restype, name, *argtypes, **kw):
-    # First argument (this) for COM method implementation is really an
-    # IUnknown pointer, but we don't want this to be built all the time,
-    # since we probably don't use it, so use c_voidp
-    return name, WINFUNCTYPE(restype, c_voidp, *argtypes)
+    # First argument (this) for COM method implementation is really a
+    # pointer to a IUnknown subclass, but we don't want this to be
+    # built all the time, since we probably don't use it, so use
+    # c_void_p
+    return name, WINFUNCTYPE(restype, c_void_p, *argtypes)
 
 def COMPointer__del__(self):
     if self:
         self.Release()
+# disabled for now
+##def COMPointer__init__(self, *args):
+##    if self:
+##        self.AddRef()
+##    _Pointer.__init__(self, *args)
 
 class _interface_meta(type(Structure)):
     """Metaclass for COM interface classes.
@@ -118,6 +146,7 @@ class _interface_meta(type(Structure)):
         self.__make_vtable()
         self.__make_methods()
         POINTER(self).__del__ = COMPointer__del__
+##        POINTER(self).__init__ = COMPointer__init__
 
     def __setattr__(self, name, value):
         if name == "_methods_" and self.__dict__.has_key("_methods_"):
@@ -169,6 +198,9 @@ def from_param(self, obj):
     if isinstance(obj, _Pointer) and \
            issubclass(obj._type_._type_, IUnknown):
         return obj
+## Do we also accept integers? Currently not.
+##    if type(obj) is int:
+##        return obj
     raise TypeError, "expected a reference to a IUnknown"
 
 # This must be set before it is first used in an argument list
@@ -181,17 +213,27 @@ IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnk
 
 ################################################################
 
-S_OK = 0
-E_NOTIMPL = 0x80004001
-E_NOINTERFACE = 0x80004002
+DEBUG = __debug__
+
+def _wrap(func, name, itfclass):
+    from ctypes.com.server import dprint
+    def wrapped(self, *args):
+##        dprint("XXX", [hasattr(a, "AddRef") for a in args])
+        result = func(self, *args)
+        dprint("<method call> %s.%s -> %s" % \
+               (itfclass.__name__, name, hex(result)))
+        return result
+    return wrapped
+
+
 
 class COMObject(object):
     _refcnt = 0
     _factory = None
 
-    def _get_registrar(self):
+    def _get_registrar(cls):
         from ctypes.com.register import Registrar
-        return Registrar(self)
+        return Registrar(cls)
     _get_registrar = classmethod(_get_registrar)
     
     def __init__(self):
@@ -202,52 +244,53 @@ class COMObject(object):
         for itf in self._com_interfaces_:
             self._make_interface_pointer(itf)
 
+    def _get_funcimpl(self, name, itfclass, proto):
+        from ctypes.com.server import dprint
+        # Search for methods named <interface>_<methodname> in the
+        # interface, including base interfaces
+##        print str([hasattr(x, "AddRef") and i for i, x in enumerate(proto._argtypes_)])
+        for i in itfclass.mro()[:-3]:
+            func = getattr(self, "%s_%s" % (i.__name__, name), None)
+            if func is not None:
+                if DEBUG:
+                    return _wrap(func, name, itfclass)
+                else:
+                    return func
+        if hasattr(self, name):
+            func = getattr(self, name)
+            if DEBUG:
+                return _wrap(func, name, itfclass)
+            else:
+                return func
+
+        def notimpl(self, *args):
+            dprint("<E_NOTIMPL> method: %s of %s, args: %s" % \
+                      (name, itfclass.__name__, str(args)))
+            return E_NOTIMPL
+        dprint("# unimplemented %s for interface %s" % (name, itfclass.__name__))
+        return notimpl
+
     def _make_interface_pointer(self, itfclass):
         # Take an interface class like 'IUnknown' and create
         # an pointer to it, implementing this interface.
-        itf = itfclass()
         vtbltype = itfclass._fields_[0][1]._type_
         methods = []
-        from ctypes.com.server import dprint
         for name, proto in vtbltype._fields_:
-            # Search for methods named <interface>_<methodname> in the
-            # interface, including base interfaces
-            for i in itfclass.mro()[:-3]:
-                callable = getattr(self, "%s_%s" % (i.__name__, name), None)
-                if callable is not None:
-                    break
-            else:
-                class NotImpl:
-                    def __init__(self, name, itfname):
-                        self.name, self.itfname = name, itfname
-                    def __call__(self, *args):
-                        dprint("E_NOTIMPL method: %s of %s, args: %s" % \
-                              (self.name, self.itfname, str(args)))
-                        return E_NOTIMPL
-                notimpl = NotImpl(name, itfclass.__name__)                        
-                callable = getattr(self, name, notimpl)
-            if callable == notimpl:
-                dprint("# unimplemented %s for interface %s" % (name, itfclass.__name__))
-            methods.append(proto(callable))
+            func = self._get_funcimpl(name, itfclass, proto)
+            methods.append(proto(func))
+
         vtbl = vtbltype(*methods)
+        itf = itfclass()
         itf.lpVtbl = pointer(vtbl)
         for iid in [cls._iid_ for cls in itfclass.mro()[:-3]]:
             self._com_pointers_.append((iid, itf))
-        # If we would return pointer(itf) instead of byref(itf),
-        # we would have to call AddRef first!
-        return byref(itf)
 
     def QueryInterface(self, this, refiid, ppiunk):
         iid = refiid[0]
         for i, itf in self._com_pointers_:
             if i == iid:
                 # *ppiunk = &itf
-                from ctypes import addressof
-                addr = c_voidp.from_address(addressof(ppiunk)).value
-                comptr = addressof(itf)
-                c_voidp.from_address(addr).value = comptr
-                self.AddRef(this)
-                return S_OK
+                return CopyComPointer(addressof(itf), ppiunk)
         return E_NOINTERFACE
 
     # IUnknown methods

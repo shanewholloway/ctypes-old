@@ -46,17 +46,17 @@ class StringPtrTestCase(unittest.TestCase):
         strchr.restype = c_char_p
 
         # c_char_p and Python string is compatible
-        # c_char_p and c_buffer is NOT compatible
+        # c_char_p and c_buffer are now compatible
         strchr.argtypes = c_char_p, c_char
         self.failUnlessEqual(strchr("abcdef", "c"), "cdef")
-        self.failUnlessRaises(TypeError, strchr, c_buffer("abcdef"), "c")
+        self.failUnlessEqual(strchr(c_buffer("abcdef"), "c"), "cdef")
 
         # POINTER(c_char) and Python string is NOT compatible
         # POINTER(c_char) and c_buffer() is compatible
         strchr.argtypes = POINTER(c_char), c_char
         buf = c_buffer("abcdef")
         self.failUnlessEqual(strchr(buf, "c"), "cdef")
-        self.failUnlessRaises(TypeError, strchr, "abcdef", "c")
+        self.failUnlessEqual(strchr("abcdef", "c"), "cdef")
 
         # XXX These calls are dangerous, because the first argument
         # to strchr is no longer valid after the function returns!
