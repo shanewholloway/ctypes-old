@@ -82,6 +82,9 @@ class PointerType(object):
     def depends(self):
         return [get_pointed_to(self)]
 
+    def __repr__(self):
+        return "<POINTER(%s)>" % self.typ
+
 class Typedef(object):
     def __init__(self, name, typ):
         self.name = name
@@ -89,10 +92,21 @@ class Typedef(object):
 
     def depends(self):
         return [self.typ]
-##        return self.typ.depends()
 
     def __repr__(self):
         return "<Typedef(%s) at %x>" % (self.name, id(self))
+
+class ArrayType(object):
+    def __init__(self, typ, min, max):
+        self.typ = typ
+        self.min = min
+        self.max = max
+
+    def depends(self):
+        return [self.typ]
+
+    def __repr__(self):
+        return "<Array(%s[%s]) at %x>" % (self.typ, self.max, id(self))
 
 class Structure(object):
     def __init__(self, name, align, members, bases, size, artificial=None):
@@ -115,6 +129,8 @@ class Structure(object):
             result.update(m.depends())
         return result
         
+    def __repr__(self):
+        return "<Structure(%s) at %x>" % (self.name, id(self))
 
 class Union(object):
     def __init__(self, name, align, members, bases, size, artificial=None):
@@ -171,14 +187,5 @@ class Enumeration(object):
 
     def depends(self):
         return []
-
-class ArrayType(object):
-    def __init__(self, typ, min, max):
-        self.typ = typ
-        self.min = min
-        self.max = max
-
-    def depends(self):
-        return [self.typ]
 
 ################################################################
