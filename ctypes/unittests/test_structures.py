@@ -227,6 +227,21 @@ class StructureTestCase(unittest.TestCase):
             return detail.__class__, str(detail)
                 
 
+    def test_subclass_creation(self):
+        meta = type(Structure)
+        # same as 'class X(Structure): pass'
+        # fails, since we need either a _fields_ or a _abstract_ attribute
+        cls, msg = self.get_except(meta, "X", (Structure,), {})
+        self.failUnlessEqual((cls, msg),
+                             (AttributeError, "class must define a '_fields_' attribute"))
+
+    def test_abstract_class(self):
+        class X(Structure):
+            _abstract_ = "something"
+        # try 'X()'
+        cls, msg = self.get_except(eval, "X()", locals())
+        self.failUnlessEqual((cls, msg), (TypeError, "abstract class"))
+
 class PointerMemberTestCase(unittest.TestCase):
 
     def test(self):
