@@ -199,7 +199,7 @@ class MyBand(COMObject):
             polewindow.GetWindow(byref(hwndParent))
             self.hwndParent = hwndParent.value
             # Register and create window
-            WS_CHILD = 0x40000000
+            WS_CHILD = 0x40000000L
             self.m_hwnd = windll.user32.CreateWindowExA(0, "button", "button",
                                                         WS_CHILD,
                                                         0, 0, 0, 0,
