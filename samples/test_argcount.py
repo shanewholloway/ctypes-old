@@ -14,12 +14,14 @@ elif os.name == "posix":
 strchr.restype = c_char_p
 strchr.argtypes = [c_char_p, c_int]
 
-try:
-    strchr("abc", 2, 3)
-except TypeError:
-    pass
-else:
-    raise Exception("didn't catch wrong number of args")
+# It is now possible to call cdecl functions with more arguments
+# than specified ibn argtypes (as in C)
+##try:
+##    strchr("abc", 2, 3)
+##except TypeError:
+##    pass
+##else:
+##    raise Exception("didn't catch wrong number of args")
 
 try:
     strchr()
