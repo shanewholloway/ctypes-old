@@ -279,63 +279,73 @@ PyTypeObject CField_Type = {
 
 /******************************************************************/
 /*
-  Accessor functions
-*/
-
-/* Derived from Modules/structmodule.c: Helper routines to get a Python
-   integer and raise the appropriate error if it isn't one.
-*/
-
-/*
-  We should change get_long and friends to accept c_int() and other integer
-  like instances as well.  When we have done that, and also changed the other
-  ..._get functions to accept instances of their type, the _from_param methods
-  in ctypes.c can replaced by calls to ..._get().
-
-  One possibility would be to call their getfunc, which returns an PyIntObject
-  or PyLongObject.
-
-  Hm, the problem is what to pass for 'size'. Maybe zero, but c_get() asserts
-  that size is 1. The assertion is probably wrong. The result from c_get will
-  not be accepted here anyway because we accept only ints or longs.
-
-  I should clarify what the site parameter for getfunc means.  For integer
+  I should clarify what the size parameter for getfunc means.  For integer
   like types, it specifies bitfield size for structure fields in the third and
   fourth byte.  See the GET_BITFIELD() macro.
 
   For c_char and c_wchar arrays, it specifies the number of characters - see
   _ctypes.c::CharArray_getfunc.
 */
-static int
-get_long(PyObject *v, long *p)
+/*
+  Accessor functions
+*/
+
+/*
+  Helper routines to get a Python integer and raise the appropriate error if
+  it isn't one.
+*/
+
+static PyObject *
+_make_int(PyObject *v)
 {
-	long x;
+	StgDictObject *dict = PyObject_stgdict(v);
+	if (dict) {
+		CDataObject *src = (CDataObject *)v;
+		PyObject *obj = dict->getfunc(src->b_ptr, 0, NULL, src, 0);
+		if (obj == NULL) {
+			if (PyErr_ExceptionMatches(PyExc_TypeError))
+				PyErr_Format(PyExc_TypeError,
+					     "int expected instead of %s instance",
+					     v->ob_type->tp_name);
+			return NULL;
+		}
+		v = obj;
+	} else
+		Py_INCREF(v);
 	if (!PyInt_Check(v) && !PyLong_Check(v)) {
 		PyErr_Format(PyExc_TypeError,
 			     "int expected instead of %s instance",
 			     v->ob_type->tp_name);
-		return -1;
+		Py_DECREF(v);
+		return NULL;
 	}
+	return v;
+}
+
+static int
+get_long(PyObject *v, long *p)
+{
+	long x;
+	v = _make_int(v);
+	if (v == NULL)
+		return -1;
 	x = PyInt_AsUnsignedLongMask(v);
+	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
 		return -1;
 	*p = x;
 	return 0;
 }
 
-/* Same, but handling unsigned long */
-
 static int
 get_ulong(PyObject *v, unsigned long *p)
 {
 	unsigned long x;
-	if (!PyInt_Check(v) && !PyLong_Check(v)) {
-		PyErr_Format(PyExc_TypeError,
-			     "int expected instead of %s instance",
-			     v->ob_type->tp_name);
+	v = _make_int(v);
+	if (v == NULL)
 		return -1;
-	}
 	x = PyInt_AsUnsignedLongMask(v);
+	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
 		return -1;
 	*p = x;
@@ -343,45 +353,35 @@ get_ulong(PyObject *v, unsigned long *p)
 }
 
 #ifdef HAVE_LONG_LONG
-
-/* Same, but handling native long long. */
-
 static int
 get_longlong(PyObject *v, PY_LONG_LONG *p)
 {
 	PY_LONG_LONG x;
-	if (!PyInt_Check(v) && !PyLong_Check(v)) {
-		PyErr_Format(PyExc_TypeError,
-			     "int expected instead of %s instance",
-			     v->ob_type->tp_name);
+	v = _make_int(v);
+	if (v == NULL)
 		return -1;
-	}
 	x = PyInt_AsUnsignedLongLongMask(v);
+	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
 		return -1;
 	*p = x;
 	return 0;
 }
-
-/* Same, but handling native unsigned long long. */
 
 static int
 get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 {
 	unsigned PY_LONG_LONG x;
-	if (!PyInt_Check(v) && !PyLong_Check(v)) {
-		PyErr_Format(PyExc_TypeError,
-			     "int expected instead of %s instance",
-			     v->ob_type->tp_name);
+	v = _make_int(v);
+	if (v == NULL)
 		return -1;
-	}
 	x = PyInt_AsUnsignedLongLongMask(v);
+	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
 		return -1;
 	*p = x;
 	return 0;
 }
-
 #endif
 
 /*****************************************************************
