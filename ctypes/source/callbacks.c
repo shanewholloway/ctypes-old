@@ -8,6 +8,13 @@
 #define __stdcall /* */
 #endif
 
+
+/* For 2.3, use the PyGILState_ calls, see PEP 311 */
+#if (PY_VERSION_HEX >= 0x02030000)
+#define CTYPES_USE_GILSTATE
+#endif
+
+#ifndef CTYPES_USE_GILSTATE
 static PyInterpreterState *g_interp;	/* need this to create new thread states */
 
 static void EnterPython(void)
@@ -31,6 +38,7 @@ static void LeavePython(void)
 	PyThreadState_Delete(pts);
 	PyEval_ReleaseLock();
 }
+#endif
 
 /********************************************************************************
  *
@@ -88,7 +96,11 @@ static int __stdcall CallPythonObject(PyObject *callable,
 	DWORD dwExceptionCode = 0;
 #endif
 
+#ifdef CTYPES_USE_GILSTATE
+	PyGILState_STATE state = PyGILState_Ensure();
+#else
 	EnterPython();
+#endif
 
 	nArgs = PySequence_Length(converters);
 	/* Hm. What to return in case of error?
@@ -182,7 +194,13 @@ static int __stdcall CallPythonObject(PyObject *callable,
 	}
   Done:
 	Py_XDECREF(arglist);
+
+#ifdef CTYPES_USE_GILSTATE
+	PyGILState_Release(state);
+#else
 	LeavePython();
+#endif
+
 	return retcode;
 }
 
@@ -454,7 +472,9 @@ void init_callbacks_in_module(PyObject *m)
 	if (PyType_Ready((PyTypeObject *)&PyType_Type) < 0)
 		return;
 
+#ifndef CTYPES_USE_GILSTATE
 	g_interp = PyThreadState_Get()->interp;
+#endif
 }
 
 #ifdef MS_WIN32
@@ -562,14 +582,17 @@ static void LoadPython(void)
 		MyPyErr_Print("Could not import ctcom.server");
 		return;
 	}
+#ifndef CTYPES_USE_GILSTATE
 	if (g_interp == NULL) {
 		MessageBox(NULL, "ctypes COM initialization failed",
 			   NULL, MB_OK | MB_ICONSTOP);
 		return;
 	}
+#endif
 	Py_DECREF(mod);
 }
 
+#if 0
 long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	PyObject *mod, *func, *result;
@@ -668,6 +691,7 @@ STDAPI DllCanUnloadNow(void)
 	LeavePython();
 	return result;
 }
+#endif
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvRes)
 {
