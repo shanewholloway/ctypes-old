@@ -111,15 +111,10 @@ def mangle_name(name):
     return name
 
 class TypeInfoReader:
-    _order = 0
     def __init__(self, library, typeinfo):
         self._uses = []
         self.library = library
         self.ti = typeinfo
-        # This is used to sort the interfaces later the same way they occurr in the
-        # type library.
-        self._order = TypeInfoReader._order
-        TypeInfoReader._order += 1
 
         self._get_typeattr()
         self._get_documentation()
@@ -357,6 +352,7 @@ class InterfaceReader(TypeInfoReader):
             # in an InterfaceReader 
             if 1:
                 self.baseinterface = mangle_name(name.value)
+                self._uses.append(self.baseinterface)
             else:
                 assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
 
@@ -654,9 +650,11 @@ class TypeLibReader:
             print >> ofi
             print >> ofi, "#" * 78
             interfaces = self.interfaces.values()
-            # Write out the interfaces in the same order they have appeared
-            # in the type lib.
-            interfaces.sort(lambda a, b: cmp(a._order, b._order))
+            # We *try* to sort the interfaces so that dependencies are
+            # satisfied.  If this fails, the generated file must be
+            # fixed manually (although I'm not sure this is always
+            # possible).
+            interfaces.sort(self.depends)
             for itf in interfaces:
                 print >> ofi
                 print >> ofi, itf.declaration()
@@ -706,6 +704,7 @@ def main():
 
         # Microsoft PictureClip Control 6.0 (Ver 1.1)
 ##        path = r"c:\Windows\System32\PICCLP32.OCX"
+##        path = r"c:\windows\system32\Macromed\Flash\swflash.ocx"
 
     import time
     start = time.clock()
