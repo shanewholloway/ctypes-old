@@ -3,7 +3,11 @@ from ctypes import *
 import _ctypes_test
 
 class Callbacks(unittest.TestCase):
-    functype = CFUNCTYPE
+    functype = CFUNCTYPE    
+
+##    def tearDown(self):
+##        import gc
+##        gc.collect()
 
     def callback(self, *args):
         self.got_args = args

@@ -307,8 +307,8 @@ extern int My_PyUnicode_AsWideChar(PyUnicodeObject *, wchar_t *, int);
 
 #endif
 
-extern void FreeExecMem(void *);
-extern void *MallocExecMem(int);
+extern void FreeClosure(void *);
+extern void *MallocClosure(void);
 
 /*
  Local Variables:
