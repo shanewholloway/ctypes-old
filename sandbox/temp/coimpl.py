@@ -4,28 +4,27 @@ from ctypes.com import GUID, REFIID
 
 ole32 = oledll.ole32
 
-from _ctypes import _SimpleCData
-
 def HRESULT(value):
     if value & 0x80000000:
         raise WinError(value)
     return value
 
-def STDMETHOD(restype, name, *argtypes):
-    return name, STDAPI(restype, *argtypes)
+HRESULT = c_ulong
 
 ################
 
 PIUnknown = POINTER("IUnknown")
 
+def STDMETHOD(restype, name, *argtypes):
+    return name, STDAPI(restype, PIUnknown, *argtypes)
+
 class VTable(Structure):
-    _fields_ = [STDMETHOD(c_int, "QueryInterface", PIUnknown, REFIID, POINTER(PIUnknown)),
-                STDMETHOD(c_int, "AddRef", PIUnknown),
-                STDMETHOD(c_int, "Release", PIUnknown)]
+    _fields_ = [STDMETHOD(c_int, "QueryInterface", REFIID, POINTER(PIUnknown)),
+                STDMETHOD(c_ulong, "AddRef"),
+                STDMETHOD(c_ulong, "Release")]
 
 class IUnknown(Union):
-    _fields_ = [("lpVtbl", POINTER(VTable)),
-                ("this", c_int)]
+    _fields_ = [("lpVtbl", POINTER(VTable))]
 
 from ctypes import SetPointerType
 SetPointerType(PIUnknown, IUnknown)
@@ -47,9 +46,6 @@ E_NOTIMPL = 0x80000001
 
 class COClass:
     _refcnt = 1
-##    def QueryInterface(self, *args):
-##        print "MyQI", args
-##        return len(args)
 
     def _notimpl(self, *args):
 ##        print "notimpl", args
@@ -59,9 +55,9 @@ class COClass:
         self._refcnt += 1
         return self._refcnt
 
-##    def Release(self, *args):
-##        self._refcnt -= 1
-##        return self._refcnt
+    def Release(self, *args):
+        self._refcnt -= 1
+        return self._refcnt
 
     def make_interface_pointer(self, itfclass):
         vtbltype = itfclass._fields_[0][1]._type_
@@ -85,16 +81,14 @@ itf = ob.make_interface_pointer(IUnknown)
 
 print "From Python"
 
-print itf.lpVtbl.contents.AddRef(byref(itf))
+print "A", itf.lpVtbl.contents.AddRef(byref(itf))
 print "A", itf.lpVtbl.contents.Release(byref(itf))
 
 print "From C"
 
-print dll._testfunc_piunk(pointer(itf))
+print "B", dll._testfunc_piunk(pointer(itf))
 
 print "From Python2"
 
-print itf.my_AddRef()
-print "B", itf.my_Release()
-
-print E_NOTIMPL
+print "C", itf.my_AddRef()
+print "C", itf.my_Release()
