@@ -218,8 +218,8 @@ class StructureTestCase(unittest.TestCase):
                              "expected string or Unicode object, int found")
 
         cls, msg = self.get_except(Person, "Someone", ("a", "b", "c"))
-        self.failUnlessEqual(cls, ValueError)
-        self.failUnlessEqual(msg, "(Phone) too many initializers")
+        self.failUnlessEqual(cls, RuntimeError)
+        self.failUnlessEqual(msg, "(Phone) exceptions.ValueError: too many initializers")
 
 
     def get_except(self, func, *args):
