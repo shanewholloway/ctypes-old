@@ -9,6 +9,8 @@ gcov source/*.c -o ./build/temp.linux-i686-2.4/source/
 #
 # Does anyone know how I can use grep to atch lines that include '#####' but NOT include '/*COV*/' ?
 #
+# I should probably better write a Python script...
+#
 grep -c "#####.*[^C][^O][^V][^*][^/]$" *.c.gcov
 echo "TOTAL:"
 cat *.c.gcov | grep -c "#####.*[^C][^O][^V][^*][^/]$"
