@@ -1215,36 +1215,36 @@ _type_ attribute.
 static char *SIMPLE_TYPE_CHARS = "cbBhHiIlLdfuzZqQPXOv";
 
 static PyObject *
-c_wchar_p_from_param(PyObject *type, PyObject *value)
+string_ptr_from_param(PyObject *type, PyObject *value)
 {
-	/*
-	   Z_set handles None, Unicode, String, but not Array, Pointer,
-	   CArgObject.
-
-	   But it handles, although it shouldn't, int and long.
-	   Would be an api change to fix this.
-	*/
-	if (value == Py_None) {
-		Py_INCREF(Py_None);
-		return Py_None;
+	if (PyObject_IsInstance(value, type)) {
+		Py_INCREF(value);
+		return value;
 	}
-	if (PyUnicode_Check(value) || PyString_Check(value)) {
+	/* z_set and Z_set accept integers as well. Until that is fixed, we
+	 have to typecheck here. */
+	if (value == Py_None || PyString_Check(value) || PyUnicode_Check(value)) {
 		PyCArgObject *parg;
-		struct fielddesc *fd = getentry("Z");
+		StgDictObject *dict = PyType_stgdict(type);
 
 		parg = new_CArgObject();
 		parg->pffi_type = &ffi_type_pointer;
-		parg->obj = fd->setfunc(&parg->value, value, 0, type);
+		parg->obj = dict->setfunc(&parg->value, value, 0, type);
 		if (parg->obj == NULL) {
 			Py_DECREF(parg);
 			return NULL;
 		}
 		return (PyObject *)parg;
 	}
-	if (PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
-	}
+	/* XXX better message */
+	PyErr_SetString(PyExc_TypeError,
+			"wrong type");
+	return NULL;
+}
+
+static PyObject *
+c_wchar_p_from_param(PyObject *type, PyObject *value)
+{
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		/* c_wchar array instance or pointer(c_wchar(...)) */
 		StgDictObject *dt = PyObject_stgdict(value);
@@ -1263,43 +1263,15 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
-	/* XXX better message */
-	PyErr_SetString(PyExc_TypeError,
-			"wrong type");
-	return NULL;
+	return string_ptr_from_param(type, value);
 }
 
 static PyObject *
 c_char_p_from_param(PyObject *type, PyObject *value)
 {
-	/*
-	   setfunc (which is z_set) handles None, String, and Unicode, but not
-	   Array, Pointer, c_char_p, and CArgObject.  Instead (!) it accepts
-	   integers as well, which seems wrong.
-
-	   And fixing this would be a severe api change.
-	*/
-	if (value == Py_None) {
-		Py_INCREF(Py_None);
-		return Py_None;
-	}
-	if (PyString_Check(value) || PyUnicode_Check(value)) {
-		PyCArgObject *parg;
-		struct fielddesc *fd = getentry("z");
-
-		parg = new_CArgObject();
-		parg->pffi_type = &ffi_type_pointer;
-		parg->obj = fd->setfunc(&parg->value, value, 0, type);
-		if (parg->obj == NULL) {
-			Py_DECREF(parg);
-			return NULL;
-		}
-		return (PyObject *)parg;
-	}
-	if (PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
-	}
+	/* It seems that c_char_p's stgdict->proto should better be c_char,
+	   and c_wchar_p's stgdict->proto shoule be c_wchar.  Something like that.
+	 */
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		/* c_char array instance or pointer(c_char(...)) */
 		StgDictObject *dt = PyObject_stgdict(value);
@@ -1318,10 +1290,7 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
-	/* XXX better message */
-	PyErr_SetString(PyExc_TypeError,
-			"wrong type");
-	return NULL;
+	return string_ptr_from_param(type, value);
 }
 
 static PyObject *
