@@ -1,11 +1,16 @@
+2005-01-20  Thomas Heller  <theller@python.net>
+
+	* source\callproc.c: Print a real traceback when an exception is
+	raised in a callback function.
+
 2005-01-15  Thomas Heller  <theller@python.net>
 
 	* source\_ctypes.c: WINFUNCTYPE (and CFUNCTYPE) can now be called
 	with three parameters: integer, string, class.  It returns an
 	unbound method fpr class, calling into a COM vtable at the integer
-	index. string is the method name.
+	index. The string is the method name.
 
-	Better error chcking, and fix a compiler warning in CFuncPtr_New.
+	Better error chcking, and fix a compiler warning in CFuncPtr_new.
 
 2004-12-30  Thomas Heller  <theller@python.net>
 
