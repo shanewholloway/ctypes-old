@@ -1,6 +1,4 @@
-from ctypes import Structure, Union, POINTER, pointer, byref, oledll, \
-     c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
-     c_float, c_double, c_byte, c_ubyte, sizeof
+from ctypes import *
 from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, PIUnknown, COMObject
 from ctypes.wintypes import DWORD, WORD
 
@@ -384,12 +382,18 @@ class DualObjImpl(COMObject):
     # IDispatch methods
 
     def GetIDsOfNames(self, this, riid, rgszNames, cNames, lcid, rgDispid):
-        return oleaut32.DispGetIDsOfNames(self.typeinfo, rgszNames, cNames, rgDispid)
+        # We use windll.oleaut32 instead of oledll.oleaut32 because
+        # we don't want an exception here, instead we pass the returned HRESULT
+        # value to the caller.
+        return windll.oleaut32.DispGetIDsOfNames(self.typeinfo, rgszNames,
+                                                 cNames, rgDispid)
 
-    def Invoke(self, this, dispid, refiid, lcid, wFlags, pDispParams, pVarResult,
-               pExcepInfo, puArgErr):
-        return oleaut32.DispInvoke(this, self.typeinfo, dispid, wFlags, pDispParams,
-                                   pVarResult, pExcepInfo, puArgErr)
+    def Invoke(self, this, dispid, refiid, lcid, wFlags,
+               pDispParams, pVarResult, pExcepInfo, puArgErr):
+        # See the comment in GetIDsOfNames
+        return windll.oleaut32.DispInvoke(this, self.typeinfo, dispid,
+                                          wFlags, pDispParams,
+                                          pVarResult, pExcepInfo, puArgErr)
 
     def GetTypeInfoCount(self, this, pctInfo):
         if pctInfo:
