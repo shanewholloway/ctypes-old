@@ -955,4 +955,71 @@ getentry(char *fmt)
 	return NULL;
 }
 
+typedef struct { char c; char x; } s_char;
+typedef struct { char c; short x; } s_short;
+typedef struct { char c; int x; } s_int;
+typedef struct { char c; long x; } s_long;
+typedef struct { char c; float x; } s_float;
+typedef struct { char c; double x; } s_double;
+typedef struct { char c; char *x; } s_char_p;
+typedef struct { char c; void *x; } s_void_p;
+
+/*
+#define CHAR_ALIGN (sizeof(s_char) - sizeof(char))
+#define SHORT_ALIGN (sizeof(s_short) - sizeof(short))
+#define INT_ALIGN (sizeof(s_int) - sizeof(int))
+#define LONG_ALIGN (sizeof(s_long) - sizeof(long))
+*/
+#define FLOAT_ALIGN (sizeof(s_float) - sizeof(float))
+#define DOUBLE_ALIGN (sizeof(s_double) - sizeof(double))
+/* #define CHAR_P_ALIGN (sizeof(s_char_p) - sizeof(char*)) */
+#define VOID_P_ALIGN (sizeof(s_void_p) - sizeof(void*))
+
+/*
+#ifdef HAVE_USABLE_WCHAR_T
+typedef struct { char c; wchar_t x; } s_wchar;
+typedef struct { char c; wchar_t *x; } s_wchar_p;
+
+#define WCHAR_ALIGN (sizeof(s_wchar) - sizeof(wchar_t))
+#define WCHAR_P_ALIGN (sizeof(s_wchar_p) - sizeof(wchar_t*))
+#endif
+*/
+
+#ifdef HAVE_LONG_LONG
+typedef struct { char c; PY_LONG_LONG x; } s_long_long;
+#define LONG_LONG_ALIGN (sizeof(s_long_long) - sizeof(PY_LONG_LONG))
+#endif
+
+/* from ffi.h:
+typedef struct _ffi_type
+{
+	size_t size;
+	unsigned short alignment;
+	unsigned short type;
+	struct _ffi_type **elements;
+} ffi_type;
+*/
+
+/* align and size are bogus for void, but they must not be zero */
+ffi_type ffi_type_void = { 1, 1, FFI_TYPE_VOID };
+
+ffi_type ffi_type_uint8 = { 1, 1, FFI_TYPE_UINT8 };
+ffi_type ffi_type_sint8 = { 1, 1, FFI_TYPE_SINT8 };
+
+ffi_type ffi_type_uint16 = { 2, 2, FFI_TYPE_UINT16 };
+ffi_type ffi_type_sint16 = { 2, 2, FFI_TYPE_SINT16 };
+
+ffi_type ffi_type_uint32 = { 4, 4, FFI_TYPE_UINT32 };
+ffi_type ffi_type_sint32 = { 4, 4, FFI_TYPE_SINT32 };
+
+ffi_type ffi_type_uint64 = { LONG_LONG_ALIGN, 8, FFI_TYPE_UINT64 };
+ffi_type ffi_type_sint64 = { LONG_LONG_ALIGN, 8, FFI_TYPE_SINT64 };
+
+ffi_type ffi_type_float = { FLOAT_ALIGN, sizeof(float), FFI_TYPE_FLOAT };
+ffi_type ffi_type_double = { DOUBLE_ALIGN, sizeof(double), FFI_TYPE_DOUBLE };
+
+/* ffi_type ffi_type_longdouble */
+
+ffi_type ffi_type_pointer = { VOID_P_ALIGN, sizeof(void *), FFI_TYPE_POINTER };
+
 /*---------------- EOF ----------------*/
