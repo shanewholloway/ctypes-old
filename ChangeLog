@@ -1,5 +1,8 @@
 2003-01-23  Thomas Heller  <theller@python.net>
 
+	* source/_ctypes.c: Raise a TypeError if a SimpleCData type
+	or a CDataType is specified as a CFunction's restype.
+	
 	* source/_ctypes.c: CFunction now has a from_param class
 	method. This means that CFunction subclasses can now be used in
 	the argtypes attribute, and so typechecking is done.
