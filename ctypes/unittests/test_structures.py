@@ -242,6 +242,14 @@ class StructureTestCase(unittest.TestCase):
         cls, msg = self.get_except(eval, "X()", locals())
         self.failUnlessEqual((cls, msg), (TypeError, "abstract class"))
 
+    def test_methods(self):
+##        class X(Structure):
+##            _fields_ = []
+
+        self.failUnless("in_dll" in dir(type(Structure)))
+        self.failUnless("from_address" in dir(type(Structure)))
+        self.failUnless("in_dll" in dir(type(Structure)))
+
 class PointerMemberTestCase(unittest.TestCase):
 
     def test(self):
