@@ -1,7 +1,7 @@
 # cparser_config.py - configuration items for cparser.py
 #
 # XXX should be made platform specific!
-import re
+import re, sys, os
 
 # C keywords, according to MSDN, plus some additional
 # names like __forceinline, near, far.
@@ -26,7 +26,7 @@ __noop""".split()
 
 # defines we know that won't work
 # for windows.h
-EXCLUDED = """
+EXCLUDED_win32 = """
 NOTIFYICONDATAA_V1_SIZE
 NOTIFYICONDATAA_V2_SIZE
 PROPSHEETHEADERA_V1_SIZE
@@ -63,12 +63,31 @@ IMAGE_ORDINAL_FLAG64
 SECURITY_NT_AUTHORITY
 """.strip().split()
 
+EXCLUDED_linux = """
+_IOT_termios
+""".strip().split()
+
+if sys.platform == "win32":
+    EXCLUDED = EXCLUDED_win32
+elif sys.platform.startswith("linux"):
+    EXCLUDED = EXCLUDED_linux
+
 EXCLUDED = [text for text in EXCLUDED
             if not text.startswith("#")]
 
-EXCLUDED_RE = r"""
+EXCLUDED_RE_win32 = r"""
 ^DECLSPEC\w*$
 """.strip().split()
+
+EXCLUDED_RE_linux = r"""
+^__\w*$
+^__attribute_\w*_$
+""".strip().split()
+
+if sys.platform == "win32":
+    EXCLUDED_RE = EXCLUDED_RE_win32
+elif sys.platform.startswith("linux"):
+    EXCLUDED_RE = EXCLUDED_RE_linux
 
 EXCLUDED_RE = [re.compile(pat) for pat in EXCLUDED_RE
                if not pat.startswith("#")]
