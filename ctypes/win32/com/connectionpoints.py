@@ -98,7 +98,7 @@ class dispinterface_EventReceiver(COMObject):
         if mth is not None:
             # For symmetry with other code, we *should* also pass the
             # 'this' parameter, but we don't.
-            mth(*args)
+            mth(this, *args)
         else:
             print "# Unimplemented (%s %s)" % (mthname, args)
         return 0
