@@ -1,12 +1,12 @@
 import unittest
 from ctypes import *
-import _ctypes
+import _ctypes_test
 
 class ReturnFuncPtrTestCase(unittest.TestCase):
 
     def test_with_prototype(self):
-        dll = CDLL(_ctypes.__file__)
-        # The _ctypes shared lib/dll exports quite some functions for testing.
+        dll = CDLL(_ctypes_test.__file__)
+        # The _ctypes_test shared lib/dll exports quite some functions for testing.
         # The get_strchr function returns a *pointer* to the C strchr function.
         get_strchr = dll.get_strchr
         get_strchr.restype = CFUNCTYPE(c_char_p, c_char_p, c_char)
@@ -17,7 +17,7 @@ class ReturnFuncPtrTestCase(unittest.TestCase):
         self.assertRaises(TypeError, strchr, "abcdef")
         
     def test__without_prototype(self):
-        dll = CDLL(_ctypes.__file__)
+        dll = CDLL(_ctypes_test.__file__)
         get_strchr = dll.get_strchr
         addr = get_strchr()
         # _CFuncPtr instances are now callable with an integer argument

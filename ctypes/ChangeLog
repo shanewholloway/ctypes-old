@@ -1,3 +1,9 @@
+2004-01-20  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Moved the test functions into a seaparate
+	Python extension module _ctypes_test.c.  Setup-script and
+	unittests updated.
+
 2003-10-30  Thomas Heller  <theller@python.net>
 
 	* source\_ctypes.c: Finally added cycle GC support for all the

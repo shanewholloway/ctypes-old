@@ -18,8 +18,8 @@ class FunctionTestCase(unittest.TestCase):
 
     def setUp(self):
         global dll
-        import _ctypes
-        dll = CDLL(_ctypes.__file__)
+        import _ctypes_test
+        dll = CDLL(_ctypes_test.__file__)
 
     def test_mro(self):
         # in Python 2.3, this raises TypeError: MRO conflict among bases classes,

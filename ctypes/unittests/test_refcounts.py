@@ -8,8 +8,8 @@ OtherCallback = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_ulonglong)
 class RefcountTestCase(unittest.TestCase):
     def setUp(self):
         global dll
-        import _ctypes
-        dll = ctypes.CDLL(_ctypes.__file__)
+        import _ctypes_test
+        dll = ctypes.CDLL(_ctypes_test.__file__)
 
     def test_1(self):
         from sys import getrefcount as grc
