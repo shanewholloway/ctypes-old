@@ -285,7 +285,6 @@ static PyMethodDef CDataType_methods[] = {
 	{ NULL, NULL },
 };
 
-/* XXX This should probably use a cache! */
 static PyObject *
 CDataType_repeat(PyObject *self, int length)
 {
@@ -307,7 +306,8 @@ static PySequenceMethods CDataType_as_sequence = {
 };
 
 static int
-StructType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
+StructUnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value,
+			 int isStruct)
 {
 	if (PyString_Check(name)
 	    && 0 == strcmp("_fields_", PyString_AS_STRING(name))) {
@@ -317,9 +317,7 @@ StructType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
 					"_fields_ attribute cannot be overwritten");
 			return -1;
 		}
-		dict = StgDict_FromDict(value,
-					self->tp_dict,
-					TRUE);
+		dict = StgDict_FromDict(value, self->tp_dict, isStruct);
 		if (dict == NULL)
 			return -1;
 
@@ -341,6 +339,18 @@ StructType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
 		}
 	}
 	return PyObject_GenericSetAttr((PyObject *)self, name, value);
+}
+
+static int
+StructType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
+{
+	return StructUnionType_setattro(self, name, value, 1);
+}
+
+static int
+UnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value)
+{
+	return StructUnionType_setattro(self, name, value, 0);
 }
 
 static PyTypeObject StructType_Type = {
@@ -405,7 +415,7 @@ static PyTypeObject UnionType_Type = {
 	0,					/* tp_call */
 	0,					/* tp_str */
 	0,					/* tp_getattro */
-	0,					/* tp_setattro */
+	(setattrofunc)UnionType_setattro,	/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
 	"metatype for the CData Objects",	/* tp_doc */
