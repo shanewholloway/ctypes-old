@@ -1,3 +1,17 @@
+2003-02-24  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: c_string() signature changed. If the first
+	parameter is a string, an optional positive integer can be used as
+	second parameter to specify the size of the internal buffer.  This
+	size does NOT include the terminating NUL byte.
+
+	* source\_ctypes.c: Made sizeof() and addressof() work with
+	c_string and c_wstring objects.
+
+	* source\callproc.c: PyCArgObjects now have a readonly _obj
+	attribute, this is the object passed to the byref() call.  Useful
+	for implmenting custom argument type checking in Python.
+
 2003-02-20  Thomas Heller  <theller@python.net>
 
 	* unittests\test_strings.py (StringTestCase.test_sized_strings):
