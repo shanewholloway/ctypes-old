@@ -395,6 +395,34 @@ DISPPARAMS = tagDISPPARAMS # typedef
 class tagVARIANT(Structure):
     pass
 VARIANT = tagVARIANT # typedef
+
+def from_param(self, var):
+    # XXX
+    # InternetExplorer sometimes(?) requires POINTER(VARIANT)
+    # as [in] parameters, in the Navigate2 call.  But the method gets
+    # a simple string value.
+    #
+    # We could use from_param to accept simple values, convert them to VARIANT,
+    # and finally pass a byref() to that to the function call.
+    if isinstance(var, POINTER(VARIANT)):
+        return var
+    if isinstance(var, VARIANT):
+        return byref(var)
+    elif isinstance(var, basestring):
+        v = VARIANT()
+        v.n1.n2.vt = VT_BSTR
+        v.n1.n2.n3.bstrVal = var
+        return byref(v)
+    elif isinstance(var, (int, long)):
+        v = VARIANT()
+        v.n1.n2.vt = VT_I4
+        v.n1.n2.n3.iVal = var
+        return byref(v)
+    raise TypeError, var
+
+POINTER(VARIANT).from_param = classmethod(from_param)
+
+
 class tagEXCEPINFO(Structure):
     pass
 EXCEPINFO = tagEXCEPINFO # typedef
