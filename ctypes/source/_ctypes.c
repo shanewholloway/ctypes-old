@@ -1,6 +1,9 @@
 /*
   ToDo:
 
+  Get rid of the checker (and also the converters) field in CFuncPtrObject and
+  StgDictObject, and replace them by slot functions in StgDictObject.
+
   think about a buffer-like object (memory? bytes?)
 
   Should POINTER(c_char) and POINTER(c_wchar) have a .value property?
@@ -2318,6 +2321,7 @@ _validate_paramflags(PyTypeObject *type, PyObject *paramflags)
 		switch (flag) {
 		case PARAMFLAG_FIN:
 		case PARAMFLAG_FOUT:
+		case (PARAMFLAG_FIN | PARAMFLAG_FOUT):
 			break;
 		default:
 			PyErr_Format(PyExc_TypeError,
@@ -2638,7 +2642,7 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 	
 	for (i = 0; i < len; ++i) {
 		PyObject *item = PyTuple_GET_ITEM(paramflags, i);
-		PyObject *ob;
+		PyObject *ob, *v;
 		int flag;
 		char *name = NULL;
 		PyObject *defval = NULL;
@@ -2676,6 +2680,19 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 			   - create an object with the [in] value as parameter
 			   - and then proceed in the same way as for an [out] parameter
 			*/
+			ob = PyTuple_GET_ITEM(argtypes, i);
+			dict = PyType_stgdict(ob);
+			/* Create an instance of the pointed-to type */
+			v = _get_arg(&inargs_index, name, defval, inargs, kwds);
+			if (v == 0)
+				goto error;
+			ob = PyObject_CallFunctionObjArgs(dict->proto,
+							  v,
+							  NULL);
+			Py_DECREF(v);
+			PyTuple_SET_ITEM(callargs, i, _byref(ob));
+			outmask |= (1 << i);
+			break;
 		default:
 			PyErr_Format(PyExc_ValueError,
 				     "paramflag %d not yet implemented", flag);

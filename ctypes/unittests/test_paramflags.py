@@ -121,14 +121,17 @@ class Test(unittest.TestCase):
         import _ctypes_test
         dll = CDLL(_ctypes_test.__file__)
 
-        # this is not yet implemented
+        # the COM idl of this function would be:
+        # void TwoOutArgs([in] int a, [in, out] int *p1, [in] int b, [in, out] int *p2);
         proto = CFUNCTYPE(None, c_int, POINTER(c_int), c_int, POINTER(c_int))
-        self.failUnlessRaises(TypeError,
-                              lambda: proto("TwoOutArgs", dll,
-                                            ((1, "a"),
-                                             (3, "p1"),
-                                             (1, "b"),
-                                             (2, "p2"))))
+        func = proto("TwoOutArgs", dll, ((1, "a"), (3, "p1"), (1, "b"), (3, "p2")))
+        # The function returns ((a + p1), (b + p2))
+        self.failUnlessEqual((3, 7), func(1, 2, 3, 4))
+        self.failUnlessEqual((10, 14), func(a=1, b=3, p1=9, p2=11))
+        # TypeError: required argument 'p1' is missing
+        self.assertRaises(TypeError, lambda: func(a=1, b=3))
+        # TypeError: required argument 'p2' is missing
+        self.assertRaises(TypeError, lambda: func(a=1, b=3, p1=3))
 
 if __name__ == "__main__":
     unittest.main()
