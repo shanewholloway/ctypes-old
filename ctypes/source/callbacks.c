@@ -168,8 +168,15 @@ static void _CallPythonObject(void *mem,
 	}
 	result = PyObject_CallObject(callable, arglist);
 	if (!result) {
-		Extend_Error_Info(PyExc_RuntimeError, "(in callback) ");
+		/* If the exception is SystemExit, we cannot call ExtendErrorInfo,
+		   because otherwise PyErr_Print() would not call Py_Exit().
+		*/
+		if (!PyErr_ExceptionMatches(PyExc_SystemExit))
+			Extend_Error_Info(PyExc_RuntimeError, "(in callback) ");
 		PyErr_Print();
+		/* See also PyErr_WriteUnraisable(...), but this
+		   prints only the repr of the original exception
+		*/
 	} else if (result != Py_None) {
 		/* another big endian hack */
 		union {
