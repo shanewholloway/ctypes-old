@@ -24,8 +24,6 @@
 # Should this be solved by using subclasses of c_wchar_p, with a customized
 # _from_outarg_ slot?
 #
-# refcount leaks!
-#
 
 from ctypes import *
 from comtypes import IUnknown
@@ -42,6 +40,26 @@ BYTE = c_ubyte
 HWND = c_void_p # XXX
 WORD = c_ushort
 
+S_OK = 0
+
+################################################################
+class _SYSTEMTIME(Structure):
+    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/winbase.h 270
+    _fields_ = [
+        ('wYear', WORD),
+        ('wMonth', WORD),
+        ('wDayOfWeek', WORD),
+        ('wDay', WORD),
+        ('wHour', WORD),
+        ('wMinute', WORD),
+        ('wSecond', WORD),
+        ('wMilliseconds', WORD),
+    ]
+LPSYSTEMTIME = POINTER(_SYSTEMTIME)
+SYSTEMTIME = _SYSTEMTIME
+assert sizeof(_SYSTEMTIME) == 16, sizeof(_SYSTEMTIME)
+assert alignment(_SYSTEMTIME) == 2, alignment(_SYSTEMTIME)
+
 ################################################################
 
 CLSID_CTaskScheduler = GUID("{148BD52A-A2AB-11CE-B11F-00AA00530503}")
@@ -52,8 +70,21 @@ class ITaskScheduler(IUnknown):
         return self.Enum()
 
     def NewWorkItem(self, name):
+        # _NewWorkItem returns IUnknown pointer, but we want a ITask pointer.
         task = self._NewWorkItem(name, byref(CLSID_CTask), byref(ITask._iid_))
         return task.QueryInterface(ITask)
+
+    def GetTargetComputer(self):
+        # Need to free the result with CoTaskMemFree
+        temp = LPWSTR()
+        self.__com_GetTargetComputer(byref(temp))
+        result = temp.value
+        windll.ole32.CoTaskMemFree(temp)
+        return result
+
+    def IsOfType(self, name, interface):
+        # Need to convert HRESULT into Python boolean
+        return S_OK == self._IsOfType(name, byref(interface._iid_))
 
 class IScheduledWorkItem(IUnknown):
     _iid_ = GUID('{a6b952f0-a4b1-11d0-997d-00aa006887ec}')
@@ -69,71 +100,95 @@ class IEnumWorkItems(IUnknown):
         return self
 
     def next(self):
-         arr, fetched = self.Next(1)
-         if fetched == 0:
+         results = self.Next(1)
+         if not results:
              raise StopIteration
-         result = arr[0]
-##         windll.ole32.CoTaskMemFree(arr)
-         return result
+         return results[0]
+
+    def Next(self, celt):
+        # Need to free the results with CoTaskMemFree
+        temp = POINTER(LPWSTR)()
+        fetched = DWORD()
+        self.__com_Next(celt, byref(temp), byref(fetched))
+        if fetched.value == 0:
+            return []
+        result = []
+        for i in range(fetched.value):
+            result.append(temp[i])
+            windll.ole32.CoTaskMemFree(temp[i])
+        windll.ole32.CoTaskMemFree(temp)
+        return result
 
 CLSID_CTask = GUID("{148BD520-A2AB-11CE-B11F-00AA00530503}")
 class ITask(IScheduledWorkItem):
     _iid_ = GUID('{148BD524-A2AB-11CE-B11F-00AA00530503}')
 
+    # These methods must call CoTaskMemFree on the returned LPWSTR:
+    # GetApplicationName
+    # GetParameters
+    # GetWorkingDirectory
+
+    def GetApplicationName(self):
+        temp = LPWSTR()
+        self.__com_GetApplicationName(byref(temp))
+        result = temp.value
+        windll.ole32.CoTaskMemFree(temp)
+        return result
+
+    def GetWorkingDirectory(self):
+        temp = LPWSTR()
+        self.__com_GetWorkingDirectory(byref(temp))
+        result = temp.value
+        windll.ole32.CoTaskMemFree(temp)
+        return result
+
+    def GetParameters(self):
+        temp = LPWSTR()
+        self.__com_GetParameters(byref(temp))
+        result = temp.value
+        windll.ole32.CoTaskMemFree(temp)
+        return result
+
 ################################################################
 
 ITaskScheduler._methods_ = [
     COMMETHOD([], HRESULT, 'SetTargetComputer',
-               ( ["in"], LPCWSTR )
-               ),
+               ( ["in"], LPCWSTR )),
     COMMETHOD([], HRESULT, 'GetTargetComputer',
-               ( ["out"], POINTER(LPWSTR) ),
-               ),
+               ( ["out"], POINTER(LPWSTR) )),
     COMMETHOD([], HRESULT, 'Enum',
-               ( ["out"], POINTER(POINTER(IEnumWorkItems)), "ppEnumWorkItems" ),
-               ),
+               ( ["out"], POINTER(POINTER(IEnumWorkItems)), "ppEnumWorkItems" )),
     COMMETHOD([], HRESULT, 'Activate',
                ( ["in"], LPCWSTR, "pwszName" ),
                ( ["in"], POINTER(IID), "riid" ),
-               ( ["out"], POINTER(POINTER(IUnknown)), "ppUnk" ),
-               ),
+               ( ["out"], POINTER(POINTER(IUnknown)), "ppUnk" )),
     COMMETHOD([], HRESULT, 'Delete',
-               ( ["in"], LPCWSTR, "pwszName" ),
-               ),
+               ( ["in"], LPCWSTR, "pwszName" )),
     COMMETHOD([], HRESULT, 'NewWorkItem',
                ( ["in"], LPCWSTR, "pwszTaskName" ),
                ( ["in"], POINTER(IID), "rclsid"),
                ( ["in"], POINTER(IID), "riid"),
-               ( ["out"], POINTER(POINTER(IUnknown)), "ppUnk"),
-               ),
+               ( ["out"], POINTER(POINTER(IUnknown)), "ppUnk")),
     COMMETHOD([], HRESULT, 'AddWorkItem',
                ( ["in"], LPCWSTR, "pwszTaskName" ),
-               ( ["in"], POINTER(IScheduledWorkItem), "pWorkItem" ),
-               ),
+               ( ["in"], POINTER(IScheduledWorkItem), "pWorkItem" )),
     COMMETHOD([], HRESULT, 'IsOfType',
                ( ["in"], LPCWSTR, "pwszName" ),
-               ( ["in"], POINTER(IID), "riid"),
-               ),
+               ( ["in"], POINTER(IID), "riid")),
 ]
 
 class _TASK_TRIGGER(Structure):
     # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 185
     pass
 PTASK_TRIGGER = POINTER(_TASK_TRIGGER)
+
 ITaskTrigger._methods_ = [
-# C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 228
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 231
     COMMETHOD([], HRESULT, 'SetTrigger',
-               ( [], PTASK_TRIGGER ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 234
+              ( ["in"], PTASK_TRIGGER, "pTrigger") ),
     COMMETHOD([], HRESULT, 'GetTrigger',
-               ( [], PTASK_TRIGGER ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 237
+              ( ["out"], PTASK_TRIGGER, "pTrigger") ),
     COMMETHOD([], HRESULT, 'GetTriggerString',
-               ( [], POINTER(LPWSTR) ),
-             ),
+              ( ["out"], POINTER(LPWSTR), "ppwszTrigger") ),
 ]
 
 _TASK_TRIGGER_TYPE = c_int # enum
@@ -238,152 +293,79 @@ IEnumWorkItems._methods_ = [
     COMMETHOD([], HRESULT, 'Clone',
               ( ["out"], POINTER(POINTER(IEnumWorkItems)) ))
 ]
-class _SYSTEMTIME(Structure):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/winbase.h 270
-    _fields_ = [
-        ('wYear', WORD),
-        ('wMonth', WORD),
-        ('wDayOfWeek', WORD),
-        ('wDay', WORD),
-        ('wHour', WORD),
-        ('wMinute', WORD),
-        ('wSecond', WORD),
-        ('wMilliseconds', WORD),
-    ]
-LPSYSTEMTIME = POINTER(_SYSTEMTIME)
-SYSTEMTIME = _SYSTEMTIME
-assert sizeof(_SYSTEMTIME) == 16, sizeof(_SYSTEMTIME)
-assert alignment(_SYSTEMTIME) == 2, alignment(_SYSTEMTIME)
 
 IScheduledWorkItem._methods_ = [
 # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 373
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 377
     COMMETHOD([], HRESULT, 'CreateTrigger',
-               ( [], POINTER(WORD) ),
-               ( [], POINTER(POINTER(ITaskTrigger)) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 380
+               ( ["out"], POINTER(WORD), 'piNewTrigger' ),
+               ( ["out"], POINTER(POINTER(ITaskTrigger)), 'ppNewTrigger' )),
     COMMETHOD([], HRESULT, 'DeleteTrigger',
-               ( [], WORD ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 383
+               ( ["in"], WORD, 'iTrigger' )),
     COMMETHOD([], HRESULT, 'GetTriggerCount',
                ( ["out"], POINTER(WORD), "pwCount")),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 387
     COMMETHOD([], HRESULT, 'GetTrigger',
-               ( [], WORD ),
-               ( [], POINTER(POINTER(ITaskTrigger)) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 391
+               ( ["in"], WORD, 'iTrigger'),
+               ( ["out"], POINTER(POINTER(ITaskTrigger)), 'ppTrigger' )),
     COMMETHOD([], HRESULT, 'GetTriggerString',
-               ( [], WORD ),
-               ( [], POINTER(LPWSTR) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 397
+               ( ["in"], WORD, 'iTrigger' ),
+               ( ["out"], POINTER(LPWSTR), 'ppwszTrigger')),
     COMMETHOD([], HRESULT, 'GetRunTimes',
-               ( [], LPSYSTEMTIME ),
-               ( [], LPSYSTEMTIME ),
-               ( [], POINTER(WORD) ),
-               ( [], POINTER(LPSYSTEMTIME) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 400
+               ( ["in"], LPSYSTEMTIME, 'pstBegin' ),
+               ( ["in"], LPSYSTEMTIME, 'pstEnd' ),
+               ( ["out", "in"], POINTER(WORD), 'pCount' ),
+               ( ["out"], POINTER(LPSYSTEMTIME), 'rgstTaskTimes' )),
     COMMETHOD([], HRESULT, 'GetNextRunTime',
-               ( [], POINTER(SYSTEMTIME) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 404
+               ( ["out"], POINTER(SYSTEMTIME), 'pstNextRun' )),
     COMMETHOD([], HRESULT, 'SetIdleWait',
-               ( [], WORD ),
-               ( [], WORD ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 408
+               ( ["in"], WORD, 'wIdleMinutes' ),
+               ( ["in"], WORD, 'wDeadlineMinutes' )),
     COMMETHOD([], HRESULT, 'GetIdleWait',
-               ( [], POINTER(WORD) ),
-               ( [], POINTER(WORD) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 410
-    COMMETHOD([], HRESULT, 'Run',
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 412
-    COMMETHOD([], HRESULT, 'Terminate',
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 416
+               ( ["out"], POINTER(WORD), 'pwIdleMinutes' ),
+               ( ["out"], POINTER(WORD), 'pwDeadlineMinutes' )),
+    COMMETHOD([], HRESULT, 'Run'),
+    COMMETHOD([], HRESULT, 'Terminate'),
     COMMETHOD([], HRESULT, 'EditWorkItem',
-               ( [], HWND ),
-               ( [], DWORD ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 419
+               ( ["in"], HWND, 'hParent' ),
+               ( ["in"], DWORD, 'dwReserved')),
     COMMETHOD([], HRESULT, 'GetMostRecentRunTime',
-               ( [], POINTER(SYSTEMTIME) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 422
+               ( ["out"], POINTER(SYSTEMTIME), 'pstLastRun')),
     COMMETHOD([], HRESULT, 'GetStatus',
-               ( [], POINTER(HRESULT) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 425
+               ( ["out"], POINTER(HRESULT), 'phrStatus')),
     COMMETHOD([], HRESULT, 'GetExitCode',
-               ( [], POINTER(DWORD) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 428
+               ( ["out"], POINTER(DWORD), 'pdwExitCode')),
     COMMETHOD([], HRESULT, 'SetComment',
-               ( [], LPCWSTR ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 431
+               ( ["in"], LPCWSTR, 'pwszComment')),
     COMMETHOD([], HRESULT, 'GetComment',
-               ( [], POINTER(LPWSTR) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 434
+               ( ["out"], POINTER(LPWSTR), 'ppwszComment')),
     COMMETHOD([], HRESULT, 'SetCreator',
-               ( [], LPCWSTR ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 437
+               ( ["in"], LPCWSTR, 'pwszCreator' )),
     COMMETHOD([], HRESULT, 'GetCreator',
-               ( [], POINTER(LPWSTR) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 441
+               ( ["out"], POINTER(LPWSTR), 'ppwszCreator' )),
     COMMETHOD([], HRESULT, 'SetWorkItemData',
-               ( [], WORD ),
-               ( [], POINTER(BYTE) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 445
+               ( ["in"], WORD, 'cbData' ),
+               ( ["in"], POINTER(BYTE),  'rgbData')),
     COMMETHOD([], HRESULT, 'GetWorkItemData',
-               ( [], POINTER(WORD) ),
-               ( [], POINTER(POINTER(BYTE)) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 448
+               ( ["out"], POINTER(WORD), 'pcbData' ),
+               ( ["out"], POINTER(POINTER(BYTE)), 'prgbData' )),
     COMMETHOD([], HRESULT, 'SetErrorRetryCount',
-               ( [], WORD ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 451
+               ( ["in"], WORD, 'wRetryCount' )),
     COMMETHOD([], HRESULT, 'GetErrorRetryCount',
-               ( [], POINTER(WORD) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 454
+               ( ["out"], POINTER(WORD), 'pwRetryCount')),
     COMMETHOD([], HRESULT, 'SetErrorRetryInterval',
-               ( [], WORD ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 457
+               ( ["in"], WORD, 'wRetryInterval')),
     COMMETHOD([], HRESULT, 'GetErrorRetryInterval',
-               ( [], POINTER(WORD) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 460
+               ( ["out"], POINTER(WORD), 'pwRetryInterval')),
     COMMETHOD([], HRESULT, 'SetFlags',
-               ( [], DWORD ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 463
+               ( ["in"], DWORD, 'dwFlags')),
     COMMETHOD([], HRESULT, 'GetFlags',
-               ( [], POINTER(DWORD) ),
-             ),
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/mstask.h 467
+               ( ["out"], POINTER(DWORD), 'pdwFlags' )),
     COMMETHOD([], HRESULT, 'SetAccountInformation',
-               ( [], LPCWSTR ),
-               ( [], LPCWSTR ),
-             ),
-
+               ( ["in"], LPCWSTR, 'pwszAccountName' ),
+               ( ["in"], LPCWSTR, 'pwszPassword' )),
     COMMETHOD([], HRESULT, 'GetAccountInformation',
                ( ["out"], POINTER(LPWSTR), "ppwszAccountName" )),
 ]
 
-# THIS CODE MUST BE EXECUTED AFTER IScheduledWorkItem._methods_ = ... !!!
 ITask._methods_ = [
     COMMETHOD([], HRESULT, 'SetApplicationName',
                ( ["in"], LPCWSTR )),
@@ -411,21 +393,44 @@ ITask._methods_ = [
                ( ["out"], POINTER(DWORD) ))
 ]
 
+################################################################
+
 if __name__ == "__main__":
     from comtypes import CoCreateInstance
     scheduler = CoCreateInstance(CLSID_CTaskScheduler, ITaskScheduler)
 
     for taskname in scheduler.Enum():
-        print "%s:" % taskname,
+        print "  * %s:" % taskname,
         task = scheduler.Activate(taskname, byref(ITask._iid_))
         task = task.QueryInterface(ITask)
-        print task.GetTriggerCount(), task.GetMaxRunTime(), task.GetApplicationName()
+        print (task.GetTriggerCount(), task.GetMaxRunTime(), task.GetApplicationName())
+        print (task.GetWorkingDirectory(), task.GetParameters())
+
+        from comtypes.automation import IDispatch
+        print "IsA", scheduler.IsOfType(taskname, ITask)
+
+        from comtypes.persist import IPersist, IPersistFile
+        pi = task.QueryInterface(IPersistFile)
+        print "CLSID", pi.GetClassID()
+        print "FNM", pi.GetCurFile()
+        print "ISDIRTY", pi.IsDirty()
+        task.SetComment("blah blah")
+        print "ISDIRTY", pi.IsDirty()
+        cnt, data = task.GetWorkItemData()
+
+    import sys
+    sys.exit()
 
     print scheduler.Enum()
     print scheduler.Enum().Clone()
 
-    for i in range (50):
-        for item in scheduler:
-            pass # leaks 10 refs per loop
-
     print scheduler.AddRef(), scheduler.Release()
+
+    try:
+##        while 1:
+            for i in range(100000):
+                scheduler.GetTargetComputer()
+                for item in scheduler:
+                    print item
+    except KeyboardInterrupt:
+        pass
