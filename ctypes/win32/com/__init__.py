@@ -5,7 +5,8 @@ from ctypes.wintypes import DWORD, WORD, BYTE
 
 DEBUG = __debug__ # enable debugging output (via Windows' OutputDebugString)
 
-HRESULT = _ctypes.HRESULT
+from ctypes import HRESULT
+
 CopyComPointer = _ctypes.CopyComPointer
 
 ole32 = oledll.ole32
