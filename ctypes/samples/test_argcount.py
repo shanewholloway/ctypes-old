@@ -1,4 +1,4 @@
-from ctypes import c_char, c_string, byref, cdll, c_int, c_char_p
+from ctypes import c_char, byref, cdll, c_int, c_char_p
 
 import os, sys
 if os.name == "nt":
