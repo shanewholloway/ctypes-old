@@ -202,7 +202,7 @@ CDataType_in_dll(PyObject *type, PyObject *args)
 	void *handle;
 	void *address;
 
-	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
+	if (!PyArg_ParseTuple(args, "Os", &dll, &name))
 		return NULL;
 
 	obj = PyObject_GetAttrString(dll, "_handle");
