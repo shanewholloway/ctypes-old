@@ -60,7 +60,8 @@ if os.name == "nt":
                               "source/libffi_msvc/ffi_common.h"])
 else:
     include_dirs = ["build/libffi/include",
-                    "build/libffi/lib/gcc/3.5.0/include/libffi"]
+                    "build/libffi/lib/gcc/3.5.0/include/libffi",
+                    "build/libffi/lib/gcc/include/libffi"]
     library_dirs = ["build/libffi/lib"]
 ##    if os.path.exists('source/libffi'):
 ##        include_dirs.append('source/libffi/include')
