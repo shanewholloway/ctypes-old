@@ -236,12 +236,11 @@ class CvQualifiedType(TypeContainer):
     def __repr__(self):
         return "ConstQualifier(%s)" % (self.typ)
 
-class Structure(object):
+class Union(object):
     members = None
-    def __init__(self, name, members, bases):
+    def __init__(self, name, members):
         self.name = name
         self._members = members
-        self._bases = bases
 
     def resolve(self, find_typ):
         if self.members is not None:
@@ -253,6 +252,22 @@ class Structure(object):
             f.resolve(find_typ)
             if isinstance(f, (Field, Method)):
                 self.members.append(f)
+
+    def __repr__(self):
+        return "Union(%s)" % self.name
+
+class Structure(Union):
+    bases = None
+    def __init__(self, name, members, bases):
+        self.name = name
+        self._members = members
+        self._bases = bases
+
+    def resolve(self, find_typ):
+        super(Structure, self).resolve(find_typ)
+        if self.bases is not None:
+            return
+
         self.bases = []
         for id in self._bases.split():
             b = find_typ(id)
@@ -276,25 +291,6 @@ class Structure(object):
             if isinstance(m, Method):
                 return True
         return False
-
-class Union(Structure):
-    def __init__(self, name, members):
-        self.name = name
-        self._members = members
-
-    def resolve(self, find_typ):
-        if self.members is not None:
-            return
-
-        self.members = []
-        for id in self._members:
-            f = find_typ(id)
-            f.resolve(find_typ)
-            if isinstance(f, (Field, Method)):
-                self.members.append(f)
-
-    def __repr__(self):
-        return "Union(%s)" % self.name
 
 class Constructor(object):
     def resolve(self, find_typ):
@@ -330,7 +326,7 @@ class Function(object):
 
     def resolve(self, find_typ):
         if self.returns is None:
-            r = find_type(self._returns)
+            r = find_typ(self._returns)
             self.returns = r
             r.resolve(find_typ)
         return
@@ -496,25 +492,29 @@ def main(args=None):
     def find_typ(id):
         return handler.all[id]
 
-    for obj in handler.all.values():
-##        if isinstance(obj, (Structure, Union)):
-##            print obj.name
-##            obj.resolve(find_typ)
-##            pp(obj.members)
-##            print
-##            continue
-        if isinstance(obj, Typedef):
-            obj.resolve(find_typ)
-            if isinstance(obj.typ, (Structure, Union)) and not obj.typ.isClass():
-                print obj, len(obj.typ.members)
-##                if isinstance(obj, Structure):
-##                    print obj.typ.bases
-##                for f in obj.typ.members:
-##                    print " ", f
-##                print
+    print "#include <windows.h>"
+    print "#include <stdio.h>"
+    print "int main(int argc, char **argv) {"
 
-##    pp(handler.all)
-##    print
+    for item in handler.all.values():
+        item.resolve(find_typ)
+
+    for obj in handler.all.values():
+        if isinstance(obj, Typedef):
+            if type(obj.typ) is Enumeration:
+                print obj
+        continue
+        if isinstance(obj, Typedef):
+##            obj.resolve(find_typ)
+##            obj.typ.resolve(find_typ)
+            if type(obj.typ) is Structure and not obj.typ.isClass():
+##                print '    printf("sizeof(%s) = %%d\\n", sizeof(%s));' % (obj.name, obj.name)
+                print obj, len(obj.typ.members)
+            elif type(obj.typ) is Union:
+##                print '    printf("sizeof(%s) = %%d\\n", sizeof(%s));' % (obj.name, obj.name)
+                print obj, len(obj.typ.members)
+
+    print "}"
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
