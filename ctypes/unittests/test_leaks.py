@@ -1,5 +1,6 @@
 import unittest, sys, gc
 from ctypes import *
+from ctypes import _pointer_type_cache
 
 class LeakTestCase(unittest.TestCase):
 
@@ -47,8 +48,9 @@ class LeakTestCase(unittest.TestCase):
         for i in xrange(repeat):
             class LIST(Structure):
                 pass
-
             LIST._fields_ = [("pnext", POINTER(LIST))]
+            del _pointer_type_cache[LIST] # XXX should this be a weakkeydict?
+            del LIST
 
     if hasattr(sys, "gettotalrefcount"):
 
