@@ -6,6 +6,7 @@
 #endif
 
 typedef struct tagCDataObject CDataObject;
+typedef int (*THUNK)(void);
 
 /*
   Hm. Are there CDataObject's which do not need the b_objects member?  In
@@ -25,6 +26,24 @@ struct tagCDataObject {
 
 	PyObject *b_objects;	/* list of references we need to keep */
 };
+
+typedef struct tagCFuncPtrObject {
+	PyObject_HEAD
+	char *b_ptr;		/* pointer to memory block */
+	int  b_needsfree;	/* need _we_ free the memory? */
+	CDataObject *b_base;	/* pointer to base object or NULL */
+	int b_size;		/* size of memory block in bytes */
+	int b_length;		/* number of references we need */
+	int b_index;		/* index of this object into base's
+				   b_object list */
+
+	PyObject *b_objects;	/* list of references we need to keep */
+
+	THUNK thunk;
+	PyObject *argtypes;
+	PyObject *restype;
+	int flags;
+} CFuncPtrObject;
 
 extern PyObject *CData_GetList(CDataObject *mem);
 
@@ -86,8 +105,6 @@ extern PyTypeObject Pointer_Type;
 extern PyObject *
 CreateArrayType(PyObject *itemtype, int length);
 
-typedef int (*THUNK)(void);
-
 typedef struct tagFunctionObject {
 	PyObject_HEAD
 	PyObject *callable;		/* python callable object */
@@ -147,10 +164,11 @@ typedef struct {
 	char fmt;		/* Only for SimpleObject */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
-/*	PyObject *argtypes;	/* tuple of CDataObjects */
-/*	PyObject *converters;	/* tuple( [t.from_param for t in argtypes */
-/*	PyObject *restype;	/* CDataObject or NULL */
-/*	int flags;		/* calling convention and such */
+	PyObject *argtypes;	/* tuple of CDataObjects */
+	PyObject *converters;	/* tuple( [t.from_param for t in argtypes */
+	PyObject *restype;	/* CDataObject or NULL */
+	int flags;		/* calling convention and such */
+	int nArgBytes;		/* number of argument bytes for callback */
 } StgDictObject;
 
 /* May return NULL, but does not set an exception! */

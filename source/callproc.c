@@ -820,12 +820,28 @@ static int _call_function_pointer(int flags,
  */
 static void PrepareResult(PyObject *restype, PyCArgObject *result)
 {
+	StgDictObject *dict;
+
 	if (restype == NULL) {
 		result->tag = 'i';
 		return;
 	}
 
+	dict = PyType_stgdict(restype);
+	if (dict && dict->getfunc && dict->proto && PyString_Check(dict->proto)) {
+		char *fmt = PyString_AS_STRING(dict->proto);
+		/* XXX This should probably be checked when assigning the restype
+		   attribute
+		*/
+		if (strchr("bBhHiIlLqQdfP", fmt[0])) {
+			result->tag = fmt[0];
+			return;
+		}
+	}
+
+/* Remove later */
 	if (PyString_Check(restype)) {
+		assert(0);
 		/* XXX Is it single letter? */
 		result->tag = PyString_AS_STRING(restype)[0];
 		return;
@@ -870,12 +886,11 @@ static void PrepareResult(PyObject *restype, PyCArgObject *result)
  */
 static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 {
-	PyObject *retval = ToPython(&result->value, result->tag);
+	StgDictObject *dict;
 
-	if (restype == NULL || PyString_Check(restype)) {
-		Py_INCREF(retval);
-		return retval;
-	}
+	/* obsolete, remove the commented out code */
+	if (restype == NULL/* || PyString_Check(restype)*/)
+		return ToPython(&result->value, result->tag);
 
 	if (PointerTypeObject_Check(restype)) {
 		CDataObject *pd;
@@ -895,11 +910,21 @@ static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 		memcpy(pd->b_ptr, &result->value, pd->b_size);
 		return (PyObject *)pd;
 	}
+
+	dict = PyType_stgdict(restype);
+	if (dict && dict->getfunc)
+		/* We don't do size-checking, we assume PrepareResult
+		   has already done it. */
+		return dict->getfunc(&result->value, dict->size);
+
 	if (PyCallable_Check(restype))
 		return PyObject_CallFunction(restype, "i",
 					     result->value.i);
-	/* Should be unreached */
-	assert(FALSE);
+#ifdef _DEBUG
+	_asm int 3;
+#endif
+	PyErr_SetString(PyExc_TypeError,
+			"Bug: cannot convert result");
 	return NULL; /* to silence the compiler */
 }
 
