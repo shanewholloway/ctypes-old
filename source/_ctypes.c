@@ -1993,13 +1993,22 @@ static PyTypeObject Simple_Type = {
 /*
   Pointer_Type
 */
+
 static PyObject *
-Pointer_get_contents(CDataObject *self, void *closure)
+Pointer_item(CDataObject *self, int index)
 {
-	void *adr = *(void **)self->b_ptr;
+	void *adr;
 	StgDictObject *stgdict;
 	CDataObject *result;
 
+/* See below.
+	if (index != 0) {
+		PyErr_SetString(PyExc_IndexError,
+				"index out of range");
+		return NULL;
+	}
+*/
+	adr = *(void **)self->b_ptr;
 	if (adr == NULL) {
 		PyErr_SetString(PyExc_ValueError,
 				"NULL pointer access");
@@ -2013,12 +2022,36 @@ Pointer_get_contents(CDataObject *self, void *closure)
 		return NULL;
 	}
 
+	/* Dangerous code. Pointer instances can point to a single
+	   data item, or they can point to an array of values.
+	   Back in the distant past ;-), I had a SetSize() method, which
+	   would enable indexes != 0. Don't know when and why I removed
+	   it, but I need it again. Should it have to be enabled explicitely?
+	   Would be better, it seems.
+
+	   Note that there's no corresponding ass_item implementation
+	   with indexes != 0. This means, we can get and change the items
+	   the pointer points to, if they are mutable, but not
+	   replace the items by different ones.
+	*/
+	if (index != 0) {
+		StgDictObject *xx;
+		xx = PyType_stgdict(stgdict->proto);
+		adr = (void *)((char *)adr + index*xx->size);
+	}
+
 	result = (CDataObject *)CData_AtAddress((PyObject *)stgdict->proto, adr);
 	/* Hm. Should we have an 'owner' parameter in the above call? */
 	/* self owns the buffer, so result must keep a reference to it */
 	Py_INCREF(self);
 	result->b_base = self;
 	return (PyObject *)result;
+}
+
+static PyObject *
+Pointer_get_contents(CDataObject *self, void *closure)
+{
+	return Pointer_item(self, 0);
 }
 
 static int
@@ -2069,17 +2102,6 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	*(void **)self->b_ptr = mem->b_ptr;
 
 	return PyList_SetItem(objects, 0, list);
-}
-
-static PyObject *
-Pointer_item(CDataObject *self, int index)
-{
-	if (index != 0) {
-		PyErr_SetString(PyExc_IndexError,
-				"index out of range");
-		return NULL;
-	}
-	return Pointer_get_contents(self, NULL);
 }
 
 static int
