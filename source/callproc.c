@@ -456,6 +456,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 		if (PyInt_Check(arg)) {
 			parm->tag = 'i';
 			parm->value.i = PyInt_AS_LONG(arg);
+			Py_DECREF(arg);
 			Py_INCREF(obj);
 			parm->obj = obj;
 			return parm;
