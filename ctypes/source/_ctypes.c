@@ -711,19 +711,36 @@ CharArray_set_value(CDataObject *self, PyObject *value)
 {
 	char *ptr;
 	int size;
-	if (-1 == PyString_AsStringAndSize(value, &ptr, &size))
+
+	if (PyUnicode_Check(value)) {
+		value = PyUnicode_AsEncodedString(value,
+						  conversion_mode_encoding,
+						  conversion_mode_errors);
+		if (!value)
+			return -1;
+	} else if (!PyString_Check(value)) {
+		PyErr_Format(PyExc_TypeError,
+			     "string expected instead of %s instance",
+			     value->ob_type->tp_name);
 		return -1;
+	} else
+		Py_INCREF(value);
+	size = PyString_GET_SIZE(value);
 	if (size > self->b_size) {
 		PyErr_SetString(PyExc_ValueError,
 				"string too long");
+		Py_DECREF(value);
 		return -1;
 	}
 
+	ptr = PyString_AS_STRING(value);
 	memcpy(self->b_ptr, ptr, size);
 	if (size < self->b_size)
 		self->b_ptr[size] = '\0';
+	Py_DECREF(value);
 
-	/* What about CData_GetList()? We don't care, since we have a copy of the data */
+	/* What about CData_GetList()? No need to do something, since we have
+	   a copy of the data */
 	return 0;
 }
 
