@@ -1088,6 +1088,22 @@ static PyObject *py_dl_sym(PyObject *self, PyObject *args)
 }
 #endif
 
+static char alignment_doc[] =
+"addressof(C instance) -> integer\nReturn the address of the C instance";
+static char sizeof_doc[] =
+"sizeof(C type) -> integer\n"
+"sizeof(C instance) -> integer\n"
+"Return the size in bytes of a C instance";
+
+static char byref_doc[] =
+"byref(C instance) -> byref-object\n"
+"Return a pointer lookalike to the C instance, only usable\n"
+"as function argument";
+static char addressof_doc[] =
+"addressof(C instance) -> integer\n"
+"Return the address of the C instance internal buffer";
+
+
 PyMethodDef module_methods[] = {
 #ifdef MS_WIN32
 	{"CopyComPointer", copy_com_pointer, METH_VARARGS, copy_com_pointer_doc},
@@ -1101,10 +1117,10 @@ PyMethodDef module_methods[] = {
 	{"dlclose", py_dl_close, METH_VARARGS, "dlclose a library"},
 	{"dlsym", py_dl_sym, METH_VARARGS, "find symbol in shared library"},
 #endif
-	{"alignment", align_func, METH_O},
-	{"sizeof", sizeof_func, METH_O},
-	{"byref", byref, METH_O},
-	{"addressof", addressof, METH_O},
+	{"alignment", align_func, METH_O, alignment_doc},
+	{"sizeof", sizeof_func, METH_O, sizeof_doc},
+	{"byref", byref, METH_O, byref_doc},
+	{"addressof", addressof, METH_O, addressof_doc},
 	{NULL,      NULL}        /* Sentinel */
 };
 
