@@ -1,6 +1,6 @@
 from ctypes.com import IUnknown, PIUnknown, COMObject, ole32, \
      GUID, HRESULT, STDMETHOD, REFIID
-from ctypes.com.typeinfo import IDispatch, oleaut32
+from ctypes.com.automation import IDispatch, oleaut32
 from ctypes import c_int, c_ulong, byref, c_voidp, Structure, windll, POINTER, pointer
 
 user32 = windll.user32
@@ -130,3 +130,4 @@ def localserver(objclass):
     factory._register_class()
     pump_messages()
     factory._revoke_class()
+    ole32.CoUninitialize()
