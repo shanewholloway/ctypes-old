@@ -26,6 +26,12 @@ ctypes reference
         instances.  The pointer class is created on the fly, if it
         does not yet exist.
 
+    'addressof(obj) -> integer'
+
+        Same as '(int)&obj' in C.  Returns the address of the internal
+        memory buffer as an integer.
+
+
   Common operation on ctypes types
 
     ctypes types/classes extensively use the new Python type system, so
@@ -46,7 +52,7 @@ ctypes reference
     'ctype.from_address(address) -> ctypes instance'
 
         Create a new instance of 'ctype' from the memory block at the
-        integer 'address'. It must no longer be accessed of the memory
+        integer 'address'. It must no longer be accessed if the memory
         block becomes invalid, the programmer must ensure this.
 
 
