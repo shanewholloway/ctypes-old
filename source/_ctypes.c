@@ -112,6 +112,7 @@ bytes(cdata)
 #endif
 
 PyObject *PyExc_ArgError;
+static PyTypeObject Simple_Type;
 
 char *conversion_mode_encoding = NULL;
 char *conversion_mode_errors = NULL;
@@ -1201,7 +1202,7 @@ static PyMethodDef c_char_p_method = { "from_param", c_char_p_from_param, METH_O
 static PyMethodDef c_wchar_p_method = { "from_param", c_wchar_p_from_param, METH_O };
 
 #else
-
+#error
 static PyMethodDef c_void_p_method = { "from_param", c_void_p_from_param, METH_VARARGS };
 static PyMethodDef c_char_p_method = { "from_param", c_char_p_from_param, METH_VARARGS };
 static PyMethodDef c_wchar_p_method = { "from_param", c_wchar_p_from_param, METH_VARARGS };
@@ -1261,49 +1262,55 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
 
-	switch (PyString_AS_STRING(proto)[0]) {
-	case 'z': /* c_char_p */
-		ml = &c_char_p_method;
-		break;
-	case 'Z': /* c_wchar_p */
-		ml = &c_wchar_p_method;
-		break;
-	case 'P': /* c_void_p */
-		ml = &c_void_p_method;
-		break;
-	default:
-		ml = NULL;
-		break;
-	}
-			
-	if (ml) {
-#if (PYTHON_API_VERSION >= 1012)
-		PyObject *meth;
-		int x;
-		meth = PyDescr_NewClassMethod(result, ml);
-		if (!meth)
-			return NULL;
-#else
-		PyObject *meth, *func;
-		int x;
-		func = PyCFunction_New(ml, NULL);
-		if (!func)
-			return NULL;
-		meth = PyObject_CallFunctionObjArgs(
-			(PyObject *)&PyClassMethod_Type,
-			func, NULL);
-		Py_DECREF(func);
-		if (!meth) {
-			return NULL;
+	/* Install from_param class methods in ctypes base classes.
+	   Overrides the SimpleType_from_param generic method.
+	 */
+	if (result->tp_base == &Simple_Type) {
+		switch (PyString_AS_STRING(proto)[0]) {
+		case 'z': /* c_char_p */
+			ml = &c_char_p_method;
+			break;
+		case 'Z': /* c_wchar_p */
+			ml = &c_wchar_p_method;
+			break;
+		case 'P': /* c_void_p */
+			ml = &c_void_p_method;
+			break;
+		default:
+			ml = NULL;
+			break;
 		}
+			
+		if (ml) {
+#if (PYTHON_API_VERSION >= 1012)
+			PyObject *meth;
+			int x;
+			meth = PyDescr_NewClassMethod(result, ml);
+			if (!meth)
+				return NULL;
+#else
+#error
+			PyObject *meth, *func;
+			int x;
+			func = PyCFunction_New(ml, NULL);
+			if (!func)
+				return NULL;
+			meth = PyObject_CallFunctionObjArgs(
+				(PyObject *)&PyClassMethod_Type,
+				func, NULL);
+			Py_DECREF(func);
+			if (!meth) {
+				return NULL;
+			}
 #endif
-		x = PyDict_SetItemString(result->tp_dict,
-					 ml->ml_name,
-					 meth);
-		Py_DECREF(meth);
-		if (x == -1) {
-			Py_DECREF(result);
-			return NULL;
+			x = PyDict_SetItemString(result->tp_dict,
+						 ml->ml_name,
+						 meth);
+			Py_DECREF(meth);
+			if (x == -1) {
+				Py_DECREF(result);
+				return NULL;
+			}
 		}
 	}
 	return (PyObject *)result;
