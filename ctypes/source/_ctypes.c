@@ -1489,7 +1489,11 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	PyObject *callable;
 	StgDictObject *dict;
 	THUNK thunk;
-	PyObject *objects;
+	PyObject *objects; 
+
+	if (kwds && PyDict_GetItemString(kwds, "_basespec_")) {
+		return GenericCData_new(type, args, kwds);
+	}
 
 	/* Of course this has to work different if _basespec_ is in kwds */
 	if (!PyArg_ParseTuple(args, "O", &callable))
