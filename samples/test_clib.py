@@ -187,7 +187,7 @@ def test_qsort_2():
         ia10[i] = c_int(num)
     print "BEFORE sorting:",
     for item in ia10:
-        print item.value,
+        print item,
     print
 
     # It would be even nicer to define the callback so that
@@ -210,7 +210,7 @@ def test_qsort_2():
 
     print "AFTER  sorting:", 
     for item in ia10:
-        print item.value,
+        print item,
     print
     print
 
@@ -224,10 +224,10 @@ def test_qsort_5():
 
     for i in range(10):
         num = random.choice(range(100))
-        ia10[i] = c_int(num)
+        ia10[i] = num
     print "BEFORE sorting:",
     for item in ia10:
-        print item.value,
+        print item,
     print
 
     def compare(a, b):
@@ -245,7 +245,7 @@ def test_qsort_5():
 
     print "AFTER  sorting:", 
     for item in ia10:
-        print item.value,
+        print item,
     print
     print
 

@@ -394,14 +394,16 @@ class Dispatch:
         rgDispIDs = (c_int * n)()
 
         for i in range(len(names)):
-            rgNames[i].value = unicode(names[i])
+            # both of these work...
+            rgNames[i] = names[i]
+##            rgNames[i] = unicode(names[i])
 
         self._dispatch_.GetIDsOfNames(byref(guid_null),
                                       rgNames,
                                       len(names),
                                       0,
                                       rgDispIDs)
-        return [x.value for x in rgDispIDs]
+        return [x for x in rgDispIDs]
 
     def __len__(self):
         return self.Count
@@ -517,7 +519,7 @@ class _DispMethod:
         for disp, name in pairs:
             val = kw[name]
             rgvArgs[i].set_value(val)
-            rgdispids[i].value = disp
+            rgdispids[i] = disp
 ##            print "   ", name, rgdispids[i].value, val
             i += 1
 

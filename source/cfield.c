@@ -39,6 +39,7 @@ CField_FromDesc(PyObject *desc, int index,
 						   NULL);
 	if (self == NULL)
 		return NULL;
+#if 1
 	if (PyString_Check(desc)) {
 		struct fielddesc *fmt;
 		char *name = PyString_AS_STRING(desc);
@@ -78,7 +79,9 @@ CField_FromDesc(PyObject *desc, int index,
 		getfunc = fmt->getfunc;
 		length = 1;
 		proto = NULL;
-	} else {
+	} else 
+#endif
+	{
 		StgDictObject *dict;
 		dict = PyType_stgdict(desc);
 		if (!dict) {
@@ -178,9 +181,17 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 			/* Hm. We can arrive here when self->proto is an ArrayType_Type,
 			   and value is a sequence. */
 			/* Should we call (self->proto).from_param(PySequence_GetItem())? */
-			PyErr_SetString(PyExc_TypeError,
-					"CDataObject expected");
-			return -1;
+			StgDictObject *dict = PyType_stgdict(self->proto);
+			if (dict->setfunc) {
+				value = dict->setfunc(dst->b_ptr + self->offset,
+						      value, dict->size);
+				if (!value)
+					return -1;
+			} else {
+				PyErr_SetString(PyExc_TypeError,
+						"CDataObject expected");
+				return -1;
+			}
 		} else if (PyObject_IsInstance(value, self->proto)) {
 			memcpy(dst->b_ptr + self->offset,
 			       src->b_ptr,

@@ -93,7 +93,7 @@ class SimpleTypesTestCase(unittest.TestCase):
         INTARRAY = c_int * 3
         ia = INTARRAY()
         self.failUnless(len(ia) == 3)
-        self.failUnless([ia[i].value for i in range(3)] == [0, 0, 0])
+        self.failUnless([ia[i] for i in range(3)] == [0, 0, 0])
 
         # Pointers are only compatible with arrays containing items of
         # the same type!
