@@ -716,7 +716,7 @@ z_set(void *ptr, PyObject *value, unsigned size)
 		Py_INCREF(str);
 		return str;
 	} else if (PyInt_Check(value) || PyLong_Check(value)) {
-		*(char **)ptr = PyInt_AsUnsignedLongMask(value);
+		*(char **)ptr = (char *)PyInt_AsUnsignedLongMask(value);
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
@@ -751,7 +751,7 @@ Z_set(void *ptr, PyObject *value, unsigned size)
 		if (!value)
 			return NULL;
 	} else if (PyInt_Check(value) || PyLong_Check(value)) {
-		*(wchar_t **)ptr = PyInt_AsUnsignedLongMask(value);
+		*(wchar_t **)ptr = (wchar_t *)PyInt_AsUnsignedLongMask(value);
 		Py_INCREF(Py_None);
 		return Py_None;
 	} else if (!PyUnicode_Check(value)) {
