@@ -344,8 +344,9 @@ class Generator(object):
                 pass
             else:
                 return dll._name
-##        print >> sys.stderr, "warning: dll not found for function %s" % name
-##        return "???"
+##        if self.verbose:
+        # warnings.warn, maybe?
+##        print >> sys.stderr, "function %s not found in any dll" % name
         return None
 
     _stdcall_defined = False
@@ -413,7 +414,7 @@ class Generator(object):
             return
         name = getattr(item, "name", None)
         if name in self.known_symbols:
-            print >> self.stream, "# %s is in known_symbols" % name
+##            print >> self.stream, "# %s is in known_symbols" % name
             print >> self.stream, "from %s import %s" % (self.known_symbols[name].__module__, name)
             self.done.add(item)
             return
