@@ -1,28 +1,10 @@
 """create and manipulate C data types in Python"""
 
 import os
-if os.path.isfile(os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")):
-    # magic to allow using ctypes from the CVS tree, after 'setup.py build'
-    # has been run
-
-    # Would it be better to move this code inside the .CTYPES_DEVEL file,
-    # and simply exec it?
-    import sys
-    p = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", sys.platform))
-    __path__.insert(0, p)
-
-    # Try to convince py2exe or Installer not to include distutils
-    # because of this, so use __import__ instead of import!
-    m = __import__("distutils.util")
-    get_platform = m.util.get_platform
-    plat_specifier = ".%s-%s" % (get_platform(), sys.version[0:3])
-    build_dir = os.path.join("..", 'build', 'lib' + plat_specifier)
-
-    p = os.path.abspath(os.path.join(os.path.dirname(__file__), build_dir))
-    sys.path.insert(0, p)
-    del sys
-del os
+magic = os.path.join(os.path.dirname(__file__), ".CTYPES_DEVEL")
+if os.path.isfile(magic):
+    execfile(magic)
+del os, magic
 
 __version__ = "0.6.0"
 
@@ -92,19 +74,6 @@ elif _os.name == "posix":
     _FreeLibrary = None
 
 from _ctypes import sizeof, byref, addressof
-
-def bytes(obj):
-    return str(buffer(obj))
-
-#   Currently it is not possible to assign c_int instances to "i"
-#   Structure Fields, only their value attribute: s.field =
-#   c_int(32).value.
-
-
-#   The accessor functions could, if the type check like PyInt_Check()
-#   fails, call ConvParam (although this is currently in another
-#   extension) and use the second part of the result.
-
 from _ctypes import _SimpleCData
 
 class c_short(_SimpleCData):
@@ -237,11 +206,12 @@ def ARRAY(typ, len):
 
 ################################################################
 
-class _CdeclFuncPtr(_CFuncPtr):
-    _flags_ = FUNCFLAG_CDECL
-    _restype_ = c_int # default, can be overridden in instances
 
 class CDLL:
+    class _CdeclFuncPtr(_CFuncPtr):
+        _flags_ = FUNCFLAG_CDECL
+        _restype_ = c_int # default, can be overridden in instances
+
     _handle = 0
     def __init__(self, name, LoadLibrary=_LoadLibrary):
         self._name = name
@@ -254,7 +224,7 @@ class CDLL:
     def __getattr__(self, name):
         if name[:2] == '__' and name[-2:] == '__':
             raise AttributeError, name
-        func = _CdeclFuncPtr(name, self)
+        func = self._CdeclFuncPtr(name, self)
         setattr(self, name, func)
         return func
 
@@ -264,27 +234,28 @@ class CDLL:
         self._handle = 0
 
 if _os.name ==  "nt":
-    class _StdcallFuncPtr(_CFuncPtr):
-        _flags_ = FUNCFLAG_STDCALL
-        _restype_ = c_int # default, can be overridden in instances
         
     class WinDLL(CDLL):
+        class _StdcallFuncPtr(_CFuncPtr):
+            _flags_ = FUNCFLAG_STDCALL
+            _restype_ = c_int # default, can be overridden in instances
+
         def __getattr__(self, name):
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
-            func = _StdcallFuncPtr(name, self)
+            func = self._StdcallFuncPtr(name, self)
             setattr(self, name, func)
             return func
 
-    class _OlecallFuncPtr(_CFuncPtr):
-        _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
-        _restype_ = c_int # needed, but unused
 
     class OleDLL(CDLL):
+        class _OlecallFuncPtr(_CFuncPtr):
+            _flags_ = FUNCFLAG_STDCALL | FUNCFLAG_HRESULT
+            _restype_ = c_int # needed, but unused
         def __getattr__(self, name):
             if name[:2] == '__' and name[-2:] == '__':
                 raise AttributeError, name
-            func = _OlecallFuncPtr(name, self)
+            func = self._OlecallFuncPtr(name, self)
             setattr(self, name, func)
             return func
 
