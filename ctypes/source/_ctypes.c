@@ -97,7 +97,6 @@ bytes(cdata)
 #endif
 
 PyObject *PyExc_ArgError;
-static PyObject *PointerType_cache;
 
 char *conversion_mode_encoding = NULL;
 char *conversion_mode_errors = NULL;
@@ -138,7 +137,7 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	fields = PyObject_GetAttrString((PyObject *)result, "_fields_");
 	if (fields == NULL) {
 		PyErr_Clear();
-		return (PyObject *)result;
+		return result;
 	}
 	dict = StgDict_FromDict(fields, cls_dict, isStruct);
 	Py_DECREF(fields);
@@ -310,26 +309,6 @@ static PySequenceMethods CDataType_as_sequence = {
 	0,			/* intargfunc sq_inplace_repeat; */
 };
 
-staticforward PyObject *
-PointerType_set_type(PyTypeObject *, PyObject *);
-
-/* If the _fields_ attribute has been set on a Structure or Union type,
- * we must update the Pointer's type if there is already one.
- */
-static int
-StructUnion_UpdatePointer_Type(PyObject *self)
-{
-	PyObject *ptr = PyDict_GetItem(PointerType_cache, self);
-	if (ptr && PyType_Check(ptr)) {
-		PyObject *r;
-		r = PointerType_set_type((PyTypeObject *)ptr, self);
-		if (r == NULL)
-			return -1;
-		Py_DECREF(r);
-	}
-	return 0;
-}
-
 static int
 StructUnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value,
 			 int isStruct)
@@ -358,8 +337,6 @@ StructUnionType_setattro(PyTypeObject *self, PyObject *name, PyObject *value,
 		}
 		Py_DECREF(self->tp_dict);
 		self->tp_dict = dict;
-		if (-1 == StructUnion_UpdatePointer_Type((PyObject *)self))
-			return -1;
 	}
 	if (PyString_Check(name)
 	    && 0 == strcmp("_pack_", PyString_AS_STRING(name))) {
@@ -508,9 +485,6 @@ size property/method, and the sequence protocol.
 static int
 PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 {
-/* XXX makes no sense to check for proto != NULL,
- * and later call Py_INCREF on it.
- */
 	if (proto && !PyType_Check(proto)) {
 		PyErr_SetString(PyExc_TypeError,
 				"_type_ must be a type");
@@ -551,18 +525,18 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->ffi_type = ffi_type_pointer;
 
 	proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
-	if (proto && PyType_stgdict(proto)) {
-		if (-1 == PointerType_SetProto(stgdict, proto)) {
-			Py_DECREF((PyObject *)stgdict);
-			return NULL;
-		}
+	if (proto && -1 == PointerType_SetProto(stgdict, proto)) {
+		Py_DECREF((PyObject *)stgdict);
+		return NULL;
 	}
+
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
 	if (result == NULL)
 		return NULL;
-	/* replace the class dict by our updated StgDict */
+
+	/* replace the class dict by our updated spam dict */
 	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
 		Py_DECREF(result);
 		Py_DECREF((PyObject *)stgdict);
@@ -570,6 +544,7 @@ PointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
+
 	return (PyObject *)result;
 }
 
@@ -578,17 +553,10 @@ static PyObject *
 PointerType_set_type(PyTypeObject *self, PyObject *type)
 {
 	StgDictObject *dict;
-	PyObject *old_type;
 
 	dict = PyType_stgdict((PyObject *)self);
 	assert(dict);
 
-	old_type = PyDict_GetItemString((PyObject *)dict, "_type_");
-	if (old_type && old_type != type) {
-		PyErr_SetString(PyExc_AttributeError,
-				"_type_ already set");
-		return NULL;
-	}
 	if (-1 == PointerType_SetProto(dict, type))
 		return NULL;
 
@@ -616,16 +584,10 @@ PointerType_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
-	if (PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
-	}
 	if (PointerObject_Check(value)) {
 		StgDictObject *v = PyObject_stgdict(value);
 		StgDictObject *t = PyType_stgdict(type);
-		if (v && v->proto
-		    && t && t->proto
-		    && PyObject_IsSubclass(v->proto, t->proto)) {
+		if (PyObject_IsSubclass(v->proto, t->proto)) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -1370,6 +1332,7 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	char *fmt;
 	PyCArgObject *parg;
 	struct fielddesc *fd;
+
 	/* If the value is already an instance of the requested type,
 	   we can use it as is */
 	if (1 == PyObject_IsInstance(value, type)) {
@@ -1592,64 +1555,6 @@ CFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	return (PyObject *)result;
 }
 
-static PyObject *
-CFuncPtrType_from_param(PyObject *type, PyObject *value)
-{
-	if (1 == PyObject_IsInstance(value, type)) {
-		Py_INCREF(value);
-		return value;
-	}
-	/* normal python object, maybe a function, maybe another callable.  We
-	 * create an object of the required type automatically, but we have to
-	 * keep a reference to it alive as long as the callback is used.  We
-	 * do not know how long it is used, but we assume that the lifetime of
-	 * the callable is suffifient.  This works for normal functions (where
-	 * we attach it as _callback_ attribute to the function), but not for
-	 * bound methods.
-	 *
-	 * For bound methods, we should keep the callback alive as long as the
-	 * instance is alive, but we do not want to insret something into the
-	 * instance's __dict__.
-	 * Can we use a weak ref to the instance? XXX Later.
-	 */
-	if (0 == PyObject_IsInstance(value, (PyObject *)&CFuncPtr_Type)) {
-		PyObject *result = PyObject_CallFunctionObjArgs(type, value, NULL);
-		if (result == NULL)
-			return NULL;
-		if (-1 == PyObject_SetAttrString(value, "_callback_", result)) {
-			PyErr_Clear();
-		}
-		return result;
-	}
-	/* Not sure this one is possible.  byref() of a FUNCTYPE? */
-	if (PyCArg_CheckExact(value)) {
-		PyCArgObject *p = (PyCArgObject *)value;
-		PyObject *ob = p->obj;
-		StgDictObject *dict;
-		dict = PyType_stgdict(type);
-
-		/* If we got a PyCArgObject, we must check if the object packed in it
-		   is an instance of the type's dict->proto */
-		if(dict && ob
-		   && PyObject_IsInstance(ob, dict->proto)) {
-			Py_INCREF(value);
-			return value;
-		}
-	}
-	PyErr_Format(PyExc_TypeError,
-		     "expected %s instance instead of %s",
-		     ((PyTypeObject *)type)->tp_name,
-		     value->ob_type->tp_name);
-	return NULL;
-}
-
-static PyMethodDef CFuncPtrType_methods[] = {
-	{ "from_param", CFuncPtrType_from_param, METH_O, from_param_doc },
-	{ "from_address", CDataType_from_address, METH_O, from_address_doc },
-	{ "in_dll", CDataType_in_dll, METH_VARARGS, in_dll_doc },
-	{ NULL, NULL },
-};
-
 PyTypeObject CFuncPtrType_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
@@ -1679,7 +1584,7 @@ PyTypeObject CFuncPtrType_Type = {
 	0,					/* tp_weaklistoffset */
 	0,					/* tp_iter */
 	0,					/* tp_iternext */
-	CFuncPtrType_methods,			/* tp_methods */
+	CDataType_methods,			/* tp_methods */
 	0,					/* tp_members */
 	0,					/* tp_getset */
 	0,					/* tp_base */
@@ -3414,6 +3319,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 				"Pointer does not support item deletion");
 		return -1;
 	}
+	
 	stgdict = PyObject_stgdict((PyObject *)self);
 	if (index != 0) {
 		PyErr_SetString(PyExc_IndexError,
@@ -3421,10 +3327,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 		return -1;
 	}
 	size = stgdict->size / stgdict->length;
-/* Later...
-	return Pointer_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
-			   index, size, self->b_ptr);
-*/
+
 	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
 			 index, size, *(void **)self->b_ptr);
 }
@@ -3882,9 +3785,6 @@ init_ctypes(void)
 #endif
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
 	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
-	PointerType_cache = PyDict_New();
-	Py_INCREF(PointerType_cache);
-	PyModule_AddObject(m, "_pointer_type_cache", PointerType_cache);
 	PyModule_AddStringConstant(m, "__version__", "0.9.2");
 	
 	PyExc_ArgError = PyErr_NewException("ctypes.ArgumentError", NULL, NULL);
