@@ -6,6 +6,7 @@
 #ifdef MS_WIN32
 #include <windows.h>
 #endif
+
 /******************************************************************/
 /*
   CField_Type
@@ -333,8 +334,8 @@ d_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(double *)ptr = x;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
@@ -356,8 +357,8 @@ f_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(float *)ptr = x;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
@@ -374,8 +375,8 @@ Q_set(void *ptr, PyObject *value, unsigned size)
 	if (get_ulonglong(value, &x) < 0)
 		return NULL;
 	*(unsigned PY_LONG_LONG *)ptr = x;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
@@ -391,8 +392,8 @@ q_set(void *ptr, PyObject *value, unsigned size)
 	if (get_longlong(value, &x) < 0)
 		return NULL;
 	*(PY_LONG_LONG *)ptr = x;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
@@ -410,8 +411,8 @@ i_set(void *ptr, PyObject *value, unsigned size)
 	if (get_long(value, &x) < 0)
 		return NULL;
 	*(int *)ptr = (int)x;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -428,8 +429,8 @@ I_set(void *ptr, PyObject *value, unsigned size)
 	if (get_ulong(value, &val) < 0)
 		return  NULL;
 	*(unsigned int *)ptr = (unsigned int)val;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -446,8 +447,8 @@ l_set(void *ptr, PyObject *value, unsigned size)
 	if (get_long(value, &x) < 0)
 		return NULL;
 	*(long *)ptr = x;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -464,8 +465,8 @@ L_set(void *ptr, PyObject *value, unsigned size)
 	if (get_ulong(value, &val) < 0)
 		return  NULL;
 	*(unsigned long *)ptr = val;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -487,8 +488,8 @@ h_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(short *)ptr = (short)val;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -510,8 +511,8 @@ H_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(unsigned short *)ptr = (unsigned short)val;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -533,8 +534,8 @@ b_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(char *)ptr = (char)val;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -556,8 +557,8 @@ B_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(unsigned char *)ptr = (unsigned char)val;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -576,8 +577,8 @@ c_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(char *)ptr = PyString_AS_STRING(value)[0];
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -620,7 +621,10 @@ u_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(wchar_t *)ptr = p[0];
-	return value;
+	Py_DECREF(value);
+
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -733,8 +737,8 @@ s_set(void *ptr, PyObject *value, unsigned length)
 	}
 	/* Also copy the terminating NUL character */
 	memcpy((char *)ptr, data, size);
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
@@ -885,8 +889,8 @@ P_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	}
 	*(void **)ptr = v;
-	Py_INCREF(value);
-	return value;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *
