@@ -1,6 +1,6 @@
 # Demonstrate some functions from the standard C library.
 
-from ctypes import cdll, POINTER, CFunction, CFuncPtr, FUNCFLAG_CDECL
+from ctypes import cdll, POINTER, CFuncPtr, FUNCFLAG_CDECL
 
 import os
 
@@ -110,10 +110,6 @@ def test_sqrt():
 def test_qsort():
     import array, random
 
-##    class CMPFUNC(CFunction):
-##        _types_ = c_int, c_int
-##        _stdcall_ = 0
-
     class CMPFUNC(CFuncPtr):
         _argtypes_ = c_int, c_int
         _flags_ = FUNCFLAG_CDECL
@@ -164,10 +160,6 @@ def test_qsort_1():
         bd = c_int.from_address(b)
         return cmp(ad.value, bd.value)
     
-##    class CMPFUNC(CFunction):
-##        _types_ = c_int, c_int
-##        _stdcall_ = 0
-
     class CMPFUNC(CFuncPtr):
         _argtypes_ = c_int, c_int
         _flags_ = FUNCFLAG_CDECL
@@ -207,10 +199,6 @@ def test_qsort_2():
         bd = c_int.from_address(b)
         return cmp(ad.value, bd.value)
     
-##    class CMPFUNC(CFunction):
-##        _types_ = c_int, c_int
-##        _stdcall_ = 0
-
     class CMPFUNC(CFuncPtr):
         _argtypes_ = c_int, c_int
         _flags_ = FUNCFLAG_CDECL
@@ -246,10 +234,6 @@ def test_qsort_5():
         "the callback now receives pointers to c_int:"
         return cmp(a.contents.value, b.contents.value)
     
-##    class CMPFUNC(CFunction):
-##        _types_ = POINTER(c_int), POINTER(c_int)
-##        _stdcall_ = 0
-
     class CMPFUNC(CFuncPtr):
         _argtypes_ = POINTER(c_int), POINTER(c_int)
         _flags_ = FUNCFLAG_CDECL
