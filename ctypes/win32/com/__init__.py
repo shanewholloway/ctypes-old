@@ -213,8 +213,16 @@ class COMObject(object):
                 if callable is not None:
                     break
             else:
-                callable = getattr(self, name, self._notimpl)
-            if callable == self._notimpl:
+                class NotImpl:
+                    def __init__(self, name, itfname):
+                        self.name, self.itfname = name, itfname
+                    def __call__(self, *args):
+                        print "E_NOTIMPL method: %s of %s, args: %s" % \
+                              (self.name, self.itfname, str(args))
+                        return E_NOTIMPL
+                notimpl = NotImpl(name, itfclass.__name__)                        
+                callable = getattr(self, name, notimpl)
+            if callable == notimpl:
                 print "# unimplemented %s for interface %s" % (name, itfclass.__name__)
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
@@ -224,10 +232,6 @@ class COMObject(object):
         # If we would return pointer(itf) instead of byref(itf),
         # we would have to call AddRef first!
         return byref(itf)
-
-    def _notimpl(self, *args):
-##        print "notimpl", args
-        return E_NOTIMPL
 
     def QueryInterface(self, this, refiid, ppiunk):
         iid = refiid[0]
