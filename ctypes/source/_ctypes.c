@@ -2564,13 +2564,19 @@ static PyObject *
 Struct_as_parameter(CDataObject *self)
 {
 	PyCArgObject *parg;
+	StgDictObject *stgdict;
 	
 	parg = new_CArgObject();
 	if (parg == NULL)
 		return NULL;
 
 	parg->tag = 'V';
-//XXX	parg->pffi_type = ??
+	stgdict = PyObject_stgdict(self);
+	parg->pffi_type = &stgdict->ffi_type;
+	/* For structure parameters (by value), parg->value doesn't contain the structure
+	   data itself, instead parg->value.p *points* to the structure's data
+	   See also _ctypes.c, function _call_function_pointer().
+	*/
 	parg->value.p = self->b_ptr;
 	parg->size = self->b_size;
 	Py_INCREF(self);

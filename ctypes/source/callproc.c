@@ -440,7 +440,6 @@ PyTypeObject PyCArg_Type = {
 static PyCArgObject *ConvParam(PyObject *obj, int index)
 {
 	PyCArgObject *parm;
-
 	if (PyCArg_CheckExact(obj)) {
 		Py_INCREF(obj);
 		return (PyCArgObject *)obj;
@@ -599,7 +598,15 @@ static int _call_function_pointer(int flags,
 			return -1;
 		}
 		atypes[i] = tp;
-		values[i] = &parms[i]->value;
+		/* For structure parameters (by value), parg->value doesn't
+		   contain the structure data itself, instead parg->value.p
+		   *points* to the structure's data. See also _ctypes.c, function
+		   Struct_as_parameter().
+		*/
+		if (tp->type == FFI_TYPE_STRUCT)
+			values[i] = parms[i]->value.p;
+		else
+			values[i] = &parms[i]->value;
 	}
 	if (res->pffi_type == NULL) {
 		PyErr_SetString(PyExc_RuntimeError,
