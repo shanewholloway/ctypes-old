@@ -71,9 +71,9 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
-#include <ffi.h>
 #endif
 
+#include <ffi.h>
 #include "ctypes.h"
 
 #ifdef _DEBUG

@@ -128,11 +128,10 @@ typedef PyObject *(* GETFUNC)(void *, unsigned size);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 
 struct fielddesc {
-    char code;
-    int size;
-    int align;
-    SETFUNC setfunc;
-    GETFUNC getfunc;
+	char code;
+	SETFUNC setfunc;
+	GETFUNC getfunc;
+	ffi_type *tp; /* always statically allocated */
 };
 
 typedef struct {
@@ -154,6 +153,7 @@ typedef struct {
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
 	SETFUNC setfunc;	/* Only for ArrayObject */
 	GETFUNC getfunc;	/* Only for ArrayObject */
+	ffi_type *tp;		/* Only for Simple */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
