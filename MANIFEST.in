@@ -4,4 +4,5 @@ include source/*.c source/*.h
 include unittests/*.py
 include docs/*.html docs/*.css docs/*.stx
 include samples/rt samples/rt.bat
-recursive-include samples *.py README*
+recursive-include samples *.py
+prune samples/Windows/wtl
