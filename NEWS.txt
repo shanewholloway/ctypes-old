@@ -18,6 +18,17 @@ Version 0.9.1
     for character and unicode character pointer and arrays, where
     strings resp. unicode strings are used - much more convenient.
 
+  Experimatal change:
+
+    It is now possibile to safely call Python C Api functions.
+    Before, this was dangerous because ctypes releases and reaquires
+    the threadstate before resp. after the call of C functions.  Most
+    Python API functions require a valid threadstate, especially in
+    combination with the native windows handling this could lead to
+    very strange effects.  This functionality is experimental and will
+    probably change in future releases, if you want to try it out you
+    should ask on the ctypes-users mailing list.
+
 Other Versions: no news recorded in this file! Please see the CVS
 commit messages.
 
