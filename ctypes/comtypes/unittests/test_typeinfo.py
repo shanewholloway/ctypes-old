@@ -2,7 +2,7 @@ import unittest
 from ctypes import POINTER, byref
 from comtypes import GUID
 from comtypes.automation import DISPATCH_METHOD
-from comtypes.automation.typeinfo import LoadTypeLibEx, LoadRegTypeLib, \
+from comtypes.typeinfo import LoadTypeLibEx, LoadRegTypeLib, \
      QueryPathOfRegTypeLib, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_ENUM
 
 class Test(unittest.TestCase):
