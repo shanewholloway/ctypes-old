@@ -92,13 +92,13 @@ class dispinterface_EventReceiver(COMObject):
         # tried this and failed with DispInvoke, and I assume its the
         # same with CreateStdDispatch.
         mthname = self._com_interfaces_[0]._dispmap_[dispid]
-        args = self._get_args(pDispParams[0])
         mth = getattr(self, mthname, None)
         if mth is not None:
-            # Should we, for symmetry with other code, also pass the
-            # 'this' parameter? Currently we don't.
+            # For symmetry with other code we also pass the this pointer
+            args = self._get_args(pDispParams[0])
             mth(this, *args)
-        else:
+        elif __debug__:
+            args = self._get_args(pDispParams[0])
             print "# Unimplemented (%s %s)" % (mthname, args)
         return 0
 
