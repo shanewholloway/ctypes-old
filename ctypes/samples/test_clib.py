@@ -31,11 +31,12 @@ if os.name == "nt":
     libmath = cdll.msvcrt
 
     msvcrt = cdll.msvcrt
-    
 elif os.name == "posix":
     if sys.platform == "darwin":
         libc = cdll.LoadLibrary("/usr/lib/libc.dylib")
         libmath = cdll.LoadLibrary("/usr/lib/libm.dylib")
+    elif sys.platform == "cygwin":
+        libmath = libc = cdll.LoadLibrary("/bin/cygwin1.dll")
     else:
         libc = cdll.LoadLibrary("/lib/libc.so.6")
         libmath = cdll.LoadLibrary("/lib/libm.so.6")

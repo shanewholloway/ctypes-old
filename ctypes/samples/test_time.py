@@ -30,6 +30,8 @@ if os.name == "nt":
 elif os.name == "posix":
     if sys.platform == "darwin":
         clib = cdll.LoadLibrary("/usr/lib/libc.dylib")
+    elif sys.platform == "cygwin":
+        clib = cdll.LoadLibrary("/bin/cygwin1.dll")
     else:
         clib = cdll.LoadLibrary("/lib/libc.so.6")
 

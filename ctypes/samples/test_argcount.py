@@ -6,6 +6,8 @@ if os.name == "nt":
 elif os.name == "posix":
     if sys.platform == "darwin":
         strchr = cdll.LoadLibrary("/usr/lib/libc.dylib").strchr
+    elif sys.platform == "cygwin":
+        strchr = cdll.LoadLibrary("/bin/cygwin1.dll").strchr
     else:
         strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
 
