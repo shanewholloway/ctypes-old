@@ -36,6 +36,7 @@ struct tagCDataObject {
 };
 
 typedef struct {
+	/* First part identical to tagCDataObject */
 	PyObject_HEAD
 	char *b_ptr;		/* pointer to memory block */
 	int  b_needsfree;	/* need _we_ free the memory? */
@@ -46,6 +47,7 @@ typedef struct {
 				   b_object list */
 
 	PyObject *b_objects;	/* list of references we need to keep */
+	/* end of tagCDataObject, additional fields follow */
 
 	THUNK thunk;
 	PyObject *callable;
@@ -127,6 +129,7 @@ extern PyObject *addressof(PyObject *self, PyObject *obj);
 typedef PyObject *(* GETFUNC)(void *, unsigned size);
 typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 
+/* a table entry describing a predefined ctypes type */
 struct fielddesc {
 	char code;
 	SETFUNC setfunc;
@@ -145,6 +148,8 @@ typedef struct {
 	SETFUNC setfunc;		/* setter function if proto is NULL */
 } CFieldObject;
 
+/* A subclass of PyDictObject, used as the instance dictionary of ctypes
+   metatypes */
 typedef struct {
 	PyDictObject dict;	/* a subclass of dict */
 	int size;		/* number of bytes */
