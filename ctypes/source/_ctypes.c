@@ -2232,7 +2232,7 @@ static void
 CFuncPtr_dealloc(CFuncPtrObject *self)
 {
 	CFuncPtr_clear(self);
-	self->ob_type->tp_free(self);
+	self->ob_type->tp_free((PyObject *)self);
 }
 
 PyTypeObject CFuncPtr_Type = {
@@ -3348,46 +3348,46 @@ PyObject *my_debug(PyObject *self, CDataObject *arg)
 }
 
 #ifdef MS_WIN32
-#define EXPORT __declspec(dllexport)
+#define EXPORT(x) __declspec(dllexport) x
 #else
-#define EXPORT
+#define EXPORT(x) x
 #endif
 
 /* some functions handy for testing */
 
-DL_EXPORT(void) _testfunc_v(int a, int b, int *presult)
+EXPORT(void) _testfunc_v(int a, int b, int *presult)
 {
 	*presult = a + b;
 }
 
-DL_EXPORT(int) _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
+EXPORT(int) _testfunc_i_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 //	printf("_testfunc_i_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (int)(b + h + i + l + f + d);
 }
 
-DL_EXPORT(float) _testfunc_f_bhilfd(char b, short h, int i, long l, float f, double d)
+EXPORT(float) _testfunc_f_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 //	printf("_testfunc_f_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (float)(b + h + i + l + f + d);
 }
 
-DL_EXPORT(double) _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double d)
+EXPORT(double) _testfunc_d_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 //	printf("_testfunc_d_bhilfd got %d %d %d %ld %f %f\n",
 //	       b, h, i, l, f, d);
 	return (double)(b + h + i + l + f + d);
 }
 
-DL_EXPORT(char *) _testfunc_p_p(void *s)
+EXPORT(char *) _testfunc_p_p(void *s)
 {
 	return s;
 }
 
 
-DL_EXPORT(void *) get_strchr(void)
+EXPORT(void *) get_strchr(void)
 {
 	return (void *)strchr;
 }
@@ -3404,27 +3404,27 @@ typedef struct {
 	int (__stdcall *s)(int, int);
 } FUNCS;
 
-DL_EXPORT(int) _testfunc_callfuncp(FUNCS *fp)
+EXPORT(int) _testfunc_callfuncp(FUNCS *fp)
 {
 	fp->c(1, 2);
 	fp->s(3, 4);
 	return 0;
 }
 
-DL_EXPORT(int) _testfunc_deref_pointer(int *pi)
+EXPORT(int) _testfunc_deref_pointer(int *pi)
 {
 	return *pi;
 }
 
 #ifdef MS_WIN32
-DL_EXPORT(int) _testfunc_piunk(IUnknown FAR *piunk)
+EXPORT(int) _testfunc_piunk(IUnknown FAR *piunk)
 {
 	piunk->lpVtbl->AddRef(piunk);
 	return piunk->lpVtbl->Release(piunk);
 }
 #endif
 
-DL_EXPORT(int) _testfunc_callback_with_pointer(int (*func)(int *))
+EXPORT(int) _testfunc_callback_with_pointer(int (*func)(int *))
 {
 	int table[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
@@ -3432,18 +3432,18 @@ DL_EXPORT(int) _testfunc_callback_with_pointer(int (*func)(int *))
 }
 
 #ifdef HAVE_LONG_LONG
-DL_EXPORT(PY_LONG_LONG) _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
+EXPORT(PY_LONG_LONG) _testfunc_q_bhilfdq(char b, short h, int i, long l, float f,
 				     double d, PY_LONG_LONG q)
 {
 	return (PY_LONG_LONG)(b + h + i + l + f + d + q);
 }
 
-DL_EXPORT(PY_LONG_LONG) _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
+EXPORT(PY_LONG_LONG) _testfunc_q_bhilfd(char b, short h, int i, long l, float f, double d)
 {
 	return (PY_LONG_LONG)(b + h + i + l + f + d);
 }
 
-DL_EXPORT(int) _testfunc_callback_i_if(int value, int (*func)(int))
+EXPORT(int) _testfunc_callback_i_if(int value, int (*func)(int))
 {
 	int sum = 0;
 	while (value != 0) {
@@ -3453,7 +3453,7 @@ DL_EXPORT(int) _testfunc_callback_i_if(int value, int (*func)(int))
 	return sum;
 }
 
-DL_EXPORT(PY_LONG_LONG) _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
+EXPORT(PY_LONG_LONG) _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(PY_LONG_LONG))
 {
 	PY_LONG_LONG sum = 0;
 
@@ -3466,7 +3466,7 @@ DL_EXPORT(PY_LONG_LONG) _testfunc_callback_q_qf(PY_LONG_LONG value, int (*func)(
 
 #endif
 
-DL_EXPORT(int) _testfunc_ppp(char ***p)
+EXPORT(int) _testfunc_ppp(char ***p)
 {
 	static char message[] = "Hello, World";
 	if (p) {
@@ -3478,7 +3478,7 @@ DL_EXPORT(int) _testfunc_ppp(char ***p)
 	return 0;
 }
 
-DL_EXPORT(void) my_free(void *p)
+EXPORT(void) my_free(void *p)
 {
 	printf("my_free got %d\n", (int)p);
 }
@@ -3503,7 +3503,7 @@ EGG my_eggs[1] = {
 	{ "first egg", 1, my_spams }
 };
 
-DL_EXPORT(int) getSPAMANDEGGS(EGG **eggs)
+EXPORT(int) getSPAMANDEGGS(EGG **eggs)
 {
 	*eggs = my_eggs;
 	return 1;
@@ -3515,7 +3515,7 @@ typedef struct tagpoint {
 	int y;
 } point;
 
-DL_EXPORT(int) _testfunc_byval(point in, point *pout)
+EXPORT(int) _testfunc_byval(point in, point *pout)
 {
 	static point buf;
 	if (pout) {
@@ -3527,14 +3527,14 @@ DL_EXPORT(int) _testfunc_byval(point in, point *pout)
 
 #endif
 
-DL_EXPORT (int) an_integer = 42;
+EXPORT (int) an_integer = 42;
 
-DL_EXPORT(int) get_an_integer(void)
+EXPORT(int) get_an_integer(void)
 {
 	return an_integer;
 }
 
-DL_EXPORT(double)
+EXPORT(double)
 integrate(double a, double b, double (*f)(double), long nstep)
 {
 	double x, sum=0.0, dx=(b-a)/(double)nstep;
@@ -3562,14 +3562,14 @@ xxx_library _xxx_lib = {
 	_xxx_init
 };
 
-DL_EXPORT(xxx_library) *library_get(void)
+EXPORT(xxx_library) *library_get(void)
 {
 	return &_xxx_lib;
 }
 
 #ifdef MS_WIN32
 /* See Don Box (german), pp 79ff. */
-DL_EXPORT(void) GetString(BSTR *pbstr)
+EXPORT(void) GetString(BSTR *pbstr)
 {
 	*pbstr = SysAllocString(L"Goodbye!");
 }
