@@ -1,7 +1,6 @@
 #include "Python.h"
 #include "structmember.h"
 
-#include <ffi.h>
 #include "ctypes.h"
 #ifdef MS_WIN32
 #include <windows.h>
@@ -930,44 +929,70 @@ P_get(void *ptr, unsigned size)
 	return PyLong_FromVoidPtr(*(void **)ptr);
 }
 
-/* Used are the hHiIlLfdqQbBczZPu codes (in ctypes/__init__.py), and X (in
-   com/automation.py) */
-/* It *seems* sSU are unused. But can that be? */
+typedef struct { char c; char x; } s_char;
+typedef struct { char c; short x; } s_short;
+typedef struct { char c; int x; } s_int;
+typedef struct { char c; long x; } s_long;
+typedef struct { char c; float x; } s_float;
+typedef struct { char c; double x; } s_double;
+typedef struct { char c; char *x; } s_char_p;
+typedef struct { char c; void *x; } s_void_p;
+
+#define CHAR_ALIGN (sizeof(s_char) - sizeof(char))
+#define SHORT_ALIGN (sizeof(s_short) - sizeof(short))
+#define INT_ALIGN (sizeof(s_int) - sizeof(int))
+#define LONG_ALIGN (sizeof(s_long) - sizeof(long))
+#define FLOAT_ALIGN (sizeof(s_float) - sizeof(float))
+#define DOUBLE_ALIGN (sizeof(s_double) - sizeof(double))
+#define CHAR_P_ALIGN (sizeof(s_char_p) - sizeof(char*))
+#define VOID_P_ALIGN (sizeof(s_void_p) - sizeof(void*))
+
+#ifdef HAVE_USABLE_WCHAR_T
+typedef struct { char c; wchar_t x; } s_wchar;
+typedef struct { char c; wchar_t *x; } s_wchar_p;
+
+#define WCHAR_ALIGN (sizeof(s_wchar) - sizeof(wchar_t))
+#define WCHAR_P_ALIGN (sizeof(s_wchar_p) - sizeof(wchar_t*))
+#endif
+
+#ifdef HAVE_LONG_LONG
+typedef struct { char c; PY_LONG_LONG x; } s_long_long;
+#define LONG_LONG_ALIGN (sizeof(s_long_long) - sizeof(PY_LONG_LONG))
+#endif
+
+
 static struct fielddesc formattable[] = {
-	/* Hm, signed or unsigned? Does it matter? */
-/**/	{ 's', s_set, s_get, &ffi_type_schar},
+	{ 's', sizeof(char),		CHAR_ALIGN,		s_set, s_get},
 #if 1
 	/* See comment above S_get() */
-/**/	{ 'S', S_set, S_get, &ffi_type_pointer},
+	{ 'S', sizeof(char),		CHAR_ALIGN,		S_set, S_get},
 #endif
-	{ 'B', B_set, B_get, &ffi_type_uchar},
-	{ 'b', b_set, b_get, &ffi_type_schar},
-	{ 'c', c_set, c_get, &ffi_type_schar},
-	{ 'd', d_set, d_get, &ffi_type_double},
-	{ 'f', f_set, f_get, &ffi_type_float},
-	{ 'h', h_set, h_get, &ffi_type_sshort},
-	{ 'H', H_set, H_get, &ffi_type_ushort},
-	{ 'i', i_set, i_get, &ffi_type_sint},
-	{ 'I', I_set, I_get, &ffi_type_uint},
-	{ 'l', l_set, l_get, &ffi_type_sint},
-	{ 'L', L_set, L_get, &ffi_type_uint},
+	{ 'B', sizeof(char),		CHAR_ALIGN,		B_set, B_get},
+	{ 'b', sizeof(char),		CHAR_ALIGN,		b_set, b_get},
+	{ 'c', sizeof(char),		CHAR_ALIGN,		c_set, c_get},
+	{ 'd', sizeof(double),		DOUBLE_ALIGN,		d_set, d_get},
+	{ 'f', sizeof(float),		FLOAT_ALIGN,		f_set, f_get},
+	{ 'h', sizeof(short),		SHORT_ALIGN,		h_set, h_get},
+	{ 'H', sizeof(short),		SHORT_ALIGN,		H_set, H_get},
+	{ 'i', sizeof(int),		INT_ALIGN,		i_set, i_get},
+	{ 'I', sizeof(int),		INT_ALIGN,		I_set, I_get},
+	{ 'l', sizeof(long),		LONG_ALIGN,		l_set, l_get},
+	{ 'L', sizeof(long),		LONG_ALIGN,		L_set, L_get},
 #ifdef HAVE_LONG_LONG
-	{ 'q', q_set, q_get, &ffi_type_slong},
-	{ 'Q', Q_set, Q_get, &ffi_type_ulong},
+	{ 'q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get},
+	{ 'Q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
 #endif
-	{ 'P', P_set, P_get, &ffi_type_pointer},
-	{ 'z', z_set, z_get, &ffi_type_pointer},
+	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
+	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
 #ifdef HAVE_USABLE_WCHAR_T
-	/* XXX ?? */
-	{ 'u', u_set, u_get, &ffi_type_sshort},
-	/* XXX ?? */
-/**/	{ 'U', U_set, U_get, &ffi_type_sshort},
-	{ 'Z', Z_set, Z_get, &ffi_type_pointer},
+	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get},
+	{ 'U', sizeof(char),		WCHAR_ALIGN,		U_set, U_get},
+	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
 #endif
 #ifdef MS_WIN32
-	{ 'X', BSTR_set, BSTR_get, &ffi_type_pointer},
+	{ 'X', sizeof(wchar_t *),	WCHAR_P_ALIGN,		BSTR_set, BSTR_get},
 #endif
-	{ 0, NULL,  NULL, NULL},
+	{ 0,   0,			0,			NULL,  NULL},
 };
 
 struct fielddesc *
