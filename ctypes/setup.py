@@ -50,6 +50,15 @@ else:
                             **kw),
                   ]
 
+packages = ["ctypes"]
+package_dir = ["ctypes": "lib"]
+
+if sys.platform == "win32":
+    packages.append("ctypes.com")
+    package_dir["ctypes.com"] = "win32/com"
+
+################################################################
+
 class test(Command):
     # Original version of this class posted
     # by Berthold Hoellmann to distutils-sig@python.org
@@ -169,12 +178,11 @@ class my_build_py(build_py.build_py):
                 result.append(('ctypes', modname, pathname))
         return result
 
-
 if __name__ == '__main__':
     setup(name="ctypes",
           ext_modules = extensions,
-          package_dir = {'ctypes': 'lib', 'ctypes.com': 'win32/com'},
-          packages = ["ctypes", "ctypes.com"],
+          package_dir = package_dir,
+          packages = packages,
 
           version="0.6.0",
           description="create and manipulate C data types in Python",
