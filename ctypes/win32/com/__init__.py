@@ -6,6 +6,13 @@ from _ctypes import HRESULT
 
 ole32 = oledll.ole32
 
+def __init__():
+    ole32.CoInitialize(None)
+    import atexit
+    atexit.register(ole32.CoUninitialize)
+
+__init__()
+
 from ctypes.wintypes import DWORD, WORD, BYTE
 
 ################################################################
@@ -237,3 +244,21 @@ class COMObject:
         self._refcnt -= 1
         self._factory.LockServer(None, 0)
         return self._refcnt
+
+################################################################
+
+CLSCTX_INPROC_SERVER = 0x1
+CLSCTX_LOCAL_SERVER = 0x4
+
+def CreateInstance(coclass, interface=None,
+                   clsctx = CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER):
+    if interface is None:
+        interface = coclass._com_interfaces_[0]
+    p = pointer(interface())
+    clsid = GUID(coclass._reg_clsid_)
+    ole32.CoCreateInstance(byref(clsid),
+                           0,
+                           clsctx,
+                           byref(interface._iid_),
+                           byref(p))
+    return p
