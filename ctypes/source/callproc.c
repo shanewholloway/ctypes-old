@@ -12,6 +12,58 @@
  */
 
 
+/*
+  How are functions called, and how are parameters converted to C ?
+
+   1. (in CFuncPtr_call) restype and converters are got from self or stgdict.
+   2. If it's a COM method, the COM pointer is retrieved from the argument list.
+   3. If converters are there, the number of arguments is checked.
+   4. CallProc is called, for a COM method with a slice [1:-1] of the arg list.
+
+   5. An array of PyCArgObject pointers is allocated to hold all the converted arguments.
+   6. If converters are present, each argument is replaced by the result of passing the argument
+      to the converter.
+   7. Each argument is passed to ConvParam, which creates a PyCArgObject.
+   8. Another PyCArgObject is allocated to hold the result of the function call.
+   9. PrepareResult() is called with the restype to fill out the tag field of the PyCArgObject.
+
+  10. _call_function_pointer is called.
+
+  11. GetResult() is called with the 'result' PyCArgObject' to convert the C data
+      into a Python object.
+  12. All the PyCArgObjects are DECREF'd.
+
+  What does PrepareResult and GetResult do?
+
+  PrepareResult sets the 'tag' field of the PyCArgObject.
+
+    - if no restype, assume integer, and set it to 'i'.
+    - get the type's stgdict, if it has a getfunc and a string proto,
+      set the tag to the format character (if it is in "bBhHiIlLqQdfP")
+    - if it is a ctypes Pointer type, set it to 'P'
+    - if it is callable, set it to 'i' (and later call it with the integer result)
+    - otherwise assume integer, and set it to 'i'
+  
+  _call_function_pointer iterates over the PyCArgObject array, and pushed their values
+  onto the stack, C type depending on the 'tag'.
+  Depending if the result PyCArgObject's 'tag', the function is called and the result
+  stored into the result's space.
+
+  The libffi version of _call_function_pointer creates an array of ffi_type pointers,
+  and fills it with ffi_type_xxx depending on the PyCArgObject's tag value.
+  Same for the PyCArgObject's result tag, then calls the ffi_call function.
+
+  ffi_call needs an array of ffi_type pointers, and an array of void* pointers
+  pointing to the argument values (the value field of the PyCArgObject instances).
+
+  GetResult doesn't use the 'tag' field, it examines restype again:
+
+    - If it is a ctypes pointer: create an empty instance, and memcpy() thze result into it.
+    - If the restype's stgdict has a getfunc, call it.
+    - If the restype is callable, call it with the integer result
+  
+ */
+
 #include "Python.h"
 #include "structmember.h"
 
