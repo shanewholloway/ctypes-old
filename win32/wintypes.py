@@ -32,7 +32,7 @@ LPARAM = c_long
 BOOL = c_long
 VARIANT_BOOL = c_short
 
-LPCOLESTR = LPOLESTR = OLESTR = c_wchar_p
+LPCOLESTR = LPOLESTR = c_wchar_p
 LPCWSTR = LPWSTR = c_wchar_p
 
 LPCSTR = LPSTR = c_char_p

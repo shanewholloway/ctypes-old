@@ -1,7 +1,7 @@
 from ctypes import *
 from ctypes.com import IUnknown, STDMETHOD, HRESULT, GUID
 from ctypes.com.storage import IStream, IStorage
-from ctypes.wintypes import BYTE, WORD, DWORD, MSG, SIZE, SIZEL, RECTL, RECT, OLESTR, HANDLE, \
+from ctypes.wintypes import BYTE, WORD, DWORD, MSG, SIZE, SIZEL, RECTL, RECT, LPOLESTR, HANDLE, \
      LPWSTR, BOOL, HWND, HMENU, HDC
 
 CLIPFORMAT = WORD
@@ -87,7 +87,7 @@ IOleInPlaceUIWindow._methods_ = IOleWindow._methods_ + [
     STDMETHOD(HRESULT, "GetBorder", POINTER(RECT)),
     STDMETHOD(HRESULT, "RequestBorderSpace", POINTER(BORDERWIDTHS)),
     STDMETHOD(HRESULT, "SetBorderSpace", POINTER(BORDERWIDTHS)),
-    STDMETHOD(HRESULT, "SetActiveObject", POINTER(IOleInPlaceActiveObject), POINTER(OLESTR))]
+    STDMETHOD(HRESULT, "SetActiveObject", POINTER(IOleInPlaceActiveObject), LPOLESTR)]
 
 IOleInPlaceActiveObject._methods_ = IOleWindow._methods_ + [
     STDMETHOD(HRESULT, "TranslateAccelerator", POINTER(MSG)),
@@ -107,7 +107,7 @@ class IOleInPlaceFrame(IOleInPlaceUIWindow):
         STDMETHOD(HRESULT, "InsertMenus", HMENU, POINTER(OLEMENUGROUPWIDTHS)),
         STDMETHOD(HRESULT, "SetMenu", HMENU, HOLEMENU, HWND),
         STDMETHOD(HRESULT, "RemoveMenus", HMENU),
-        STDMETHOD(HRESULT, "SetStatusText", POINTER(OLESTR)),
+        STDMETHOD(HRESULT, "SetStatusText", LPOLESTR),
         STDMETHOD(HRESULT, "EnableModeless", BOOL),
         STDMETHOD(HRESULT, "TranslateAccelerator", POINTER(MSG), WORD),
         ]
