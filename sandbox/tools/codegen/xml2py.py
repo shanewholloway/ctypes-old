@@ -149,7 +149,7 @@ def main(args=None):
         for char in options.kind:
             typ = {"d": [typedesc.Variable],
                    "e": [typedesc.Enumeration, typedesc.EnumValue],
-                   "f": [typedesc.FunctionType],
+                   "f": [typedesc.Function],
                    "s": [typedesc.Structure],
                    "t": [typedesc.Typedef],
                    }[char]
