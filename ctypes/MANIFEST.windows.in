@@ -1,15 +1,16 @@
 include MANIFEST MANIFEST.windows.in LICENSE.txt NEWS.txt README*
 include run_remote_test.py
 
-include ctypes/.CTYPES_DEVEL
-include source/ctypes.h source/libffi_msvc/*.h
+include ctypes\.CTYPES_DEVEL
+include source\ctypes.h source\libffi_msvc\*.h
 
 recursive-include unittests *.py
-include docs/*.html
-include docs/*.css
-include docs/*.stx
+include docs\*.html
+include docs\*.css
+include docs\*.stx
 
-include samples/rt
+include samples\rt samples\rt.bat
+
 recursive-include samples *.py
 
-include win32/com/samples/server/control/test.html
+recursive-include win32\com\samples *.py *.txt *.html
