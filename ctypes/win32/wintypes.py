@@ -43,3 +43,7 @@ class MSG(Structure):
 
 def RGB(red, green, blue):
     return red + (green << 8) + (blue << 16)
+
+class FILETIME(Structure):
+    _fields_ = [("dwLowDateTime", DWORD),
+                ("dwHighDateTime", DWORD)]
