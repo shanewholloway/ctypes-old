@@ -15,7 +15,6 @@ static PyObject *
 CField_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	CFieldObject *obj;
-
 	obj = (CFieldObject *)type->tp_alloc(type, 0);
 	return (PyObject *)obj;
 }
@@ -211,10 +210,20 @@ static PyMemberDef CField_members[] = {
 };
 
 static int
+CField_traverse(CFieldObject *self, visitproc visit, void *arg)
+{
+#define TRAVERSE(o) if(o && visit(o, arg) < 0) return -1
+	TRAVERSE(self->proto);
+#undef TRAVERSE
+	return 0;
+}
+
+static int
 CField_clear(CFieldObject *self)
 {
-	Py_XDECREF(self->proto);
+	PyObject *tmp = self->proto;
 	self->proto = NULL;
+	Py_XDECREF(tmp);
 	return 0;
 }
 
@@ -246,9 +255,9 @@ PyTypeObject CField_Type = {
 	0,					/* tp_getattro */
 	0,					/* tp_setattro */
 	0,					/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT,			/* tp_flags */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
 	NULL,					/* tp_doc */
-	0,					/* tp_traverse */
+	(traverseproc)CField_traverse,		/* tp_traverse */
 	(inquiry)CField_clear,			/* tp_clear */
 	0,					/* tp_richcompare */
 	0,					/* tp_weaklistoffset */
