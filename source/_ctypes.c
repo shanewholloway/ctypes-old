@@ -1358,18 +1358,18 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 */
 static PyObject *
 _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
-	  int index, int offset, int size)
+	  int index, int size, char *ptr)
 {
 	CDataObject *src;
 	PyObject *result;
 
 	if (!type)
-		return setfunc(dst->b_ptr + offset, value, size);
+		return setfunc(ptr, value, size);
 	
 	if (!CDataObject_Check(value)) {
 		StgDictObject *dict = PyType_stgdict(type);
 		if (dict && dict->setfunc)
-			return dict->setfunc(dst->b_ptr + offset,
+			return dict->setfunc(ptr,
 					     value, dict->size); /* Or simply size? */
 		PyErr_SetString(PyExc_TypeError,
 				"cannot use this type");
@@ -1378,7 +1378,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 	src = (CDataObject *)value;
 
 	if (PyObject_IsInstance(value, type)) {
-		memcpy(dst->b_ptr + offset,
+		memcpy(ptr,
 		       src->b_ptr,
 		       size);
 		result = CData_GetList(src);
@@ -1399,7 +1399,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 				     ((PyTypeObject *)type)->tp_name);
 			return NULL;
 		}
-		*(void **)(dst->b_ptr + offset) = src->b_ptr;
+		*(void **)ptr = src->b_ptr;
 		result = CData_GetList(src);
 		Py_XINCREF(result); /* reference to keep */
 		return result;
@@ -1417,7 +1417,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
  */
 int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
-	  int index, int offset, int size)
+	  int index, int size, char *ptr)
 {
 	CDataObject *mem = (CDataObject *)dst;
 	PyObject *objects, *result;
@@ -1432,7 +1432,7 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		return -1;
 
 	result = _CData_set(mem, type, setfunc, value,
-			    index, offset, size);
+			    index, size, ptr);
 	if (result == NULL)
 		return -1;
 
@@ -2174,6 +2174,7 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 {
 	int size, offset;
 	StgDictObject *stgdict;
+	char *ptr;
 
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
@@ -2189,9 +2190,10 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	}
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
+	ptr = self->b_ptr + offset;
 
 	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
-			 index, offset, size);
+			 index, size, ptr);
 }
 
 static int

@@ -104,8 +104,13 @@ CField_FromDesc(PyObject *desc, int index,
 static int
 CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 {
+	CDataObject *dst;
+	char *ptr;
+	assert(CDataObject_Check(inst));
+	dst = (CDataObject *)inst;
+	ptr = dst->b_ptr + self->offset;
 	return CData_set(inst, self->proto, self->setfunc, value,
-			 self->index, self->offset, self->size);
+			 self->index, self->size, ptr);
 }
 
 static PyObject *

@@ -229,7 +229,7 @@ CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 
 extern int
 CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
-	  int index, int offset, int size);
+	  int index, int size, char *ptr);
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
