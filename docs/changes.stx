@@ -2,8 +2,15 @@ Changes in ctypes 0.6
 
   Version 0.6.2
 
-    A nasty bug with pointer types was fixed which prevented the
-    'incomplete types' section in the tutorial to work.
+    Fixed a bug which prevented callback functions to return data
+    types other than integers.  They can now also return pointers,
+    floats, and doubles.
+
+    It is now possible to pass structures and unions to function calls
+    *by value*.  Currently this works only on Windows.
+
+    A lot of changes to the COM package, but all this is still work in
+    progress and unstable, and it has to be properly documented.
 
   Version 0.6.1
 

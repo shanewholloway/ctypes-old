@@ -87,7 +87,7 @@ ctypes tutorial
 
     Sometimes, dlls export functions with names which aren't valid
     Python identifiers, like '"??2@YAPAXI@Z"'. In this case you have
-    to use 'getattr' to retrieve the function XXX Better example::
+    to use 'getattr' to retrieve the function (XXX Better example?)::
 
       >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z")
       <ctypes._CdeclFuncPtr object at 0x00905EE0>
@@ -528,6 +528,9 @@ ctypes tutorial
     subclass, it must be set to a positive integer and specifies the
     maximum alignment for the fields. I believe this is what '#pragma
     pack(n)' also does in MSVC.
+
+    **New in version 0.6.2**: Structures and unions can also be passed
+    *by value* to function calls.
 
   Arrays
 
@@ -996,7 +999,7 @@ ctypes tutorial
 
   Bugs, ToDo and non-implemented things
 
-    Bitfields are not implemented. This probably counts as bug.
+    Bitfields are not implemented.
 
     Enumeration types are not implemented. You can do it easily
     yourself, using 'c_int' as the base class.
@@ -1005,6 +1008,8 @@ ctypes tutorial
 
     You cannot pass structures to functions as arguments, and you
     cannot set them as return type (only pointers).
+
+    Callback functions implemented in Python can *only* return integers.
 
 <!--
   Local Variables:
