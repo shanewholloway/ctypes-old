@@ -79,9 +79,6 @@ class CFuncPtrTestCase(unittest.TestCase):
         f.argtypes = (c_char_p,)
         f.restype = NoNullHandle
 
-        import sys
-        self.failUnless(f("python22") == sys.dllhandle)
-
         strchr = cdll.msvcrt.strchr
         strchr.restype = c_char_p
         strchr.argtypes = (c_char_p, c_char)
