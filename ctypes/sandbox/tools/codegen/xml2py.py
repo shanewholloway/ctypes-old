@@ -45,14 +45,14 @@ def main(args=None):
         parser.values.dlls.extend(windows_dll_names)
 
     parser = OptionParser("usage: %prog [options] xmlfile")
-    parser.add_option("--windows-dlls",
+    parser.add_option("-w",
                       action="callback",
                       callback=windows_dlls,
                       help="add all standard windows dlls to the searched dlls list")
 
-    parser.add_option("--dll",
+    parser.add_option("-l",
                       dest="dlls",
-                      help="dlls to search for exported functions",
+                      help="libraries to search for exported functions",
                       action="append",
                       default=[])
 
@@ -89,12 +89,13 @@ def main(args=None):
                       help="use Python 2.4 function decorators",
                       default=False)
 
-    try:
-        import comtypes
-    except ImportError:
-        default_modules = ["ctypes", "ctypes.com"]
-    else:
-        default_modules = ["ctypes", "comtypes"]
+##    try:
+##        import comtypes
+##    except ImportError:
+##        default_modules = ["ctypes", "ctypes.com"]
+##    else:
+##        default_modules = ["ctypes", "comtypes"]
+    default_modules = ["ctypes"]
         
     parser.add_option("-m",
                       dest="modules",
