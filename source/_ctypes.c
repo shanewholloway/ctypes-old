@@ -2286,8 +2286,9 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	PyObject *obj;
 	CFuncPtrObject *self;
 	void *handle;
+	PyObject *paramflags = NULL;
 
-	if (!PyArg_ParseTuple(args, "sO", &name, &dll))
+	if (!PyArg_ParseTuple(args, "sO|O!", &name, &dll, &PyTuple_Type, &paramflags))
 		return NULL;
 
 	obj = PyObject_GetAttrString(dll, "_handle");
@@ -2327,6 +2328,8 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!self)
 		return NULL;
 
+	Py_XINCREF(paramflags);
+	self->paramflags = paramflags;
 	*(void **)self->b_ptr = address;
 
 	if (-1 == KeepRef((CDataObject *)self, 0, dll)) {
@@ -2347,12 +2350,15 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	CFuncPtrObject *self;
 	int index;
 	char *name = NULL;
+	PyObject *paramflags = NULL;
 
-	if (!PyArg_ParseTuple(args, "is", &index, &name))
+	if (!PyArg_ParseTuple(args, "is|O!", &index, &name, &PyTuple_Type, &paramflags))
 		return NULL;
 
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
 	self->index = index + 0x1000;
+	Py_XINCREF(paramflags);
+	self->paramflags = paramflags;
 	return (PyObject *)self;
 }
 #endif
@@ -2361,11 +2367,13 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
   CFuncPtr_new accepts different argument lists in addition to the standard
   _basespec_ keyword arg:
 
+  one argument form
   "i" - function address
-  "sO" - function name, dll object (with an integer handle)
-  "is" - vtable index, method name, creates callable calling COM vtbl
-  "isO" - vtable index, method name, class, creates unbound method calling COM vtbl
   "O" - must be a callable, creates a C callable function
+
+  two or more argument forms (the third argument is a paramflags tuple)
+  "sO|O" - function name, dll object (with an integer handle)
+  "is|O" - vtable index, method name, creates callable calling COM vtbl
 */
 static PyObject *
 CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -2586,6 +2594,7 @@ CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 	Py_VISIT(self->argtypes);
 	Py_VISIT(self->converters);
 	Py_VISIT(self->b_objects);
+	Py_VISIT(self->paramflags);
 	return 0;
 }
 
@@ -2598,6 +2607,7 @@ CFuncPtr_clear(CFuncPtrObject *self)
 	Py_CLEAR(self->argtypes);
 	Py_CLEAR(self->converters);
 	Py_CLEAR(self->b_objects);
+	Py_CLEAR(self->paramflags);
 
 	if (self->b_needsfree)
 		PyMem_Free(self->b_ptr);
