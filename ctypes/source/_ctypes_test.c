@@ -321,9 +321,6 @@ EXPORT(unsigned char) tf_B(unsigned char c)
 }
 EXPORT(short) tf_h(short c)
 {
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	return c;
 }
 EXPORT(unsigned short) tf_H(unsigned short c)
