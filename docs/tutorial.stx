@@ -1,4 +1,4 @@
-The ctypes module, version 0.6
+ctypes tutorial
 
   "ctypes home":../ctypes.html :: tutorial :: "reference":reference.html :: "faq":faq.html
 
@@ -11,13 +11,14 @@ The ctypes module, version 0.6
     'ctypes' exports the 'cdll', and on Windows also 'windll'
     and 'oledll' objects to load dynamic link libraries.
 
-    You can load libraries by retrieving them as attributes.  'cdll'
-    loads libraries which export functions using the standard 'cdecl'
-    calling convention, while 'windll' libraries call functions using
-    the 'stdcall' calling convention. 'oledll' also uses the 'stdcall'
-    calling convention, and assumes the functions return a Windows
-    'HRESULT' error code. This are used to automatically raise
-    'WindowsError' Python exceptions when the function call fails.
+    You can load libraries by accessing them as attributes of these
+    objects.  'cdll' loads libraries which export functions using the
+    standard 'cdecl' calling convention, while 'windll' libraries call
+    functions using the 'stdcall' calling convention. 'oledll' also
+    uses the 'stdcall' calling convention, and assumes the functions
+    return a Windows 'HRESULT' error code. The error code is used to
+    automatically raise 'WindowsError' Python exceptions when the
+    function call fails.
 
     Here are some examples::
 
@@ -27,9 +28,11 @@ The ctypes module, version 0.6
       >>> print cdll.msvcrt
       <CDLL 'msvcrt', handle 78000000 at 80b010>
 
+    XXX Libs not on default search path, libc.so.1 on Linux?
+
   Accessing functions from loaded dlls
 
-    Functions are (lazily) exposed as attributes of dlls::
+    Functions are accessed as attributes of dll objects::
 
       >>> from ctypes import windll, cdll
       >>> print cdll.msvcrt.printf
@@ -44,25 +47,27 @@ The ctypes module, version 0.6
       ValueError: function 'MyOwnFunction' not found
 
     Note that win32 system dlls like 'kernel32', 'user32', and others,
-    sometimes expose ANSI as well as UNICODE versions of
-    functions. The UNICODE version is exposed with an 'W' appended to
-    the name, while the ANSI version is exposed with an 'A' appended
+    sometimes export ANSI as well as UNICODE versions of
+    functions. The UNICODE version is exported with an 'W' appended to
+    the name, while the ANSI version is exported with an 'A' appended
     to the name. The win32 'GetModuleHandle' function, which returns a
-    *module handle* for a given module name, has these C prototypes::
+    *module handle* for a given module name, has these C prototypes,
+    and a C macro is used to expose one of them as GetModuleHandle
+    depending on whether UNICODE is defined or not::
 
       /* ANSI version */
       HMODULE GetModuleHandleA(LPCSTR lpModuleName);
       /* UNICODE version */
       HMODULE GetModuleHandleW(LPCWSTR lpModuleName);
 
-    'windll' does not try to hide these differences, you must load the
-    version you need by specifying 'GetModuleHandleA' or
+    'windll' does not try to select on of them automatically, you must
+    load the version you need by specifying 'GetModuleHandleA' or
     'GetModuleHandleW' explicitely, and call them with normal strings
     or unicode strings respectively.
 
     Sometimes, dlls export functions with names which aren't valid
     Python identifiers, like '"??2@YAPAXI@Z"'. In this case you have
-    to use 'getattr' to retrieve the function::
+    to use 'getattr' to retrieve the function XXX Better example::
 
       >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z")
       <ctypes._CdeclFuncPtr object at 0x00905EE0>
@@ -76,8 +81,8 @@ The ctypes module, version 0.6
     seconds since the UNIX epoch, and the 'GetModuleHandleA()'
     function, which returns a win32 module handle.
 
-    This example calls both functions with a NULL pointer ('None' is
-    the Python equivalent of a NULL pointer in C)::
+    This example calls both functions with a NULL pointer ('None'
+    should be used as the NULL pointer)::
 
       >>> from ctypes import cdll, windll
       >>> print cdll.msvcrt.time(None)
@@ -111,13 +116,13 @@ The ctypes module, version 0.6
       >>>
 
     There are, however, enough ways to crash Python with 'ctypes',
-    so you should be careful ayway.
+    so you should be careful aywany.
 
-    Python integers, strings and unicode strings are the only Python
-    objects that may directly be used as parameters in C API calls.
+    Python integers, strings and unicode strings are the only objects
+    that can directly be used as parameters in these function calls.
 
-    Before we move on to explain how to call functions with other
-    parameter types, we have to learn more about 'ctypes' data types.
+    Before we move on calling functions with other parameter types, we
+    have to learn more about 'ctypes' data types.
 
   Simple data types
 
@@ -159,8 +164,8 @@ The ctypes module, version 0.6
     |'c_void_p'	  |'void *'           |integer    |
     |---------------------------------------------|
 
-    All these types can be created by calling them with an optional initial value
-    of the correct type::
+    All these types can be created by calling them with an optional
+    initializer of the correct type and value::
 
       >>> c_int()
       c_int(0)
@@ -174,6 +179,7 @@ The ctypes module, version 0.6
     Since these types are mutable, their value can also be changed afterwards::
 
       >>> i = c_int(42)
+      >>> print i
       c_int(42)
       >>> print i.value
       42
@@ -181,7 +187,7 @@ The ctypes module, version 0.6
       >>> print i.value
       -99
 
-    Note that assigning a new value to instances of the pointer types
+    Assigning a new value to instances of the pointer types
     'c_char_p', 'c_wchar_p', and 'c_void_p' change the *memory
     location* they point to, *not the contents* of the memory block
     (of course not, because Python strings are immutable)::
@@ -196,12 +202,12 @@ The ctypes module, version 0.6
       >>> print s                 # first string is unchanged
       Hello, World      
 
-    You must be careful, however, not to pass them to functions
+    You should be careful, however, not to pass them to functions
     expecting pointers to mutable memory. If you need mutable memory
-    blocks, ctypes has a c_buffer function which creates these in
-    various ways.  The current buffer contents can be accessed (or
-    changed) with the raw property, if you want to access it as zero
-    terminated string, use the 'string' attribute::
+    blocks, ctypes has a 'c_buffer' function which creates these in
+    various ways.  The current memory block contents can be accessed
+    (or changed) with the 'raw' property, if you want to access it as
+    NUL terminated string, use the 'string' property::
 
       >>> from ctypes import c_buffer, sizeof
       >>> p = c_buffer(3)      # create a 3 byte buffer, initialized to NUL bytes
