@@ -178,9 +178,6 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 	if (self->proto) {
 		CDataObject *src = (CDataObject *)value;
 		if (!CDataObject_Check(value)) {
-			/* Hm. We can arrive here when self->proto is an ArrayType_Type,
-			   and value is a sequence. */
-			/* Should we call (self->proto).from_param(PySequence_GetItem())? */
 			StgDictObject *dict = PyType_stgdict(self->proto);
 			if (dict->setfunc) {
 				value = dict->setfunc(dst->b_ptr + self->offset,
