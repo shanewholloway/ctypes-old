@@ -62,11 +62,11 @@ class _cominterface_meta(type):
                 # attach it with a private name (__com_AddRef, for example)
                 setattr(self, mthname, mth)
 
-# metaclass for COM interface pointers
+# metaclass for COM interface pointer classes
 class _compointer_meta(type(c_void_p), _cominterface_meta):
     pass
 
-# base class for COM interface pointers
+# base class for COM interface pointer classes
 class _compointer_base(c_void_p):
     __metaclass__ = _compointer_meta
     def __del__(self):
@@ -86,12 +86,10 @@ def STDMETHOD(restype, name, argtypes=()):
     "Specifies a COM method slot"
     return restype, name, argtypes
 
-class _com_interface(object):
-    __metaclass__ = _cominterface_meta
-
 ################################################################
 
-class IUnknown(_com_interface):
+class IUnknown(object):
+    __metaclass__ = _cominterface_meta
     _iid_ = GUID("{00000000-0000-0000-C000-000000000046}")
 
     _methods_ = [
@@ -118,6 +116,8 @@ class IUnknown(_com_interface):
 __all__ = "IUnknown GUID HRESULT BSTR STDMETHOD".split()
 
 if __name__ == "__main__":
+
+    help(POINTER(IUnknown))
 
     class IMyInterface(IUnknown):
         pass
