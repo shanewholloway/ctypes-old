@@ -192,6 +192,18 @@ static void SetException(DWORD code)
 		}
 	}
 }
+
+static PyObject *
+check_hresult(PyObject *self, PyObject *args)
+{
+	HRESULT hr;
+	if (!PyArg_ParseTuple(args, "i", &hr))
+		return NULL;
+	if (FAILED(hr))
+		return PyErr_SetFromWindowsErr(hr);
+	return PyInt_FromLong(hr);
+}
+
 #endif
 
 /**************************************************************/
@@ -1234,6 +1246,7 @@ PyMethodDef module_methods[] = {
 	{"LoadLibrary", load_library, METH_VARARGS, load_library_doc},
 	{"FreeLibrary", free_library, METH_VARARGS, free_library_doc},
 	{"call_commethod", call_commethod, METH_VARARGS },
+	{"HRESULT", check_hresult, METH_VARARGS},
 #else
 	{"dlopen", py_dl_open, METH_VARARGS, "dlopen a library"},
 	{"dlclose", py_dl_close, METH_VARARGS, "dlclose a library"},
@@ -1253,6 +1266,6 @@ PyMethodDef module_methods[] = {
 
 /*
  Local Variables:
- compile-command: "python setup.py install --home ~"
+ compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
  End:
 */
