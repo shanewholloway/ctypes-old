@@ -245,6 +245,8 @@ else:
             buf = buftype()
             return buf
         raise TypeError, init
+
+    from _ctypes import get_wstring
     
 POINTER(c_char).from_param = c_char_p.from_param #_SimpleCData.c_char_p_from_param
 
