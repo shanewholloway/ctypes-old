@@ -40,7 +40,7 @@ else:
     include_dirs = []
     extra_link_args = []
     if sys.platform == "darwin":
-        kw["source"].append("source/darwin/dlfcn_simple.c")
+        kw["sources"].append("source/darwin/dlfcn_simple.c")
         extra_link_args.extend(['-read_only_relocs', 'warning'])
 
     extensions = [Extension("_ctypes",
