@@ -162,8 +162,11 @@ class _cominterface_meta(type):
             # We install the method in the class, except when it's a
             # property accessor.  And we make sure we don't overwrite
             # a property that's already present in the class.
-            if not is_prop and not hasattr(self, name):
-                setattr(self, name, mth)
+            if not is_prop:
+                if hasattr(self, name):
+                    setattr(self, "_" + name, mth)
+                else:
+                    setattr(self, name, mth)
 
         # create public properties / attribute accessors
         for item in set(getters.keys()) | set(getters.keys()):
@@ -221,14 +224,6 @@ class _compointer_base(c_void_p):
         return "<%s instance at %x>" % (self.__class__.__name__, id(self))
 
 ################################################################
-# Memory mamagement of BSTR is broken.
-#
-# The way we do them here, it is not possible to transfer the
-# ownership of a BSTR instance.  ctypes allocates the memory with
-# SysAllocString if we call the constructor with a string, and the
-# instance calls SysFreeString when it is destroyed.
-# So BSTR's received from dll function calls will never be freed,
-# and BSTR's we pass to functions are freed too often ;-(
 
 from ctypes import _SimpleCData
 
@@ -237,10 +232,17 @@ class BSTR(_SimpleCData):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 
-def STDMETHOD(restype, name, argtypes=()):
-    "Specifies a COM method slot"
-    # restype, name, argtypes, paramflags, idlflags, docstring
-    return restype, name, argtypes, None, (), None
+################################################################
+
+class helpstring(object):
+    def __init__(self, text):
+        self.text = text
+
+class defaultvalue(object):
+    def __init__(self, value):
+        self.value = value
+
+################################################################
 
 PARAMFLAGS = {
     "in": 1,
@@ -248,17 +250,13 @@ PARAMFLAGS = {
     "retval": 8,
     }
 
-
-class helpstring(object):
-    def __init__(self, text):
-        self.text = text
-
 def encode_idl(names):
     # sum up all values found in PARAMFLAGS, ignoring all others.
     result = sum([PARAMFLAGS.get(n, 0) for n in names])
     return result & 3 # that's what _ctypes accept
 
 def COMMETHOD(idlflags, restype, methodname, *argspec):
+    "Specifies a COM method slot with idlflags"
     paramflags = []
     argtypes = []
 
@@ -330,7 +328,6 @@ def COMMETHOD(idlflags, restype, methodname, *argspec):
         pflags = encode_idl(idl)
         if 2 & pflags:
             rettype = typ._type_
-            print "COM?", rettype, issubclass(rettype, POINTER(IUnknown))
         paramflags.append((pflags, argname))
         argtypes.append(typ)
     if "propget" in idlflags:
@@ -338,6 +335,11 @@ def COMMETHOD(idlflags, restype, methodname, *argspec):
     elif "propput" in idlflags:
         methodname = "_put_%s" % methodname
     return restype, methodname, tuple(argtypes), tuple(paramflags), tuple(idlflags), helptext
+
+def STDMETHOD(restype, name, argtypes=()):
+    "Specifies a COM method slot without idlflags"
+    # restype, name, argtypes, paramflags, idlflags, docstring
+    return restype, name, argtypes, None, (), None
 
 ################################################################
 
