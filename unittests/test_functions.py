@@ -1,3 +1,10 @@
+"""
+Here is probably the place to write the docs, since the test-cases
+show how the type behave.
+
+Later...
+"""
+
 from ctypes import *
 import unittest
 
@@ -105,6 +112,15 @@ class FunctionTestCase(unittest.TestCase):
         result = f(byref(c_int(99)))
         self.failUnless(result.contents.value != 99)
 
+    def test_errors(self):
+        f = dll._testfunc_p_p
+        f.restype = "i"
+
+        class X(Structure):
+            _fields_ = [("y", "i")]
+
+        self.assertRaises(TypeError, f, X()) #cannot convert parameter
+
     def test_callbacks(self):
         f = dll._testfunc_callback_i_if
         f.restype = "i"
@@ -136,37 +152,49 @@ class FunctionTestCase(unittest.TestCase):
         cb = AnotherCallback(callback)
         self.assertRaises(TypeError, f, -10, cb)
 
-    def test_errors(self):
-        f = dll._testfunc_p_p
+
+    def test_callbacks_2(self):
+        # Can also use simple datatypes as argument type specifiers
+        # for the callback function.
+        # In this case the call receives an instance of that type
+        f = dll._testfunc_callback_i_if
         f.restype = "i"
 
-        class X(Structure):
-            _fields_ = [("y", "i")]
+        class MyCallback(CFunction):
+            _stdcall_ = 0
+            _types_ = (c_int,)
 
-        self.assertRaises(TypeError, f, X()) #cannot convert parameter
+        f.argtypes = [c_int, MyCallback]
 
-def test_longlong_callbacks():
-    # Currently not possible, it fails because there's no way to specify the
-    # type of a callback function in argtypes!
-##    """
-##    >>> f = dll._testfunc_callback_q_qf
-##    >>> f.restype = c_longlong
-##    >>> class MyCallback(CFunction):
-##    ...     _stdcall_ = 0
-##    ...     _types_ = "q"
+        def callback(value):
+            #print "called back with", value
+            self.failUnless(type(value) == c_int)
+            return value.value
+        
+        cb = MyCallback(callback)
+        result = f(-10, cb)
+        self.failUnless(result == -18)
 
-##    >>> f.argtypes = [c_longlong, MyCallback]
-##    >>> def callback(value):
-##    ...     print "called back with", value
-    
-##    >>> cb = MyCallback(callback)
-##    >>> print dir(cb)
-##    >>> print addressof(cb)
+    def test_longlong_callbacks(self):
+        # XXX crashes, for these reasons:
+        # f.restype = c_longlong raises TypeError, it's not allowed (on purpose)
 
-##    >>> # f(-10, cb._as_parameter_)
+        f = dll._testfunc_callback_q_qf
+        f.restype = "q" #c_longlong
+        class MyCallback(CFunction):
+            _stdcall_ = 0
+            _types_ = (c_longlong,)
 
-##    """
-    ""
+        f.argtypes = [c_longlong, MyCallback]
+
+        def callback(value):
+            self.failUnless(type(value) == c_longlong)
+            return value.value & 0x7FFFFFFF
+
+        cb = MyCallback(callback)
+
+        self.failUnless(13577625587 == f(1000000000000, cb))
+
 def get_suite():
     return unittest.makeSuite(FunctionTestCase, 'test')
 
