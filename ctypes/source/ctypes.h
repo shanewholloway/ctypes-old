@@ -98,6 +98,7 @@ extern PyTypeObject PointerType_Type;
 extern PyTypeObject Pointer_Type;
 extern PyTypeObject CFuncPtr_Type;
 extern PyTypeObject CFuncPtrType_Type;
+extern PyTypeObject StructType_Type;
 
 #define ArrayTypeObject_Check(v)	PyObject_TypeCheck(v, &ArrayType_Type)
 #define ArrayObject_Check(v)		PyObject_TypeCheck(v, &Array_Type)
@@ -105,6 +106,7 @@ extern PyTypeObject CFuncPtrType_Type;
 #define PointerTypeObject_Check(v)	PyObject_TypeCheck(v, &PointerType_Type)
 #define CFuncPtrObject_Check(v)		PyObject_TypeCheck(v, &CFuncPtr_Type)
 #define CFuncPtrTypeObject_Check(v)	PyObject_TypeCheck(v, &CFuncPtrType_Type)
+#define StructTypeObject_Check(v)	PyObject_TypeCheck(v, &StructType_Type)
 
 extern PyObject *
 CreateArrayType(PyObject *itemtype, int length);
