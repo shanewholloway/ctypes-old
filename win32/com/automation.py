@@ -197,16 +197,29 @@ class PARAMDESC(Structure):
 assert sizeof(PARAMDESC) == 8
 
 LPTYPEDESC = POINTER("TYPEDESC")
+LPADESC = POINTER("ARRAYDESC")
 
 class TYPEDESC(Structure):
     class U(Union):
         _fields_ = [("lptdesc", LPTYPEDESC),
-##                    ("lpadesc", POINTER(ARRAYDESC)),
+                    ("lpadesc", LPADESC),
                     ("hreftype", HREFTYPE)]
     _fields_ = [("u", U),
                 ("vt", VARTYPE)]
 assert(sizeof(TYPEDESC) == 8), sizeof(TYPEDESC)
 
+class ARRAYDESC(Structure):
+    _fields_ = [("tdescElem", TYPEDESC),
+                ("cDims", c_ushort),
+                # XXX Variable length array containing one element for
+                # each dimension
+                #
+                # Hack: We limit ourself to 8-dimensional arrays,
+                # and client code must make sure it doesn't access more than
+                # cDims elements in this array.
+                ("rgbounds", c_int * 8)]
+
+LPADESC.set_type(ARRAYDESC)
 LPTYPEDESC.set_type(TYPEDESC)
 
 class IDLDESC(Structure):
