@@ -272,10 +272,15 @@ ffi_status ffi_prep_cif(/*@out@*/ /*@partial@*/ ffi_cif *cif,
 			/*@dependent@*/ /*@out@*/ /*@partial@*/ ffi_type *rtype, 
 			/*@dependent@*/ ffi_type **atypes);
 
-void ffi_call(/*@dependent@*/ ffi_cif *cif, 
-	      void (*fn)(), 
-	      /*@out@*/ void *rvalue, 
-	      /*@dependent@*/ void **avalue);
+#ifdef _MSC_VER
+int
+#else
+void
+#endif
+ffi_call(/*@dependent@*/ ffi_cif *cif, 
+	 void (*fn)(), 
+	 /*@out@*/ void *rvalue, 
+	 /*@dependent@*/ void **avalue);
 
 /* Useful for eliminating compiler warnings */
 #define FFI_FN(f) ((void (*)())f)

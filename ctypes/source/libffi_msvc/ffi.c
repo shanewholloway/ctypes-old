@@ -143,30 +143,45 @@ ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
 
 /*@-declundef@*/
 /*@-exportheader@*/
-extern void ffi_call_SYSV(void (*)(char *, extended_cif *), 
-			  /*@out@*/ extended_cif *, 
-			  unsigned, unsigned, 
-			  /*@out@*/ unsigned *, 
-			  void (*fn)());
+#ifdef _MSC_VER
+extern int
+#else
+extern void
+#endif
+ffi_call_SYSV(void (*)(char *, extended_cif *), 
+	      /*@out@*/ extended_cif *, 
+	      unsigned, unsigned, 
+	      /*@out@*/ unsigned *, 
+	      void (*fn)());
 /*@=declundef@*/
 /*@=exportheader@*/
 
 #ifdef X86_WIN32
 /*@-declundef@*/
 /*@-exportheader@*/
-extern void ffi_call_STDCALL(void (*)(char *, extended_cif *),
-			  /*@out@*/ extended_cif *,
-			  unsigned, unsigned,
-			  /*@out@*/ unsigned *,
-			  void (*fn)());
+#ifdef _MSC_VER
+extern int
+#else
+extern void
+#endif
+ffi_call_STDCALL(void (*)(char *, extended_cif *),
+		 /*@out@*/ extended_cif *,
+		 unsigned, unsigned,
+		 /*@out@*/ unsigned *,
+		 void (*fn)());
 /*@=declundef@*/
 /*@=exportheader@*/
 #endif /* X86_WIN32 */
 
-void ffi_call(/*@dependent@*/ ffi_cif *cif, 
-	      void (*fn)(), 
-	      /*@out@*/ void *rvalue, 
-	      /*@dependent@*/ void **avalue)
+#ifdef _MSC_VER
+int
+#else
+void
+#endif
+ffi_call(/*@dependent@*/ ffi_cif *cif, 
+	 void (*fn)(), 
+	 /*@out@*/ void *rvalue, 
+	 /*@dependent@*/ void **avalue)
 {
   extended_cif ecif;
 
@@ -191,15 +206,21 @@ void ffi_call(/*@dependent@*/ ffi_cif *cif,
     {
     case FFI_SYSV:
       /*@-usedef@*/
-      ffi_call_SYSV(ffi_prep_args, &ecif, cif->bytes, 
-		    cif->flags, ecif.rvalue, fn);
+#ifdef _MSC_VER
+      return
+#endif
+	      ffi_call_SYSV(ffi_prep_args, &ecif, cif->bytes, 
+			    cif->flags, ecif.rvalue, fn);
       /*@=usedef@*/
       break;
-#ifdef X86_WIN32
+#if defined(X86_WIN32) || defined(_MSC_VER)
     case FFI_STDCALL:
       /*@-usedef@*/
-      ffi_call_STDCALL(ffi_prep_args, &ecif, cif->bytes,
-		    cif->flags, ecif.rvalue, fn);
+#ifdef _MSC_VER
+      return
+#endif
+	      ffi_call_STDCALL(ffi_prep_args, &ecif, cif->bytes,
+			       cif->flags, ecif.rvalue, fn);
       /*@=usedef@*/
       break;
 #endif /* X86_WIN32 */
@@ -207,6 +228,7 @@ void ffi_call(/*@dependent@*/ ffi_cif *cif,
       FFI_ASSERT(0);
       break;
     }
+  return -1; /* theller: Hrm. */
 }
 
 
