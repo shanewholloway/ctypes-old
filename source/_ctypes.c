@@ -2530,9 +2530,6 @@ CWString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	if (!PyArg_ParseTuple(args, "O|i", &init, &size))
 		return NULL;
 
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	if (PyUnicode_Check(init)) {
 		data = PyUnicode_AS_UNICODE(init);
 		slen = PyUnicode_GET_SIZE(init);
