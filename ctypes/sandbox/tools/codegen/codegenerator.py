@@ -1,6 +1,9 @@
 # Create ctypes wrapper code for abstract type descriptions.
 # Type descriptions are collections of typedesc instances.
 
+# $Log"
+#
+
 import typedesc, sys
 
 try:
@@ -551,8 +554,10 @@ class Generator(object):
                 self.done.add(item.get_body())
             return
         mth = getattr(self, type(item).__name__)
-        mth(item)
+        # to avoid infinite recursion, we have to mark it as done
+        # before actually generating the code.
         self.done.add(item)
+        mth(item)
 
     def generate_all(self, items):
         for item in items:
