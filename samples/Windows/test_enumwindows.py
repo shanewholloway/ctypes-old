@@ -1,8 +1,8 @@
 # from Paul Moore via comp.lang.python
-from ctypes import windll, c_string, c_int, STDAPI
+from ctypes import windll, c_string, c_int, WinFuncType
 user32 = windll.user32
 
-EnumWindowsProc = STDAPI(c_int, c_int, c_int)
+EnumWindowsProc = WinFuncType(c_int, c_int, c_int)
 
 def DisplayWindow(hwnd, lparam):
     title = c_string('\000' * 256)

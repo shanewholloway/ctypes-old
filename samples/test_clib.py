@@ -1,6 +1,6 @@
 # Demonstrate some functions from the standard C library.
 
-from ctypes import cdll, POINTER, CALLBACK
+from ctypes import cdll, POINTER, CFuncType
 
 import os, sys
 from ctypes import c_char_p, c_double
@@ -100,7 +100,7 @@ def test_qsort():
 ##        _argtypes_ = c_int, c_int
 ##        _flags_ = FUNCFLAG_CDECL
 
-    CMPFUNC = CALLBACK(c_int, c_int, c_int)
+    CMPFUNC = CFuncType(c_int, c_int, c_int)
 
     def compare(a, b):
         ad = c_int.from_address(a)
@@ -150,7 +150,7 @@ def test_qsort_1():
 ##        _argtypes_ = c_int, c_int
 ##        _flags_ = FUNCFLAG_CDECL
 
-    CMPFUNC = CALLBACK(c_int, c_int, c_int)
+    CMPFUNC = CFuncType(c_int, c_int, c_int)
     
     libc.qsort(ia10,
                len(ia10),
@@ -191,7 +191,7 @@ def test_qsort_2():
 ##        _argtypes_ = c_int, c_int
 ##        _flags_ = FUNCFLAG_CDECL
 
-    CMPFUNC = CALLBACK(c_int, c_int, c_int)
+    CMPFUNC = CFuncType(c_int, c_int, c_int)
 
     libc.qsort(ia10,
                len(ia10),
@@ -228,7 +228,7 @@ def test_qsort_5():
 ##        _argtypes_ = POINTER(c_int), POINTER(c_int)
 ##        _flags_ = FUNCFLAG_CDECL
 
-    CMPFUNC = CALLBACK(c_int, POINTER(c_int), POINTER(c_int))
+    CMPFUNC = CFuncType(c_int, POINTER(c_int), POINTER(c_int))
 
     libc.qsort(ia10,
                len(ia10),
