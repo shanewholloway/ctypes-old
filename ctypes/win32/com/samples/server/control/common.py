@@ -8,6 +8,7 @@ user32 = windll.user32
 gdi32 = windll.gdi32
 
 # fake
+# ctypes TODO: Make callback prototypes accept None as return type!
 void = c_int
 
 TIMERPROC = WINFUNCTYPE(void, HWND, c_uint, c_uint, DWORD)
@@ -70,20 +71,21 @@ class Stoplite(object):
             gdi32.SelectObject(hdc, red_brush)
         else:
             gdi32.SelectObject(hdc, gdi32.GetStockObject(GRAY_BRUSH))
-        gdi32.Ellipse(hdc, rc.left, rc.top, rc.right, rc.top + rc.height/3)
+        height = rc.bottom - rc.top
+        gdi32.Ellipse(hdc, rc.left, rc.top, rc.right, rc.top + height/3)
 
         if self._state & YELLOW:
             gdi32.SelectObject(hdc, yellow_brush)
         else:
             gdi32.SelectObject(hdc, gdi32.GetStockObject(GRAY_BRUSH))
-        gdi32.Ellipse(hdc, rc.left, rc.top + rc.height/3,
-                      rc.right, rc.bottom - rc.height/3)
+        gdi32.Ellipse(hdc, rc.left, rc.top + height/3,
+                      rc.right, rc.bottom - height/3)
 
         if self._state & GREEN:
             gdi32.SelectObject(hdc, green_brush)
         else:
             gdi32.SelectObject(hdc, gdi32.GetStockObject(GRAY_BRUSH))
-        gdi32.Ellipse(hdc, rc.left, rc.bottom - rc.height/3, rc.right, rc.bottom)
+        gdi32.Ellipse(hdc, rc.left, rc.bottom - height/3, rc.right, rc.bottom)
 
         text = str(self._interval)
         gdi32.TextOutA(hdc, rc.left, rc.bottom, text, len(text))

@@ -28,14 +28,13 @@ PIConnectionPoint = POINTER(IConnectionPoint)
 ################
 
 IEnumConnections._methods_ = IUnknown._methods_ + [
-    # MSDN docs get this wrong: the header files say it is LPCONNECTDATA, not a pointer to that.
     STDMETHOD(HRESULT, "Next", c_ulong, POINTER(CONNECTDATA), POINTER(c_ulong)),
     STDMETHOD(HRESULT, "Skip", c_ulong),
     STDMETHOD(HRESULT, "Reset"),
     STDMETHOD(HRESULT, "Clone", POINTER(PIEnumConnections))]
 
 IEnumConnectionPoints._methods_ = IUnknown._methods_ + [
-    STDMETHOD(HRESULT, "Next", c_ulong, POINTER(POINTER(IConnectionPoint)), POINTER(c_ulong)),
+    STDMETHOD(HRESULT, "Next", c_ulong, POINTER(IConnectionPoint), POINTER(c_ulong)),
     STDMETHOD(HRESULT, "Skip", c_ulong),
     STDMETHOD(HRESULT, "Reset"),
     STDMETHOD(HRESULT, "Clone", POINTER(PIEnumConnectionPoints))]
@@ -66,6 +65,8 @@ def GetConnectionPoint(comptr, event_interface):
 #
 
 class dispinterface_EventReceiver(COMObject):
+    _refcnt = 0
+    
     # We fake the reference counts...
     def AddRef(self, this):
         return 2
@@ -76,7 +77,10 @@ class dispinterface_EventReceiver(COMObject):
     def _get_args(self, dp):
         args = []
         for i in range(dp.cArgs-1, -1, -1):
-            args.append(dp.rgvarg[i].value)
+            x = dp.rgvarg[i].value
+            if hasattr(x, "AddRef") and x:
+                x.AddRef()
+            args.append(x)
         return tuple(args)
 
     def Invoke(self,
@@ -95,8 +99,7 @@ class dispinterface_EventReceiver(COMObject):
             args = self._get_args(pDispParams[0])
             mth(this, *args)
         elif __debug__:
-            args = self._get_args(pDispParams[0])
-            print "# Unimplemented (%s %s)" % (mthname, args)
+            print "# Unimplemented method %s" % mthname
         return 0
 
     def connect(self, source):
