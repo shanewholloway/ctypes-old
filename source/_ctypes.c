@@ -2528,7 +2528,6 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	*(void **)self->b_ptr = dst->b_ptr;
 
 	objects = CData_GetList(self);
-#if 1
 	keep = RepeatedList(value, PyList_GET_SIZE(CData_GetList(dst)));
 	/* We need the whole (sub)tree of the object we point to.
 	   But we need the object itself, too.
@@ -2536,10 +2535,6 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	/* XXX Explain why this works (to myself, at least) */
 	/* XXX Need GC support to avoid immortal objects ? */
 	return PyList_SetItem(objects, 0, keep);
-#else
-	keep = Py_BuildValue("[O]", value);
-	return PyList_SetItem(objects, 0, keep);
-#endif
 }
 
 static int
