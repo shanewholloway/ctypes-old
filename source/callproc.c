@@ -483,7 +483,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 
 #ifdef HAVE_USABLE_WCHAR_T
 	if (PyUnicode_Check(obj)) {
-		parm->ffi_type = &ffi_type_pointer;
+		parm->pffi_type = &ffi_type_pointer;
 		parm->tag = 'P';
 		parm->value.p = PyUnicode_AS_UNICODE(obj);
 		Py_INCREF(obj);
