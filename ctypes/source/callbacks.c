@@ -173,7 +173,7 @@ static void _CallPythonObject(void *mem,
 		PyErr_Print();
 	} else if (result != Py_None) {
 		/* another big endian hack */
-		struct {
+		union {
 			char c;
 			short s;
 			int i;
@@ -278,7 +278,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		StgDictObject *dict = PyType_stgdict(restype);
 		if (dict) {
 			p->setfunc = dict->setfunc;
-			p->restype = &dict->restype;
+			p->restype = &dict->ffi_type;
 		} else {
 			p->setfunc = getentry("i")->setfunc;
 			p->restype = &ffi_type_sint;
