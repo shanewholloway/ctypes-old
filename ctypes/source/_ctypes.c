@@ -2244,7 +2244,25 @@ IBUG(char *msg)
 	return -1;
 }
 
-/* Hm. This is really Structure_init... */
+#ifdef CAN_PASS_BY_VALUE
+static PyObject *
+Struct_as_parameter(CDataObject *self)
+{
+	PyCArgObject *parg;
+	
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+
+	parg->tag = 'V';
+	parg->value.p = self->b_ptr;
+	parg->size = self->b_size;
+	Py_INCREF(self);
+	parg->obj = (PyObject *)self;
+	return (PyObject *)parg;	
+}
+#endif
+
 static int
 Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
@@ -2310,6 +2328,15 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 	return 0;
 }
 
+static PyGetSetDef Struct_getsets[] = {
+#ifdef CAN_PASS_BY_VALUE
+	{ "_as_parameter_", (getter)Struct_as_parameter, NULL,
+	  "return a magic value so that this can be converted to a C parameter (readonly)",
+	  NULL },
+#endif
+	{ NULL, NULL }
+};
+
 static PyTypeObject Struct_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -2341,7 +2368,7 @@ static PyTypeObject Struct_Type = {
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
 	0,					/* tp_members */
-	0,					/* tp_getset */
+	Struct_getsets,				/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
@@ -2384,7 +2411,7 @@ static PyTypeObject Union_Type = {
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
 	0,					/* tp_members */
-	0,					/* tp_getset */
+	Struct_getsets,				/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
