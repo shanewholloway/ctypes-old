@@ -1,5 +1,7 @@
 2003-02-25  Thomas Heller  <theller@python.net>
 
+	* source\callproc.c: Added call_cdeclfunction.
+
 	*  source\_ctypes.c: addressof() now accepts CFunction instances.
 
 2003-02-24  Thomas Heller  <theller@python.net>
