@@ -114,16 +114,8 @@ static PyObject *
 CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 {
 	PyTypeObject *result;
-	PyObject *fields, *dict;
-	PyObject *cls_dict;
+	PyObject *dict;
 
-	cls_dict = PyTuple_GetItem(args, 2); /* borrowed ref */
-	if (!cls_dict) {
-		/* Hm. Should not be possible, but who knows. */
-		PyErr_SetString(PyExc_ValueError,
-				"class creation without class dict?");
-		return NULL;
-	}
 	/* create the new instance (which is a class,
 	   since we are a metatype!) */
 	result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
@@ -134,13 +126,7 @@ CDataType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isStruct)
 	if (PyDict_GetItemString(result->tp_dict, "_abstract_"))
 		return (PyObject *)result;
 
-	fields = PyObject_GetAttrString((PyObject *)result, "_fields_");
-	if (fields == NULL) {
-		PyErr_Clear();
-		return (PyObject *)result;
-	}
-	dict = StgDict_FromDict(fields, cls_dict, isStruct);
-	Py_DECREF(fields);
+	dict = StgDict_ForType((PyObject *)result, isStruct);
 	if (!dict) {
 		Py_DECREF(result);
 		return NULL;
