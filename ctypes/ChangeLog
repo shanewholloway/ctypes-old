@@ -1,5 +1,8 @@
 2004-07-23  Thomas Heller  <theller@python.net>
 
+	(Message): ctypes 0.9.0 released.
+
+	
 	* (Message): c_int, c_uint and other integer variants now use the
 	masked functions when converting Python integers/longs to C
 	integers.  This has the effect that the value of the integer is
