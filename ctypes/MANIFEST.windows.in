@@ -1,4 +1,5 @@
 include MANIFEST MANIFEST.windows.in LICENSE.txt NEWS.txt README*
+include run_remote_test.py
 include ctypes/.CTYPES_DEVEL
 
 recursive-include unittests *.py
