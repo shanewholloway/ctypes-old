@@ -458,6 +458,8 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 	if (PyCArg_CheckExact(obj)) {
 		PyCArgObject *carg = (PyCArgObject *)obj;
 		pa->ffi_type = carg->pffi_type;
+		Py_INCREF(obj);
+		pa->keep = obj;
 		memcpy(&pa->value, &carg->value, sizeof(pa->value));
 		return 0;
 	}
@@ -493,6 +495,8 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 	if (PyString_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
 		pa->value.p = PyString_AS_STRING(obj);
+		Py_INCREF(obj);
+		pa->keep = obj;
 		return 0;
 	}
 
@@ -500,6 +504,8 @@ static int ConvParam(PyObject *obj, int index, struct argument *pa)
 	if (PyUnicode_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
 		pa->value.p = PyUnicode_AS_UNICODE(obj);
+		Py_INCREF(obj);
+		pa->keep = obj;
 		return 0;
 	}
 #endif
