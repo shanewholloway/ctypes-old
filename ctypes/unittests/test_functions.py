@@ -30,6 +30,13 @@ class FunctionTestCase(unittest.TestCase):
         self.failUnless(result == 21)
         self.failUnless(type(result) == int)
 
+        # You should NOT do this:
+        f.restype = c_short
+        # because, when the function returns something in the high word,
+        # constructing the result will fail:
+        self.assertRaises(ValueError, f, 1, 2, 3, 0x10004, 5.0, 6.0)
+
+
     def test_floatresult(self):
         f = dll._testfunc_f_bhilfd
         f.argtypes = [c_byte, c_short, c_int, c_long, c_float, c_double]
@@ -90,13 +97,6 @@ class FunctionTestCase(unittest.TestCase):
             _stdcall_ = 0
             _types_ = "i"
 
-            # XXX This should be implemented in C
-            def from_param(cls, value):
-                if not isinstance(value, cls):
-                    raise TypeError
-                return value
-            from_param = classmethod(from_param)
-
         def callback(value):
             #print "called back with", value
             return value
@@ -114,12 +114,6 @@ class FunctionTestCase(unittest.TestCase):
         class AnotherCallback(CFunction):
             _stdcall_ = 1
             _types_ = "iiii"
-
-            def from_param(cls, value):
-                if not isinstance(value, cls):
-                    raise TypeError
-                return value
-            from_param = classmethod(from_param)
 
         # check that the prototype works: we call f with wrong
         # argument types
