@@ -864,20 +864,20 @@ PyObject *_CallProc(PPROC pProc,
 							   NULL);
 			if (arg == NULL) {
 				Extend_Error_Info("while constructing argument %d:\n", i+1);
-				goto error;
+				goto cleanup;
 			}
 
 			*pp = ConvParam(arg, i+1);
 			Py_DECREF(arg);
 			if (!*pp) {
 				Extend_Error_Info("while constructing argument %d:\n", i+1);
-				goto error;
+				goto cleanup;
 			}
 		} else {
 			*pp = ConvParam(arg, i+1);
 			if (!*pp) {
 				Extend_Error_Info("while constructing argument %d:\n", i+1);
-				goto error; /* leaking ? */
+				goto cleanup; /* leaking ? */
 			}
 		}
 	}
