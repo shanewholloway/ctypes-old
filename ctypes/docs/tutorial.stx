@@ -454,6 +454,17 @@ The ctypes module
       0 0
       >>>
 
+    Fields descriptors can be retrieved from the class, they have
+    readonly 'size' and 'offset' attributes describing the size in
+    bytes and the offset of this field from the beginning of the
+    internal memory buffer:
+
+      >>> print POINT.x.size, POINT.x.offset
+      0 4
+      >>> print POINT.y.size, POINT.y.offset
+      4 4
+      >>>
+
   Arrays
 
     Arrays are sequences, containing a fixed number of instances of
