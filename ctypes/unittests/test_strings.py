@@ -2,13 +2,12 @@ import unittest
 
 class StringTestCase(unittest.TestCase):
     def test_basic_strings(self):
-        from ctypes import c_string
+        from ctypes import c_string, sizeof
         cs = c_string("abcdef")
 
-        # XXX This behaviour is about to change:
-        # len returns the size of the internal buffer in bytes.
-        # This includes the terminating NUL character.
-        self.failUnless(len(cs) == 7)
+        # Cannot call len on a c_string any longer
+        self.assertRaises(TypeError, len, cs)
+        self.failUnless(sizeof(cs) == 7)
 
         # The value property is the string up to the first terminating NUL.
         self.failUnless(cs.value == "abcdef")
@@ -37,7 +36,7 @@ class StringTestCase(unittest.TestCase):
         
         # New in releases later than 0.4.0:
         # c_string(number) returns an empty string of size number
-        self.failUnless(len(c_string(32)) == 32)
+        self.failUnless(len(c_string(32).raw) == 32)
         self.assertRaises(ValueError, c_string, -1)
         self.assertRaises(ValueError, c_string, 0)
 
@@ -64,13 +63,13 @@ class StringTestCase(unittest.TestCase):
 
 class WStringTestCase(unittest.TestCase):
     def test_basic_wstrings(self):
-        from ctypes import c_wstring
+        from ctypes import c_wstring, sizeof
         cs = c_wstring(u"abcdef")
 
         # XXX This behaviour is about to change:
         # len returns the size of the internal buffer in bytes.
         # This includes the terminating NUL character.
-        self.failUnless(len(cs) == 14)
+        self.failUnless(sizeof(cs) == 14)
 
         # The value property is the string up to the first terminating NUL.
         self.failUnless(cs.value == u"abcdef")
