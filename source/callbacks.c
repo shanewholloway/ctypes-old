@@ -451,18 +451,6 @@ static void LoadPython(void)
 
 /******************************************************************/
 
-STDAPI CopyComPointer(IUnknown *src, IUnknown **pdst)
-{
-	if (pdst == NULL)
-		return E_POINTER;
-	if (src)
-		src->lpVtbl->AddRef(src);
-	*pdst = src;
-	return S_OK;
-}
-
-/******************************************************************/
-
 long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	PyObject *mod, *func, *result;
@@ -575,6 +563,7 @@ STDAPI DllCanUnloadNow(void)
 	return result;
 }
 
+#ifndef Py_NO_ENABLE_SHARED
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvRes)
 {
 	switch(fdwReason) {
@@ -584,6 +573,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvRes)
 	}
 	return TRUE;
 }
+#endif
+
 #endif
 
 /*

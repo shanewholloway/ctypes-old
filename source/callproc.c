@@ -999,6 +999,38 @@ call_commethod(PyObject *self, PyObject *args)
 	return result;
 }
 
+static char copy_com_pointer_doc[] =
+"CopyComPointer(a, b) -> integer\n";
+
+static PyObject *
+copy_com_pointer(PyObject *self, PyObject *args)
+{
+	PyObject *p1, *p2, *r = NULL;
+	struct argument a, b;
+	int result;
+	IUnknown *src, **pdst;
+	if (!PyArg_ParseTuple(args, "OO:CopyComPointer", &p1, &p2))
+		return NULL;
+	a.keep = b.keep = NULL;
+
+	if (-1 == ConvParam(p1, 0, &a) || -1 == ConvParam(p2, 1, &b))
+		goto done;
+	src = (IUnknown *)a.value.p;
+	pdst = (IUnknown **)b.value.p;
+
+	if (pdst == NULL)
+		r = PyInt_FromLong(E_POINTER);
+	else {
+		if (src)
+			src->lpVtbl->AddRef(src);
+		*pdst = src;
+		r = PyInt_FromLong(S_OK);
+	}
+  done:
+	Py_XDECREF(a.keep);
+	Py_XDECREF(b.keep);
+	return r;
+}
 #else
 
 static PyObject *py_dl_open(PyObject *self, PyObject *args)
@@ -1057,6 +1089,7 @@ static PyObject *py_dl_sym(PyObject *self, PyObject *args)
 
 PyMethodDef module_methods[] = {
 #ifdef MS_WIN32
+	{"CopyComPointer", copy_com_pointer, METH_VARARGS, copy_com_pointer_doc},
 	{"FormatError", format_error, METH_VARARGS, format_error_doc},
 	{"LoadLibrary", load_library, METH_VARARGS, load_library_doc},
 	{"FreeLibrary", free_library, METH_VARARGS, free_library_doc},

@@ -56,8 +56,7 @@ if os.name == "nt":
         ])
     extensions = [Extension("_ctypes",
                             export_symbols=["DllGetClassObject,PRIVATE",
-                                            "DllCanUnloadNow,PRIVATE",
-                                            "CopyComPointer"],
+                                            "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
                             include_dirs=["source/libffi_msvc"],
                             **kw),
