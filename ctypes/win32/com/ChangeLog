@@ -1,8 +1,22 @@
+2004-07-20  Thomas Heller  <theller@python.net>
+
+	* ctypes.com: Improve the automatic COM reference counting.
+	AddRef() is now automatically called when callback functions (COM
+	methods implemented in Python) receive a COM interface pointer as
+	parameter.  This matches the __del__ method which calls Release().
+
 2004-07-16  Thomas Heller  <theller@python.net>
 
-	* __init__.py: More useful debug info from IUnknown.QueryInterface
-	and ClassFactory.CreateInstance calls.
+	* samples\server\IExplorer\toolband.py: New sample implementing an
+	Internet Explorer Toolband control.
+
+	* ctypes.com.errorinfo:  New interfaces.
+
+	* ctypes.com: New function CreateGuid()
+
+	More useful debug info from IUnknown.QueryInterface and
+	ClassFactory.CreateInstance calls.
 
 	New interface_name(iid) function, which returns a COM interface
 	name from it's iid.
-	
+
