@@ -61,12 +61,13 @@ COMTYPES = {
     automation.VT_VOID: typedesc.Typedef("None", None), # 24
     automation.VT_HRESULT: HRESULT_type, # 25
 
+    automation.VT_SAFEARRAY: typedesc.Typedef("SAFEARRAY", None), # 27
+
     automation.VT_LPSTR: PTR(char_type), # 30
     automation.VT_LPWSTR: PTR(wchar_t_type), # 31
 }
 
 #automation.VT_PTR = 26 # enum VARENUM
-#automation.VT_SAFEARRAY = 27 # enum VARENUM
 #automation.VT_CARRAY = 28 # enum VARENUM
 #automation.VT_USERDEFINED = 29 # enum VARENUM
 
@@ -76,10 +77,15 @@ COMTYPES = {
 #automation.VT_BYREF = 16384 # enum VARENUM
 
 known_symbols = {"VARIANT": "comtypes",
-                 "BSTR": "comtypes",
-                 "None": "ctypes",
-                 "ERROR": "ctypes",
-                 "GUID": "comtypes"}
+                 "None": "XXX",
+                 }
+
+for name in ("comtypes", "ctypes"):
+    mod = __import__(name)
+    for submodule in name.split(".")[1:]:
+        mod = getattr(mod, submodule)
+    for name in mod.__dict__:
+        known_symbols[name] = mod.__name__
 
 ################################################################
 
@@ -163,11 +169,11 @@ class TlbParser(object):
     # TKIND_MODULE = 2
     def ParseModule(self, tinfo, ta):
         assert 0 == ta.cImplTypes
-        dllname = tinfo.GetDocumentation(-1)[0] # dllname?
         # functions
         for i in range(ta.cFuncs):
             fd = tinfo.GetFuncDesc(i)
-            func_name, func_doc = tinfo.GetDocumentation(fd.memid)[:2]
+            dllname, func_name, ordinal = tinfo.GetDllEntry(fd.memid, fd.invkind)
+##            func_doc = tinfo.GetDocumentation(fd.memid)[1]
             assert 0 == fd.cParamsOpt # ?
             returns = self.make_type(fd.elemdescFunc.tdesc, tinfo)
 
@@ -190,7 +196,6 @@ class TlbParser(object):
         # functionality to create them, and codegenerator fixes also.
         # But then, constants are not really common in typelibs.
         return
-    
 
         # constants
         for i in range(ta.cVars):
@@ -213,9 +218,120 @@ class TlbParser(object):
                 print "VT", vt
 
     # TKIND_INTERFACE = 3
+    def ParseInterface(self, tinfo, ta):
+        itf_name, doc = tinfo.GetDocumentation(-1)[0:2]
+        assert ta.cImplTypes <= 1
+
+        if ta.cImplTypes:
+            hr = tinfo.GetRefTypeOfImplType(0)
+            tibase = tinfo.GetRefTypeInfo(hr)
+            bases = [self.parse_typeinfo(tibase)]
+        else:
+            bases = []
+        members = []
+        itf = typedesc.Structure(itf_name,
+                                 align=32,
+                                 members=members,
+                                 bases=bases,
+                                 size=32)
+        self.items[itf_name] = itf
+
+        assert ta.cVars == 0, "vars on an Interface?"
+
+        for i in range(ta.cFuncs):
+            fd = tinfo.GetFuncDesc(i)
+            func_name = tinfo.GetDocumentation(fd.memid)[0]
+            returns = self.make_type(fd.elemdescFunc.tdesc, tinfo)
+            mth = typedesc.Method(func_name, returns)
+##            assert fd.cParamsOpt == 0, "optional parameters not yet implemented"
+##            print "CUST %s::%s" % (itf_name, func_name),
+            for p in range(fd.cParams):
+##                print fd.lprgelemdescParam[p]._.paramdesc.wParamFlags,
+                typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
+                mth.add_argument(typ)
+##            print
+            itf.members.append(mth)
+
+        itf.iid = ta.guid
+        return itf
+
     # TKIND_DISPATCH = 4
+    def ParseDispatch(self, tinfo, ta):
+        itf_name, doc = tinfo.GetDocumentation(-1)[0:2]
+##        print itf_name
+        assert ta.cImplTypes == 1
+
+        hr = tinfo.GetRefTypeOfImplType(0)
+        tibase = tinfo.GetRefTypeInfo(hr)
+        base = self.parse_typeinfo(tibase)
+        members = []
+        itf = typedesc.DispInterface(itf_name,
+                                     members=members,
+                                     base=base,
+                                     iid=str(ta.guid),
+                                     wTypeFlags=ta.wTypeFlags)
+        self.items[itf_name] = itf
+
+        flags = ta.wTypeFlags & (automation.TYPEFLAG_FDISPATCHABLE | automation.TYPEFLAG_FDUAL)
+        if flags == automation.TYPEFLAG_FDISPATCHABLE:
+            # dual interface
+            basemethods = 0
+        else:
+            # pure dispinterface, does only include dispmethods
+            basemethods = 7
+            assert ta.cFuncs >= 7, "where are the IDispatch methods?"
+
+        assert ta.cVars == 0, "properties on interface not yet implemented"
+        for i in range(ta.cVars):
+            vd = tinfo.GetVarDesc(i)
+##            assert vd.varkind == automation.VAR_DISPATCH
+            var_name = tinfo.GetDocumentation(vd.memid)[0]
+            print "VAR", itf_name, tinfo.GetDocumentation(vd.memid)[0], vd.varkind
+            typ = self.make_type(vd.elemdescVar.tdesc, tinfo)
+            mth = typedesc.DispProperty(vd.memid, vd.varkind, var_name, typ)
+            itf.members.append(mth)
+
+        for i in range(basemethods, ta.cFuncs):
+            fd = tinfo.GetFuncDesc(i)
+            func_name = tinfo.GetDocumentation(fd.memid)[0]
+            returns = self.make_type(fd.elemdescFunc.tdesc, tinfo)
+            names = tinfo.GetNames(fd.memid, fd.cParams+1)
+            names.append("rhs")
+            names = names[:fd.cParams + 1]
+            assert len(names) == fd.cParams + 1
+            mth = typedesc.DispMethod(fd.memid, fd.invkind, func_name, returns)
+            for p in range(fd.cParams):
+                typ = self.make_type(fd.lprgelemdescParam[p].tdesc, tinfo)
+                name = names[p+1]
+                flags = fd.lprgelemdescParam[p]._.paramdesc.wParamFlags
+                if flags & automation.PARAMFLAG_FHASDEFAULT:
+                    var = fd.lprgelemdescParam[p]._.paramdesc.pparamdescex[0].varDefaultValue
+                    if var.n1.n2.vt == automation.VT_BSTR:
+                        default = var.n1.n2.n3.bstrVal
+                    elif var.n1.n2.vt == automation.VT_I4:
+                        default = var.n1.n2.n3.iVal
+                    elif var.n1.n2.vt == automation.VT_BOOL:
+                        default = bool(var.n1.n2.n3.boolVal)
+                    else:
+                        raise "NYI", var.n1.n2.vt
+                else:
+                    default = None
+                mth.add_argument(typ, name, flags, default)
+            itf.members.append(mth)
+
+        itf.iid = ta.guid
+        return itf
+        
     # TKIND_COCLASS = 5
 
+    # TKIND_ALIAS = 6
+    def ParseAlias(self, tinfo, ta):
+        name = tinfo.GetDocumentation(-1)[0]
+        typ = self.make_type(ta.tdescAlias, tinfo)
+        alias = typedesc.Typedef(name, typ)
+        self.items[name] = alias
+        return alias
+    
     # TKIND_UNION = 7
     def ParseUnion(self, tinfo, ta):
         union_name, doc, helpcntext, helpfile = tinfo.GetDocumentation(-1)
@@ -238,16 +354,8 @@ class TlbParser(object):
                                    None, # bits
                                    offset)
             members.append(field)
-        return struct
+        return union
         
-    # TKIND_ALIAS = 6
-    def ParseAlias(self, tinfo, ta):
-        name = tinfo.GetDocumentation(-1)[0]
-        typ = self.make_type(ta.tdescAlias, tinfo)
-        alias = typedesc.Typedef(name, typ)
-        self.items[name] = alias
-        return alias
-    
     ################################################################
 
     def parse_typeinfo(self, tinfo):
@@ -264,13 +372,18 @@ class TlbParser(object):
             return self.ParseRecord(tinfo, ta)
         elif tkind == automation.TKIND_MODULE: # 2
             return self.ParseModule(tinfo, ta)
+        elif tkind == automation.TKIND_INTERFACE: # 3
+            return self.ParseInterface(tinfo, ta)
+        elif tkind == automation.TKIND_DISPATCH: # 4
+            return self.ParseDispatch(tinfo, ta)
+        # TKIND_COCLASS = 5
         elif tkind == automation.TKIND_ALIAS: # 6
             return self.ParseAlias(tinfo, ta)
         elif tkind == automation.TKIND_UNION: # 7
             return self.ParseUnion(tinfo, ta)
-##        else:
+        else:
 ##            raise "NYI", tkind
-##            print "NYI", tkind
+            print "NYI", tkind
 
     ################################################################
 
@@ -285,28 +398,32 @@ class TlbParser(object):
 def main():
     import sys
 
-##    path = r"c:\windows\system32\hnetcfg.dll"
-##    path = r"c:\windows\system32\simpdata.tlb"
-##    path = r"c:\windows\system32\nscompat.tlb"
-    path = r"c:\windows\system32\mshtml.tlb"
+    path = r"hnetcfg.dll"
+##    path = r"simpdata.tlb"
+##    path = r"nscompat.tlb"
+##    path = r"mshtml.tlb"
 ##    path = r"stdole32.tlb"
-    path = r"c:\tss5\include\MeasurementModule.tlb"
-    path = r"c:\tss5\include\fpanel.tlb"
+##    path = r"c:\tss5\include\MeasurementModule.tlb"
+##    path = r"c:\tss5\include\fpanel.tlb"
+##    path = r"x.tlb"
 ##    path = r"shdocvw.dll"
     
 ##    path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 ##    path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
-##    path = r"c:\windows\system32\msi.dll"
+##    path = r"msi.dll"
 ##    path = r"c:\tss5\include\ITDPersist.tlb"
 
-##    path = r"c:\Windows\System32\PICCLP32.OCX"
-##    path = r"c:\windows\system32\Macromed\Flash\swflash.ocx"
+##    path = r"PICCLP32.OCX"
+##    path = r"Macromed\Flash\swflash.ocx"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win.tlb"
-##    path = r"C:\WINDOWS\System32\MSHFLXGD.OCX"
-##    path = r"c:\windows\system32\scrrun.dll"
+##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
+##    path = r"MSHFLXGD.OCX"
+##    path = r"scrrun.dll"
 ##    path = r"c:\Programme\Gemeinsame Dateien\Microsoft Shared\Speech\sapi.dll"
 ##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\threadapi.tlb"
-    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
+##    path = r"C:\Dokumente und Einstellungen\thomas\Desktop\tlb\win32.tlb"
+
+##    path = "mytlb.tlb"
     
     p = TlbParser(path)
     items = p.parse()
