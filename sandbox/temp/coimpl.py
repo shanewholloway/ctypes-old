@@ -18,26 +18,31 @@ PIUnknown = POINTER("IUnknown")
 def STDMETHOD(restype, name, *argtypes):
     return name, STDAPI(restype, PIUnknown, *argtypes)
 
-class VTable(Structure):
-    _fields_ = [STDMETHOD(c_int, "QueryInterface", REFIID, POINTER(PIUnknown)),
-                STDMETHOD(c_ulong, "AddRef"),
-                STDMETHOD(c_ulong, "Release")]
+class _interface_meta(type(Structure)):
+    def __new__(self, name, bases, kwds):
+        class _VTable(Structure):
+            _fields_ = kwds["_methods_"]
+        fields = [("lpVtbl", POINTER(_VTable))]
+        kwds["_fields_"] = fields
+        return type(Structure).__new__(self, name, bases, kwds)
 
-class IUnknown(Union):
-    _fields_ = [("lpVtbl", POINTER(VTable))]
-
+class IUnknown(Structure):
+    __metaclass__ = _interface_meta
+    _methods_ = [STDMETHOD(c_int, "QueryInterface", REFIID, POINTER(PIUnknown)),
+                 STDMETHOD(c_ulong, "AddRef"),
+                 STDMETHOD(c_ulong, "Release")]
+    
 from ctypes import SetPointerType
 SetPointerType(PIUnknown, IUnknown)
 
 import new
 
-name, PROTO = VTable._fields_[1]
-PROTO = STDAPI(PROTO._restype_, *PROTO._argtypes_[1:])
-IUnknown.my_AddRef = new.instancemethod(PROTO(1), None, IUnknown)
-
-name, PROTO = VTable._fields_[2]
-PROTO = STDAPI(PROTO._restype_, *PROTO._argtypes_[1:])
-IUnknown.my_Release = new.instancemethod(PROTO(2), None, IUnknown)
+index = 0
+for name, PROTO in IUnknown._fields_[0][1]._type_._fields_: # VTable._fields_
+    clientPROTO = STDAPI(PROTO._restype_, *PROTO._argtypes_[1:])
+    mth = new.instancemethod(clientPROTO(index), None, IUnknown)
+    setattr(IUnknown, name, mth)
+    index += 1
 
 ################################################################
 # implementing a COM interface pointer
@@ -90,5 +95,5 @@ print "B", dll._testfunc_piunk(pointer(itf))
 
 print "From Python2"
 
-print "C", itf.my_AddRef()
-print "C", itf.my_Release()
+print "C", itf.AddRef()
+print "C", itf.Release()
