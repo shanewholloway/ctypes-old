@@ -273,6 +273,7 @@ class Generator(object):
         else:
             methods = [m for m in head.struct.members if type(m) is typedesc.Method]
             if methods:
+                self.need_cominterface()
                 print >> self.stream, "class %s(_com_interface):" % head.struct.name
             elif type(head.struct) == typedesc.Structure:
                 self.need_Structure()
@@ -458,6 +459,17 @@ class Generator(object):
                 else:
                     print >> self.stream, "    ('%s', %s, %s)," % (fieldname, self.type_name(f.typ), f.bits)
             print >> self.stream, "]"
+            # generate assert statements for size and alignment
+            if body.struct.size and body.struct.name not in dont_assert_size:
+                size = body.struct.size // 8
+                self.need_sizeof()
+                print >> self.stream, "assert sizeof(%s) == %s, sizeof(%s)" % \
+                      (body.struct.name, size, body.struct.name)
+                align = body.struct.align // 8
+                self.need_alignment()
+                print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
+                      (body.struct.name, align, body.struct.name)
+
         if methods:
             # method definitions normally span several lines.
             # Before we generate them, we need to 'import' everything they need.
@@ -466,6 +478,7 @@ class Generator(object):
                 self.type_name(m.returns)
                 for a in m.arguments:
                     self.type_name(a)
+            self.need_STDMETHOD()
             print >> self.stream, "%s._methods_ = [" % body.struct.name
             if body.struct.location:
                 print >> self.stream, "# %s %s" % body.struct.location
@@ -476,15 +489,7 @@ class Generator(object):
                     m.name,
                     ", ".join(args))
             print >> self.stream, "]"
-        if body.struct.size and body.struct.name not in dont_assert_size:
-            size = body.struct.size // 8
-            self.need_sizeof()
-            print >> self.stream, "assert sizeof(%s) == %s, sizeof(%s)" % \
-                  (body.struct.name, size, body.struct.name)
-            align = body.struct.align // 8
-            self.need_alignment()
-            print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
-                  (body.struct.name, align, body.struct.name)
+
         self.done.add(body)
 
     def find_dllname(self, name):
@@ -518,6 +523,20 @@ class Generator(object):
             self._CDLL_defined = True
         print >> self.stream, "%s = CDLL(%r)" % (name, dllname)
         return name
+
+    _cominterface_defined = False
+    def need_cominterface(self):
+        if self._cominterface_defined:
+            return
+        print >> self.stream, "from comtypes import _com_interface"
+        self._cominterface_defined = True
+
+    _STDMETHOD_defined = False
+    def need_STDMETHOD(self):
+        if self._STDMETHOD_defined:
+            return
+        print >> self.stream, "from comtypes import STDMETHOD"
+        self._STDMETHOD_defined = True
 
     _stdcall_defined = False
     def need_stdcall(self):
