@@ -149,6 +149,14 @@ class FunctionTestCase(unittest.TestCase):
         result = f(pointer(v))
         self.failUnless(result.contents.value == v.value)
 
+        p = pointer(c_int(99))
+        result = f(p)
+        self.failUnless(result.contents.value == 99)
+
+        # We need to keep the pointer alive, otherwise the contents change:
+        result = f(pointer(c_int(99)))
+        self.failUnless(result.contents.value != 99)
+
         # XXX But this not! WHY on earth?
         arg = byref(v)
         result = f(arg)
