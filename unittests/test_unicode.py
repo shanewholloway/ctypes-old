@@ -62,6 +62,20 @@ class UnicodeTestCase(unittest.TestCase):
         self.failUnlessEqual(wcslen("abc"), 3)
         self.failUnlessEqual(wcslen("הצüß"), 4)
 
+    def test_buffers(self):
+        ctypes.set_conversion_mode("ascii", "strict")
+        buf = ctypes.create_unicode_buffer("abc")
+        self.failUnlessEqual(len(buf), 3+1)
+
+        ctypes.set_conversion_mode("ascii", "replace")
+        buf = ctypes.create_unicode_buffer("abהצü")
+        self.failUnlessEqual(buf[:], u"ab\uFFFD\uFFFD\uFFFD\0")
+
+        ctypes.set_conversion_mode("ascii", "ignore")
+        buf = ctypes.create_unicode_buffer("abהצü")
+        # is that correct? not sure.  But with 'ignore', you get what you pay for..
+        self.failUnlessEqual(buf[:], u"ab\0\0\0\0")
+
 import _ctypes_test
 func = ctypes.CDLL(_ctypes_test.__file__)._testfunc_p_p
 
@@ -94,7 +108,19 @@ class StringTestCase(UnicodeTestCase):
         self.failUnlessEqual(func(u"abc"), "abc")
         self.failUnlessEqual(func(u"הצüß"), "????")
 
+    def test_buffers(self):
+        ctypes.set_conversion_mode("ascii", "strict")
+        buf = ctypes.create_string_buffer(u"abc")
+        self.failUnlessEqual(len(buf), 3+1)
 
+        ctypes.set_conversion_mode("ascii", "replace")
+        buf = ctypes.create_string_buffer(u"abהצü")
+        self.failUnlessEqual(buf[:], "ab???\0")
+
+        ctypes.set_conversion_mode("ascii", "ignore")
+        buf = ctypes.create_string_buffer(u"abהצü")
+        # is that correct? not sure.  But with 'ignore', you get what you pay for..
+        self.failUnlessEqual(buf[:], "ab\0\0\0\0")
 
 if __name__ == '__main__':
     unittest.main()
