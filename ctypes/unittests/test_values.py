@@ -19,7 +19,6 @@ class ValuesTestCase(unittest.TestCase):
         If -O is given, the flag is 1, for -OO it is 2.
         docstrings are also removed in the latter case."""
         opt = c_int.in_dll("Py_OptimizeFlag", pydll).value
-        print ValuesTestCase.__doc__
         if __debug__:
             self.failUnlessEqual(opt, 0)
         elif ValuesTestCase.__doc__ is not None:
