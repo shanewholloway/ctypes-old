@@ -29,47 +29,47 @@ from ctypes.com.automation import IMPLTYPEFLAGS, IMPLTYPEFLAG_FDEFAULT, \
 from ctypes.com import GUID
 from ctypes import *
 
-VT_EMPTY	= 0
-VT_NULL	= 1
-VT_I2	= 2
-VT_I4	= 3
-VT_R4	= 4
-VT_R8	= 5
-VT_CY	= 6
-VT_DATE	= 7
-VT_BSTR	= 8
-VT_DISPATCH	= 9
-VT_ERROR	= 10
-VT_BOOL	= 11
-VT_VARIANT	= 12
-VT_UNKNOWN	= 13
-VT_DECIMAL	= 14
-VT_I1	= 16
-VT_UI1	= 17
-VT_UI2	= 18
-VT_UI4	= 19
-VT_I8	= 20
-VT_UI8	= 21
-VT_INT	= 22
-VT_UINT	= 23
-VT_VOID	= 24
-VT_HRESULT	= 25
-VT_PTR	= 26
-VT_SAFEARRAY	= 27
-VT_CARRAY	= 28
-VT_USERDEFINED	= 29
-VT_LPSTR	= 30
-VT_LPWSTR	= 31
-VT_RECORD	= 36
-VT_FILETIME	= 64
+VT_EMPTY = 0
+VT_NULL = 1
+VT_I2 = 2
+VT_I4 = 3
+VT_R4 = 4
+VT_R8 = 5
+VT_CY = 6
+VT_DATE = 7
+VT_BSTR = 8
+VT_DISPATCH = 9
+VT_ERROR = 10
+VT_BOOL = 11
+VT_VARIANT = 12
+VT_UNKNOWN = 13
+VT_DECIMAL = 14
+VT_I1 = 16
+VT_UI1 = 17
+VT_UI2 = 18
+VT_UI4 = 19
+VT_I8 = 20
+VT_UI8 = 21
+VT_INT = 22
+VT_UINT = 23
+VT_VOID = 24
+VT_HRESULT = 25
+VT_PTR = 26
+VT_SAFEARRAY = 27
+VT_CARRAY = 28
+VT_USERDEFINED = 29
+VT_LPSTR = 30
+VT_LPWSTR = 31
+VT_RECORD = 36
+VT_FILETIME = 64
 VT_BLOB	= 65
-VT_STREAM	= 66
-VT_STORAGE	= 67
-VT_STREAMED_OBJECT	= 68
-VT_STORED_OBJECT	= 69
-VT_BLOB_OBJECT	= 70
-VT_CF	= 71
-VT_CLSID	= 72
+VT_STREAM = 66
+VT_STORAGE = 67
+VT_STREAMED_OBJECT = 68
+VT_STORED_OBJECT = 69
+VT_BLOB_OBJECT = 70
+VT_CF = 71
+VT_CLSID = 72
 
 TYPES = {
     VT_I2: "c_short",
@@ -79,7 +79,7 @@ TYPES = {
     VT_BSTR: "BSTR",
     VT_DISPATCH: "POINTER(IDispatch)",
 
-    VT_BOOL: "c_int", # VT_BOOL
+    VT_BOOL: "c_int", # we don't have a c_bool (or com_bool?) type yet
     VT_VARIANT: "VARIANT",
     VT_UNKNOWN: "POINTER(IUnknown)",
 
@@ -102,6 +102,31 @@ TYPES = {
     VT_CY: "CURRENCY",
     VT_DATE: "c_double",
     }
+
+PARAMFLAG_NONE  = 0
+PARAMFLAG_FIN   = 0x1
+PARAMFLAG_FOUT  = 0x2
+PARAMFLAG_FLCID = 0x4
+PARAMFLAG_FRETVAL = 0x8
+PARAMFLAG_FOPT  = 0x10
+PARAMFLAG_FHASDEFAULT = 0x20
+PARAMFLAG_FHASCUSTDATA = 0x40
+
+TYPEFLAG_FAPPOBJECT = 0x01
+TYPEFLAG_FCANCREATE = 0x02
+TYPEFLAG_FLICENSED = 0x04
+TYPEFLAG_FPREDECLID = 0x08
+TYPEFLAG_FHIDDEN = 0x10
+TYPEFLAG_FCONTROL = 0x20
+TYPEFLAG_FDUAL = 0x40
+TYPEFLAG_FNONEXTENSIBLE = 0x80
+TYPEFLAG_FOLEAUTOMATION = 0x100
+TYPEFLAG_FRESTRICTED = 0x200
+TYPEFLAG_FAGGREGATABLE = 0x400
+TYPEFLAG_FREPLACEABLE = 0x800
+TYPEFLAG_FDISPATCHABLE = 0x1000
+TYPEFLAG_FREVERSEBIND = 0x2000
+TYPEFLAG_FPROXY = 0x4000
 
 def mangle_name(name):
     # convert names into Python identifiers
@@ -130,12 +155,10 @@ class TypeInfoReader:
     def _get_documentation(self):
         name = BSTR()
         docstring = BSTR()
-        helpcontext = c_ulong()
-        helpfile = BSTR()
-        self.ti.GetDocumentation(-1, byref(name),
-                                 byref(docstring), byref(helpcontext),
-                                 byref(helpfile))
+        self.ti.GetDocumentation(-1, byref(name), byref(docstring),
+                                 None, None)
         self.name = mangle_name(name.value)
+        # XXX Some braindead typelibs contain invalid BStrings, containing NUL bytes
         self.docstring = docstring.value
 
     def _parse_typeattr(self, ta):
@@ -233,10 +256,7 @@ class EnumReader(TypeInfoReader):
             self.ti.GetDocumentation(vd.memid, byref(name),
                                      None, None, None)
             name = mangle_name(name.value)
-
             assert vd.varkind == VAR_CONST
-            assert vd.elemdescVar.tdesc.vt == VT_INT
-
             vsrc = vd.u.lpvarValue.contents # the source variant containing the value
             self.items.append((name, vsrc.value))
             self.ti.ReleaseVarDesc(pvd)
@@ -310,7 +330,7 @@ class DispatchMethod(Method):
 
 class DispMethod(Method):
     def declaration(self):
-        items = ['DISPMETHOD(0x%x' % (self.dispid & (sys.maxint*2 + 1))]
+        items = ['DISPMETHOD(0x%xL' % (self.dispid & (sys.maxint*2 + 1))]
         if self.restype is not None:
             items.append(self.restype)
         else:
@@ -332,7 +352,6 @@ class ModuleReader(TypeInfoReader):
             self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
             argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
             restype = self._get_type(fd.elemdescFunc.tdesc)
-            print restype, name, argtypes
 
     def _get_argtypes(self, n, pelemdesc):
         result = []
@@ -394,7 +413,19 @@ class InterfaceReader(TypeInfoReader):
                 continue
             
             name = BSTR()
+            # memid, name, docstring, helpcontext, helpfile
             self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
+
+##            # call self.ti.GetNames(fd.memid) to find out the parameter names
+##            if fd.cParams:
+##                cNames = c_uint()
+##                rgBstrNames = (BSTR * fd.cParams)()
+##                self.ti.GetNames(fd.memid, rgBstrNames, fd.cParams, byref(cNames))
+##                assert fd.cParams == cNames.value
+##                names = [rgBstrNames[i] for i in range(fd.cParams)]
+##            else:
+##                names = []
+            
             if fd.invkind == DISPATCH_PROPERTYGET: # same as INVOKE_PROPERTYGET
                 name = mangle_name(name.value)
                 prop = self.properties.get(name, 0) + DISPATCH_PROPERTYGET
@@ -411,8 +442,8 @@ class InterfaceReader(TypeInfoReader):
                 name = "_putREF_" + mangle_name(name.value)
             else:
                 assert 0
+##            argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam, names)
             argtypes = self._get_argtypes(fd.cParams, fd.lprgelemdescParam)
-
             restype = self._get_type(fd.elemdescFunc.tdesc)
 
 ##  Combinations:
@@ -427,48 +458,34 @@ class InterfaceReader(TypeInfoReader):
             self.ti.ReleaseFuncDesc(pfd)
         return methods
     
-    def definition(self, make_properties=0):
+    def definition(self):
         pta = LPTYPEATTR()
         self.ti.GetTypeAttr(byref(pta))
         ta = pta.contents
         methods = self._get_methods(ta)
         self.ti.ReleaseTypeAttr(pta)
 
-        method_dict = {}
-
         l = []
         l.append("%s._methods_ = %s._methods_ + [" % (self.name, self.baseinterface))
         for m in methods:
             l.append('    %s,' % m.declaration())
-            method_dict[m.name] = m.restype, m.argtypes
         l.append("]")
-
-        if make_properties:
-            # I don't like the code generated here. So it's disabled
-            # by default.  IMO the properties should be created by the
-            # metaclass, it's too verbose *this* way.
-            for name, flags in self.properties.items():
-                get = "None"
-                if flags & DISPATCH_PROPERTYGET:
-                    restype, argtypes = method_dict["_get_" + name]
-                    get = "_get_%s" % name
-
-                    l.append("def _get_%s(self):" % name)
-                    l.append("    result = %s()" % restype)
-                    l.append("    self._get_%s(byref(result))" % name)
-                    l.append("    return result")
-                put = "None"
-                if flags & DISPATCH_PROPERTYPUT:
-                    put = "_put_%s" % name
-
-                    l.append("def _put_%s(self, value):" % name)
-                    l.append("    self._put_%s(value)" % name)
-
-                l.append("POINTER(%s).%s = property(%s, %s)" % (self.name, name, get, put))
-                l.append("")
-
         return "\n".join(l)
 
+##    def _get_argtypes(self, n, pelemdesc, names):
+##        result = []
+##        for i in range(n):
+##            e = pelemdesc[i]
+##            vt = e.tdesc.vt
+##            typ = self._get_type(e.tdesc)
+##            func = self._get_paramflags(e.paramdesc.wPARAMFlags)
+##            if e.paramdesc.wPARAMFlags & PARAMFLAG_FHASDEFAULT:
+##                p = e.paramdesc.pPARAMDescEx
+##                v = p[0].varDefaultValue
+##                result.append("%s(%r, %s, default=%s)" % (func, str(names[i]), typ, repr(v.value)))
+##            else:
+##                result.append("%s(%r, %s)" % (func, str(names[i]), typ))
+##        return result
     def _get_argtypes(self, n, pelemdesc):
         result = []
         for i in range(n):
@@ -477,21 +494,28 @@ class InterfaceReader(TypeInfoReader):
             result.append(self._get_type(e.tdesc))
         return result
 
-TYPEFLAG_FAPPOBJECT = 0x01
-TYPEFLAG_FCANCREATE = 0x02
-TYPEFLAG_FLICENSED = 0x04
-TYPEFLAG_FPREDECLID = 0x08
-TYPEFLAG_FHIDDEN = 0x10
-TYPEFLAG_FCONTROL = 0x20
-TYPEFLAG_FDUAL = 0x40
-TYPEFLAG_FNONEXTENSIBLE = 0x80
-TYPEFLAG_FOLEAUTOMATION = 0x100
-TYPEFLAG_FRESTRICTED = 0x200
-TYPEFLAG_FAGGREGATABLE = 0x400
-TYPEFLAG_FREPLACEABLE = 0x800
-TYPEFLAG_FDISPATCHABLE = 0x1000
-TYPEFLAG_FREVERSEBIND = 0x2000
-TYPEFLAG_FPROXY = 0x4000
+    def _get_paramflags(self, flags):
+        result = []
+        if flags & PARAMFLAG_FIN:
+            result.append("in_")
+        if flags & PARAMFLAG_FOUT:
+            result.append("out_")
+        if flags & PARAMFLAG_FRETVAL:
+            import pdb
+            pdb.set_trace()
+            result.append("retval_")
+        if flags & PARAMFLAG_FLCID:
+            result.append("lcid_")
+        if flags & PARAMFLAG_FOPT:
+            result.append("opt_")
+        if flags & PARAMFLAG_FHASDEFAULT:
+            result.append("hasdefault_")
+        if flags & PARAMFLAG_FHASCUSTDATA:
+            result.append("hascustdata_")
+        if result:
+            return "".join(result)
+        else:
+            return "??_"
 
 class DispatchInterfaceReader(InterfaceReader):
     baseinterface = "IDispatch"
@@ -506,9 +530,9 @@ class DispatchInterfaceReader(InterfaceReader):
             self.baseinterface = "dispinterface"
             self.is_dispinterface = 1
 
-    def definition(self, make_properties=0):
+    def definition(self):
         if not self.is_dispinterface:
-            return InterfaceReader.definition(self, make_properties=make_properties)
+            return InterfaceReader.definition(self)
         pta = LPTYPEATTR()
         self.ti.GetTypeAttr(byref(pta))
         ta = pta.contents
@@ -580,6 +604,12 @@ from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT, dispinterface, \
                                   DISPMETHOD, DISPPARAMS, EXCEPINFO
+
+"""
+
+FLAGS_CODE = """# dummy functions for now
+def in_(name, typ, **kw): return typ
+in_opt_ = in_out_ = in_out_opt_ = out_ = out_retval_ = in_
 
 """
 
@@ -673,7 +703,7 @@ class TypeLibReader:
         # not sure
         return 0
 
-    def dump(self, ofi=None, make_properties=0):
+    def dump(self, ofi=None):
 
         print >> ofi, "# Generated from %s" % self.filename
         print >> ofi, HEADER
@@ -729,7 +759,7 @@ class TypeLibReader:
         if self.interfaces:
             for itf in interfaces:
                 print >> ofi
-                print >> ofi, itf.definition(make_properties=make_properties)
+                print >> ofi, itf.definition()
 
         if self.coclasses:
             print >> ofi
@@ -751,6 +781,9 @@ def main():
 ##        path = r"..\samples\server\sum.tlb"
         path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
+##        path = r"c:\Programme\Microsoft Office\Office\MSWORD8.OLB"
+##        path = r"c:\windows\system32\msi.dll"
+
 ## XXX Does definitely *not* work with the Excel type library
 ##        path = r"c:\Programme\Microsoft Office\Office\XL5EN32.OLB"
 ##        path = r"c:\windows\system32\msxml3.dll"
@@ -766,9 +799,7 @@ def main():
     reader = TypeLibReader(unicode(path))
     stop = time.clock()
     print "# -*- python -*-"
-    # As said above, I currently don't really like the code which
-    # make_properties=1 generates.
-    reader.dump(make_properties=0)
+    reader.dump()
     
 
 if __name__ == '__main__':
