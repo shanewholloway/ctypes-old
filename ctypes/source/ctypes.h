@@ -92,9 +92,6 @@ CField_FromDesc(PyObject *desc, int index,
 		int *pfield_size, int bitsize, int *pbitofs,
 		int *psize, int *poffset, int *palign, int pack);
 
-extern PyObject *CData_AtAddress(PyObject *type, void *buf);
-extern PyObject *CData_FromBytes(PyObject *type, char *data, int length);
-
 extern PyTypeObject ArrayType_Type;
 extern PyTypeObject Array_Type;
 extern PyTypeObject PointerType_Type;
