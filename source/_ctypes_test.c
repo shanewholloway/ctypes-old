@@ -496,8 +496,8 @@ EXPORT(int) my_GetWindowRect(HWND hwnd, RECT *prect)
 
 EXPORT(void) TwoOutArgs(int a, int *pi, int b, int *pj)
 {
-	*pi = a;
-	*pj = b;
+	*pi += a;
+	*pj += b;
 }
 
 #ifdef MS_WIN32
