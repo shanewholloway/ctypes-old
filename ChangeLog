@@ -1,3 +1,21 @@
+2004-10-13  Thomas Heller  <theller@python.net>
+
+	* Bit fields in structures and unions are now implemented.  They
+	are defined using a third item in the _fields_ list, which
+	specifies the number of bits in this field.  Bit fields are only
+	allowed for numeric types, not for character types like c_char.
+
+2004-10-12  Thomas Heller  <theller@python.net>
+
+	* Implemented a cast(obj, ctype) function. This should be used to
+	convert one type of pointer to abother type of pointer.  For
+	example, a POINTER(c_byte) instance could be converted to a
+	c_char_p instance pointing to the same memory location, allowing
+	to access the zero-terminated string pointed to.
+	
+	* Unicode should now work on non-windows systems.  Tested on Suse
+	Linux x86 and x86-64, Redhat linux x86 (wide unicode build).
+
 2004-10-08  Thomas Heller  <theller@python.net>
 
 	* source\callbacks.c: Added a cast function, which creates a new
