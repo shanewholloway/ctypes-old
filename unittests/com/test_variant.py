@@ -54,7 +54,9 @@ class VariantTestCase(unittest.TestCase):
         d.rgvarg = (VARIANT * 3)()
         # XXX The following line fails, which is a real bug in ctypes:
         # SystemError: ...\Objects\listobject.c:105: bad argument to internal function
-##        d.rgvarg[0].value = 1
+        #
+        # Update: this bug is fixed, now I have to rememeber what I wanted to test here.
+        d.rgvarg[0].value = 1
 
     def test_pythonobjects(self):
         objects = [None, 42, 3.14, True, False, "abc", u"abc", 7L]
@@ -101,6 +103,25 @@ class VariantTestCase(unittest.TestCase):
         # NULL pointer BSTR should be handled as empty string
         v.vt = VT_BSTR
         self.failUnlessEqual(v.value, "")
+
+class ArrayTest(unittest.TestCase):
+    def test_double(self):
+        import array
+        for typecode in "df":
+            # because of FLOAT rounding errors, whi will only work for
+            # certain values!
+            a = array.array(typecode, [1.0, 2.0, 3.0, 4.5])
+            v = VARIANT()
+            v.value = a
+            self.failUnlessEqual(v.value, [1.0, 2.0, 3.0, 4.5])
+
+    def test_int(self):
+        import array
+        for typecode in "bhiBHIlL":
+            a = array.array(typecode, [1, 1, 1, 1])
+            v = VARIANT()
+            v.value = a
+            self.failUnlessEqual(v.value, [1, 1, 1, 1])
 
 ################################################################
 
