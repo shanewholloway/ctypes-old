@@ -142,9 +142,29 @@ class ShellWindowFindWindowOptions(c_int):
 
 ##############################################################################
 
+class IWebBrowser2(IDispatch):
+    """Web Browser Interface for IE4."""
+    _iid_ = GUID('{D30C1661-CDAF-11D0-8A3E-00C04FC9E26E}')
+
+
+class IShellWindows(IDispatch):
+    """Definition of interface IShellWindows"""
+    _iid_ = GUID('{85CB6900-4D95-11CF-960C-0080C7F4EE85}')
+
+
 class IWebBrowser(IDispatch):
     """Web Browser interface"""
     _iid_ = GUID('{EAB22AC1-30C1-11CF-A7EB-0000C05BAE0B}')
+
+
+class ISearchAssistantOC(IDispatch):
+    """ISearchAssistantOC Interface"""
+    _iid_ = GUID('{72423E8F-8011-11D2-BE79-00A0C9A83DA1}')
+
+
+class ISearches(IDispatch):
+    """Searches Enum"""
+    _iid_ = GUID('{47C922A2-3DD5-11D2-BF8B-00C04FB93661}')
 
 
 class DWebBrowserEvents(dispinterface):
@@ -152,14 +172,14 @@ class DWebBrowserEvents(dispinterface):
     _iid_ = GUID('{EAB22AC2-30C1-11CF-A7EB-0000C05BAE0B}')
 
 
+class ISearchAssistantOC3(IDispatch):
+    """ISearchAssistantOC3 Interface"""
+    _iid_ = GUID('{72423E8F-8011-11D2-BE79-00A0C9A83DA3}')
+
+
 class IWebBrowserApp(IDispatch):
     """Web Browser Application Interface."""
     _iid_ = GUID('{0002DF05-0000-0000-C000-000000000046}')
-
-
-class IWebBrowser2(IDispatch):
-    """Web Browser Interface for IE4."""
-    _iid_ = GUID('{D30C1661-CDAF-11D0-8A3E-00C04FC9E26E}')
 
 
 class DWebBrowserEvents2(dispinterface):
@@ -172,9 +192,14 @@ class DShellWindowsEvents(dispinterface):
     _iid_ = GUID('{FE4106E0-399A-11D0-A48C-00A0C90A8F39}')
 
 
-class IShellWindows(IDispatch):
-    """Definition of interface IShellWindows"""
-    _iid_ = GUID('{85CB6900-4D95-11CF-960C-0080C7F4EE85}')
+class ISearchAssistantOC2(IDispatch):
+    """ISearchAssistantOC2 Interface"""
+    _iid_ = GUID('{72423E8F-8011-11D2-BE79-00A0C9A83DA2}')
+
+
+class ISearch(IDispatch):
+    """Enumerated Search"""
+    _iid_ = GUID('{BA9239A4-3DD5-11D2-BF8B-00C04FB93661}')
 
 
 class IShellUIHelper(IDispatch):
@@ -184,11 +209,6 @@ class IShellUIHelper(IDispatch):
 
 class DShellNameSpaceEvents(dispinterface):
     _iid_ = GUID('{55136806-B2DE-11D1-B9F2-00A0C98BC547}')
-
-
-class IShellFavoritesNameSpace(IDispatch):
-    """IShellFavoritesNameSpace Interface"""
-    _iid_ = GUID('{55136804-B2DE-11D1-B9F2-00A0C98BC547}')
 
 
 class IShellNameSpace(IDispatch):
@@ -201,130 +221,14 @@ class IScriptErrorList(IDispatch):
     _iid_ = GUID('{F3470F24-15FD-11D2-BB2E-00805FF7EFCA}')
 
 
-class ISearch(IDispatch):
-    """Enumerated Search"""
-    _iid_ = GUID('{BA9239A4-3DD5-11D2-BF8B-00C04FB93661}')
-
-
-class ISearches(IDispatch):
-    """Searches Enum"""
-    _iid_ = GUID('{47C922A2-3DD5-11D2-BF8B-00C04FB93661}')
-
-
-class ISearchAssistantOC(IDispatch):
-    """ISearchAssistantOC Interface"""
-    _iid_ = GUID('{72423E8F-8011-11D2-BE79-00A0C9A83DA1}')
-
-
-class ISearchAssistantOC2(IDispatch):
-    """ISearchAssistantOC2 Interface"""
-    _iid_ = GUID('{72423E8F-8011-11D2-BE79-00A0C9A83DA2}')
-
-
-class ISearchAssistantOC3(IDispatch):
-    """ISearchAssistantOC3 Interface"""
-    _iid_ = GUID('{72423E8F-8011-11D2-BE79-00A0C9A83DA3}')
-
-
 class _SearchAssistantEvents(dispinterface):
     _iid_ = GUID('{1611FDDA-445B-11D2-85DE-00C04FA35C89}')
 
 
-IWebBrowser._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "GoBack"),
-    STDMETHOD(HRESULT, "GoForward"),
-    STDMETHOD(HRESULT, "GoHome"),
-    STDMETHOD(HRESULT, "GoSearch"),
-    STDMETHOD(HRESULT, "Navigate", BSTR, POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "Refresh"),
-    STDMETHOD(HRESULT, "Refresh2", POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "Stop"),
-    STDMETHOD(HRESULT, "_get_Application", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_Parent", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_Container", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_Document", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_TopLevelContainer", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_Type", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Left", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Left", c_long),
-    STDMETHOD(HRESULT, "_get_Top", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Top", c_long),
-    STDMETHOD(HRESULT, "_get_Width", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Width", c_long),
-    STDMETHOD(HRESULT, "_get_Height", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Height", c_long),
-    STDMETHOD(HRESULT, "_get_LocationName", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_LocationURL", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Busy", POINTER(c_int)),
-]
+class IShellFavoritesNameSpace(IDispatch):
+    """IShellFavoritesNameSpace Interface"""
+    _iid_ = GUID('{55136804-B2DE-11D1-B9F2-00A0C98BC547}')
 
-DWebBrowserEvents._dispmethods_ = [
-    DISPMETHOD(0x64, None, "BeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0x65, None, "NavigateComplete", BSTR),
-    DISPMETHOD(0x66, None, "StatusTextChange", BSTR),
-    DISPMETHOD(0x6c, None, "ProgressChange", c_long, c_long),
-    DISPMETHOD(0x68, None, "DownloadComplete"),
-    DISPMETHOD(0x69, None, "CommandStateChange", c_long, c_int),
-    DISPMETHOD(0x6a, None, "DownloadBegin"),
-    DISPMETHOD(0x6b, None, "NewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0x71, None, "TitleChange", BSTR),
-    DISPMETHOD(0xc8, None, "FrameBeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0xc9, None, "FrameNavigateComplete", BSTR),
-    DISPMETHOD(0xcc, None, "FrameNewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
-    DISPMETHOD(0x67, None, "Quit", POINTER(c_int)),
-    DISPMETHOD(0x6d, None, "WindowMove"),
-    DISPMETHOD(0x6e, None, "WindowResize"),
-    DISPMETHOD(0x6f, None, "WindowActivate"),
-    DISPMETHOD(0x70, None, "PropertyChange", BSTR),
-]
-
-IWebBrowserApp._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "GoBack"),
-    STDMETHOD(HRESULT, "GoForward"),
-    STDMETHOD(HRESULT, "GoHome"),
-    STDMETHOD(HRESULT, "GoSearch"),
-    STDMETHOD(HRESULT, "Navigate", BSTR, POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "Refresh"),
-    STDMETHOD(HRESULT, "Refresh2", POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "Stop"),
-    STDMETHOD(HRESULT, "_get_Application", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_Parent", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_Container", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_Document", POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_get_TopLevelContainer", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_Type", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Left", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Left", c_long),
-    STDMETHOD(HRESULT, "_get_Top", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Top", c_long),
-    STDMETHOD(HRESULT, "_get_Width", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Width", c_long),
-    STDMETHOD(HRESULT, "_get_Height", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_put_Height", c_long),
-    STDMETHOD(HRESULT, "_get_LocationName", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_LocationURL", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Busy", POINTER(c_int)),
-    STDMETHOD(HRESULT, "Quit"),
-    STDMETHOD(HRESULT, "ClientToWindow", POINTER(c_int), POINTER(c_int)),
-    STDMETHOD(HRESULT, "PutProperty", BSTR, VARIANT),
-    STDMETHOD(HRESULT, "GetProperty", BSTR, POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "_get_Name", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_HWND", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_get_FullName", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Path", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Visible", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_Visible", c_int),
-    STDMETHOD(HRESULT, "_get_StatusBar", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_StatusBar", c_int),
-    STDMETHOD(HRESULT, "_get_StatusText", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_StatusText", BSTR),
-    STDMETHOD(HRESULT, "_get_ToolBar", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_ToolBar", c_int),
-    STDMETHOD(HRESULT, "_get_MenuBar", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_MenuBar", c_int),
-    STDMETHOD(HRESULT, "_get_FullScreen", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_FullScreen", c_int),
-]
 
 IWebBrowser2._methods_ = IDispatch._methods_ + [
     STDMETHOD(HRESULT, "GoBack"),
@@ -393,6 +297,187 @@ IWebBrowser2._methods_ = IDispatch._methods_ + [
     STDMETHOD(HRESULT, "_put_Resizable", c_int),
 ]
 
+IShellWindows._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "_get_Count", POINTER(c_long)),
+    STDMETHOD(HRESULT, "Item", VARIANT, POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_NewEnum", POINTER(POINTER(IUnknown))),
+    STDMETHOD(HRESULT, "Register", POINTER(IDispatch), c_long, c_int, POINTER(c_long)),
+    STDMETHOD(HRESULT, "RegisterPending", c_long, POINTER(VARIANT), POINTER(VARIANT), c_int, POINTER(c_long)),
+    STDMETHOD(HRESULT, "Revoke", c_long),
+    STDMETHOD(HRESULT, "OnNavigate", c_long, POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "OnActivated", c_long, c_int),
+    STDMETHOD(HRESULT, "FindWindowSW", POINTER(VARIANT), POINTER(VARIANT), c_int, POINTER(c_long), c_int, POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "OnCreated", c_long, POINTER(IUnknown)),
+    STDMETHOD(HRESULT, "ProcessAttachDetach", c_int),
+]
+
+IWebBrowser._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "GoBack"),
+    STDMETHOD(HRESULT, "GoForward"),
+    STDMETHOD(HRESULT, "GoHome"),
+    STDMETHOD(HRESULT, "GoSearch"),
+    STDMETHOD(HRESULT, "Navigate", BSTR, POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "Refresh"),
+    STDMETHOD(HRESULT, "Refresh2", POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "Stop"),
+    STDMETHOD(HRESULT, "_get_Application", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_Parent", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_Container", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_Document", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_TopLevelContainer", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_Type", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Left", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Left", c_long),
+    STDMETHOD(HRESULT, "_get_Top", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Top", c_long),
+    STDMETHOD(HRESULT, "_get_Width", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Width", c_long),
+    STDMETHOD(HRESULT, "_get_Height", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Height", c_long),
+    STDMETHOD(HRESULT, "_get_LocationName", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_LocationURL", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Busy", POINTER(c_int)),
+]
+
+ISearchAssistantOC._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "AddNextMenuItem", BSTR, c_long),
+    STDMETHOD(HRESULT, "SetDefaultSearchUrl", BSTR),
+    STDMETHOD(HRESULT, "NavigateToDefaultSearch"),
+    STDMETHOD(HRESULT, "IsRestricted", BSTR, POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_ShellFeaturesEnabled", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_SearchAssistantDefault", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_Searches", POINTER(POINTER(ISearches))),
+    STDMETHOD(HRESULT, "_get_InWebFolder", POINTER(c_int)),
+    STDMETHOD(HRESULT, "PutProperty", c_int, BSTR, BSTR),
+    STDMETHOD(HRESULT, "GetProperty", c_int, BSTR, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_EventHandled", c_int),
+    STDMETHOD(HRESULT, "ResetNextMenu"),
+    STDMETHOD(HRESULT, "FindOnWeb"),
+    STDMETHOD(HRESULT, "FindFilesOrFolders"),
+    STDMETHOD(HRESULT, "FindComputer"),
+    STDMETHOD(HRESULT, "FindPrinter"),
+    STDMETHOD(HRESULT, "FindPeople"),
+    STDMETHOD(HRESULT, "GetSearchAssistantURL", c_int, c_int, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "NotifySearchSettingsChanged"),
+    STDMETHOD(HRESULT, "_put_ASProvider", BSTR),
+    STDMETHOD(HRESULT, "_get_ASProvider", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_ASSetting", c_int),
+    STDMETHOD(HRESULT, "_get_ASSetting", POINTER(c_int)),
+    STDMETHOD(HRESULT, "NETDetectNextNavigate"),
+    STDMETHOD(HRESULT, "PutFindText", BSTR),
+    STDMETHOD(HRESULT, "_get_Version", POINTER(c_int)),
+    STDMETHOD(HRESULT, "EncodeString", BSTR, BSTR, c_int, POINTER(BSTR)),
+]
+
+ISearches._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "_get_Count", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_get_Default", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "Item", VARIANT, POINTER(POINTER(ISearch))),
+    STDMETHOD(HRESULT, "_NewEnum", POINTER(POINTER(IUnknown))),
+]
+
+DWebBrowserEvents._dispmethods_ = [
+    DISPMETHOD(0x64, None, "BeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0x65, None, "NavigateComplete", BSTR),
+    DISPMETHOD(0x66, None, "StatusTextChange", BSTR),
+    DISPMETHOD(0x6c, None, "ProgressChange", c_long, c_long),
+    DISPMETHOD(0x68, None, "DownloadComplete"),
+    DISPMETHOD(0x69, None, "CommandStateChange", c_long, c_int),
+    DISPMETHOD(0x6a, None, "DownloadBegin"),
+    DISPMETHOD(0x6b, None, "NewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0x71, None, "TitleChange", BSTR),
+    DISPMETHOD(0xc8, None, "FrameBeforeNavigate", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0xc9, None, "FrameNavigateComplete", BSTR),
+    DISPMETHOD(0xcc, None, "FrameNewWindow", BSTR, c_long, BSTR, POINTER(VARIANT), BSTR, POINTER(c_int)),
+    DISPMETHOD(0x67, None, "Quit", POINTER(c_int)),
+    DISPMETHOD(0x6d, None, "WindowMove"),
+    DISPMETHOD(0x6e, None, "WindowResize"),
+    DISPMETHOD(0x6f, None, "WindowActivate"),
+    DISPMETHOD(0x70, None, "PropertyChange", BSTR),
+]
+
+ISearchAssistantOC3._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "AddNextMenuItem", BSTR, c_long),
+    STDMETHOD(HRESULT, "SetDefaultSearchUrl", BSTR),
+    STDMETHOD(HRESULT, "NavigateToDefaultSearch"),
+    STDMETHOD(HRESULT, "IsRestricted", BSTR, POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_ShellFeaturesEnabled", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_SearchAssistantDefault", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_Searches", POINTER(POINTER(ISearches))),
+    STDMETHOD(HRESULT, "_get_InWebFolder", POINTER(c_int)),
+    STDMETHOD(HRESULT, "PutProperty", c_int, BSTR, BSTR),
+    STDMETHOD(HRESULT, "GetProperty", c_int, BSTR, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_EventHandled", c_int),
+    STDMETHOD(HRESULT, "ResetNextMenu"),
+    STDMETHOD(HRESULT, "FindOnWeb"),
+    STDMETHOD(HRESULT, "FindFilesOrFolders"),
+    STDMETHOD(HRESULT, "FindComputer"),
+    STDMETHOD(HRESULT, "FindPrinter"),
+    STDMETHOD(HRESULT, "FindPeople"),
+    STDMETHOD(HRESULT, "GetSearchAssistantURL", c_int, c_int, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "NotifySearchSettingsChanged"),
+    STDMETHOD(HRESULT, "_put_ASProvider", BSTR),
+    STDMETHOD(HRESULT, "_get_ASProvider", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_ASSetting", c_int),
+    STDMETHOD(HRESULT, "_get_ASSetting", POINTER(c_int)),
+    STDMETHOD(HRESULT, "NETDetectNextNavigate"),
+    STDMETHOD(HRESULT, "PutFindText", BSTR),
+    STDMETHOD(HRESULT, "_get_Version", POINTER(c_int)),
+    STDMETHOD(HRESULT, "EncodeString", BSTR, BSTR, c_int, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_ShowFindPrinter", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_SearchCompanionAvailable", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_UseSearchCompanion", c_int),
+    STDMETHOD(HRESULT, "_get_UseSearchCompanion", POINTER(c_int)),
+]
+
+IWebBrowserApp._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "GoBack"),
+    STDMETHOD(HRESULT, "GoForward"),
+    STDMETHOD(HRESULT, "GoHome"),
+    STDMETHOD(HRESULT, "GoSearch"),
+    STDMETHOD(HRESULT, "Navigate", BSTR, POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT), POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "Refresh"),
+    STDMETHOD(HRESULT, "Refresh2", POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "Stop"),
+    STDMETHOD(HRESULT, "_get_Application", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_Parent", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_Container", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_Document", POINTER(POINTER(IDispatch))),
+    STDMETHOD(HRESULT, "_get_TopLevelContainer", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_Type", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Left", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Left", c_long),
+    STDMETHOD(HRESULT, "_get_Top", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Top", c_long),
+    STDMETHOD(HRESULT, "_get_Width", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Width", c_long),
+    STDMETHOD(HRESULT, "_get_Height", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_put_Height", c_long),
+    STDMETHOD(HRESULT, "_get_LocationName", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_LocationURL", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Busy", POINTER(c_int)),
+    STDMETHOD(HRESULT, "Quit"),
+    STDMETHOD(HRESULT, "ClientToWindow", POINTER(c_int), POINTER(c_int)),
+    STDMETHOD(HRESULT, "PutProperty", BSTR, VARIANT),
+    STDMETHOD(HRESULT, "GetProperty", BSTR, POINTER(VARIANT)),
+    STDMETHOD(HRESULT, "_get_Name", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_HWND", POINTER(c_long)),
+    STDMETHOD(HRESULT, "_get_FullName", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Path", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Visible", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_Visible", c_int),
+    STDMETHOD(HRESULT, "_get_StatusBar", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_StatusBar", c_int),
+    STDMETHOD(HRESULT, "_get_StatusText", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_StatusText", BSTR),
+    STDMETHOD(HRESULT, "_get_ToolBar", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_ToolBar", c_int),
+    STDMETHOD(HRESULT, "_get_MenuBar", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_MenuBar", c_int),
+    STDMETHOD(HRESULT, "_get_FullScreen", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_put_FullScreen", c_int),
+]
+
 DWebBrowserEvents2._dispmethods_ = [
     DISPMETHOD(0x66, None, "StatusTextChange", BSTR),
     DISPMETHOD(0x6c, None, "ProgressChange", c_long, c_long),
@@ -433,18 +518,41 @@ DShellWindowsEvents._dispmethods_ = [
     DISPMETHOD(0xc9, None, "WindowRevoked", c_long),
 ]
 
-IShellWindows._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "_get_Count", POINTER(c_long)),
-    STDMETHOD(HRESULT, "Item", VARIANT, POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "_NewEnum", POINTER(POINTER(IUnknown))),
-    STDMETHOD(HRESULT, "Register", POINTER(IDispatch), c_long, c_int, POINTER(c_long)),
-    STDMETHOD(HRESULT, "RegisterPending", c_long, POINTER(VARIANT), POINTER(VARIANT), c_int, POINTER(c_long)),
-    STDMETHOD(HRESULT, "Revoke", c_long),
-    STDMETHOD(HRESULT, "OnNavigate", c_long, POINTER(VARIANT)),
-    STDMETHOD(HRESULT, "OnActivated", c_long, c_int),
-    STDMETHOD(HRESULT, "FindWindowSW", POINTER(VARIANT), POINTER(VARIANT), c_int, POINTER(c_long), c_int, POINTER(POINTER(IDispatch))),
-    STDMETHOD(HRESULT, "OnCreated", c_long, POINTER(IUnknown)),
-    STDMETHOD(HRESULT, "ProcessAttachDetach", c_int),
+ISearchAssistantOC2._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "AddNextMenuItem", BSTR, c_long),
+    STDMETHOD(HRESULT, "SetDefaultSearchUrl", BSTR),
+    STDMETHOD(HRESULT, "NavigateToDefaultSearch"),
+    STDMETHOD(HRESULT, "IsRestricted", BSTR, POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_ShellFeaturesEnabled", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_SearchAssistantDefault", POINTER(c_int)),
+    STDMETHOD(HRESULT, "_get_Searches", POINTER(POINTER(ISearches))),
+    STDMETHOD(HRESULT, "_get_InWebFolder", POINTER(c_int)),
+    STDMETHOD(HRESULT, "PutProperty", c_int, BSTR, BSTR),
+    STDMETHOD(HRESULT, "GetProperty", c_int, BSTR, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_EventHandled", c_int),
+    STDMETHOD(HRESULT, "ResetNextMenu"),
+    STDMETHOD(HRESULT, "FindOnWeb"),
+    STDMETHOD(HRESULT, "FindFilesOrFolders"),
+    STDMETHOD(HRESULT, "FindComputer"),
+    STDMETHOD(HRESULT, "FindPrinter"),
+    STDMETHOD(HRESULT, "FindPeople"),
+    STDMETHOD(HRESULT, "GetSearchAssistantURL", c_int, c_int, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "NotifySearchSettingsChanged"),
+    STDMETHOD(HRESULT, "_put_ASProvider", BSTR),
+    STDMETHOD(HRESULT, "_get_ASProvider", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_put_ASSetting", c_int),
+    STDMETHOD(HRESULT, "_get_ASSetting", POINTER(c_int)),
+    STDMETHOD(HRESULT, "NETDetectNextNavigate"),
+    STDMETHOD(HRESULT, "PutFindText", BSTR),
+    STDMETHOD(HRESULT, "_get_Version", POINTER(c_int)),
+    STDMETHOD(HRESULT, "EncodeString", BSTR, BSTR, c_int, POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_ShowFindPrinter", POINTER(c_int)),
+]
+
+ISearch._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "_get_Title", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_Id", POINTER(BSTR)),
+    STDMETHOD(HRESULT, "_get_URL", POINTER(BSTR)),
 ]
 
 IShellUIHelper._methods_ = IDispatch._methods_ + [
@@ -468,22 +576,6 @@ DShellNameSpaceEvents._dispmethods_ = [
     DISPMETHOD(0x2, None, "SelectionChange"),
     DISPMETHOD(0x3, None, "DoubleClick"),
     DISPMETHOD(0x4, None, "Initialized"),
-]
-
-IShellFavoritesNameSpace._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "MoveSelectionUp"),
-    STDMETHOD(HRESULT, "MoveSelectionDown"),
-    STDMETHOD(HRESULT, "ResetSort"),
-    STDMETHOD(HRESULT, "NewFolder"),
-    STDMETHOD(HRESULT, "Synchronize"),
-    STDMETHOD(HRESULT, "Import"),
-    STDMETHOD(HRESULT, "Export"),
-    STDMETHOD(HRESULT, "InvokeContextMenuCommand", BSTR),
-    STDMETHOD(HRESULT, "MoveSelectionTo"),
-    STDMETHOD(HRESULT, "_get_SubscriptionsEnabled", POINTER(c_int)),
-    STDMETHOD(HRESULT, "CreateSubscriptionForSelection", POINTER(c_int)),
-    STDMETHOD(HRESULT, "DeleteSubscriptionForSelection", POINTER(c_int)),
-    STDMETHOD(HRESULT, "SetRoot", BSTR),
 ]
 
 IShellNameSpace._methods_ = IDispatch._methods_ + [
@@ -540,117 +632,25 @@ IScriptErrorList._methods_ = IDispatch._methods_ + [
     STDMETHOD(HRESULT, "setPerErrorDisplay", c_long),
 ]
 
-ISearch._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "_get_Title", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_Id", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_URL", POINTER(BSTR)),
-]
-
-ISearches._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "_get_Count", POINTER(c_long)),
-    STDMETHOD(HRESULT, "_get_Default", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "Item", VARIANT, POINTER(POINTER(ISearch))),
-    STDMETHOD(HRESULT, "_NewEnum", POINTER(POINTER(IUnknown))),
-]
-
-ISearchAssistantOC._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "AddNextMenuItem", BSTR, c_long),
-    STDMETHOD(HRESULT, "SetDefaultSearchUrl", BSTR),
-    STDMETHOD(HRESULT, "NavigateToDefaultSearch"),
-    STDMETHOD(HRESULT, "IsRestricted", BSTR, POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_ShellFeaturesEnabled", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_SearchAssistantDefault", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_Searches", POINTER(POINTER(ISearches))),
-    STDMETHOD(HRESULT, "_get_InWebFolder", POINTER(c_int)),
-    STDMETHOD(HRESULT, "PutProperty", c_int, BSTR, BSTR),
-    STDMETHOD(HRESULT, "GetProperty", c_int, BSTR, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_EventHandled", c_int),
-    STDMETHOD(HRESULT, "ResetNextMenu"),
-    STDMETHOD(HRESULT, "FindOnWeb"),
-    STDMETHOD(HRESULT, "FindFilesOrFolders"),
-    STDMETHOD(HRESULT, "FindComputer"),
-    STDMETHOD(HRESULT, "FindPrinter"),
-    STDMETHOD(HRESULT, "FindPeople"),
-    STDMETHOD(HRESULT, "GetSearchAssistantURL", c_int, c_int, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "NotifySearchSettingsChanged"),
-    STDMETHOD(HRESULT, "_put_ASProvider", BSTR),
-    STDMETHOD(HRESULT, "_get_ASProvider", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_ASSetting", c_int),
-    STDMETHOD(HRESULT, "_get_ASSetting", POINTER(c_int)),
-    STDMETHOD(HRESULT, "NETDetectNextNavigate"),
-    STDMETHOD(HRESULT, "PutFindText", BSTR),
-    STDMETHOD(HRESULT, "_get_Version", POINTER(c_int)),
-    STDMETHOD(HRESULT, "EncodeString", BSTR, BSTR, c_int, POINTER(BSTR)),
-]
-
-ISearchAssistantOC2._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "AddNextMenuItem", BSTR, c_long),
-    STDMETHOD(HRESULT, "SetDefaultSearchUrl", BSTR),
-    STDMETHOD(HRESULT, "NavigateToDefaultSearch"),
-    STDMETHOD(HRESULT, "IsRestricted", BSTR, POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_ShellFeaturesEnabled", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_SearchAssistantDefault", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_Searches", POINTER(POINTER(ISearches))),
-    STDMETHOD(HRESULT, "_get_InWebFolder", POINTER(c_int)),
-    STDMETHOD(HRESULT, "PutProperty", c_int, BSTR, BSTR),
-    STDMETHOD(HRESULT, "GetProperty", c_int, BSTR, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_EventHandled", c_int),
-    STDMETHOD(HRESULT, "ResetNextMenu"),
-    STDMETHOD(HRESULT, "FindOnWeb"),
-    STDMETHOD(HRESULT, "FindFilesOrFolders"),
-    STDMETHOD(HRESULT, "FindComputer"),
-    STDMETHOD(HRESULT, "FindPrinter"),
-    STDMETHOD(HRESULT, "FindPeople"),
-    STDMETHOD(HRESULT, "GetSearchAssistantURL", c_int, c_int, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "NotifySearchSettingsChanged"),
-    STDMETHOD(HRESULT, "_put_ASProvider", BSTR),
-    STDMETHOD(HRESULT, "_get_ASProvider", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_ASSetting", c_int),
-    STDMETHOD(HRESULT, "_get_ASSetting", POINTER(c_int)),
-    STDMETHOD(HRESULT, "NETDetectNextNavigate"),
-    STDMETHOD(HRESULT, "PutFindText", BSTR),
-    STDMETHOD(HRESULT, "_get_Version", POINTER(c_int)),
-    STDMETHOD(HRESULT, "EncodeString", BSTR, BSTR, c_int, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_ShowFindPrinter", POINTER(c_int)),
-]
-
-ISearchAssistantOC3._methods_ = IDispatch._methods_ + [
-    STDMETHOD(HRESULT, "AddNextMenuItem", BSTR, c_long),
-    STDMETHOD(HRESULT, "SetDefaultSearchUrl", BSTR),
-    STDMETHOD(HRESULT, "NavigateToDefaultSearch"),
-    STDMETHOD(HRESULT, "IsRestricted", BSTR, POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_ShellFeaturesEnabled", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_SearchAssistantDefault", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_Searches", POINTER(POINTER(ISearches))),
-    STDMETHOD(HRESULT, "_get_InWebFolder", POINTER(c_int)),
-    STDMETHOD(HRESULT, "PutProperty", c_int, BSTR, BSTR),
-    STDMETHOD(HRESULT, "GetProperty", c_int, BSTR, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_EventHandled", c_int),
-    STDMETHOD(HRESULT, "ResetNextMenu"),
-    STDMETHOD(HRESULT, "FindOnWeb"),
-    STDMETHOD(HRESULT, "FindFilesOrFolders"),
-    STDMETHOD(HRESULT, "FindComputer"),
-    STDMETHOD(HRESULT, "FindPrinter"),
-    STDMETHOD(HRESULT, "FindPeople"),
-    STDMETHOD(HRESULT, "GetSearchAssistantURL", c_int, c_int, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "NotifySearchSettingsChanged"),
-    STDMETHOD(HRESULT, "_put_ASProvider", BSTR),
-    STDMETHOD(HRESULT, "_get_ASProvider", POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_put_ASSetting", c_int),
-    STDMETHOD(HRESULT, "_get_ASSetting", POINTER(c_int)),
-    STDMETHOD(HRESULT, "NETDetectNextNavigate"),
-    STDMETHOD(HRESULT, "PutFindText", BSTR),
-    STDMETHOD(HRESULT, "_get_Version", POINTER(c_int)),
-    STDMETHOD(HRESULT, "EncodeString", BSTR, BSTR, c_int, POINTER(BSTR)),
-    STDMETHOD(HRESULT, "_get_ShowFindPrinter", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_get_SearchCompanionAvailable", POINTER(c_int)),
-    STDMETHOD(HRESULT, "_put_UseSearchCompanion", c_int),
-    STDMETHOD(HRESULT, "_get_UseSearchCompanion", POINTER(c_int)),
-]
-
 _SearchAssistantEvents._dispmethods_ = [
     DISPMETHOD(0x1, None, "OnNextMenuSelect", c_long),
     DISPMETHOD(0x2, None, "OnNewSearch"),
+]
+
+IShellFavoritesNameSpace._methods_ = IDispatch._methods_ + [
+    STDMETHOD(HRESULT, "MoveSelectionUp"),
+    STDMETHOD(HRESULT, "MoveSelectionDown"),
+    STDMETHOD(HRESULT, "ResetSort"),
+    STDMETHOD(HRESULT, "NewFolder"),
+    STDMETHOD(HRESULT, "Synchronize"),
+    STDMETHOD(HRESULT, "Import"),
+    STDMETHOD(HRESULT, "Export"),
+    STDMETHOD(HRESULT, "InvokeContextMenuCommand", BSTR),
+    STDMETHOD(HRESULT, "MoveSelectionTo"),
+    STDMETHOD(HRESULT, "_get_SubscriptionsEnabled", POINTER(c_int)),
+    STDMETHOD(HRESULT, "CreateSubscriptionForSelection", POINTER(c_int)),
+    STDMETHOD(HRESULT, "DeleteSubscriptionForSelection", POINTER(c_int)),
+    STDMETHOD(HRESULT, "SetRoot", BSTR),
 ]
 
 ##############################################################################
