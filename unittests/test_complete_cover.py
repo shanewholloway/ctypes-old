@@ -1,4 +1,4 @@
-# -*- coding: latin-1
+# -*- coding: latin-1 -*-
 from ctypes import *
 import unittest
 
@@ -52,6 +52,33 @@ class CompleteCoverage(unittest.TestCase):
 
 	self.failUnlessRaises(ValueError,
                               lambda: pythonapi.PyDict_GetItemString(x.__dict__, "spam"))
+
+    def test__ctypes(self):
+        # only int allowed
+        self.assertRaises(TypeError, lambda: c_int.from_address("xyz"))
+
+        # "Os"
+        self.assertRaises(TypeError, lambda: c_int.in_dll(object(), 42))
+        self.assertRaises(AttributeError, lambda: c_int.in_dll(object(), "x"))
+
+        class Fake(object):
+            _handle = "abc"
+
+        # dll must have an 'integer' _handle atrrib
+        self.assertRaises(TypeError, lambda: c_int.in_dll(Fake(), "x"))
+
+        # setting normal attributes on Structures/Unions
+        class X(Structure):
+            _fields_ = [("a", c_int)]
+        class Y(Union):
+            _fields_ = [("a", c_int)]
+        X.b = 99
+        Y.b = 99
+        self.failUnlessRaises(TypeError, lambda: setattr(X, "__dict__", {})) # unwriteable
+        self.failUnlessRaises(TypeError, lambda: setattr(Y, "__dict__", {})) # unwriteable
+
+        # from_param
+        print c_int.from_param(c_int(42))
 
 if __name__ == "__main__":
     unittest.main()
