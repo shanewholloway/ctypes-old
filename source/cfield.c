@@ -107,7 +107,6 @@ CField_FromDesc(PyObject *desc, int index,
 	CFieldObject *self;
 	int size, align, length;
 	SETFUNC setfunc = NULL;
-	GETFUNC getfunc = NULL;
 	StgDictObject *dict;
 	int fieldtype;
 #define NO_BITFIELD 0
@@ -162,9 +161,6 @@ CField_FromDesc(PyObject *desc, int index,
 	size = dict->size;
 	length = dict->length;
 
-	assert(dict->getfunc);
-	getfunc = dict->getfunc;
-
 	setfunc = dict->setfunc ? dict->setfunc : _generic_field_setfunc;
 
 	/*  Field descriptors for 'c_char * n' are be special cased to
@@ -192,7 +188,6 @@ CField_FromDesc(PyObject *desc, int index,
 	}
 
 	self->setfunc = setfunc;
-	self->getfunc = getfunc;
 	self->index = index;
 
 	Py_XINCREF(desc);
@@ -271,11 +266,13 @@ CField_set(CFieldObject *self, CDataObject *dst, PyObject *value)
 static PyObject *
 CField_get(CFieldObject *self, CDataObject *src, PyTypeObject *type)
 {
+	StgDictObject *dict;
 	if (src == NULL) {
 		Py_INCREF(self);
 		return (PyObject *)self;
 	}
-	return self->getfunc(src->b_ptr + self->offset, self->size,
+	dict = PyType_stgdict(self->fieldtype);
+	return dict->getfunc(src->b_ptr + self->offset, self->size,
 			     self->fieldtype, src,
 			     self->index);
 }
