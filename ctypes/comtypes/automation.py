@@ -4,6 +4,36 @@
 from ctypes import *
 from comtypes import IUnknown, GUID, BSTR, STDMETHOD
 
+UINT = c_uint # typedef
+LONG = c_long # typedef
+INT = c_int # typedef
+WCHAR = c_wchar # typedef
+OLECHAR = WCHAR # typedef
+DWORD = c_ulong # typedef
+LPOLESTR = POINTER(OLECHAR) # typedef
+BOOL = c_int # typedef
+DISPID = LONG # typedef
+MEMBERID = DISPID # typedef
+USHORT = c_ushort # typedef
+WORD = c_ushort # typedef
+LCID = DWORD # typedef
+HREFTYPE = DWORD # typedef
+PVOID = c_void_p # typedef
+SCODE = LONG # typedef
+VARTYPE = c_ushort # typedef
+ULONG_PTR = c_ulong # typedef
+LONGLONG = c_longlong # typedef
+BYTE = c_ubyte # typedef
+SHORT = c_short # typedef
+FLOAT = c_float # typedef
+DOUBLE = c_double # typedef
+VARIANT_BOOL = c_short # typedef
+DATE = c_double # typedef
+CHAR = c_char # typedef
+ULONGLONG = c_ulonglong # typedef
+
+################################################################
+
 PARAMFLAG_NONE = 0
 PARAMFLAG_FIN = 1
 PARAMFLAG_FOUT = 2
@@ -55,106 +85,149 @@ VARFLAG_FREPLACEABLE = 2048
 VARFLAG_FIMMEDIATEBIND = 4096
 VARFLAGS = tagVARFLAGS
 
-UINT = c_uint # typedef
-LONG = c_long # typedef
-INT = c_int # typedef
-WCHAR = c_wchar # typedef
-OLECHAR = WCHAR # typedef
-DWORD = c_ulong # typedef
-LPOLESTR = POINTER(OLECHAR) # typedef
-BOOL = c_int # typedef
-DISPID = LONG # typedef
-MEMBERID = DISPID # typedef
-USHORT = c_ushort # typedef
-WORD = c_ushort # typedef
-LCID = DWORD # typedef
-HREFTYPE = DWORD # typedef
-PVOID = c_void_p # typedef
-SCODE = LONG # typedef
-VARTYPE = c_ushort # typedef
-ULONG_PTR = c_ulong # typedef
-LONGLONG = c_longlong # typedef
-BYTE = c_ubyte # typedef
-SHORT = c_short # typedef
-FLOAT = c_float # typedef
-DOUBLE = c_double # typedef
-VARIANT_BOOL = c_short # typedef
-DATE = c_double # typedef
-CHAR = c_char # typedef
-ULONGLONG = c_ulonglong # typedef
+tagSYSKIND = c_int # enum
+SYS_WIN16 = 0
+SYS_WIN32 = 1
+SYS_MAC = 2
+SYS_WIN64 = 3
+SYSKIND = tagSYSKIND # typedef
 
+tagTYPEKIND = c_int # enum
+TKIND_ENUM = 0
+TKIND_RECORD = 1
+TKIND_MODULE = 2
+TKIND_INTERFACE = 3
+TKIND_DISPATCH = 4
+TKIND_COCLASS = 5
+TKIND_ALIAS = 6
+TKIND_UNION = 7
+TKIND_MAX = 8
+TYPEKIND = tagTYPEKIND # typedef
 
 VARENUM = c_int # enum
-VT_EMPTY = 0 # enum VARENUM
-VT_NULL = 1 # enum VARENUM
-VT_I2 = 2 # enum VARENUM
-VT_I4 = 3 # enum VARENUM
-VT_R4 = 4 # enum VARENUM
-VT_R8 = 5 # enum VARENUM
-VT_CY = 6 # enum VARENUM
-VT_DATE = 7 # enum VARENUM
-VT_BSTR = 8 # enum VARENUM
-VT_DISPATCH = 9 # enum VARENUM
-VT_ERROR = 10 # enum VARENUM
-VT_BOOL = 11 # enum VARENUM
-VT_VARIANT = 12 # enum VARENUM
-VT_UNKNOWN = 13 # enum VARENUM
-VT_DECIMAL = 14 # enum VARENUM
-VT_I1 = 16 # enum VARENUM
-VT_UI1 = 17 # enum VARENUM
-VT_UI2 = 18 # enum VARENUM
-VT_UI4 = 19 # enum VARENUM
-VT_I8 = 20 # enum VARENUM
-VT_UI8 = 21 # enum VARENUM
-VT_INT = 22 # enum VARENUM
-VT_UINT = 23 # enum VARENUM
-VT_VOID = 24 # enum VARENUM
-VT_HRESULT = 25 # enum VARENUM
-VT_PTR = 26 # enum VARENUM
-VT_SAFEARRAY = 27 # enum VARENUM
-VT_CARRAY = 28 # enum VARENUM
-VT_USERDEFINED = 29 # enum VARENUM
-VT_LPSTR = 30 # enum VARENUM
-VT_LPWSTR = 31 # enum VARENUM
-VT_RECORD = 36 # enum VARENUM
-VT_INT_PTR = 37 # enum VARENUM
-VT_UINT_PTR = 38 # enum VARENUM
-VT_FILETIME = 64 # enum VARENUM
-VT_BLOB = 65 # enum VARENUM
-VT_STREAM = 66 # enum VARENUM
-VT_STORAGE = 67 # enum VARENUM
-VT_STREAMED_OBJECT = 68 # enum VARENUM
-VT_STORED_OBJECT = 69 # enum VARENUM
-VT_BLOB_OBJECT = 70 # enum VARENUM
-VT_CF = 71 # enum VARENUM
-VT_CLSID = 72 # enum VARENUM
-VT_VERSIONED_STREAM = 73 # enum VARENUM
-VT_BSTR_BLOB = 4095 # enum VARENUM
-VT_VECTOR = 4096 # enum VARENUM
-VT_ARRAY = 8192 # enum VARENUM
-VT_BYREF = 16384 # enum VARENUM
-VT_RESERVED = 32768 # enum VARENUM
-VT_ILLEGAL = 65535 # enum VARENUM
-VT_ILLEGALMASKED = 4095 # enum VARENUM
-VT_TYPEMASK = 4095 # enum VARENUM
+VT_EMPTY = 0
+VT_NULL = 1
+VT_I2 = 2
+VT_I4 = 3
+VT_R4 = 4
+VT_R8 = 5
+VT_CY = 6
+VT_DATE = 7
+VT_BSTR = 8
+VT_DISPATCH = 9
+VT_ERROR = 10
+VT_BOOL = 11
+VT_VARIANT = 12
+VT_UNKNOWN = 13
+VT_DECIMAL = 14
+VT_I1 = 16
+VT_UI1 = 17
+VT_UI2 = 18
+VT_UI4 = 19
+VT_I8 = 20
+VT_UI8 = 21
+VT_INT = 22
+VT_UINT = 23
+VT_VOID = 24
+VT_HRESULT = 25
+VT_PTR = 26
+VT_SAFEARRAY = 27
+VT_CARRAY = 28
+VT_USERDEFINED = 29
+VT_LPSTR = 30
+VT_LPWSTR = 31
+VT_RECORD = 36
+VT_INT_PTR = 37
+VT_UINT_PTR = 38
+VT_FILETIME = 64
+VT_BLOB = 65
+VT_STREAM = 66
+VT_STORAGE = 67
+VT_STREAMED_OBJECT = 68
+VT_STORED_OBJECT = 69
+VT_BLOB_OBJECT = 70
+VT_CF = 71
+VT_CLSID = 72
+VT_VERSIONED_STREAM = 73
+VT_BSTR_BLOB = 4095
+VT_VECTOR = 4096
+VT_ARRAY = 8192
+VT_BYREF = 16384
+VT_RESERVED = 32768
+VT_ILLEGAL = 65535
+VT_ILLEGALMASKED = 4095
+VT_TYPEMASK = 4095
 
 tagTYPEFLAGS = c_int # enum
-TYPEFLAG_FAPPOBJECT = 1 # enum tagTYPEFLAGS
-TYPEFLAG_FCANCREATE = 2 # enum tagTYPEFLAGS
-TYPEFLAG_FLICENSED = 4 # enum tagTYPEFLAGS
-TYPEFLAG_FPREDECLID = 8 # enum tagTYPEFLAGS
-TYPEFLAG_FHIDDEN = 16 # enum tagTYPEFLAGS
-TYPEFLAG_FCONTROL = 32 # enum tagTYPEFLAGS
-TYPEFLAG_FDUAL = 64 # enum tagTYPEFLAGS
-TYPEFLAG_FNONEXTENSIBLE = 128 # enum tagTYPEFLAGS
-TYPEFLAG_FOLEAUTOMATION = 256 # enum tagTYPEFLAGS
-TYPEFLAG_FRESTRICTED = 512 # enum tagTYPEFLAGS
-TYPEFLAG_FAGGREGATABLE = 1024 # enum tagTYPEFLAGS
-TYPEFLAG_FREPLACEABLE = 2048 # enum tagTYPEFLAGS
-TYPEFLAG_FDISPATCHABLE = 4096 # enum tagTYPEFLAGS
-TYPEFLAG_FREVERSEBIND = 8192 # enum tagTYPEFLAGS
-TYPEFLAG_FPROXY = 16384 # enum tagTYPEFLAGS
+TYPEFLAG_FAPPOBJECT = 1
+TYPEFLAG_FCANCREATE = 2
+TYPEFLAG_FLICENSED = 4
+TYPEFLAG_FPREDECLID = 8
+TYPEFLAG_FHIDDEN = 16
+TYPEFLAG_FCONTROL = 32
+TYPEFLAG_FDUAL = 64
+TYPEFLAG_FNONEXTENSIBLE = 128
+TYPEFLAG_FOLEAUTOMATION = 256
+TYPEFLAG_FRESTRICTED = 512
+TYPEFLAG_FAGGREGATABLE = 1024
+TYPEFLAG_FREPLACEABLE = 2048
+TYPEFLAG_FDISPATCHABLE = 4096
+TYPEFLAG_FREVERSEBIND = 8192
+TYPEFLAG_FPROXY = 16384
 TYPEFLAGS = tagTYPEFLAGS # typedef
+
+tagDESCKIND = c_int # enum
+DESCKIND_NONE = 0
+DESCKIND_FUNCDESC = 1
+DESCKIND_VARDESC = 2
+DESCKIND_TYPECOMP = 3
+DESCKIND_IMPLICITAPPOBJ = 4
+DESCKIND_MAX = 5
+DESCKIND = tagDESCKIND # typedef
+
+tagINVOKEKIND = c_int # enum
+INVOKE_FUNC = 1
+INVOKE_PROPERTYGET = 2
+INVOKE_PROPERTYPUT = 4
+INVOKE_PROPERTYPUTREF = 8
+INVOKEKIND = tagINVOKEKIND # typedef
+
+tagVARKIND = c_int # enum
+VAR_PERINSTANCE = 0 # enum tagVARKIND
+VAR_STATIC = 1 # enum tagVARKIND
+VAR_CONST = 2 # enum tagVARKIND
+VAR_DISPATCH = 3 # enum tagVARKIND
+VARKIND = tagVARKIND # typedef
+
+tagFUNCKIND = c_int # enum
+FUNC_VIRTUAL = 0
+FUNC_PUREVIRTUAL = 1
+FUNC_NONVIRTUAL = 2
+FUNC_STATIC = 3
+FUNC_DISPATCH = 4
+FUNCKIND = tagFUNCKIND # typedef
+
+tagCALLCONV = c_int # enum
+CC_FASTCALL = 0
+CC_CDECL = 1
+CC_MSCPASCAL = 2
+CC_PASCAL = 2
+CC_MACPASCAL = 3
+CC_STDCALL = 4
+CC_FPFASTCALL = 5
+CC_SYSCALL = 6
+CC_MPWCDECL = 7
+CC_MPWPASCAL = 8
+CC_MAX = 9
+CALLCONV = tagCALLCONV # typedef
+
+tagREGKIND = c_int # enum
+REGKIND_DEFAULT = 0
+REGKIND_REGISTER = 1
+REGKIND_NONE = 2
+REGKIND = tagREGKIND # typedef
+
+################################################################
 
 class ITypeLib(IUnknown):
     # c:/vc98/include/OAIDL.H 4460
@@ -309,17 +382,6 @@ class ITypeInfo(IUnknown):
         pass
 
 
-tagTYPEKIND = c_int # enum
-TKIND_ENUM = 0 # enum tagTYPEKIND
-TKIND_RECORD = 1 # enum tagTYPEKIND
-TKIND_MODULE = 2 # enum tagTYPEKIND
-TKIND_INTERFACE = 3 # enum tagTYPEKIND
-TKIND_DISPATCH = 4 # enum tagTYPEKIND
-TKIND_COCLASS = 5 # enum tagTYPEKIND
-TKIND_ALIAS = 6 # enum tagTYPEKIND
-TKIND_UNION = 7 # enum tagTYPEKIND
-TKIND_MAX = 8 # enum tagTYPEKIND
-TYPEKIND = tagTYPEKIND # typedef
 class tagTLIBATTR(Structure):
     pass
 TLIBATTR = tagTLIBATTR # typedef
@@ -344,14 +406,6 @@ ITypeLib._methods_ = [
 ]
 IID = GUID # typedef
 
-tagDESCKIND = c_int # enum
-DESCKIND_NONE = 0 # enum tagDESCKIND
-DESCKIND_FUNCDESC = 1 # enum tagDESCKIND
-DESCKIND_VARDESC = 2 # enum tagDESCKIND
-DESCKIND_TYPECOMP = 3 # enum tagDESCKIND
-DESCKIND_IMPLICITAPPOBJ = 4 # enum tagDESCKIND
-DESCKIND_MAX = 5 # enum tagDESCKIND
-DESCKIND = tagDESCKIND # typedef
 class tagBINDPTR(Union):
     pass
 BINDPTR = tagBINDPTR # typedef
@@ -360,12 +414,6 @@ ITypeComp._methods_ = [
     STDMETHOD(HRESULT, 'BindType', [LPOLESTR, DWORD, POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp))]),
 ]
 
-tagSYSKIND = c_int # enum
-SYS_WIN16 = 0 # enum tagSYSKIND
-SYS_WIN32 = 1 # enum tagSYSKIND
-SYS_MAC = 2 # enum tagSYSKIND
-SYS_WIN64 = 3 # enum tagSYSKIND
-SYSKIND = tagSYSKIND # typedef
 # tagTLIBATTR
 tagTLIBATTR._fields_ = [
     ('guid', GUID),
@@ -427,12 +475,6 @@ class tagEXCEPINFO(Structure):
     pass
 EXCEPINFO = tagEXCEPINFO # typedef
 
-tagINVOKEKIND = c_int # enum
-INVOKE_FUNC = 1 # enum tagINVOKEKIND
-INVOKE_PROPERTYGET = 2 # enum tagINVOKEKIND
-INVOKE_PROPERTYPUT = 4 # enum tagINVOKEKIND
-INVOKE_PROPERTYPUTREF = 8 # enum tagINVOKEKIND
-INVOKEKIND = tagINVOKEKIND # typedef
 ITypeInfo._methods_ = [
     STDMETHOD(HRESULT, 'GetTypeAttr', [POINTER(POINTER(TYPEATTR))]),
     STDMETHOD(HRESULT, 'GetTypeComp', [POINTER(POINTER(ITypeComp))]),
@@ -759,21 +801,22 @@ _py_N10tagVARIANT5__200E._fields_ = [
 ]
 assert sizeof(_py_N10tagVARIANT5__200E) == 16, sizeof(_py_N10tagVARIANT5__200E)
 assert alignment(_py_N10tagVARIANT5__200E) == 8, alignment(_py_N10tagVARIANT5__200E)
+
 # tagVARIANT
 tagVARIANT._fields_ = [
     ('n1', _py_N10tagVARIANT5__200E),
 ]
 assert sizeof(tagVARIANT) == 16, sizeof(tagVARIANT)
 assert alignment(tagVARIANT) == 8, alignment(tagVARIANT)
+
 class _py_N10tagVARDESC5__205E(Union):
-    pass
-# _py_N10tagVARDESC5__205E
-_py_N10tagVARDESC5__205E._fields_ = [
-    ('oInst', DWORD),
-    ('lpvarValue', POINTER(VARIANT)),
-]
+    _fields_ = [
+        ('oInst', DWORD),
+        ('lpvarValue', POINTER(VARIANT)),
+    ]
 assert sizeof(_py_N10tagVARDESC5__205E) == 4, sizeof(_py_N10tagVARDESC5__205E)
 assert alignment(_py_N10tagVARDESC5__205E) == 4, alignment(_py_N10tagVARDESC5__205E)
+
 class tagELEMDESC(Structure):
     pass
 class _py_N11tagELEMDESC5__204E(Union):
@@ -808,12 +851,6 @@ assert sizeof(tagELEMDESC) == 16, sizeof(tagELEMDESC)
 assert alignment(tagELEMDESC) == 4, alignment(tagELEMDESC)
 ELEMDESC = tagELEMDESC # typedef
 
-tagVARKIND = c_int # enum
-VAR_PERINSTANCE = 0 # enum tagVARKIND
-VAR_STATIC = 1 # enum tagVARKIND
-VAR_CONST = 2 # enum tagVARKIND
-VAR_DISPATCH = 3 # enum tagVARKIND
-VARKIND = tagVARKIND # typedef
 # tagVARDESC
 tagVARDESC._fields_ = [
     ('memid', MEMBERID),
@@ -827,27 +864,6 @@ tagVARDESC._fields_ = [
 assert sizeof(tagVARDESC) == 36, sizeof(tagVARDESC)
 assert alignment(tagVARDESC) == 4, alignment(tagVARDESC)
 
-tagFUNCKIND = c_int # enum
-FUNC_VIRTUAL = 0 # enum tagFUNCKIND
-FUNC_PUREVIRTUAL = 1 # enum tagFUNCKIND
-FUNC_NONVIRTUAL = 2 # enum tagFUNCKIND
-FUNC_STATIC = 3 # enum tagFUNCKIND
-FUNC_DISPATCH = 4 # enum tagFUNCKIND
-FUNCKIND = tagFUNCKIND # typedef
-
-tagCALLCONV = c_int # enum
-CC_FASTCALL = 0 # enum tagCALLCONV
-CC_CDECL = 1 # enum tagCALLCONV
-CC_MSCPASCAL = 2 # enum tagCALLCONV
-CC_PASCAL = 2 # enum tagCALLCONV
-CC_MACPASCAL = 3 # enum tagCALLCONV
-CC_STDCALL = 4 # enum tagCALLCONV
-CC_FPFASTCALL = 5 # enum tagCALLCONV
-CC_SYSCALL = 6 # enum tagCALLCONV
-CC_MPWCDECL = 7 # enum tagCALLCONV
-CC_MPWPASCAL = 8 # enum tagCALLCONV
-CC_MAX = 9 # enum tagCALLCONV
-CALLCONV = tagCALLCONV # typedef
 # tagFUNCDESC
 tagFUNCDESC._fields_ = [
     ('memid', MEMBERID),
@@ -927,6 +943,8 @@ IDispatch._methods_ = [
     STDMETHOD(HRESULT, 'Invoke', [DISPID, POINTER(IID), LCID, WORD, POINTER(DISPPARAMS), POINTER(VARIANT), POINTER(EXCEPINFO), POINTER(UINT)]),
 ]
 
+################################################################
+
 from ctypes.decorators import stdcall
 @ stdcall(HRESULT, "oleaut32",
           [c_wchar_p, POINTER(POINTER(ITypeLib))])
@@ -935,12 +953,6 @@ def LoadTypeLib(name):
     LoadTypeLib._api_(name, byref(p))
     return p
 
-tagREGKIND = c_int # enum
-REGKIND_DEFAULT = 0 # enum tagREGKIND
-REGKIND_REGISTER = 1 # enum tagREGKIND
-REGKIND_NONE = 2 # enum tagREGKIND
-REGKIND = tagREGKIND # typedef
-
 @ stdcall(HRESULT, "oleaut32",
           [c_wchar_p, REGKIND, POINTER(POINTER(ITypeLib))])
 def LoadTypeLibEx(name, regkind=REGKIND_NONE):
@@ -948,8 +960,8 @@ def LoadTypeLibEx(name, regkind=REGKIND_NONE):
     LoadTypeLibEx._api_(name, regkind, byref(p))
     return p
 
-if __name__ == "__main__":
-    import ctypes
-    print ctypes.__file__
-    p = LoadTypeLibEx("aaa.bbb")
-    print p.AddRef()
+##if __name__ == "__main__":
+##    import ctypes
+##    print ctypes.__file__
+##    p = LoadTypeLibEx("aaa.bbb")
+##    print p.AddRef()
