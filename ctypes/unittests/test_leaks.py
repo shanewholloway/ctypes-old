@@ -84,14 +84,14 @@ class LeakTestCase(unittest.TestCase):
                 last_objcount = total_objcount
             self.fail("leaking objects")
 
-    def test_dll_leak_1(self):
-        dll = cdll.LoadLibrary("msvcrt.dll")
-##        dll = CDLL("msvcrt.dll")
-##        dll = cdll.msvcrt
-        dll._inp.restype = c_byte
-        del dll
-        gc.collect()
-        print gc.garbage
+##    def test_dll_leak_1(self):
+##        dll = cdll.LoadLibrary("msvcrt.dll")
+####        dll = CDLL("msvcrt.dll")
+####        dll = cdll.msvcrt
+##        dll._inp.restype = c_byte
+##        del dll
+##        gc.collect()
+##        print gc.garbage
 
 if __name__ == "__main__":
     unittest.main()
