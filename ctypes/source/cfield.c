@@ -594,17 +594,31 @@ u_set(void *ptr, PyObject *value, unsigned size)
 	int len;
 	wchar_t *p;
 
-	p = PyUnicode_AsUnicode(value);
-	if (!p)
+	if (PyString_Check(value)) {
+		value = PyUnicode_FromObject(value);
+		if (!value)
+			return NULL;
+	} else if (!PyUnicode_Check(value)) {
+		PyErr_Format(PyExc_TypeError,
+				"unicode string expected instead of %s instance",
+				value->ob_type->tp_name);
 		return NULL;
+	} else
+		Py_INCREF(value);
+
+	p = PyUnicode_AsUnicode(value);
+	if (!p) {
+		Py_DECREF(value);
+		return NULL;
+	}
 	len = PyUnicode_GET_SIZE(value);
 	if (len != 1) {
+		Py_DECREF(value);
 		PyErr_SetString(PyExc_TypeError,
 				"one character unicode string expected");
 		return NULL;
 	}
 	*(wchar_t *)ptr = p[0];
-	Py_INCREF(value);
 	return value;
 }
 
