@@ -57,26 +57,6 @@ def create_string_buffer(init, size=None):
         return buf
     raise TypeError, init
 
-def create_unicode_buffer(init, size=None):
-    """create_unicode_buffer(aString) -> character array
-    create_unicode_buffer(anInteger) -> character array
-    create_unicode_buffer(aString, anInteger) -> character array
-    """
-    if isinstance(init, (str, unicode)):
-        init = unicode(init)
-        if size is None:
-            size = len(init)+1
-        buftype = c_wchar * size
-        buf = buftype()
-        buf.value = init
-        return buf
-    elif isinstance(init, (int, long)):
-        buftype = c_wchar * init
-        buf = buftype()
-        return buf
-    raise TypeError, init
-
-
 def c_buffer(init, size=None):
 ##    "deprecated, use create_string_buffer instead"
 ##    import warnings
@@ -205,17 +185,6 @@ class c_void_p(_SimpleCData):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 c_voidp = c_void_p # backwards compatibility (to a bug)
 
-if _os.name == "nt":
-    class c_wchar_p(_SimpleCData):
-        _type_ = "Z"
-        def __repr__(self):
-            return "%s(%r)" % (self.__class__.__name__, self.value)
-
-    class c_wchar(_SimpleCData):
-        _type_ = "u"
-        def __repr__(self):
-            return "c_wchar(%r)" % self.value
-
 # This cache maps types to pointers to them.
 from _ctypes import _pointer_type_cache
 
@@ -238,11 +207,50 @@ def POINTER(cls):
         _pointer_type_cache[cls] = klass
     return klass
 
+try:
+    from _ctypes import set_conversion_mode
+except ImportError:
+    pass
+else:
+    if _os.name == "nt":
+        set_conversion_mode("mbcs", "ignore")
+    else:
+        set_conversion_mode("ascii", "strict")
+
+    class c_wchar_p(_SimpleCData):
+        _type_ = "Z"
+        def __repr__(self):
+            return "%s(%r)" % (self.__class__.__name__, self.value)
+
+    class c_wchar(_SimpleCData):
+        _type_ = "u"
+        def __repr__(self):
+            return "c_wchar(%r)" % self.value
+
+    POINTER(c_wchar).from_param = c_wchar_p.from_param #_SimpleCData.c_wchar_p_from_param
+
+    def create_unicode_buffer(init, size=None):
+        """create_unicode_buffer(aString) -> character array
+        create_unicode_buffer(anInteger) -> character array
+        create_unicode_buffer(aString, anInteger) -> character array
+        """
+        if isinstance(init, (str, unicode)):
+            init = unicode(init)
+            if size is None:
+                size = len(init)+1
+            buftype = c_wchar * size
+            buf = buftype()
+            buf.value = init
+            return buf
+        elif isinstance(init, (int, long)):
+            buftype = c_wchar * init
+            buf = buftype()
+            return buf
+        raise TypeError, init
+
+    
 POINTER(c_char).from_param = c_char_p.from_param #_SimpleCData.c_char_p_from_param
 
-if _os.name == "nt":
-    POINTER(c_wchar).from_param = c_wchar_p.from_param #_SimpleCData.c_wchar_p_from_param
-    
 def SetPointerType(pointer, cls):
     if _pointer_type_cache.get(cls, None) is not None:
         raise RuntimeError, \
@@ -367,15 +375,5 @@ if _os.name == "nt":
         if descr is None:
             descr = FormatError(code).strip()
         return WindowsError(code, descr)
-
-try:
-    from _ctypes import set_conversion_mode
-except ImportError:
-    pass
-else:
-    if _os.name == "nt":
-        set_conversion_mode("mbcs", "ignore")
-    else:
-        set_conversion_mode("ascii", "strict")
 
 _pointer_type_cache[None] = c_void_p
