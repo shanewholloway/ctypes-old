@@ -1,8 +1,8 @@
 # from Paul Moore via comp.lang.python
-from ctypes import windll, c_int, WinFuncType, c_char
+from ctypes import windll, c_int, WINFUNCTYPE, c_char
 user32 = windll.user32
 
-EnumWindowsProc = WinFuncType(c_int, c_int, c_int)
+EnumWindowsProc = WINFUNCTYPE(c_int, c_int, c_int)
 
 def c_string(init, size=None):
     """c_string(aString) -> character array
