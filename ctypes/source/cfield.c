@@ -689,6 +689,7 @@ U_get(void *ptr, unsigned size)
 {
 	PyObject *result;
 	unsigned int len;
+	Py_UNICODE *p;
 
 	size /= sizeof(wchar_t); /* we count character units here, not bytes */
 
@@ -701,11 +702,11 @@ U_get(void *ptr, unsigned size)
 	   away the result.
 	*/
 	/* chop off at the first NUL character, if any. */
-	/* XXX FIXME: But it seems wcslen would access forbidden memory locations
-	   if the original pointer was not zero terminated */
+	p = PyUnicode_AS_UNICODE(result);
+	for (len = 0; len < size; ++len)
+		if (!p[len])
+			break;
 
-	/* Anyway, this is very strange code */
-	len = wcslen(PyUnicode_AS_UNICODE(result));
 	if (len < size) {
 		PyObject *ob = PyUnicode_FromWideChar((wchar_t *)ptr, len);
 		Py_DECREF(result);
@@ -868,10 +869,10 @@ Z_set(void *ptr, PyObject *value, unsigned size)
 		return NULL;
 	} else
 		Py_INCREF(value);
-#ifdef HAVE_USABLE_WCHAR_T
 	*(wchar_t **)ptr = PyUnicode_AS_UNICODE(value);
+#ifdef HAVE_USABLE_WCHAR_T
 #else
-#error FIXME
+//#error FIXME
 #endif
 	return value;
 }
