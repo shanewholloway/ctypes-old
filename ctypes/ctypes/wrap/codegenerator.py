@@ -2,6 +2,9 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.3  2005/02/17 19:22:54  theller
+# Refactoring for easier dynamic code generation.
+#
 # Revision 1.2  2005/02/04 18:04:24  theller
 # The code generator now assumes decorators are present in the ctypes module.
 #
@@ -140,12 +143,21 @@ dont_assert_size = set(
     ]
     )
 
+################################################################
+
 class Generator(object):
-    def __init__(self, output, use_decorators=False):
+    def __init__(self, output,
+                 use_decorators=False,
+                 known_symbols=None,
+                 searched_dlls=None):
         self.output = output
-        self.stream = StringIO.StringIO()
-        self.imports = StringIO.StringIO()
+##        self.stream = StringIO.StringIO()
+##        self.imports = StringIO.StringIO()
+        self.stream = self.imports = self.output
         self.use_decorators = use_decorators
+        self.known_symbols = known_symbols or {}
+        self.searched_dlls = searched_dlls or []
+
         self.done = set() # type descriptions that have been generated
         self.names = set() # names that have been generated
 
@@ -559,14 +571,9 @@ class Generator(object):
         for item in items:
             self.generate(item)
 
-    def generate_code(self, items, known_symbols, searched_dlls):
+    def generate_code(self, items):
         print >> self.imports, "from ctypes import *"
         items = set(items)
-        if known_symbols:
-            self.known_symbols = known_symbols
-        else:
-            self.known_symbols = {}
-        self.searched_dlls = searched_dlls
         loops = 0
         while items:
             loops += 1
@@ -576,9 +583,9 @@ class Generator(object):
             items |= self.more
             items -= self.done
 
-        self.output.write(self.imports.getvalue())
-        self.output.write("\n\n")
-        self.output.write(self.stream.getvalue())
+##        self.output.write(self.imports.getvalue())
+##        self.output.write("\n\n")
+##        self.output.write(self.stream.getvalue())
 
         return loops
 
@@ -617,6 +624,7 @@ def generate_code(xmlfile,
     from gccxmlparser import parse
     items = parse(xmlfile)
 
+    # filter symbols to generate
     todo = []
 
     if types:
@@ -645,10 +653,13 @@ def generate_code(xmlfile,
     if symbols or expressions:
         items = todo
 
-    gen = Generator(outfile, use_decorators=use_decorators)
-    loops = gen.generate_code(items,
-                              known_symbols,
-                              searched_dlls)
+    ################
+    gen = Generator(outfile,
+                    use_decorators=use_decorators,
+                    known_symbols=known_symbols,
+                    searched_dlls=searched_dlls)
+
+    loops = gen.generate_code(items)
     if verbose:
         gen.print_stats(sys.stderr)
         print >> sys.stderr, "needed %d loop(s)" % loops
