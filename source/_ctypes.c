@@ -272,9 +272,6 @@ static PyMethodDef CDataType_methods[] = {
 static PyObject *
 CDataType_repeat(PyObject *self, int length)
 {
-#ifdef _DEBUG
-	_asm int 3;
-#endif
 	return CreateArrayType(self, length);
 }
 
@@ -1462,6 +1459,178 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
   CFuncPtr_Type
 */
 
+static PyObject *
+CFuncPtr_as_parameter(CDataObject *self)
+{
+	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
+	PyCArgObject *parg;
+	
+	parg = new_CArgObject();
+	if (parg == NULL)
+		return NULL;
+	
+	parg->tag = 'P';
+	Py_INCREF(self);
+	parg->obj = (PyObject *)self;
+	parg->value.p = *(void **)self->b_ptr;
+	return (PyObject *)parg;	
+}
+
+static PyGetSetDef CFuncPtr_getsets[] = {
+	{ "_as_parameter_", (getter)CFuncPtr_as_parameter, NULL,
+	  "return a magic value so that this can be converted to a C parameter (readonly)",
+	  NULL },
+	{ NULL, NULL }
+};
+
+static PyObject *
+CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	CFuncPtrObject *self;
+	PyObject *callable;
+	StgDictObject *dict;
+	THUNK thunk;
+	PyObject *objects;
+
+	/* Of course this has to work different if _basespec_ is in kwds */
+	if (!PyArg_ParseTuple(args, "O", &callable))
+		return NULL;
+	if (!PyCallable_Check(callable)) {
+		PyErr_SetString(PyExc_TypeError,
+				"argument must be callable");
+		return NULL;
+	}
+	dict = PyType_stgdict((PyObject *)type);
+	assert(dict);
+
+	/*****************************************************************/
+	/*
+	  Thoughts:
+
+	  1. The thunk should keep (and later free) references to callable and
+	  argtypes itself.
+
+	  2. The thunk should probably be wrapped up in a PyCObject, and then
+	  stored in the _objects list.
+
+	  3. We absolutely need GC support.
+
+	*/
+	thunk = AllocFunctionCallback(callable,
+				      dict->nArgBytes,
+				      dict->argtypes,
+				      dict->flags & FUNCFLAG_CDECL);
+	if (!thunk)
+		return NULL;
+
+	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
+
+	Py_INCREF(callable);
+	self->callable = callable;
+
+	self->thunk = thunk;
+	*(void **)self->b_ptr = thunk;
+
+	objects = CData_GetList((CDataObject *)self);
+	if (!objects) {
+		Py_DECREF((PyObject *)self);
+		return NULL;
+	}
+
+	/* HACK ALERT */
+	if (-1 == PyList_SetItem(objects, 0, (PyObject *)self)) {
+		Py_DECREF((PyObject *)self);
+		return NULL;
+	}
+	Py_INCREF((PyObject *)self); /* for PyList_SetItem */
+
+#ifdef _DEBUG
+	printf("*CFuncPtr new %p\n", self);
+#endif
+	return (PyObject *)self;
+}
+
+static void
+CFuncPtr_dealloc(CFuncPtrObject *self)
+{
+#ifdef _DEBUG
+	printf("*CFuncPtr dealloc %p\n", self);
+#endif
+	Py_XDECREF(self->callable);
+	self->callable = NULL;
+	if (self->thunk)
+		FreeCallback(self->thunk);
+	self->thunk = NULL;
+	CData_dealloc((PyObject *)self);
+}
+
+static PyObject *
+CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
+{
+	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
+	assert(dict); /* if not, it's a bug */
+	if (dict->argtypes) {
+		int required = PyTuple_GET_SIZE(dict->argtypes);
+		int actual = PyTuple_GET_SIZE(args);
+		if (required != actual) {
+			PyErr_Format(PyExc_TypeError,
+			     "this function takes %d argument%s (%d given)",
+				     required,
+				     required == 1 ? "" : "s",
+				     actual);
+			return NULL;
+		}
+	}
+	return _CallProc(*(void **)self->b_ptr,
+			 args,
+			 NULL,
+			 dict->flags,
+			 dict->converters, /* the .from_param methods */
+			 dict->restype);
+}
+
+static PyTypeObject CFuncPtr_Type = {
+	PyObject_HEAD_INIT(NULL)
+	0,
+	"_ctypes.CFuncPtr",
+	sizeof(CFuncPtrObject),			/* tp_basicsize */
+	0,					/* tp_itemsize */
+	(destructor)CFuncPtr_dealloc,		/* tp_dealloc */
+	0,					/* tp_print */
+	0,					/* tp_getattr */
+	0,					/* tp_setattr */
+	0,					/* tp_compare */
+	0,					/* tp_repr */
+	0,					/* tp_as_number */
+	0,					/* tp_as_sequence */
+	0,					/* tp_as_mapping */
+	0,					/* tp_hash */
+	(ternaryfunc)CFuncPtr_call,		/* tp_call */
+	0,					/* tp_str */
+	0,					/* tp_getattro */
+	0,					/* tp_setattro */
+	&CData_as_buffer,			/* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
+	"Function Pointer",			/* tp_doc */
+	0,					/* tp_traverse */
+	0,					/* tp_clear */
+	0,					/* tp_richcompare */
+	0,					/* tp_weaklistoffset */
+	0,					/* tp_iter */
+	0,					/* tp_iternext */
+	0,					/* tp_methods */
+	0,					/* tp_members */
+	CFuncPtr_getsets,			/* tp_getset */
+	0,					/* tp_base */
+	0,					/* tp_dict */
+	0,					/* tp_descr_get */
+	0,					/* tp_descr_set */
+	0,					/* tp_dictoffset */
+	0, /*(initproc)CFuncPtr_init,		/* tp_init */
+	0,					/* tp_alloc */
+        CFuncPtr_new,				/* tp_new */
+	0,					/* tp_free */
+};
 
 /*****************************************************************/
 /*
@@ -3490,8 +3659,6 @@ init_ctypes(void)
 	CFuncPtrType_Type.tp_base = &PyType_Type;
 	if (PyType_Ready(&CFuncPtrType_Type) < 0)
 		return;
-	/* debug */
-	PyModule_AddObject(m, "CFuncPtrType", (PyObject *)&CFuncPtrType_Type);
 
 	/*************************************************
 	 *
@@ -3532,13 +3699,11 @@ init_ctypes(void)
 		return;
 	PyModule_AddObject(m, "_SimpleCData", (PyObject *)&Simple_Type);
 
-/*
 	CFuncPtr_Type.ob_type = &CFuncPtrType_Type;
 	CFuncPtr_Type.tp_base = &CData_Type;
 	if (PyType_Ready(&CFuncPtr_Type) < 0)
 		return;
 	PyModule_AddObject(m, "CFuncPtr", (PyObject *)&CFuncPtr_Type);
-*/
 
 // No: CFunction_Type is NOT a subclass of CData_Type!
 // Why? Currently it cannot, because it does not contain
