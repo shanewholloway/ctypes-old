@@ -1,0 +1,10 @@
+#!/bin/sh
+export "CFLAGS=-ftest-coverage -fprofile-arcs"
+# force recompilation
+rm -fR ./build/temp.linux-i686-2.4/source/*.o
+rm -fR ./build/lib.linux-i686-2.4/*.so
+python setup.py testlocal
+gcov source/*.c -o ./build/temp.linux-i686-2.4/source/
+grep -c "#####" *.c.gcov
+echo "TOTAL:"
+cat *.c.gcov | grep -c "#####"
