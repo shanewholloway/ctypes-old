@@ -151,6 +151,14 @@ typedef struct {
    metatypes */
 typedef struct {
 	PyDictObject dict;	/* first part identical to PyDictObject */
+/* The size and align fields are unneeded, they are in ffi_type as well.  As
+   an experiment shows, it's trivial to get rid of them, the only thing to
+   remember is that in ArrayType_new the ffi_type fields must be filled in -
+   so far it was unneeded because libffi doesn't support arrays at all
+   (because they are passed as pointers to function calls anyway).  But it's
+   too much risk to change that now, and there are other fields which doen't
+   belong into this structure anyway.  Maybe in ctypes 2.0... (ctypes 2000?)
+*/
 	int size;		/* number of bytes */
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
