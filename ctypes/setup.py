@@ -33,19 +33,37 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 
 if os.name == "nt":
-    extensions = [Extension("_ctypes",
-                            define_macros=[("CAN_PASS_BY_VALUE", "1")],
-                            export_symbols=["DllGetClassObject,PRIVATE",
-                                            "DllCanUnloadNow,PRIVATE",
-                                            "CopyComPointer"],
-                            libraries=["ole32", "user32", "oleaut32"],
-                            **kw),
-                  Extension("_ctypes_test",
-                            libraries=["oleaut32"],
-                            sources=["source/_ctypes_test.c"])
-                  ]
+    kw["sources"].extend([
+##        "source/libffi_msvc/types.c",
+##        "source/libffi_msvc/ffi.c",
+##        "source/libffi_msvc/prep_cif.c",
+##        "source/libffi_msvc/win32.c",
+        ])
+    if kw.has_key("depends"):
+        kw["depends"].extend(["source/libffi_msvc/ffi.h",
+                              "source/libffi_msvc/fficonfig.h",
+                              "source/libffi_msvc/ffitarget.h",
+                              "source/libffi_msvc/ffi_common.h"])
+        extensions = [Extension("_ctypes",
+                                define_macros=[("CAN_PASS_BY_VALUE", "1")],
+                                export_symbols=["DllGetClassObject,PRIVATE",
+                                                "DllCanUnloadNow,PRIVATE",
+                                                "CopyComPointer"],
+                                libraries=["ole32", "user32", "oleaut32"],
+                                include_dirs=["source/libffi_msvc"],
+                                **kw),
+                      Extension("_ctypes_test",
+                                libraries=["oleaut32"],
+                                sources=["source/_ctypes_test.c"],
+                                include_dirs=["source/libffi_msvc"],
+                                )
+                      ]
 else:
     include_dirs = []
+    library_dirs = []
+    if os.path.exists('source/libffi'):
+        include_dirs.append('source/libffi/include')
+        library_dirs.append('source/libffi/lib')
     extra_link_args = []
     if sys.platform == "darwin":
         kw["sources"].append("source/darwin/dlfcn_simple.c")
@@ -54,10 +72,13 @@ else:
     extensions = [Extension("_ctypes",
                             libraries=["ffi"],
                             include_dirs=include_dirs,
+                            library_dirs=library_dirs,
                             extra_link_args=extra_link_args,
                             **kw),
                   Extension("_ctypes_test",
-                            sources=["source/_ctypes_test.c"])
+                            sources=["source/_ctypes_test.c"],
+                            include_dirs=include_dirs,
+                            )
                   ]
 
 packages = ["ctypes"]

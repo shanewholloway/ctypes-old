@@ -1,6 +1,7 @@
 #include "Python.h"
 #include "structmember.h"
 
+#include <ffi.h>
 #include "ctypes.h"
 #ifdef MS_WIN32
 #include <windows.h>
@@ -929,6 +930,59 @@ P_get(void *ptr, unsigned size)
 	return PyLong_FromVoidPtr(*(void **)ptr);
 }
 
+static struct fielddesc formattable[] = {
+	{ 's', s_set, s_get, &ffi_type_pointer},
+#if 1
+/* XXX This one seems unused */
+	/* See comment above S_get() */
+	{ 'S', S_set, S_get, &ffi_type_schar},
+#endif
+	{ 'b', b_set, b_get, &ffi_type_schar},
+	{ 'B', B_set, B_get, &ffi_type_uchar},
+	{ 'c', c_set, c_get, &ffi_type_schar},
+	{ 'd', d_set, d_get, &ffi_type_double},
+	{ 'f', f_set, f_get, &ffi_type_float},
+	{ 'h', h_set, h_get, &ffi_type_sshort},
+	{ 'H', H_set, H_get, &ffi_type_ushort},
+	{ 'i', i_set, i_get, &ffi_type_sint},
+	{ 'I', I_set, I_get, &ffi_type_uint},
+/* XXX Hm, sizeof(int) == sizeof(long) doesn't hold on every platform */
+/* As soon as we can get rid of the type codes, this is no longer a problem */
+	{ 'l', l_set, l_get, &ffi_type_sint},
+	{ 'L', L_set, L_get, &ffi_type_uint},
+#ifdef HAVE_LONG_LONG
+	{ 'q', q_set, q_get, &ffi_type_slong},
+	{ 'Q', Q_set, Q_get, &ffi_type_ulong},
+#endif
+	{ 'P', P_set, P_get, &ffi_type_pointer},
+	{ 'z', z_set, z_get, &ffi_type_pointer},
+#ifdef HAVE_USABLE_WCHAR_T
+/* Correct or not? */
+	{ 'u', u_set, u_get, &ffi_type_sshort},
+	{ 'U', U_set, U_get, &ffi_type_pointer},
+	{ 'Z', Z_set, Z_get, &ffi_type_pointer},
+#endif
+#ifdef MS_WIN32
+	{ 'X', BSTR_set, BSTR_get, &ffi_type_pointer},
+#endif
+	{ 0, NULL, NULL, NULL},
+};
+
+struct fielddesc *
+getentry(char *fmt)
+{
+	struct fielddesc *table = formattable;
+
+	for (; table->code; ++table) {
+		if (table->code == fmt[0])
+			return table;
+	}
+	return NULL;
+}
+
+/* The following stuff replaces libffi's types.c file, the idea is stolen from
+   Python's structmodule.c */
+
 typedef struct { char c; char x; } s_char;
 typedef struct { char c; short x; } s_short;
 typedef struct { char c; int x; } s_int;
@@ -960,49 +1014,22 @@ typedef struct { char c; PY_LONG_LONG x; } s_long_long;
 #define LONG_LONG_ALIGN (sizeof(s_long_long) - sizeof(PY_LONG_LONG))
 #endif
 
+/* XXX We should make sure that the bit numbers of the types are really correct! */
 
-static struct fielddesc formattable[] = {
-	{ 's', sizeof(char),		CHAR_ALIGN,		s_set, s_get},
-#if 1
-	/* See comment above S_get() */
-	{ 'S', sizeof(char),		CHAR_ALIGN,		S_set, S_get},
-#endif
-	{ 'B', sizeof(char),		CHAR_ALIGN,		B_set, B_get},
-	{ 'b', sizeof(char),		CHAR_ALIGN,		b_set, b_get},
-	{ 'c', sizeof(char),		CHAR_ALIGN,		c_set, c_get},
-	{ 'd', sizeof(double),		DOUBLE_ALIGN,		d_set, d_get},
-	{ 'f', sizeof(float),		FLOAT_ALIGN,		f_set, f_get},
-	{ 'h', sizeof(short),		SHORT_ALIGN,		h_set, h_get},
-	{ 'H', sizeof(short),		SHORT_ALIGN,		H_set, H_get},
-	{ 'i', sizeof(int),		INT_ALIGN,		i_set, i_get},
-	{ 'I', sizeof(int),		INT_ALIGN,		I_set, I_get},
-	{ 'l', sizeof(long),		LONG_ALIGN,		l_set, l_get},
-	{ 'L', sizeof(long),		LONG_ALIGN,		L_set, L_get},
-#ifdef HAVE_LONG_LONG
-	{ 'q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	q_set, q_get},
-	{ 'Q', sizeof(PY_LONG_LONG),	LONG_LONG_ALIGN,	Q_set, Q_get},
-#endif
-	{ 'P', sizeof(void *),		VOID_P_ALIGN,		P_set, P_get},
-	{ 'z', sizeof(char *),		CHAR_P_ALIGN,		z_set, z_get},
-#ifdef HAVE_USABLE_WCHAR_T
-	{ 'u', sizeof(wchar_t),		WCHAR_ALIGN,		u_set, u_get},
-	{ 'U', sizeof(char),		WCHAR_ALIGN,		U_set, U_get},
-	{ 'Z', sizeof(wchar_t *),	WCHAR_P_ALIGN,		Z_set, Z_get},
-#endif
-#ifdef MS_WIN32
-	{ 'X', sizeof(wchar_t *),	WCHAR_P_ALIGN,		BSTR_set, BSTR_get},
-#endif
-	{ 0,   0,			0,			NULL,  NULL},
-};
+ffi_type ffi_type_uint64 = {sizeof(PY_LONG_LONG), LONG_LONG_ALIGN, FFI_TYPE_UINT64, NULL};
+ffi_type ffi_type_sint64 = {sizeof(PY_LONG_LONG), LONG_LONG_ALIGN, FFI_TYPE_SINT64, NULL};
+ffi_type ffi_type_uint32 = {sizeof(int), INT_ALIGN, FFI_TYPE_UINT32, NULL};
+ffi_type ffi_type_sint32 = {sizeof(int), INT_ALIGN, FFI_TYPE_SINT32, NULL};
+ffi_type ffi_type_uint16 = {sizeof(short), SHORT_ALIGN, FFI_TYPE_UINT16, NULL};
+ffi_type ffi_type_sint16 = {sizeof(short), SHORT_ALIGN, FFI_TYPE_SINT16, NULL};
+ffi_type ffi_type_uint8 = {sizeof(char), CHAR_ALIGN, FFI_TYPE_UINT8, NULL};
+ffi_type ffi_type_sint8 = {sizeof(char), CHAR_ALIGN, FFI_TYPE_SINT8, NULL};
+ffi_type ffi_type_float = {sizeof(float), FLOAT_ALIGN, FFI_TYPE_FLOAT, NULL};
+ffi_type ffi_type_double = {sizeof(double), DOUBLE_ALIGN, FFI_TYPE_DOUBLE, NULL};
+ffi_type ffi_type_pointer = {sizeof(void*), VOID_P_ALIGN, FFI_TYPE_POINTER, NULL};
+/* Size and alignment are fake here. They must not be 0. */
+ffi_type ffi_type_void = {1, 1, FFI_TYPE_VOID, NULL};
 
-struct fielddesc *
-getentry(char *fmt)
-{
-	struct fielddesc *table = formattable;
+/* ffi_type_longdouble is missing */
 
-	for (; table->code; ++table) {
-		if (table->code == fmt[0])
-			return table;
-	}
-	return NULL;
-}
+/*---------------- EOF ----------------*/
