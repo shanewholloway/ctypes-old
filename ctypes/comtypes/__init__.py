@@ -56,11 +56,11 @@ class _cominterface_meta(type):
             mth = prototype(i + vtbl_offset, name, self)
             impl = getattr(self, name, None)
             if impl is None:
+                # don't overwrite a custom implementation
                 setattr(self, name, mth)
-            else:
-                mthname = "_%s__com_%s" % (self.__name__, name)
-                # attach it with a private name (__com_AddRef, for example)
-                setattr(self, mthname, mth)
+            # attach it with a private name (__com_AddRef, for example)
+            mthname = "_%s__com_%s" % (self.__name__, name)
+            setattr(self, mthname, mth)
 
 # metaclass for COM interface pointer classes
 class _compointer_meta(type(c_void_p), _cominterface_meta):
