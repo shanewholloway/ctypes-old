@@ -35,7 +35,6 @@ class SimpleTypesTestCase(unittest.TestCase):
         s = u"123"
         self.failUnless(c_wchar_p.from_param(s)._obj is s)
 
-        print c_wchar_p.from_param("123")
 ##        self.assertRaises(TypeError, c_wchar_p.from_param, "123")
         self.assertRaises(TypeError, c_wchar_p.from_param, 42)
 
