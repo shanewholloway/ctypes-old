@@ -368,3 +368,12 @@ if _os.name == "nt":
             descr = FormatError(code).strip()
         return WindowsError(code, descr)
 
+try:
+    from _ctypes import set_conversion_mode
+except ImportError:
+    pass
+else:
+    if _os.name == "nt":
+        set_conversion_mode("mbcs", "ignore")
+    else:
+        set_coversion_mode("ascii", "strict")
