@@ -269,26 +269,16 @@ PyCArg_repr(PyCArgObject *self)
    Shouldn't they be replaced by the functionality of c_string
    and c_wstring ?
 */
-
 	case 'z':
-		sprintf(buffer, "<cparam '%c' (%p)>",
-			self->tag, self->value.p);
-		break;
-
-		/* XXX Rename 'Z' into 'u' */
 	case 'Z':
-		sprintf(buffer, "<cparam '%c' (%p)>",
-			self->tag, self->value.p);
-		break;
-
 	case 'P':
-		sprintf(buffer, "<cparam '%c' (%lx)>",
+		sprintf(buffer, "<cparam '%c' (%08lx)>",
 			self->tag, (long)self->value.p);
 		break;
 
 	default:
-		sprintf(buffer, "<cparam '%c' at %p>",
-			self->tag, self);
+		sprintf(buffer, "<cparam '%c' at %08lx>",
+			self->tag, (long)self);
 		break;
 	}
 	return PyString_FromString(buffer);
@@ -520,8 +510,8 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
  */
 static int _call_function_pointer(int flags,
 				  PPROC pProc,
-				  param *parms,
-				  param *res,
+				  PyCArgObject **parms,
+				  PyCArgObject *res,
 				  int argcount)
 {
 	ffi_cif cif;
@@ -534,31 +524,39 @@ static int _call_function_pointer(int flags,
 	values = (void **)alloca(argcount * sizeof(void *));
 
 	for (i = 0; i < argcount; ++i) {
-		switch(parms[i].format) {
+		switch(parms[i]->tag) {
 		case 'c':
+		case 'b':
 			atypes[i] = &ffi_type_uint8;
 			break;
 		case 'i':
 			atypes[i] = &ffi_type_sint;
 			break;
+		case 'z':
+		case 'Z':
 		case 'P':
 			atypes[i] = &ffi_type_pointer;
 			break;
 		case 'd':
 			atypes[i] = &ffi_type_double;
 			break;
+		case 'f':
+			atypes[i] = &ffi_type_float;
+			break;
 		default:
-			printf("????? %c\n", parms[i].format);
+			printf("PARM ????? %c\n", parms[i]->tag);
 			atypes[i] = NULL;
 			break;
 		}
-		values[i] = &parms[i].val.i;
+		values[i] = &parms[i]->value;
 	}
-	switch(res->format) {
+	switch(res->tag) {
 	case 'i':
 		rtype = &ffi_type_sint;
 		break;
-	case 's':
+//	case 's':
+	case 'z':
+	case 'Z':
 	case 'P':
 		rtype = &ffi_type_pointer;
 		break;
@@ -566,7 +564,7 @@ static int _call_function_pointer(int flags,
 		rtype = &ffi_type_double;
 		break;
 	default:
-		printf("????? %c\n", res->format);
+		printf("RES ????? %c\n", res->tag);
 		rtype = NULL;
 		break;
 	}
@@ -581,7 +579,7 @@ static int _call_function_pointer(int flags,
 	}
 
 	Py_BEGIN_ALLOW_THREADS
-	ffi_call(&cif, (void *)pProc, &res->val.i, values);
+	ffi_call(&cif, (void *)pProc, &res->value, values);
 	Py_END_ALLOW_THREADS
 
 	return 0;
