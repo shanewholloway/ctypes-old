@@ -1,3 +1,32 @@
+/*
+  TODO:
+  =====
+
+  It seems we need a FROMPARAM slot in the storage dict.  We cannot use
+  SETFUNC for that, because SETFUNC completely copies the instance into a
+  memory block.
+
+  int FROMPARAM(PyObject *value, struct argument *pa, PyObject *type);
+
+
+  AND:
+
+  Maybe 'struct argument' should be changed to remove the special casing of
+  structure types.  Currently, 'struct argument' contains the value itself
+  except for structure types, where it contains a pointer to the data.
+
+  It would probably be better to have only a pointer in 'struct argument'
+  which is set by FROMPARAM and ASPARAM to point to the data.
+
+  struct argument {
+      ffi_type *ffi_type;
+      PyObject *keep;
+      void *pdata;
+  }
+
+  In this way, FROMPARAM does not need to allocate a new object.
+
+ */
 /*  
     The most important internal functions:
     ======================================
