@@ -1,5 +1,7 @@
 """h2xml - convert C include file(s) into an xml file by running gccxml."""
 import sys, os, tempfile
+import cparser
+from optparse import OptionParser
 
 if sys.platform == "win32":
 
@@ -21,64 +23,15 @@ if sys.platform == "win32":
 
 ################################################################
 
-class CompilerError(Exception):
-    pass
-
-# Create a C file containing #includes to the specified filenames.
-# Run GCCXML to create an XML file, and return the xml filename.
-def run_gccxml(fnames, options, verbose=0, xml_file=None):
-    # fnames is the sequence of include files
-    # options is seuqence of strings containing command line options for GCCXML
-    # verbose - integer specifying the verbosity
-    #
-    # returns the filename of the generated XML file
-
-    # write a temporary C file
-    handle, c_file = tempfile.mkstemp(suffix=".c", text=True)
-    if verbose:
-        print >> sys.stderr, "writing temporary C source file %s" % c_file
-##    os.write(handle, 'extern "C" {\n');
-    for fname in fnames:
-        os.write(handle, '#include <%s>\n' % fname)
-##    os.write(handle, '}');
-    os.close(handle)
-
-    if xml_file is None:
-        handle, xml_file = tempfile.mkstemp(suffix=".xml", text=True)
-        os.close(handle)
-
-    if options:
-        options = " ".join(options)
-    else:
-        options = ""
-
-    try:
-        if verbose:
-            print >> sys.stderr, r"gccxml %s %s -fxml=%s" % (options, c_file, xml_file)
-        i, o = os.popen4(r"gccxml %s %s -fxml=%s" % (options, c_file, xml_file))
-        i.close()
-        sys.stderr.write(o.read())
-        retval = o.close()
-        if retval:
-            raise CompilerError, "gccxml returned error %s" % retval
-        return xml_file
-    finally:
-        if verbose:
-            print >> sys.stderr, "Deleting temporary file %s" % c_file
-        os.remove(c_file)
-
-################################################################
-
 def main():
-    from optparse import OptionParser
 
     def add_option(option, opt, value, parser):
         parser.values.gccxml_options.append("%s %s" % (opt, value))
 
     parser = OptionParser()
 ##    parser.add_option("-h", action="help")
-    parser.add_option("-v", "--verbose",
-                      dest="verbose",
+    parser.add_option("-q", "--quite",
+                      dest="quiet",
                       action="store_true",
                       default=False)
 
@@ -88,25 +41,25 @@ def main():
                       callback=add_option,
                       dest="gccxml_options",
                       help="macros to define",
-                      metavar="defines",
+                      metavar="NAME[=VALUE]",
                       default=[])
     parser.add_option("-U",
                       type="string",
                       action="callback",
                       callback=add_option,
                       help="macros to undefine",
-                      metavar="defines")
+                      metavar="NAME")
 
     parser.add_option("-I",
                       type="string",
                       action="callback",
                       callback=add_option,
                       dest="gccxml_options",
-                      help="include directories",
-                      metavar="defines")
+                      help="additional include directories",
+                      metavar="DIRECTORY")
 
     parser.add_option("-o",
-                      dest="xml_file",
+                      dest="xmlfile",
                       help="XML output filename",
                       default=None)
     options, files = parser.parse_args()
@@ -116,15 +69,18 @@ def main():
         print >> sys.stderr, __doc__
         return 1
 
-    try:
-        xmlfile = run_gccxml(files, options.gccxml_options, options.verbose, options.xml_file)
-    except CompilerError, detail:
-        sys.exit(1)
+    options.flags = " ".join(options.gccxml_options)
 
-    if options.xml_file is None:
-        if options.verbose:
-            print >> sys.stderr, "Deleting temporary file %s" % xmlfile
-        os.remove(xmlfile)
+    options.verbose = not options.quiet
+
+    try:
+        parser = cparser.IncludeParser()
+        parser.parse(files[0], options)
+    except cparser.CompilerError, detail:
+        import traceback
+        traceback.print_exc()
+##        print detail
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
