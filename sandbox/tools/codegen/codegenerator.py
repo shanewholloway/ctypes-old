@@ -199,9 +199,10 @@ from ctypes import CDLL
 searched_dlls = [CDLL(name) for name in dll_names]
 
 class Generator(object):
-    def __init__(self, stream):
+    def __init__(self, stream, use_decorators=False):
         self.done = set()
         self.stream = stream
+        self.use_decorators = use_decorators
 
     def StructureHead(self, head):
         if head in self.done:
@@ -398,16 +399,19 @@ class Generator(object):
             self.generate_all(func.arguments)
             args = [type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
-                print >> self.stream, "@ stdcall(%s, %s)" % \
-                      (type_name(func.returns), ", ".join(["'%s'" % dllname] + args))
-##                print >> self.stream, "%s = STDCALL('%s', %s, '%s', [%s])" % \
-##                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
+                cc = "stdcall"
             else:
-##                print >> self.stream, "%s = CDECL('%s', %s, '%s', [%s])" % \
-##                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
-                print >> self.stream, "@ cdecl(%s, %s)" % \
-                      (type_name(func.returns), ", ".join(["'%s'" % dllname] + args))
+                cc = "cdecl"
+            print >> self.stream
+            # decorator
+            if self.use_decorators:
+                print >> self.stream, "@ %s(%s, %s, [%s])" % \
+                      (cc, type_name(func.returns), dllname, ", ".join(args))
+            else:
+                print >> self.stream, "[call_as( %s(%s, %s, [%s]) )]" % \
+                      (cc, type_name(func.returns), dllname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
+            # function definition
             print >> self.stream, "def %s(%s):" % (func.name, ", ".join(argnames))
             print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
             print >> self.stream
@@ -462,7 +466,10 @@ class Generator(object):
 
 ################################################################
 
-def generate_code(xmlfile, outfile, expressions=None, symbols=None):
+def generate_code(xmlfile, outfile,
+                  expressions=None, symbols=None,
+                  verbose=False,
+                  use_decorators=False):
     # expressions is a sequence of compiled regular expressions,
     # symbols is a sequence of names
     from gccxmlparser import parse
@@ -493,15 +500,18 @@ def generate_code(xmlfile, outfile, expressions=None, symbols=None):
     if symbols or expressions:
         items = todo
 
-    gen = Generator(outfile)
+    gen = Generator(outfile, use_decorators=use_decorators)
     # output header
     print >> outfile, "from ctypes import *"
 ##    print >> outfile, "from _support import STDCALL, CDECL"
-    print >> outfile, "from deco import stdcall"
+    if use_decorators:
+        print >> outfile, "from deco import stdcall"
+    else:
+        print >> outfile, "from deco import stdcall, call_as"
     print >> outfile, "def const(x): return x"
     print >> outfile
     loops = gen.generate_code(items)
-    gen.print_stats(sys.stderr)
-
-    print "needed %d loop(s)" % loops
+    if verbose:
+        gen.print_stats(sys.stderr)
+        print >> sys.stderr, "needed %d loop(s)" % loops
 

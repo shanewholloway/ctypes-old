@@ -44,6 +44,13 @@ def main(args=None):
     parser.add_option("-v",
                       action="store_true",
                       dest="verbose",
+                      help="verbose output",
+                      default=False)
+
+    parser.add_option("-d",
+                      action="store_true",
+                      dest="use_decorators",
+                      help="use Python 2.4 function decorators",
                       default=False)
 
     options, files = parser.parse_args(args[1:])
@@ -65,7 +72,8 @@ def main(args=None):
     generate_code(files[0], stream,
                   symbols=options.symbols,
                   expressions=options.expressions,
-                  verbose=options.verbose)
+                  verbose=options.verbose,
+                  use_decorators=options.use_decorators)
 
 
 if __name__ == "__main__":
