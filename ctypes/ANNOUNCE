@@ -1,10 +1,10 @@
-ctypes 0.9.2 released - Oct 28, 2004
+ctypes 0.9.5 released - Mar 11, 2005
 ====================================
 
 Overview
 
-    ctypes is a ffi (Foreign Function Interface) package for Python
-    2.3 and higher.
+    ctypes is an advanced ffi (Foreign Function Interface) package for
+    Python 2.3 and higher.
 
     ctypes allows to call functions exposed from dlls/shared libraries
     and has extensive facilities to create, access and manipulate
@@ -16,46 +16,59 @@ Overview
     It may also run on other systems, provided that libffi supports
     this platform.
 
-    On windows, ctypes contains a ctypes.com package which allows to
+    For windows, ctypes contains a ctypes.com package which allows to
     call and implement custom COM interfaces.
 
 Important
 
     If you download the source distribution, please choose the ZIP
-    file for Windows, and the .tar.gz file for other systems.
+    file for Windows, and the .tar.gz file for other machines.
     These archive have different contents!
 
-Changes in 0.9.2
+    There have been lots of changes - if you are the author or user of
+    a package that uses ctypes, please test it with this release
+    and report problems on the ctypes-users mailing list.
 
-    Fixed several bugs and memory leaks.
+Additions
 
-    ctypes is now tested on Windows, Linux (x86 and x86_64), OpenBSD
-    and Mac OS X.
+    New package ctypes.wrap. This contains decorators usable for
+    easier creation of wrapper functions.
 
-    Implemented some helper functions: memmove, memset, string_at, wstring_at.
-    The former act as their C library counterpart, the latter two allow
-    to read a zero-terminated (wide) strings at a certain address.
+    This package also contains a toolchain for (semi)automatic
+    creation of wrappers for external libraries - it can parse
+    C header files and generate ctypes code for the declarations in
+    them.  It can even handle preprocessor definitions! For details,
+    see http://starship.python.net/crew/theller/ctypes/codegen.html
 
-    Implemented a cast(cobj, ctype) function, which creates a new object
-    of the specified ctype from an existing object.
 
-    ctypes now explicitely allocates executable memory for the callbacks
-    it creates, this makes it work correctly on platforms where
-    executing data is normally forbidden (OpenBSD, Win XP SP2 on AMD 64).
+Changes in 0.9.5
 
-    Fixed the unicode handling on non-windows platforms.
+    On systems where sizeof(int) == sizeof(long), c_int/c_long and
+    c_uint/c_ulong are now aliases.  Similar for c_long/c_longlong and
+    c_ulong/c_ulonglong.  This prevents unneeded type errors.
 
-    Bit fields in structures and unions are now implemented.
-    For a bit field, one would specify the width in bits as the third
-    part in the _fields_ list like this:
+    If an exception occurs in a callback function, a full traceback is
+    now printed.  Raising SystemExit in a callback function now
+    correctly exists Python.
 
-	class BitFieldSample(Structure):
-	    _fields_ = [("anInt", c_int),
-			("aBitField", c_int, 3)]
+    HRESULT is now a proper ctype - no longer a function.  This allows
+    to use it in the argtypes sequence for function prototypes.
 
-    POINTER(None) now returns c_void_p.  This change was made for easier
-    code generation, and makes sense since 'None' is the ctypes way to
-    spell 'void'.
+    An easier way to define structures and unions that reference
+    themselves, or have dependencies to other data types.  The
+    _fields_ attribute can now be set *after* the Structure/Union
+    class has been created.  This makes the SetPointerType function
+    obsolete.
+
+    The semantics of the _fields_ attribute in sub-subclasses of
+    Structure and Union has been fixed.  The baseclasses _fields_ list
+    is extended, not replaced, in subclasses.  Assigning _fields_ when
+    it is no longer possible raises an error now.
+
+    Structures and unions now work as restype and in the argtypes list
+    for functions.
+
+    An important bug has been fixed with pointers.
 
 
     Detailed changelogs are in CVS:
@@ -63,16 +76,6 @@ Changes in 0.9.2
     <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD>
 
     <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD>
-
-
-Future plans
-
-    The ultimate purpose of the 0.9 release series is to shake out the
-    remaining bugs, especially on platforms I have no access to, and
-    to target a rock stable ctypes 1.0 release.
-
-    When ctypes 1.0 is released, the com framework will be split off
-    into a separate framework named 'comtypes'.
 
 
 Download
