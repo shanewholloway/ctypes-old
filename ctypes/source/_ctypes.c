@@ -1900,6 +1900,10 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 			}
 			return _CData_set(dst, type, setfunc, ob,
 					  size, ptr);
+		} else if (value == Py_None && PointerTypeObject_Check(type)) {
+			*(void **)dst->b_ptr = NULL;
+			Py_INCREF(Py_None);
+			return Py_None;
 		} else {
 			PyErr_Format(PyExc_TypeError,
 				     "expected %s instance, got %s",
