@@ -386,7 +386,13 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 /* how to decode the size field, for integer get/set functions */
 #define LOW_BIT(x)  ((x) & 0xFFFF)
 #define NUM_BITS(x) ((x) >> 16)
-#define BIT_MASK(size) ((1 << NUM_BITS(size))-1)
+
+/* This seems nore a compiler issue than a Windows/non-Windows one */
+#ifdef MS_WIN32
+#  define BIT_MASK(size) ((1 << NUM_BITS(size))-1)
+#else
+#  define BIT_MASK(size) ((1L << NUM_BITS(size))-1)
+#endif
 
 #define GET_BITFIELD(v, size) \
   if (NUM_BITS(size)) { \
