@@ -500,6 +500,28 @@ static void closure_fcn(ffi_cif *cif,
 			  pArgs);
 }
 
+static ffi_type *ffi_type_for_fmt(char fmt)
+{
+	switch (fmt) {
+	/* "bBhHiIlLqQdfP" */
+	case 'b': return &ffi_type_sint8;
+	case 'B': return &ffi_type_uint8;
+	case 'h': return &ffi_type_sint16;
+	case 'H': return &ffi_type_uint16;
+	case 'i': return &ffi_type_sint32;
+	case 'I': return &ffi_type_uint32;
+	case 'l': return &ffi_type_sint32;
+	case 'L': return &ffi_type_uint32;
+	case 'q': return &ffi_type_sint64;
+	case 'Q': return &ffi_type_uint64;
+	case 'f': return &ffi_type_float;
+	case 'd': return &ffi_type_double;
+	case 'D': return &ffi_type_longdouble;
+	case 'P': return &ffi_type_pointer;
+	}
+	return NULL;
+}
+
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
@@ -516,18 +538,21 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	/* Check for NULL */
 	for (i = 0; i < nArgs; ++i) {
-		p->atypes[i] = &ffi_type_sint;
+		PyObject *cnv = PySequence_GetItem(converters, i);
+		PrepareResult(cnv, &cResult);
+		p->atypes[i] = ffi_type_for_fmt(cResult.tag);
+		Py_DECREF(cnv);
 	}
 
+	PrepareResult(restype, &cResult);
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_cif(&p->cif, FFI_DEFAULT_ABI, nArgs,
-			      &ffi_type_sint,
+			      ffi_type_for_fmt(cResult.tag),
 			      &p->atypes[0]);
 
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
 
-	PrepareResult(restype, &cResult);
 	switch (cResult.tag) {
 		/* "bBhHiIlLqQdfP" */
 	case 'b':
