@@ -258,23 +258,32 @@ class Method:
         self.dispid = dispid
 
     def declaration(self):
-        argtypes = ", ".join(self.argtypes)
-        return 'STDMETHOD(%s, "%s", %s)' % (self.restype, self.name, argtypes)
+        items = ['STDMETHOD(%s' % self.restype]
+        items.append('"%s"' % self.name)
+        items.extend(self.argtypes)
+        return ", ".join(items) + ")"
+
 
 class DispatchMethod(Method):
     # restype is always HRESULT
     def declaration(self):
-        argtypes = ", ".join(self.argtypes)
-        if self.restype is None:
-            return 'STDMETHOD(HRESULT, "%s", %s)' % (self.name, argtypes)
-        else:
-            return 'STDMETHOD(HRESULT, "%s", %s, POINTER(%s))' % \
-                   (self.name, argtypes, self.restype)
+        items = ['STDMETHOD(HRESULT']
+        items.append('"%s"' % self.name)
+        items.extend(self.argtypes)
+        if self.restype is not None:
+            items.append("POINTER(%s)" % self.restype)
+        return ", ".join(items) + ")"
 
 class DispMethod(Method):
     def declaration(self):
-        argtypes = ", ".join(self.argtypes)
-        return 'DISPMETHOD(0x%x, %s, "%s", %s)' % (self.dispid, self.restype, self.name, argtypes)
+        items = ['DISPMETHOD(0x%x' % self.dispid]
+        if self.restype is not None:
+            items.append(self.restype)
+        else:
+            items.append("None")
+        items.append('"%s"' % self.name)
+        items.extend(self.argtypes)
+        return ", ".join(items) + ")"
 
 class InterfaceReader(TypeInfoReader):
     baseinterface = "IUnknown"
