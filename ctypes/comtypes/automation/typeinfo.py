@@ -378,7 +378,13 @@ class ITypeComp(IUnknown):
         elif kind == DESCKIND_NONE:
             raise NameError, "Name %s not found" % name
         
-##    STDMETHOD(HRESULT, 'BindType', [LPOLESTR, DWORD, POINTER(POINTER(ITypeInfo)), POINTER(POINTER(ITypeComp))]),
+    def BindType(self, name, lHashVal=0):
+        "Bind a type, and return both the typeinfo and typecomp for it."
+        ti = POINTER(ITypeInfo)()
+        tc = POINTER(ITypeComp)()
+        self.__com_BindType(name, lHashVal, byref(ti), byref(tc))
+        return ti, tc
+        
 
 ################
 
