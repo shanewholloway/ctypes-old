@@ -590,8 +590,13 @@ ffi_type *tag2ffitype(char tag)
 		return&ffi_type_float;
 	case 'v':
 		return &ffi_type_void;
+/* Ahh.
+	case 'V':
+		return &ffi_type_structure;
+*/
 	default:
-		printf("PARM ????? %c\n", tag);
+		PyErr_Format(PyExc_TypeError,
+			     "cannot pass type tag %c", tag);
 		return NULL;
 	}	
 }
@@ -624,7 +629,10 @@ static int _call_function_pointer(int flags,
 	values = (void **)alloca(argcount * sizeof(void *));
 
 	for (i = 0; i < argcount; ++i) {
-		atypes[i] = tag2ffitype(parms[i]->tag);
+		ffi_type * tp = tag2ffitype(parms[i]->tag);
+		if (tp == NULL)
+			return -1;
+		atypes[i] = tp;
 		values[i] = &parms[i]->value;
 	}
 	rtype = tag2ffitype(res->tag);
