@@ -2590,20 +2590,12 @@ CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 static int
 CFuncPtr_clear(CFuncPtrObject *self)
 {
-	Py_XDECREF(self->callable);
-	self->callable = NULL;
-
-	Py_XDECREF(self->restype);
-	self->restype = NULL;
-
-	Py_XDECREF(self->checker);
-	self->checker = NULL;
-
-	Py_XDECREF(self->argtypes);
-	self->argtypes = NULL;
-
-	Py_XDECREF(self->converters);
-	self->converters = NULL;
+	Py_CLEAR(self->callable);
+	Py_CLEAR(self->restype);
+	Py_CLEAR(self->checker);
+	Py_CLEAR(self->argtypes);
+	Py_CLEAR(self->converters);
+	Py_CLEAR(self->b_objects);
 
 	if (self->b_needsfree)
 		PyMem_Free(self->b_ptr);
@@ -2612,9 +2604,6 @@ CFuncPtr_clear(CFuncPtrObject *self)
 	if (self->thunk)
 		FreeCallback(self->thunk);
 	self->thunk = NULL;
-
-	Py_XDECREF(self->b_objects);
-	self->b_objects = NULL;
 
 	return 0;
 }
