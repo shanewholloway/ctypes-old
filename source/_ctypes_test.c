@@ -75,6 +75,11 @@ EXPORT(wchar_t *) my_wcsdup(wchar_t *src)
 	return wcsdup(src);
 #endif
 }
+
+EXPORT(size_t *) my_wcslen(wchar_t *src)
+{
+	return wcslen(src);
+}
 #endif
 
 #ifndef MS_WIN32
