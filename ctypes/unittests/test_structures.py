@@ -24,7 +24,8 @@ class StructureTestCase(unittest.TestCase):
             class X(Structure):
                 _fields_ = [("x", c_char),
                             ("y", tp)]
-            self.failUnlessEqual(sizeof(X), calcsize("c%c0%c" % (code, code)))
+            self.failUnlessEqual((sizeof(X), code),
+                                 (calcsize("c%c0%c" % (code, code)), code))
 
     def test_unions(self):
         for code, tp in self.formats.items():
