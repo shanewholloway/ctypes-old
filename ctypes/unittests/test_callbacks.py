@@ -1,26 +1,22 @@
 import unittest
 from ctypes import *
 
-class CallbacksBase(unittest.TestCase):
+class Callbacks(unittest.TestCase):
+    functype = CFUNCTYPE
+
     def callback(self, *args):
         self.got_args = args
         return args[-1]
 
     def check_type(self, typ, arg):
-        PROTO = CFUNCTYPE(typ, typ)
+        PROTO = type(self).__dict__["functype"](typ, typ)
         return PROTO(self.callback)(arg)
 
     def check_type_1(self, typ, arg):
-        PROTO = CFUNCTYPE(typ, c_byte, typ)
+        PROTO = type(self).__dict__["functype"](typ, c_byte, typ)
         return PROTO(self.callback)(0, arg)
 
     ################
-
-
-class IntegerCallbacks(CallbacksBase):
-    def test_cint(self):
-        PROTO = CFUNCTYPE(c_longlong, c_longlong, c_longlong, c_longlong)
-        PROTO(self.callback)(0x10, 0x20, 0x30)
 
     def test_byte(self):
         self.failUnlessEqual(self.check_type(c_byte, 42), 42)
@@ -98,7 +94,6 @@ class IntegerCallbacks(CallbacksBase):
         self.failUnlessEqual(self.check_type_1(c_double, 3.14), 3.14)
         self.failUnlessEqual(self.got_args, (0, 3.14))
 
-class CharCallbacks(CallbacksBase):
     def test_char(self):
         self.failUnlessEqual(self.check_type(c_char, "x"), "x")
         self.failUnlessEqual(self.got_args, ("x",))
@@ -110,6 +105,16 @@ class CharCallbacks(CallbacksBase):
         self.failUnlessEqual(self.got_args, ("abc",))
         self.failUnlessEqual(self.check_type_1(c_char_p, "abc"), "abc")
         self.failUnlessEqual(self.got_args, (0, "abc"))
+
+try:
+    WINFUNCTYPE
+except NameError:
+    pass
+else:
+    class StdcallCallbacks(Callbacks):
+        functype = WINFUNCTYPE
+
+################################################################
 
 class SampleCallbacksTestCase(unittest.TestCase):
 
@@ -132,6 +137,8 @@ class SampleCallbacksTestCase(unittest.TestCase):
         diff = abs(result - 1./3.)
         
         self.failUnless(diff < 0.01, "%s not less than 0.01" % diff)
+
+################################################################
 
 if __name__ == '__main__':
     unittest.main()
