@@ -45,7 +45,7 @@ def c_buffer(init, size=None):
         buf = buftype()
         buf.value = init
         return buf
-    elif isinstance(init, int):
+    elif isinstance(init, (int, long)):
         buftype = c_char * init
         buf = buftype()
         return buf
