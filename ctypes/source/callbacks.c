@@ -500,8 +500,6 @@ static void closure_fcn(ffi_cif *cif,
 			  pArgs);
 }
 
-extern ffi_type *tag2ffitype(char tag);
-
 THUNK AllocFunctionCallback(PyObject *callable,
 			    int nArgBytes,
 			    PyObject *converters,
@@ -520,14 +518,14 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	for (i = 0; i < nArgs; ++i) {
 		PyObject *cnv = PySequence_GetItem(converters, i);
 		PrepareResult(restype, &cResult);
-		p->atypes[i] = tag2ffitype(cResult.tag);
+		p->atypes[i] = cResult.pffi_type;
 		Py_DECREF(cnv);
 	}
 
 	PrepareResult(restype, &cResult);
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_cif(&p->cif, FFI_DEFAULT_ABI, nArgs,
-			      tag2ffitype(cResult.tag),
+			      cResult.pffi_type,
 			      &p->atypes[0]);
 
 	/* XXX Check for FFI_OK */
