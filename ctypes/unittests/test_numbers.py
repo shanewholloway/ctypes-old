@@ -177,7 +177,61 @@ class NumberTestCase(unittest.TestCase):
 
         a[0] = '?'
         self.failUnless(v.value == a[0])
+
+    def test_perf(self):
+        check_perf()
         
+from ctypes import _SimpleCData
+class c_int_S(_SimpleCData):
+    _type_ = "i"
+    __slots__ = []
+
+def run_test(rep, msg, func, arg=None):
+##    items = [None] * rep
+    items = range(rep)
+    from time import clock
+    if arg is not None:
+        start = clock()
+        for i in items:
+            func(arg); func(arg); func(arg); func(arg); func(arg)
+        stop = clock()
+    else:
+        start = clock()
+        for i in items:
+            func(); func(); func(); func(); func()
+        stop = clock()
+    print "%15s: %.2f us" % (msg, ((stop-start)*1e6/5/rep))
+
+def check_perf():
+    # Construct 5 objects
+    from ctypes import c_int
+
+    REP = 200000
+
+    run_test(REP, "int()", int)
+    run_test(REP, "int(999)", int)
+    run_test(REP, "c_int()", c_int)
+    run_test(REP, "c_int(999)", c_int)
+    run_test(REP, "c_int_S()", c_int_S)
+    run_test(REP, "c_int_S(999)", c_int_S)
+
+# Python 2.3 -OO, win2k, P4 700 MHz:
+#
+#          int(): 0.87 us
+#       int(999): 0.87 us
+#        c_int(): 3.35 us
+#     c_int(999): 3.34 us
+#      c_int_S(): 3.23 us
+#   c_int_S(999): 3.24 us    
+
+# Python 2.2 -OO, win2k, P4 700 MHz:
+#
+#          int(): 0.89 us
+#       int(999): 0.89 us
+#        c_int(): 9.99 us
+#     c_int(999): 10.02 us
+#      c_int_S(): 9.87 us
+#   c_int_S(999): 9.85 us
 
 def get_suite():
     return unittest.makeSuite(NumberTestCase)
@@ -187,4 +241,5 @@ def test(verbose=0):
     runner.run(get_suite())
 
 if __name__ == '__main__':
+    check_perf()
     unittest.main()
