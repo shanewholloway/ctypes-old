@@ -5,6 +5,20 @@ def callback_func(arg):
     42 / arg
     raise ValueError, arg
 
+if sys.platform == "win32":
+
+    class call_function_TestCase(unittest.TestCase):
+        # _ctypes.call_function is deprecated and private, but used by
+        # Gary Bishp's readline module.  If we have it, we must test it as well.
+
+        def test(self):
+            from _ctypes import call_function
+            hdll = windll.kernel32.LoadLibraryA("kernel32")
+            funcaddr = windll.kernel32.GetProcAddress(hdll, "GetModuleHandleA")
+
+            self.failUnlessEqual(call_function(funcaddr, (None,)),
+                                 windll.kernel32.GetModuleHandleA(None))
+
 class CallbackTracbackTestCase(unittest.TestCase):
     # When an exception is raised in a ctypes callback function, the C
     # code prints a traceback.
