@@ -2003,8 +2003,9 @@ CData_AtAddress(PyObject *type, void *buf)
 }
 
 /*
-  Helper function for CData_set below.
-*/
+ * Set a slice in object 'dst', which has the type 'type',
+ * to the value 'value'.
+ */
 static PyObject *
 _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 	   int size, char *ptr)
@@ -2083,25 +2084,6 @@ _CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 		     value->ob_type->tp_name,
 		     ((PyTypeObject *)type)->tp_name);
 	return NULL;
-}
-
-/*
- * Set a slice in object 'dst', which has the type 'type',
- * to the value 'value'.
- */
-static int
-CData_set(CDataObject *dst, PyObject *type, PyObject *value,
-	  int index, int size, char *ptr)
-{
-	PyObject *result = _CData_set(dst, type, value,
-				      size, ptr);
-	if (result == NULL)
-		return -1;
-
-	/* KeepRef steals a refcount from it's last argument */
-	/* If KeepRef fails, we are stumped.  The dst memory block has already
-	   been changed */
-	return KeepRef(dst, index, result);
 }
 
 
@@ -3760,6 +3742,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 {
 	int size;
 	StgDictObject *stgdict;
+	PyObject *keep;
 
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
@@ -3781,9 +3764,11 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 	}
 	size = stgdict->size / stgdict->length;
 
-	/* XXXXX Make sure proto is NOT NULL! */
-	return CData_set(self, stgdict->proto, value,
-			 index, size, *(void **)self->b_ptr);
+	keep = _CData_set(self, stgdict->proto, value,
+			  size, *(void **)self->b_ptr);
+	if (keep == NULL)
+		return -1;
+	return KeepRef(self, index, keep);
 }
 
 static PyObject *
