@@ -501,8 +501,6 @@ class InterfaceReader(TypeInfoReader):
         if flags & PARAMFLAG_FOUT:
             result.append("out_")
         if flags & PARAMFLAG_FRETVAL:
-            import pdb
-            pdb.set_trace()
             result.append("retval_")
         if flags & PARAMFLAG_FLCID:
             result.append("lcid_")
