@@ -805,6 +805,7 @@ static PyObject *GetResult(PyObject *restype, void *result)
 			return retval;
 		} else {
 			PyObject *v = PyObject_CallFunctionObjArgs(checker, retval, NULL);
+			Py_DECREF(checker);
 			Py_DECREF(retval);
 			return v;
 		}
