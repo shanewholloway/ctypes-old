@@ -1897,19 +1897,24 @@ CData_AtAddress(PyObject *type, void *buf)
 }
 
 static PyObject *
-CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
+//CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
+CData_get(PyObject *type, GETFUNC getfunc, CDataObject *src,
 	  int index, int size, char *adr)
 {
 	if (getfunc)
-		return getfunc(adr, size);
+		return getfunc(adr, size,
+			       type, src, index);
 	if (type) {
 		StgDictObject *dict;
 		dict = PyType_stgdict(type);
 		if (dict && dict->getfunc)
-			return dict->getfunc(adr, size);
-		return CData_FromBaseObj(type, src, index, adr);
+			return dict->getfunc(adr, size,
+					     type, src, index);
+		return CData_FromBaseObj(type, (PyObject *)src, index, adr);
 	}
-	return getfunc(adr, size);
+//	return getfunc(adr, size);
+	PyErr_SetString(PyExc_RuntimeError, "BUG in ctypes");
+	return NULL;
 }
 
 /*
@@ -2815,7 +2820,8 @@ _get_one(PyObject *obj)
 	}
 	if (dict->getfunc) {
 		CDataObject *c = (CDataObject *)result;
-		return dict->getfunc(c->b_ptr, c->b_size);
+		return dict->getfunc(c->b_ptr, c->b_size,
+				     (PyObject *)result->ob_type, c, 0);
 	}
 	Py_INCREF(result);
 	return result;
@@ -3282,7 +3288,7 @@ Array_item(CDataObject *self, int index)
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
 
-	return CData_get(stgdict->proto, stgdict->getfunc, (PyObject *)self,
+	return CData_get(stgdict->proto, stgdict->getfunc, self,
 			 index, size, self->b_ptr + offset);
 }
 
@@ -3564,7 +3570,8 @@ static PyObject *
 Simple_get_value(CDataObject *self)
 {
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
-	return dict->getfunc(self->b_ptr, self->b_size);
+	return dict->getfunc(self->b_ptr, self->b_size,
+			     (PyObject *)self->ob_type, self, 0);
 }
 
 static PyObject *
