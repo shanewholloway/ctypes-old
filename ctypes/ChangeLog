@@ -1,3 +1,9 @@
+2003-02-20  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c (CString_new): It's no longer possible to call
+	c_string with None as argument.  It created a string of zero size,
+	but this doesn't seem to make sense.
+	
 2003-02-19  Thomas Heller  <theller@python.net>
 
 	* source/_ctypes.c, ctypes.py: Add a c_voidp data type, which
