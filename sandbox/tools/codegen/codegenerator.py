@@ -441,6 +441,14 @@ class Generator(object):
     ########
 
     def generate(self, item):
+        if item in self.done:
+            return
+        name = getattr(item, "name", None)
+        if name in self.known_symbols:
+            print >> self.stream, "# %s is in known_symbols" % name
+            print >> self.stream, "from %s import %s" % (self.known_symbols[name].__module__, name)
+            self.done.add(item)
+            return
         mth = getattr(self, type(item).__name__)
         mth(item)
 
@@ -448,8 +456,12 @@ class Generator(object):
         for item in items:
             self.generate(item)
 
-    def generate_code(self, items):
+    def generate_code(self, items, known_symbols):
         items = set(items)
+        if known_symbols:
+            self.known_symbols = known_symbols
+        else:
+            self.known_symbols = {}
         loops = 0
         while items:
             loops += 1
@@ -485,7 +497,7 @@ def generate_code(xmlfile,
                   symbols=None,
                   verbose=False,
                   use_decorators=False,
-                  exclude=None):
+                  known_symbols=None):
     # expressions is a sequence of compiled regular expressions,
     # symbols is a sequence of names
     from gccxmlparser import parse
@@ -523,7 +535,7 @@ def generate_code(xmlfile,
     print >> outfile, "    _fields_ = [('lpVtbl', c_void_p)]"
     print >> outfile, "def STDMETHOD(*args,**kw): pass # fake"
     print >> outfile
-    loops = gen.generate_code(items)
+    loops = gen.generate_code(items, known_symbols)
     if verbose:
         gen.print_stats(sys.stderr)
         print >> sys.stderr, "needed %d loop(s)" % loops
