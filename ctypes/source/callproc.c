@@ -354,8 +354,6 @@ PyTypeObject PyCArg_Type = {
  *    and value.
  */
 
-#define ASSERT_FORMAT(fmt) assert(strchr("ciqfdpsz", fmt))
-
 /*
  * Convert a single Python object into a 'C object' and store it in a
  * 'struct param'.  Return -1 on error (with exception set), 0 otherwise.
