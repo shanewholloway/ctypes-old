@@ -57,6 +57,7 @@ typedef struct {
 	PyObject *converters;
 	PyObject *argtypes;
 	PyObject *restype;
+	PyObject *checker;
 #ifdef MS_WIN32
 	int index;
 #endif
@@ -179,26 +180,8 @@ PyObject *_CallProc(PPROC pProc,
 		    void *pIUnk,
 		    int flags,
 		    PyObject *argtypes,
-		    PyObject *restype);
-
-/*
- * TODO:
- * call_commethod is really slow.
- *
- *   It should also take an optional argtypes (hm, converters) argument.
- *   It should not be called with the (integer) this argument,
- *   instead it should retrieve the 'this' value itself - IOW, use
- *   the b_ptr contents directly.
- *
- * Change the signature of _CallProc into:
- *
-PyObject *_CallProc(PPROC pProc,
-		    PyObject *argtuple,
-		    void *pIunk,
-		    int flags,
-		    PyObject *converters,
-		    PyObject *restype);
- */
+		    PyObject *restype,
+		    PyObject *checker);
  
 
 #define FUNCFLAG_STDCALL 0x0
@@ -307,6 +290,8 @@ extern int My_PyUnicode_AsWideChar(PyUnicodeObject *, wchar_t *, int);
 
 extern void FreeClosure(void *);
 extern void *MallocClosure(void);
+
+extern void _AddTraceback(char *, char *, int);
 
 /*
  Local Variables:
