@@ -174,8 +174,10 @@ static void _CallPythonObject(void *mem,
 		PyErr_Print();
 	} else {
 		if ((result != Py_None)
-		    && !PyArg_Parse(result, format, mem))
+		    && !PyArg_Parse(result, format, mem)) {
+			Extend_Error_Info("(callback return type) ");
 			PyErr_Print();
+		}
 	}
   Done:
 	Py_XDECREF(arglist);
@@ -188,6 +190,24 @@ static void _CallPythonObject(void *mem,
 }
 
 #ifdef MS_WIN32
+static int __stdcall z_CallPythonObject(PyObject *callable,
+					PyObject *converters,
+					void **pArgs)
+{
+	PyCArgObject result;
+	_CallPythonObject(&result.value, "z", callable, converters, pArgs);
+	return result.value.p;
+}
+
+static int __stdcall c_CallPythonObject(PyObject *callable,
+					PyObject *converters,
+					void **pArgs)
+{
+	PyCArgObject result;
+	_CallPythonObject(&result.value, "c", callable, converters, pArgs);
+	return result.value.i;
+}
+
 static int __stdcall i_CallPythonObject(PyObject *callable,
 					PyObject *converters,
 					void **pArgs)
@@ -406,6 +426,12 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	DWORD func;
 	PrepareResult(restype, &result);
 	switch (result.tag) {
+	case 'z':
+		func = (DWORD)z_CallPythonObject;
+		break;
+	case 'c':
+		func = (DWORD)c_CallPythonObject;
+		break;
 		/* "bBhHiIlLqQdfP" */
 	case 'b':
 	case 'B':
