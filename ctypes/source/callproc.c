@@ -391,9 +391,11 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 
 	pa->keep = NULL; /* so we cannot forget it later */
 
+	/* ctypes instances know themselves how to pass as argument */
 	if (stgdict)
 		return stgdict->asparam((CDataObject *)obj, pa);
 
+	/* probably a byref(obj) parameter */
 	if (PyCArg_CheckExact(obj)) {
 		PyCArgObject *carg = (PyCArgObject *)obj;
 		pa->ffi_type = carg->pffi_type;
@@ -403,7 +405,7 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 		return 0;
 	}
 
-	/* Pass as integer by calling i_set */
+	/* Pass as integer by calling i_set() */
 	if (PyInt_Check(obj) || PyLong_Check(obj)) {
 		pa->ffi_type = &ffi_type_sint;
 		pa->keep = getentry("i")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_int? */
@@ -412,7 +414,7 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 		return 0;
 	}
 
-	/* Pass as pointer by calling z_set */
+	/* Pass as pointer by calling z_set() */
 	if (obj == Py_None || PyString_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
 		pa->keep = getentry("z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_char_p? */
@@ -421,10 +423,10 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 		return 0;
 	}
 #ifdef CTYPES_UNICODE
-	/* Pass as pointer by calling Z_set */
+	/* Pass as pointer by calling Z_set() */
 	if (PyUnicode_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
-		pa->keep = getentry("Z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_char_p? */
+		pa->keep = getentry("Z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_wchar_p? */
 		if (pa->keep == NULL)
 			return -1;
 		return 0;
@@ -649,6 +651,10 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
  * Raise a new exception 'exc_class', adding additional text to the original
  * exception string.
  */
+/*
+  We should probably get rid of this function, and instead add a stack frame
+  with _AddTraceback.
+*/
 void Extend_Error_Info(PyObject *exc_class, char *fmt, ...)
 {
 	va_list vargs;
