@@ -96,7 +96,7 @@ TYPES = {
     VT_UI8: "c_ulonglong",
     VT_INT: "c_int",
     VT_UINT: "c_uint",
-    VT_VOID: "void",
+    VT_VOID: "None",
     VT_HRESULT: "HRESULT", 
     VT_PTR: "VT_PTR",
     VT_LPSTR: "c_char_p",
@@ -169,7 +169,8 @@ class EnumReader(TypeInfoReader):
         l.append("class %s(enum):" % self.name)
         if self.docstring:
             l.append('    """%s"""' % self.docstring)
-        l.append("    _iid_ = GUID('%s')" % self.guid)
+        if self.guid != '{00000000-0000-0000-0000-000000000000}':
+            l.append("    _iid_ = GUID('%s')" % self.guid)
         for name, value in self.items:
             l.append('    %s = %s' % (name, value))
         l.append("")
@@ -242,28 +243,36 @@ class RecordReader(TypeInfoReader):
             self.ti.ReleaseVarDesc(pvd)
 
 class Method:
-    def __init__(self, name, restype, argtypes):
+    def __init__(self, name, restype, argtypes, dispid):
         self.name = name
         self.restype = restype
         self.argtypes = argtypes
+        self.dispid = dispid
 
     def declaration(self):
         argtypes = ", ".join(self.argtypes)
         return 'STDMETHOD(%s, "%s", %s)' % (self.restype, self.name, argtypes)
 
-class DispMethod(Method):
+class DispatchMethod(Method):
     # restype is always HRESULT
     def declaration(self):
         argtypes = ", ".join(self.argtypes)
         return 'STDMETHOD(HRESULT, "%s", %s)' % (self.name, argtypes)
 
+class DispMethod(Method):
+    def declaration(self):
+        argtypes = ", ".join(self.argtypes)
+        return 'DISPMETHOD(0x%x, %s, "%s", %s)' % (self.dispid, self.restype, self.name, argtypes)
+
 class InterfaceReader(TypeInfoReader):
     baseinterface = "IUnknown"
     nummethods = 3
     method_class = Method
+    is_dispinterface = 0
 
     def _parse_typeattr(self, ta):
         assert ta.cImplTypes == 1
+        self.wTypeFlags = ta.wTypeFlags
         for i in range(ta.cImplTypes):
             hr = HREFTYPE()
             self.ti.GetRefTypeOfImplType(i, byref(hr))
@@ -286,19 +295,15 @@ class InterfaceReader(TypeInfoReader):
         l.append("    _iid_ = GUID('%s')" % self.guid)
         l.append("")
         return "\n".join(l)
-    
-    def definition(self):
-        pta = LPTYPEATTR()
-        self.ti.GetTypeAttr(byref(pta))
-        ta = pta.contents
 
+    def _get_methods(self, ta):
         methods = []
 
         for i in range(ta.cFuncs):
             pfd = LPFUNCDESC()
             self.ti.GetFuncDesc(i, byref(pfd))
             fd = pfd.contents
-            if fd.oVft/4 < self.nummethods:
+            if i < self.nummethods:
                 # method belongs to base class
                 continue
             
@@ -324,11 +329,17 @@ class InterfaceReader(TypeInfoReader):
 ## InterfaceReader, vt = VT_HRESULT, invkind = DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT
 ##            vt = fd.elemdescFunc.tdesc.vt
 ##            sys.stderr.write("restype for %s -> %s, kind %d\n" % (self, vt, fd.invkind))
-            mth = self.method_class(name, restype, argtypes)
+            mth = self.method_class(name, restype, argtypes, fd.memid)
             methods.append(mth)
             
             self.ti.ReleaseFuncDesc(pfd)
-
+        return methods
+    
+    def definition(self):
+        pta = LPTYPEATTR()
+        self.ti.GetTypeAttr(byref(pta))
+        ta = pta.contents
+        methods = self._get_methods(ta)
         self.ti.ReleaseTypeAttr(pta)
 
         l = []
@@ -346,10 +357,50 @@ class InterfaceReader(TypeInfoReader):
             result.append(self._get_type(e.tdesc))
         return result
 
+TYPEFLAG_FAPPOBJECT = 0x01
+TYPEFLAG_FCANCREATE = 0x02
+TYPEFLAG_FLICENSED = 0x04
+TYPEFLAG_FPREDECLID = 0x08
+TYPEFLAG_FHIDDEN = 0x10
+TYPEFLAG_FCONTROL = 0x20
+TYPEFLAG_FDUAL = 0x40
+TYPEFLAG_FNONEXTENSIBLE = 0x80
+TYPEFLAG_FOLEAUTOMATION = 0x100
+TYPEFLAG_FRESTRICTED = 0x200
+TYPEFLAG_FAGGREGATABLE = 0x400
+TYPEFLAG_FREPLACEABLE = 0x800
+TYPEFLAG_FDISPATCHABLE = 0x1000
+TYPEFLAG_FREVERSEBIND = 0x2000
+TYPEFLAG_FPROXY = 0x4000
+
 class DispatchInterfaceReader(InterfaceReader):
     baseinterface = "IDispatch"
     nummethods = 7
-    method_class = DispMethod
+    method_class = DispatchMethod
+
+    def _parse_typeattr(self, ta):
+        InterfaceReader._parse_typeattr(self, ta)
+        if (self.wTypeFlags & TYPEFLAG_FDISPATCHABLE) and not (self.wTypeFlags & TYPEFLAG_FDUAL):
+            self.nummethods = 0
+            self.method_class = DispMethod
+            self.baseinterface = "dispinterface"
+            self.is_dispinterface = 1
+
+    def definition(self):
+        if not self.is_dispinterface:
+            return InterfaceReader.definition(self)
+        pta = LPTYPEATTR()
+        self.ti.GetTypeAttr(byref(pta))
+        ta = pta.contents
+        methods = self._get_methods(ta)
+        self.ti.ReleaseTypeAttr(pta)
+
+        l = []
+        l.append("%s._dispmethods_ = [" % self.name)
+        for m in methods:
+            l.append('    (%s),' % m.declaration())
+        l.append("]")
+        return "\n".join(l)
 
 class CoClassReader(TypeInfoReader):
     def _parse_typeattr(self, ta):
@@ -401,7 +452,7 @@ class CoClassReader(TypeInfoReader):
 
 HEADER = r"""
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
-from ctypes.com.typeinfo import IDispatch, BSTR
+from ctypes.com.typeinfo import IDispatch, BSTR, VARIANT
 
 from ctypes import POINTER, c_voidp, c_byte, c_ubyte, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, \
@@ -413,6 +464,20 @@ class COMObject:
 
 class enum(c_int):
     pass
+
+OLECMDID = enum
+OLECMDEXECOPT = enum
+
+class dispinterface(IDispatch):
+    class __metaclass__(type(IDispatch)):
+        def __setattr__(self, name, value):
+            if name == '_dispmethods_':
+                setattr(self, '_methods_', IDispatch._methods_ + value)
+            type(IDispatch).__setattr__(self, name, value)
+            
+
+def DISPMETHOD(dispid, restype, name, *argtypes):
+    return STDMETHOD(HRESULT, name, *argtypes)
 """
 
 class TypeLibReader:
