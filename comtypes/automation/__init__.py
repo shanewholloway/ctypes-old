@@ -381,6 +381,20 @@ DISP_E_PARAMNOTFOUND = -2147352572
 DISP_E_MEMBERNOTFOUND = -2147352573
 DISP_E_UNKNOWNINTERFACE = -2147352575
 
+VT2CTYPE = {
+    VT_R4: c_float,
+    VT_R8: c_double,
+    VT_I4: c_long,
+    VT_INT: c_int,
+    VT_UI4: c_ulong,
+    VT_VOID: None,
+    VT_BSTR: BSTR,
+    VT_DISPATCH: POINTER(IDispatch),
+    VT_HRESULT: HRESULT,
+    VT_VARIANT: VARIANT,
+    VT_BOOL: VARIANT_BOOL,
+    }
+
 ################################################################
 
 if 0 and __name__ == "__main__":
