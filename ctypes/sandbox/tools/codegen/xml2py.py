@@ -40,6 +40,12 @@ def main(args=None):
                       dest="output",
                       help="output filename (if not specified, standard output will be used)",
                       default="-")
+
+    parser.add_option("-v",
+                      action="store_true",
+                      dest="verbose",
+                      default=False)
+
     options, files = parser.parse_args(args[1:])
 
     if len(files) != 1:
@@ -58,7 +64,8 @@ def main(args=None):
 
     generate_code(files[0], stream,
                   symbols=options.symbols,
-                  expressions=options.expressions)
+                  expressions=options.expressions,
+                  verbose=options.verbose)
 
 
 if __name__ == "__main__":
