@@ -23,10 +23,11 @@ static void EnterPython(char *msg)
 
 static void LeavePython(char *msg)
 {
-	PyThreadState *pts = PyThreadState_Swap(NULL);
+	PyThreadState *pts = PyThreadState_Get();
 	if (!pts)
 		Py_FatalError("wincall (LeavePython): ThreadState is NULL?");
 	PyThreadState_Clear(pts);
+	pts = PyThreadState_Swap(NULL);
 	PyThreadState_Delete(pts);
 	PyEval_ReleaseLock();
 }
@@ -86,6 +87,9 @@ static int __stdcall CallPythonObject(PyObject *callable,
 	PyObject *arglist = NULL;
 	int nArgs;
 	int retcode = -1;
+#ifdef MS_WIN32
+	DWORD dwExceptionCode = 0;
+#endif
 
 	ENTER_PYTHON("CallPythonObject");
 
@@ -155,9 +159,21 @@ static int __stdcall CallPythonObject(PyObject *callable,
 		}
 		/* XXX error handling! */
 	}
-	result = PyObject_CallObject(callable, arglist);
+
+#ifdef MS_WIN32
+	__try {
+		result = NULL;
+#endif
+		result = PyObject_CallObject(callable, arglist);
+#ifdef MS_WIN32
+	}
+	__except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
+		SetException(dwExceptionCode);
+	}
+#endif
 	if (!result) {
-		PrintError("CallObject\n");
+		Extend_Error_Info("(in callback) ");
+		PyErr_Print();
 	} else {
 		if ((result != Py_None)
 		    && !PyArg_Parse(result, "i", &retcode))
