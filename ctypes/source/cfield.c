@@ -109,7 +109,7 @@ CField_FromDesc(PyObject *desc, int index,
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 			if (idict->getfunc == getentry("u")->getfunc) {
 				struct fielddesc *fd = getentry("U");
 				getfunc = fd->getfunc;
@@ -682,7 +682,7 @@ c_get(void *ptr, unsigned size)
 	return PyString_FromStringAndSize((char *)ptr, 1);
 }
 
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 /* u - a single wchar_t character */
 static PyObject *
 u_set(void *ptr, PyObject *value, unsigned size)
@@ -885,7 +885,7 @@ z_get(void *ptr, unsigned size)
 	}
 }
 
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 static PyObject *
 Z_set(void *ptr, PyObject *value, unsigned size)
 {
@@ -1087,7 +1087,7 @@ static struct fielddesc formattable[] = {
 #endif
 	{ 'P', P_set, P_get, &ffi_type_pointer},
 	{ 'z', z_set, z_get, &ffi_type_pointer},
-#ifdef Py_USING_UNICODE
+#ifdef CTYPES_UNICODE
 	{ 'u', u_set, u_get, NULL}, /* ffi_type set later */
 	{ 'U', U_set, U_get, &ffi_type_pointer},
 	{ 'Z', Z_set, Z_get, &ffi_type_pointer},
