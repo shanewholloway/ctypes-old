@@ -1,23 +1,37 @@
-ctypes is a module allowing to create and manipulate C data types in
-Python. These can then be passed to C-functions loaded from dynamic
-link libraries.
+ctypes is a ffi (Foreign Function Interface) package for Python.  It
+allows to call functions exposed from dlls/shared libraries. ctypes
+has extensive facilities to create, access and manipulate C data types
+transparently from Python.
 
-This module is supposed to be a greatly enhanced and much more
-complete replacement of Sam Rushing's calldll/npstruct/windll
-modules. ctypes is not based on Sam's work, it has different roots.
+ctypes runs on Windows, MacOS X, Linux, Solaris.
 
-It requires Python 2.2 or higher, since it makes intensive use of the
+On Windows, ctypes contains (the beginning of) a COM framework mainly
+targetted to use and implement custom COM interfaces.
+
+----
+
+ctypes requires Python 2.2 or higher, since it makes intensive use of the
 new type system.
 
-For all platforms except Windows you'll need a recent version of
-libffi which supports your processor.  Ronald Oussoren has kindly
-assembled a snapshot of libffi taken from the GCC CVS repository which
-works with this release, it is availabale for download from the ctypes
-download page
+For all platforms except Windows you'll need a very recent version of
+libffi which supports your processor.
+
+----
+
+Unfortunately libffi is in a very sad state, there seem to be no
+official releases recent enough to be used with ctypes (libffi-1.20 is
+too old!).
+
+Currently libffi is maintained in the GCC CVS tree. Ronald Oussoren
+has kindly assembled a snapshot of libffi taken from the GCC CVS
+repository which works with this release, it is available for download
+from the ctypes download page
 http://sourceforge.net/project/showfiles.php?group_id=71702.
 
+----
+
 To install ctypes from source, unpack the distribution,
-enter the ctypes-0.6.0 directory, and enter
+enter the ctypes-0.6.x directory, and enter
 
   python setup.py install --help
 
@@ -33,41 +47,28 @@ To install from the binary windows installer, make sure you download
 the correct version depending on the Python version you use.
 
 For Python 2.2, you need
-    ctypes-0.6.0.win32-py2.2.exe
+    ctypes-0.6.x.win32-py2.2.exe
 
 For Python 2.3, you need
-    ctypes-0.6.0.win32-py2.3.exe 
+    ctypes-0.6.x.win32-py2.3.exe 
 
 
 ----
 
-It provides classes which can be used to create complicated C data
-types, for example, those used in Windows type libraries.
-
-Included is a facility to dynamically load DLLs, retrieve functions,
-and call them. You can also call methods on COM objects.
-
-Implemented are simple data types (int, char, string, and so on),
-function pointers (callbacks), structures, unions, arrays, and
-pointers.
-
-ctypes uses win32 structured exception handling, to make it as safe as
-possible, although it should be pretty clear that it's easy to crash
-the Python interpreter with it.
+On Windows, ctypes uses win32 structured exception handling, to make
+it as safe as possible, although it should be pretty clear that it's
+easy to crash the Python interpreter with it.
 
 The source distribution contains an extensive, although inclomplete,
 tutorial (which you can also read online), as well as example scripts
 demonstrating the use.
 
-One of these scripts contains a dynamic Dispatch implementation, which
-is used to drive MS word as an example.
-
 ----
 
-Current version: 0.6.0
+Current version: 0.6.2
 
 Homepage: http://starship.python.net/crew/theller/ctypes.html
 
 License: MIT
 
-Platforms: Windows, linux, MacOS X
+Platforms: Windows, linux, MacOS X, solaris
