@@ -62,8 +62,6 @@ typedef struct {
 #endif
 } CFuncPtrObject;
 
-extern PyObject *CData_GetList(CDataObject *mem);
-
 extern PyTypeObject StgDict_Type;
 #define StgDict_CheckExact(v)	    ((v)->ob_type == &StgDict_Type)
 #define StgDict_Check(v)	    PyObject_TypeCheck(v, &StgDict_Type)
