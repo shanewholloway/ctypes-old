@@ -223,63 +223,50 @@ CURRENCY = tagCY
 ################################################################
 # DECIMAL
 
-class tagDEC(Structure):
-    pass
-DECIMAL = tagDEC
+# A fixed point decimal number, stored as 12-byte integer, scaled by
+# scale which is between 0 and 28.  Sign stored separately.
+class _tagDEC_144E(Union):
+    class _tagDEC_1445DOLLAR_145E(Structure):
+        _fields_ = [
+            ('scale', c_ubyte),
+            ('sign', c_ubyte),
+        ]
+    _fields_ = [
+        # Unnamed field renamed to '_'
+        ('_', _tagDEC_1445DOLLAR_145E),
+        ('signscale', c_ushort),
+    ]
+assert sizeof(_tagDEC_144E) == 2, sizeof(_tagDEC_144E)
+assert alignment(_tagDEC_144E) == 2, alignment(_tagDEC_144E)
 
-class N6tagDEC5DOLLAR_144E(Union):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1022
-    pass
-class N6tagDEC5DOLLAR_1445DOLLAR_145E(Structure):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1023
-    pass
-N6tagDEC5DOLLAR_1445DOLLAR_145E._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1023
-    ('scale', c_ubyte),
-    ('sign', c_ubyte),
-]
-assert sizeof(N6tagDEC5DOLLAR_1445DOLLAR_145E) == 2, sizeof(N6tagDEC5DOLLAR_1445DOLLAR_145E)
-assert alignment(N6tagDEC5DOLLAR_1445DOLLAR_145E) == 1, alignment(N6tagDEC5DOLLAR_1445DOLLAR_145E)
-N6tagDEC5DOLLAR_144E._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1022
-    # Unnamed field renamed to '_'
-    ('_', N6tagDEC5DOLLAR_1445DOLLAR_145E),
-    ('signscale', c_ushort),
-]
-assert sizeof(N6tagDEC5DOLLAR_144E) == 2, sizeof(N6tagDEC5DOLLAR_144E)
-assert alignment(N6tagDEC5DOLLAR_144E) == 2, alignment(N6tagDEC5DOLLAR_144E)
-class N6tagDEC5DOLLAR_146E(Union):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1030
-    pass
-class N6tagDEC5DOLLAR_1465DOLLAR_147E(Structure):
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1031
-    pass
-N6tagDEC5DOLLAR_1465DOLLAR_147E._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1031
-    ('Lo32', c_ulong),
-    ('Mid32', c_ulong),
-]
-assert sizeof(N6tagDEC5DOLLAR_1465DOLLAR_147E) == 8, sizeof(N6tagDEC5DOLLAR_1465DOLLAR_147E)
-assert alignment(N6tagDEC5DOLLAR_1465DOLLAR_147E) == 4, alignment(N6tagDEC5DOLLAR_1465DOLLAR_147E)
-N6tagDEC5DOLLAR_146E._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1030
-    # Unnamed field renamed to '_'
-    ('_', N6tagDEC5DOLLAR_1465DOLLAR_147E),
-    ('Lo64', c_ulonglong),
-]
-assert sizeof(N6tagDEC5DOLLAR_146E) == 8, sizeof(N6tagDEC5DOLLAR_146E)
-assert alignment(N6tagDEC5DOLLAR_146E) == 8, alignment(N6tagDEC5DOLLAR_146E)
-tagDEC._fields_ = [
-    # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1020
-    ('wReserved', c_ushort),
-    # Unnamed field renamed to '_'
-    ('_', N6tagDEC5DOLLAR_144E),
-    ('Hi32', c_ulong),
-    # Unnamed field renamed to '_1'
-    ('_1', N6tagDEC5DOLLAR_146E),
-]
+class _tagDEC_146E(Union):
+    class _tagDEC_1465DOLLAR_147E(Structure):
+        _fields_ = [
+            ('Lo32', c_ulong),
+            ('Mid32', c_ulong),
+        ]
+    _fields_ = [
+        # Unnamed field renamed to '_'
+        ('_', _tagDEC_1465DOLLAR_147E),
+        ('Lo64', c_ulonglong),
+    ]
+assert sizeof(_tagDEC_146E) == 8, sizeof(_tagDEC_146E)
+assert alignment(_tagDEC_146E) == 8, alignment(_tagDEC_146E)
+
+class tagDEC(Structure):
+    _fields_ = [
+        # C:/PROGRA~1/MICROS~3.NET/Vc7/PLATFO~1/Include/wtypes.h 1020
+        ('wReserved', c_ushort),
+        # Unnamed field renamed to '_'
+        ('_', _tagDEC_144E),
+        ('Hi32', c_ulong),
+        # Unnamed field renamed to '_1'
+        ('_1', _tagDEC_146E),
+    ]
 assert sizeof(tagDEC) == 16, sizeof(tagDEC)
 assert alignment(tagDEC) == 8, alignment(tagDEC)
+
+DECIMAL = tagDEC
 
 ################################################################
 # VARIANT
