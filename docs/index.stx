@@ -16,18 +16,43 @@ The ctypes module
 
   News
 
-    **'ctypes' version 0.6.3 has been released**. The changes are
-    summarized "here":changes.html.
+    **'ctypes' version 0.9.0 has been released.**
 
-    Yasushi Masuda has translated the docs into
-    "japanese":http://www.python.jp/pub/doc_jp/contrib/ctypes/.
+    'ctypes' now requires Python 2.3 or higher, Python 2.2 is no longer
+    supported.
 
-    A 'ctypes'
-    "Wiki":http://starship.python.net/crew/theller/moin.cgi/CtypesModule,
-    and a mailing list which should be used to discuss the
-    usage and further development of 'ctypes'.  More info can be found
-    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
+    The big change is that 'ctypes' now uses the same code base on all
+    platforms, many, many bug should have been fixed this way on
+    non-windows systems.
 
+    There have been lots of improvements and additions both to ctypes
+    itself, and to the ctypes.com windows framework, too many to
+    remember now and document here.
+
+    Most prominent additions to ctypes.com are:
+
+	A ctypes.com.client module supporting dynamic dispatch
+
+	An internet explorer toolband sample
+
+	Many improvements to the stoplite sample
+
+    Detailed changelogs are in CVS (well, sometimes I forget to update
+    them):
+    
+    "ChangeLog":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD
+
+    "com ChangeLog":http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD
+
+
+  Future plans
+
+    The ultimate purpose of the 0.9 release series is to shake out the
+    remaining bugs, especially on platforms I have no access to, and
+    to target a rock stable ctypes 1.0 release.
+
+    When ctypes 1.0 is released, the com framework will be split off
+    into a separate framework named 'comtypes'.
 
 
   Testimonials
@@ -65,6 +90,19 @@ The ctypes module
     *ctypes is very cool! Great piece of work.* - Just van Rossum
 
   Old news
+
+    'ctypes' version 0.6.3 has been released. The changes are
+    summarized "here":changes.html.
+
+    Yasushi Masuda has translated the docs into
+    "japanese":http://www.python.jp/pub/doc_jp/contrib/ctypes/.
+
+    A 'ctypes'
+    "Wiki":http://starship.python.net/crew/theller/moin.cgi/CtypesModule,
+    and a mailing list which should be used to discuss the
+    usage and further development of 'ctypes'.  More info can be found
+    on the "list info page":http://lists.sourceforge.net/lists/listinfo/ctypes-users.
+
 
     'ctypes' version 0.6.0 has been released, and the
     documentation has been updated.
