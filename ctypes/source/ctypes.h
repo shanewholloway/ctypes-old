@@ -147,7 +147,6 @@ typedef struct {
 	int index;			/* Index into CDataObject's
 					   object array */
 	PyObject *fieldtype;		/* ctypes type of field */
-	GETFUNC getfunc;		/* getter function if proto is NULL */
 	SETFUNC setfunc;		/* setter function if proto is NULL */
 } CFieldObject;
 
@@ -168,8 +167,8 @@ typedef struct {
 	int length;		/* number of fields */
 	ffi_type ffi_type;
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
-	SETFUNC setfunc;	/* Only for simple objects */
-	GETFUNC getfunc;	/* Only for simple objects */
+	SETFUNC setfunc;
+	GETFUNC getfunc;
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
