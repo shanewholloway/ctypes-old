@@ -198,17 +198,27 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 }
 
 static PyObject *
-CField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
+CField_get(CFieldObject *self, CDataObject *src, PyTypeObject *type)
 {
-	CDataObject *src;
-	if (inst == NULL) {
+	StgDictObject *dict;
+
+	if (src == NULL) {
 		Py_INCREF(self);
 		return (PyObject *)self;
 	}
-	assert(CDataObject_Check(inst));
-	src = (CDataObject *)inst;
-	return CData_get(self->proto, self->getfunc, inst,
-			 self->index, self->size, src->b_ptr + self->offset);
+
+	if (self->getfunc)
+		return self->getfunc(src->b_ptr + self->offset, self->size);
+
+	/* If we would set self->getfunc in the CFieldObject constructor,
+	   we could delete the following 3 lines of code
+	*/
+	dict = PyType_stgdict(self->proto);
+	if (dict && dict->getfunc)
+		return dict->getfunc(src->b_ptr + self->offset, self->size);
+
+	return CData_FromBaseObj(self->proto, (PyObject *)src,
+				 self->index, src->b_ptr + self->offset);
 }
 
 static PyMemberDef CField_members[] = {
