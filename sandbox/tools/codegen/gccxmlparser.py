@@ -95,15 +95,15 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def File(self, attrs):
         name = attrs["name"]
+        if sys.platform == "win32" and " " in name:
+            # On windows, convert to short filename if it contains blanks
+            from ctypes import windll, create_unicode_buffer, sizeof, WinError
+            buf = create_unicode_buffer(512)
+            if windll.kernel32.GetShortPathNameW(name, buf, sizeof(buf)):
+                name = buf.value
         return typedesc.File(name)
 
-    def _fixup_File(self, f):
-        if sys.platform == "win32" and " " in f.name:
-            # On windows, convert to short filename if it contains blanks
-            from ctypes import windll, create_unicode_buffer, sizeof
-            buf = create_unicode_buffer(256)
-            if windll.kernel32.GetShortPathNameW(f.name, buf, sizeof(buf)):
-                f.name = buf.value
+    def _fixup_File(self, f): pass
     
     # simple types and modifiers
 
@@ -342,17 +342,16 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
         remove = []
         for n, i in self.all.items():
+            location = getattr(i, "location", None)
+            if location:
+                fil, line = location.split(":")
+                i.location = self.all[fil].name, line
             # link together all the nodes (the XML that gccxml generates uses this).
             mth = getattr(self, "_fixup_" + type(i).__name__)
             try:
                 mth(i)
             except KeyError: # XXX better exception catching
                 remove.append(n)
-            else:
-                location = getattr(i, "location", None)
-                if location:
-                    fil, line = location.split(":")
-                    i.location = self.all[fil].name, line
 
         for n in remove:
             del self.all[n]
