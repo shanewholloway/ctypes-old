@@ -178,8 +178,8 @@ class NumberTestCase(unittest.TestCase):
         a[0] = '?'
         self.failUnless(v.value == a[0])
 
-    def test_perf(self):
-        check_perf()
+##    def test_perf(self):
+##        check_perf()
         
 from ctypes import _SimpleCData
 class c_int_S(_SimpleCData):

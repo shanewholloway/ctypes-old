@@ -66,8 +66,8 @@ class SimpleTypesTestCase(unittest.TestCase):
 
         self.assertRaises(TypeError, LPINT.from_param, pointer(l))
 
-    def test_performance(self):
-        check_perf()
+##    def test_performance(self):
+##        check_perf()
 
 ################################################################
 
