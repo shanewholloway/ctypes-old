@@ -559,6 +559,129 @@ PyTypeObject PointerType_Type = {
   attribute, and a _type_ attribute.
 */
 
+static int
+CharArray_set_raw(CDataObject *self, PyObject *value)
+{
+	char *ptr;
+	int size;
+	if (-1 == PyString_AsStringAndSize(value, &ptr, &size))
+		return -1;
+	if (size > self->b_size) {
+		PyErr_SetString(PyExc_ValueError,
+				"string too long");
+		return -1;
+	}
+
+	memcpy(self->b_ptr, ptr, size);
+
+	/* What about CData_GetList()? We don't care, since we have a copy of the data */
+	return 0;
+}
+
+static PyObject *
+CharArray_get_raw(CDataObject *self)
+{
+	return PyString_FromStringAndSize(self->b_ptr, self->b_size);
+}
+
+static PyObject *
+CharArray_get_value(CDataObject *self)
+{
+	int i;
+	char *ptr = self->b_ptr;
+	for (i = 0; i < self->b_size; ++i)
+		if (*ptr++ == '\0')
+			break;
+	return PyString_FromStringAndSize(self->b_ptr, i);
+}
+
+static int
+CharArray_set_value(CDataObject *self, PyObject *value)
+{
+	char *ptr;
+	int size;
+	if (-1 == PyString_AsStringAndSize(value, &ptr, &size))
+		return -1;
+	if (size > self->b_size) {
+		PyErr_SetString(PyExc_ValueError,
+				"string too long");
+		return -1;
+	}
+
+	memcpy(self->b_ptr, ptr, size);
+	if (size < self->b_size)
+		self->b_ptr[size] = '\0';
+
+	/* What about CData_GetList()? We don't care, since we have a copy of the data */
+	return 0;
+}
+
+static PyGetSetDef CharArray_getsets[] = {
+	{ "raw", (getter)CharArray_get_raw, (setter)CharArray_set_raw,
+	  "value", NULL },
+	{ "value", (getter)CharArray_get_value, (setter)CharArray_set_value,
+	  "string value"},
+	{ NULL, NULL }
+};
+
+/*
+  The next three functions copied from Python's typeobject.c.
+
+  They are used to attach methods, members, or getsets to a type *after* it
+  has been created: Arrays of characters have additional getsets to treat them
+  as strings.
+ */
+/*
+static int
+add_methods(PyTypeObject *type, PyMethodDef *meth)
+{
+	PyObject *dict = type->tp_dict;
+	for (; meth->ml_name != NULL; meth++) {
+		PyObject *descr;
+		descr = PyDescr_NewMethod(type, meth);
+		if (descr == NULL)
+			return -1;
+		if (PyDict_SetItemString(dict,meth->ml_name, descr) < 0)
+			return -1;
+		Py_DECREF(descr);
+	}
+	return 0;
+}
+
+static int
+add_members(PyTypeObject *type, PyMemberDef *memb)
+{
+	PyObject *dict = type->tp_dict;
+	for (; memb->name != NULL; memb++) {
+		PyObject *descr;
+		descr = PyDescr_NewMember(type, memb);
+		if (descr == NULL)
+			return -1;
+		if (PyDict_SetItemString(dict, memb->name, descr) < 0)
+			return -1;
+		Py_DECREF(descr);
+	}
+	return 0;
+}
+*/
+
+static int
+add_getset(PyTypeObject *type, PyGetSetDef *gsp)
+{
+	PyObject *dict = type->tp_dict;
+	for (; gsp->name != NULL; gsp++) {
+		PyObject *descr;
+		descr = PyDescr_NewGetSet(type, gsp);
+		if (descr == NULL)
+			return -1;
+		if (PyDict_SetItemString(dict, gsp->name, descr) < 0)
+			return -1;
+		Py_DECREF(descr);
+	}
+	return 0;
+}
+
+
 static PyObject *
 ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -603,6 +726,7 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		Py_DECREF((PyObject *)stgdict);
 		return NULL;
 	}
+
 	itemsize = itemdict->size;
 	itemalign = itemdict->align;
 	itemlen = itemdict->length;
@@ -627,6 +751,11 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 	Py_DECREF(result->tp_dict);
 	result->tp_dict = (PyObject *)stgdict;
+
+	if (itemdict->getfunc == getentry("c")->getfunc) {
+		if (-1 == add_getset(result, CharArray_getsets))
+			return NULL;
+	}
 
 	return (PyObject *)result;
 }
