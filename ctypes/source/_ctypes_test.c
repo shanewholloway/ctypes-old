@@ -12,7 +12,7 @@
 #include <windows.h>
 #endif
 
-#ifdef MS_WIN32
+#if defined(MS_WIN32) || defined(__CYGWIN__)
 #define EXPORT(x) __declspec(dllexport) x
 #else
 #define EXPORT(x) x
