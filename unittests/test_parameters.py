@@ -215,14 +215,14 @@ def test_byref():
     """
     >>> from ctypes import byref, c_int, addressof
     >>> ci = c_int(42)
-    >>> "<cparam 'P' (%x)>" % addressof(ci) == repr(byref(ci))
+    >>> "<cparam 'P' (%08x)>" % addressof(ci) == repr(byref(ci))
     1
     
     >>> from ctypes import pointer
     >>> p = pointer(ci)
     >>> a = addressof(p.contents)
     >>> b = p._as_parameter_
-    >>> "<cparam 'P' (%x)>" % a == repr(p._as_parameter_)
+    >>> "<cparam 'P' (%08x)>" % a == repr(p._as_parameter_)
     1
 
     """
