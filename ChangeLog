@@ -1,3 +1,40 @@
+2005-04-01  Thomas Heller  <theller@python.net>
+
+	* Changed version number to 0.9.7beta
+
+	* Changed the way CData_FromBaseObj() works.  Instead of calling
+	the type with a _basespec_ keyword argument, the instance is
+	created in the normal way, and the base object and buffer attached
+	afterwards.  Again, this gave a large speedup - see
+	unittests/com/test_perf.py.
+	
+	* Added a small buffer (16 bytes) to the CDataObject structure.
+	This allows to skip the call to PyMem_Malloc() in the
+	GenericCData_new constructor for small C types.  Together with a
+	small optimization in Simple_init() it speeds up instance creation
+	a lot: c_int() now takes 0.5 us instead of 1.2 us.
+
+2005-03-31  Thomas Heller  <theller@python.net>
+
+	* Lots and lots of refactoring.  All types now have a setfunc and
+	getfunc in their stgdict.  This allowed to remove a lot of
+	typechecks spread all around the code.
+
+	CFieldObjects no longer have the getfunc and setfunc fields, they
+	are now using the functions from their fieldtype's stgdict.
+
+	Hopefully no change in behaviour - at least the testsuite runs as
+	before.
+
+2005-03-24  Thomas Heller  <theller@python.net>
+
+	* source\cfield.c: Refactored the code to always use the
+	CFieldObject's getfunc to get field contents.  This makes it easy
+	to enhance the code so that this function can be overridden from
+	Python.
+
+	These enhancements are currently marked #ifdef EXPERIMENTAL.
+
 2005-03-18  Thomas Heller  <theller@python.net>
 
 	* ctypes-0.9.6 released.
