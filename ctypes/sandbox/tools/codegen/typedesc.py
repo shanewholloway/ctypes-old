@@ -116,9 +116,10 @@ class Field(object):
         self.offset = int(offset)
 
 class CvQualifiedType(object):
-    def __init__(self, typ, attrib):
+    def __init__(self, typ, const, volatile):
         self.typ = typ
-        self.attrib = attrib
+        self.const = const
+        self.volatile = volatile
 
 class Enumeration(object):
     def __init__(self, name, size, align):
