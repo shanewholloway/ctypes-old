@@ -1,7 +1,7 @@
 from ctypes import Structure, Union, POINTER, pointer, byref, oledll, \
      c_short, c_ushort, c_int, c_uint, c_long, c_ulong, c_wchar_p, c_voidp, \
      c_float, c_double, c_byte, c_ubyte, sizeof
-from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, PIUnknown
+from ctypes.com import IUnknown, GUID, REFIID, REFGUID, STDMETHOD, HRESULT, PIUnknown, COMObject
 from ctypes.wintypes import DWORD, WORD
 
 oleaut32 = oledll.oleaut32
@@ -359,3 +359,47 @@ def LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid):
     p = pointer(ITypeLib())
     oleaut32.LoadRegTypeLib(rguid, wVerMajor, wVerMinor, lcid, byref(p))
     return p
+
+################################################################
+S_OK = 0
+
+class DualObjImpl(COMObject):
+
+    def __init__(self):
+        COMObject.__init__(self)
+        self.LoadTypeInfo()
+
+    def LoadTypeInfo(self):
+        interface = self._com_interfaces_[0]
+        tlib = pointer(ITypeLib())
+        oleaut32.LoadRegTypeLib(byref(self._typelib_.guid),
+                                self._typelib_.version[0],
+                                self._typelib_.version[1],
+                                0,
+                                byref(tlib))
+        typeinfo = pointer(ITypeInfo())
+        tlib.GetTypeInfoOfGuid(byref(interface._iid_), byref(typeinfo))
+        self.typeinfo = typeinfo
+
+    # IDispatch methods
+
+    def GetIDsOfNames(self, this, riid, rgszNames, cNames, lcid, rgDispid):
+        return oleaut32.DispGetIDsOfNames(self.typeinfo, rgszNames, cNames, rgDispid)
+
+    def Invoke(self, this, dispid, refiid, lcid, wFlags, pDispParams, pVarResult,
+               pExcepInfo, puArgErr):
+        return oleaut32.DispInvoke(this, self.typeinfo, dispid, wFlags, pDispParams,
+                                   pVarResult, pExcepInfo, puArgErr)
+
+    def GetTypeInfoCount(self, this, pctInfo):
+        if pctInfo:
+            pctInfo[0] = 1
+        return S_OK
+
+    def GetTypeInfo(self, this, index, lcid, ppTInfo):
+        # *ppTInfo = self.typeinfo
+        from ctypes import addressof, c_voidp
+        addr = c_voidp.from_address(addressof(ppTInfo)).value
+        c_voidp.from_address(addr).value = addressof(self.typeinfo.contents)
+        self.typeinfo.AddRef()
+        return S_OK

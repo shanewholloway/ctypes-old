@@ -130,4 +130,4 @@ def localserver(objclass):
     factory._register_class()
     pump_messages()
     factory._revoke_class()
-    ole32.CoUninitialize()
+##    ole32.CoUninitialize()
