@@ -1,6 +1,17 @@
 import unittest
 from ctypes import *
 
+def find_test_dll():
+    import sys, os
+    if os.name == "nt":
+        name = "_ctypes_test.pyd"
+    else:
+        name = "_ctypes_test.so"
+    for p in sys.path:
+        f = os.path.join(p, name)
+        if os.path.isfile(f):
+            return f
+
 class SlicesTestCase(unittest.TestCase):
     def test_getslice_cint(self):
         a = (c_int * 100)(*xrange(1100, 1200))
@@ -35,16 +46,17 @@ class SlicesTestCase(unittest.TestCase):
     def test_char_ptr(self):
         s = "abcdefghijklmnopqrstuvwxyz\0"
 
-        cdll.msvcrt._strdup.restype = POINTER(c_char)
-        res = cdll.msvcrt._strdup(s)
+        dll = CDLL(find_test_dll())
+        dll.my_strdup.restype = POINTER(c_char)
+        res = dll.my_strdup(s)
         self.failUnlessEqual(res[:len(s)], s)
 
         import operator
         self.assertRaises(TypeError, operator.setslice,
                           res, 0, 5, u"abcde")
 
-        cdll.msvcrt._strdup.restype = POINTER(c_byte)
-        res = cdll.msvcrt._strdup(s)
+        dll.my_strdup.restype = POINTER(c_byte)
+        res = dll.my_strdup(s)
         self.failUnlessEqual(res[:len(s)-1], range(ord("a"), ord("z")+1))
 
     def test_char_array(self):
@@ -62,16 +74,17 @@ class SlicesTestCase(unittest.TestCase):
         def test_wchar_ptr(self):
             s = u"abcdefghijklmnopqrstuvwxyz\0"
 
-            cdll.msvcrt._wcsdup.restype = POINTER(c_wchar)
-            res = cdll.msvcrt._wcsdup(s)
+            dll = CDLL(find_test_dll())
+            dll.my_wcsdup.restype = POINTER(c_wchar)
+            res = dll.my_wcsdup(s)
             self.failUnlessEqual(res[:len(s)], s)
 
             import operator
             self.assertRaises(TypeError, operator.setslice,
                               res, 0, 5, u"abcde")
 
-            cdll.msvcrt._wcsdup.restype = POINTER(c_short)
-            res = cdll.msvcrt._wcsdup(s)
+            dll.my_wcsdup.restype = POINTER(c_short)
+            res = dll.my_wcsdup(s)
             self.failUnlessEqual(res[:len(s)-1], range(ord("a"), ord("z")+1))
 
 ################################################################
