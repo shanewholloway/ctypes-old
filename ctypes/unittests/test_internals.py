@@ -26,15 +26,14 @@ class ObjectsTestCase(unittest.TestCase):
         self.failUnlessEqual(3, grc(i))
         ci = c_int(i)
         self.failUnlessEqual(3, grc(i))
-        self.failUnlessEqual([None], ci._objects)
+        self.failUnlessEqual(ci._objects, None)
 
     def test_c_char_p(self):
         s = "Hello, World"
         self.failUnlessEqual(3, grc(s))
         cs = c_char_p(s)
         self.failUnlessEqual(4, grc(s))
-        self.failUnlessSame(s, cs._objects[0])
-        self.failUnlessEqual([s], cs._objects)
+        self.failUnlessSame(cs._objects, s)
 
     def test_simple_struct(self):
         class X(Structure):
@@ -43,10 +42,10 @@ class ObjectsTestCase(unittest.TestCase):
         a = 421234
         b = 421235
         x = X()
-        self.failUnlessEqual(x._objects, [None, None])
+        self.failUnlessEqual(x._objects, None)
         x.a = a
         x.b = b
-        self.failUnlessEqual(x._objects, [None, None])
+        self.failUnlessEqual(x._objects, {"0": None, "1": None})
 
     def test_embedded_structs(self):
         class X(Structure):
@@ -56,14 +55,13 @@ class ObjectsTestCase(unittest.TestCase):
             _fields_ = [("x", X), ("y", X)]
 
         y = Y()
-        self.failUnlessEqual(y._objects, [None, None])
+        self.failUnlessEqual(y._objects, None)
 
         x1, x2 = X(), X()
         y.x, y.y = x1, x2
-        self.failUnlessEqual(y._objects, [[None, None], [None, None]])
+        self.failUnlessEqual(y._objects, {"0": {}, "1": {}})
         x1.a, x2.b = 42, 93
-        self.failUnlessEqual(y._objects, [[None, None], [None, None]])
-##        self.failUnlessEqual(y.x._objects, [None, None])
+        self.failUnlessEqual(y._objects, {"0": {"0": None}, "1": {"1": None}})
 
     def test_xxx(self):
         class X(Structure):
@@ -78,11 +76,11 @@ class ObjectsTestCase(unittest.TestCase):
         x = X()
         x.a = s1
         x.b = s2
-        self.failUnlessEqual(x._objects, [s1, s2])
+        self.failUnlessEqual(x._objects, {"0": s1, "1": s2})
 
         y = Y()
         y.x = x
-        self.failUnlessEqual(y._objects, [[s1, s2], None])
+        self.failUnlessEqual(y._objects, {"0": {"0": s1, "1": s2}})
 ##        x = y.x
 ##        del y
 ##        print x._b_base_._objects
@@ -93,7 +91,8 @@ class ObjectsTestCase(unittest.TestCase):
 
         A = c_int*4
         a = A(11, 22, 33, 44)
-        self.failUnlessEqual(a._objects, [None, None, None, None])
+        self.failUnlessEqual(a._objects,
+                             {"0": None, "1": None, "2": None, "3": None})
 
         x = X()
         x.data = a
