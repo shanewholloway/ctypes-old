@@ -236,8 +236,8 @@ class FunctionTestCase(unittest.TestCase):
 
         def callback(value):
             #print "called back with", value
-            self.failUnless(type(value) == c_int)
-            return value.value
+            self.failUnless(type(value) == int)
+            return value
         
         cb = MyCallback(callback)
         result = f(-10, cb)
@@ -256,8 +256,8 @@ class FunctionTestCase(unittest.TestCase):
         f.argtypes = [c_longlong, MyCallback]
 
         def callback(value):
-            self.failUnless(type(value) == c_longlong)
-            return value.value & 0x7FFFFFFF
+            self.failUnless(type(value) == long)
+            return value & 0x7FFFFFFF
 
         cb = MyCallback(callback)
 

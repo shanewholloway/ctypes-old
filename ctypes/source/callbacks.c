@@ -115,11 +115,24 @@ static int __stdcall CallPythonObject(PyObject *callable,
 		StgDictObject *dict;
 		if (cnv)
 			dict = PyType_stgdict(cnv);
-
-		if (!cnv) {
+		else {
 			PrintError("Getting argument converter %d\n", i);
 			goto Done;
-		} else if (dict) {
+		}
+
+		if (dict && dict->getfunc) {
+			PyObject *v = dict->getfunc(pArgs, dict->size);
+			if (!v) {
+				PrintError("create argument %d:\n", i);
+				goto Done;
+			}
+			PyTuple_SET_ITEM(arglist, i, v);
+			pArgs += dict->size / sizeof(int);
+			continue;
+		}
+
+		if (dict) {
+			/* Hm, shouldn't we use CData_AtAddress() or something like that instead? */
 			CDataObject *obj = (CDataObject *)PyObject_CallFunctionObjArgs(cnv, NULL);
 			if (!obj) {
 				PrintError("create argument %d:\n", i);
@@ -133,6 +146,7 @@ static int __stdcall CallPythonObject(PyObject *callable,
 			memcpy(obj->b_ptr, pArgs, dict->size);
 			pArgs += dict->size / sizeof(int);
 			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
+#if 1
 		} else if (PyString_Check(cnv)) {
 			/* XXX Here shows a bug, which also shows up somewhere else:
 			   Look for PyBuild_Value().
@@ -147,13 +161,7 @@ static int __stdcall CallPythonObject(PyObject *callable,
 				goto Done;
 			}
 			PyTuple_SET_ITEM(arglist, i, p); /* consumes 'p' */
-		} else if (PyCallable_Check(cnv)) {
-			PyObject *obj = PyObject_CallFunction(cnv, "i", *pArgs++);
-			if (!obj) {
-				PrintError("Converter failed on argument %d:\n", i);
-				goto Done;
-			}
-			PyTuple_SET_ITEM(arglist, i, obj);
+#endif
 		} else {
 			PyErr_SetString(PyExc_TypeError,
 					"cannot build parameter");
