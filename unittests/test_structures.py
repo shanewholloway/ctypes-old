@@ -16,11 +16,29 @@ class SubclassesTest(unittest.TestCase):
         self.failUnlessEqual(sizeof(X), sizeof(c_int))
         self.failUnlessEqual(sizeof(Y), sizeof(c_int)*2)
         self.failUnlessEqual(sizeof(Z), sizeof(c_int))
-
         self.failUnlessEqual(X._fields_, [("a", c_int)])
-
         self.failUnlessEqual(Y._fields_, [("b", c_int)])
+        self.failUnlessEqual(Z._fields_, [("a", c_int)])
 
+    def test_subclass_delayed(self):
+        class X(Structure):
+            pass
+        self.failUnlessEqual(sizeof(X), 0)
+        X._fields_ = [("a", c_int)]
+
+        class Y(X):
+            pass
+        self.failUnlessEqual(sizeof(Y), sizeof(X))
+        Y._fields_ = [("b", c_int)]
+
+        class Z(X):
+            pass
+
+        self.failUnlessEqual(sizeof(X), sizeof(c_int))
+        self.failUnlessEqual(sizeof(Y), sizeof(c_int)*2)
+        self.failUnlessEqual(sizeof(Z), sizeof(c_int))
+        self.failUnlessEqual(X._fields_, [("a", c_int)])
+        self.failUnlessEqual(Y._fields_, [("b", c_int)])
         self.failUnlessEqual(Z._fields_, [("a", c_int)])
 
 class StructureTestCase(unittest.TestCase):
