@@ -1,3 +1,22 @@
+# A tool to parse typelibraries, decompile them and write working
+# Python source code wrapping the classes, types, and interfaces with
+# ctypes.
+#
+# Status: Nearly works, the only catch currently is that it
+# creates code like this for interface pointers in methods
+#    POINTER(IUnknown)
+# instead of
+#    IUnknownPointer
+#
+# Would it be better to fix the code generation, or to either enhance
+# the POINTER function to return an IUnknownPointer class, or what?
+#
+#
+#
+# Minor things to do:
+#   move the VT_... constants into ctcom.typeinfo
+#   make it into a real tool with command line arguments
+#
 from ctcom.typeinfo import LoadTypeLib, ITypeInfoPointer, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT
 from ctcom.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS
@@ -137,14 +156,14 @@ class EnumReader(TypeInfoReader):
             vsrc = vd.u.lpvarValue.contents # the source variant containing the value
             v = VARIANT() # destination variant
 
-            # change the type to VT_I4
+            # change the type to VT_INT which is c_int
             from ctypes import oledll
             oleaut32 = oledll.oleaut32
             oleaut32.VariantChangeType(byref(v),
                                        byref(vsrc),
-                                       0, VT_I4)
+                                       0, VT_INT)
 
-            self.items.append((name, v._.lVal))
+            self.items.append((name, v._.iVal))
             self.ti.ReleaseVarDesc(pvd)
 
 class Method:
