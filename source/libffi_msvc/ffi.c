@@ -156,7 +156,7 @@ ffi_call_SYSV(void (*)(char *, extended_cif *),
 /*@=declundef@*/
 /*@=exportheader@*/
 
-#ifdef X86_WIN32
+#if defined(X86_WIN32) || defined(_MSC_VER)
 /*@-declundef@*/
 /*@-exportheader@*/
 #ifdef _MSC_VER
@@ -171,7 +171,7 @@ ffi_call_STDCALL(void (*)(char *, extended_cif *),
 		 void (*fn)());
 /*@=declundef@*/
 /*@=exportheader@*/
-#endif /* X86_WIN32 */
+#endif /* X86_WIN32 || _MSC_VER*/
 
 #ifdef _MSC_VER
 int
@@ -234,20 +234,25 @@ ffi_call(/*@dependent@*/ ffi_cif *cif,
 
 /** private members **/
 
-#ifdef UNDEFINED
-
 static void ffi_prep_incoming_args_SYSV (char *stack, void **ret,
 					 void** args, ffi_cif* cif);
+#ifndef _MSC_VER
 static void ffi_closure_SYSV (ffi_closure *)
      __attribute__ ((regparm(1)));
 static void ffi_closure_raw_SYSV (ffi_raw_closure *)
      __attribute__ ((regparm(1)));
+#endif
 
 /* This function is jumped to by the trampoline */
 
+#ifdef _MSC_VER
+static void __fastcall
+ffi_closure_SYSV (ffi_closure *closure, int *argp)
+#else
 static void
 ffi_closure_SYSV (closure)
      ffi_closure *closure;
+#endif
 {
   // this is our return value storage
   long double    res;
@@ -257,7 +262,11 @@ ffi_closure_SYSV (closure)
   void         **arg_area;
   unsigned short rtype;
   void          *resp = (void*)&res;
+#ifdef _MSC_VER
+  void *args = &argp[1];
+#else
   void *args = __builtin_dwarf_cfa ();
+#endif
 
   cif         = closure->cif;
   arg_area    = (void**) alloca (cif->nargs * sizeof (void*));  
@@ -274,6 +283,33 @@ ffi_closure_SYSV (closure)
 
   rtype = cif->flags;
 
+#ifdef _MSC_VER
+  /* now, do a generic return based on the value of rtype */
+  if (rtype == FFI_TYPE_INT)
+    {
+	    _asm mov eax, resp ;
+	    _asm mov eax, [eax] ;
+    }
+  else if (rtype == FFI_TYPE_FLOAT)
+    {
+//      asm ("flds (%0)" : : "r" (resp) : "st" );
+    }
+  else if (rtype == FFI_TYPE_DOUBLE)
+    {
+//      asm ("fldl (%0)" : : "r" (resp) : "st", "st(1)" );
+    }
+  else if (rtype == FFI_TYPE_LONGDOUBLE)
+    {
+//      asm ("fldt (%0)" : : "r" (resp) : "st", "st(1)" );
+    }
+  else if (rtype == FFI_TYPE_SINT64)
+    {
+//      asm ("movl 0(%0),%%eax;"
+//	   "movl 4(%0),%%edx" 
+//	   : : "r"(resp)
+//	   : "eax", "edx");
+    }
+#else
   /* now, do a generic return based on the value of rtype */
   if (rtype == FFI_TYPE_INT)
     {
@@ -298,6 +334,7 @@ ffi_closure_SYSV (closure)
 	   : : "r"(resp)
 	   : "eax", "edx");
     }
+#endif
 }
 
 /*@-exportheader@*/
@@ -344,7 +381,27 @@ ffi_prep_incoming_args_SYSV(char *stack, void **rvalue,
 
 /* How to make a trampoline.  Derived from gcc/config/i386/i386.c. */
 
-#define FFI_INIT_TRAMPOLINE(TRAMP,FUN,CTX) \
+/* MOV EDX, ESP is 0x8b 0xd4 */
+
+#ifdef _MSC_VER
+
+#define FFI_INIT_TRAMPOLINE(TRAMP,FUN,CTX,BYTES) \
+{ unsigned char *__tramp = (unsigned char*)(TRAMP); \
+   unsigned int  __fun = (unsigned int)(FUN); \
+   unsigned int  __ctx = (unsigned int)(CTX); \
+   unsigned int  __dis = __fun - ((unsigned int) __tramp + 8 + 4); \
+   *(unsigned char*)  &__tramp[0] = 0xb9; \
+   *(unsigned int*)   &__tramp[1] = __ctx; /* mov ecx, __ctx */ \
+   *(unsigned char*)  &__tramp[5] = 0x8b; \
+   *(unsigned char*)  &__tramp[6] = 0xd4; \
+   *(unsigned char*)  &__tramp[7] = 0xe8; \
+   *(unsigned int*)   &__tramp[8] = __dis; /* call __fun  */ \
+   *(unsigned char*)  &__tramp[12] = 0xC2; /* ret BYTES */ \
+   *(unsigned short*) &__tramp[13] = BYTES; \
+ }
+
+#else
+#define FFI_INIT_TRAMPOLINE(TRAMP,FUN,CTX,BYTES) \
 ({ unsigned char *__tramp = (unsigned char*)(TRAMP); \
    unsigned int  __fun = (unsigned int)(FUN); \
    unsigned int  __ctx = (unsigned int)(CTX); \
@@ -354,7 +411,7 @@ ffi_prep_incoming_args_SYSV(char *stack, void **rvalue,
    *(unsigned char *)  &__tramp[5] = 0xe9; \
    *(unsigned int*)  &__tramp[6] = __dis; /* jmp __fun  */ \
  })
-
+#endif
 
 /* the cif must already be prep'ed */
 
@@ -364,12 +421,22 @@ ffi_prep_closure (ffi_closure* closure,
 		  void (*fun)(ffi_cif*,void*,void**,void*),
 		  void *user_data)
 {
+  short bytes;
   FFI_ASSERT (cif->abi == FFI_SYSV);
+  
+  if (cif->abi == FFI_SYSV)
+    bytes = 0;
+#ifdef _MSC_VER
+  else if (cif->abi == FFI_STDCALL)
+    bytes = cif->bytes;
+#endif
+  else
+    return FFI_BAD_ABI;
 
-  FFI_INIT_TRAMPOLINE (&closure->tramp[0], \
-		       &ffi_closure_SYSV,  \
-		       (void*)closure);
-    
+  FFI_INIT_TRAMPOLINE (&closure->tramp[0],
+		       &ffi_closure_SYSV,
+		       (void*)closure,
+		       bytes);
   closure->cif  = cif;
   closure->user_data = user_data;
   closure->fun  = fun;
@@ -398,13 +465,15 @@ ffi_closure_raw_SYSV (closure)
   cif = closure->cif;
 
   /* the SYSV/X86 abi matches the RAW API exactly, well.. almost */
+#ifndef _MSC_VER
   raw_args = (ffi_raw*) __builtin_dwarf_cfa ();
-
+#endif
   (closure->fun) (cif, resp, raw_args, closure->user_data);
 
   rtype = cif->flags;
 
   /* now, do a generic return based on the value of rtype */
+#ifndef _MSC_VER
   if (rtype == FFI_TYPE_INT)
     {
       asm ("movl (%0),%%eax" : : "r" (resp) : "eax");
@@ -427,6 +496,7 @@ ffi_closure_raw_SYSV (closure)
 	   : : "r"(resp)
 	   : "eax", "edx");
     }
+#endif
 }
 
  
@@ -455,7 +525,7 @@ ffi_prep_raw_closure (ffi_raw_closure* closure,
   
 
   FFI_INIT_TRAMPOLINE (&closure->tramp[0], &ffi_closure_raw_SYSV,
-		       (void*)closure);
+		       (void*)closure, 0);
     
   closure->cif  = cif;
   closure->user_data = user_data;
@@ -469,29 +539,6 @@ ffi_prep_args_raw(char *stack, extended_cif *ecif)
 {
   memcpy (stack, ecif->avalue, ecif->cif->bytes);
 }
-
-#endif /* UNDEFINED */
-
-/* we borrow this routine from libffi (it must be changed, though, to
- * actually call the function passed in the first argument.  as of
- * libffi-1.20, this is not the case.)
- */
-
-extern void 
-ffi_call_SYSV(void (*)(char *, extended_cif *), 
-	      /*@out@*/ extended_cif *, 
-	      unsigned, unsigned, 
-	      /*@out@*/ unsigned *, 
-	      void (*fn)());
-
-#ifdef X86_WIN32
-extern void
-ffi_call_STDCALL(void (*)(char *, extended_cif *),
-	      /*@out@*/ extended_cif *,
-	      unsigned, unsigned,
-	      /*@out@*/ unsigned *,
-	      void (*fn)());
-#endif /* X86_WIN32 */
 
 void
 ffi_raw_call(/*@dependent@*/ ffi_cif *cif, 
