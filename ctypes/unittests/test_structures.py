@@ -2,6 +2,30 @@ import unittest
 from ctypes import *
 from struct import calcsize
 
+class SubclassesTest(unittest.TestCase):
+    def test_subclass(self):
+        class X(Structure):
+            _fields_ = [("a", c_int)]
+
+        class Y(X):
+            _fields_ = X._fields_ + [("b", c_int)]
+
+        class Z(X):
+            pass
+
+        self.failUnlessEqual(sizeof(X), sizeof(c_int))
+        self.failUnlessEqual(sizeof(Y), sizeof(c_int)*2)
+        self.failUnlessEqual(sizeof(Z), sizeof(c_int))
+
+        self.failUnlessEqual(X._fields_,
+                             [("a", c_int)])
+
+        self.failUnlessEqual(Y._fields_,
+                             [("a", c_int), ("b", c_int)])
+
+        self.failUnlessEqual(Z._fields_,
+                             [("a", c_int)])
+
 class StructureTestCase(unittest.TestCase):
     formats = {"c": c_char,
                "b": c_byte,
