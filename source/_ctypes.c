@@ -2849,6 +2849,16 @@ CField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
 	return self->getfunc(mem->b_ptr + self->offset, self->size);
 }
 
+static PyMemberDef CField_members[] = {
+	{ "offset", T_UINT,
+	  offsetof(CFieldObject, offset), READONLY,
+	  "offset in bytes of this field"},
+	{ "size", T_UINT,
+	  offsetof(CFieldObject, size), READONLY,
+	  "size in bytes of this field"},
+	{ NULL },
+};
+
 static PyTypeObject CField_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,					/* ob_size */
@@ -2879,7 +2889,7 @@ static PyTypeObject CField_Type = {
 	0,					/* tp_iter */
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
-	0,					/* tp_members */
+	CField_members,				/* tp_members */
 	0,					/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
