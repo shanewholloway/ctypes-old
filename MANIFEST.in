@@ -4,7 +4,7 @@ include source/darwin/*.c source/darwin/*.h
 include ctypes/.CTYPES_DEVEL
 recursive-include source/gcc *
 
-include unittests/*.py
+recursive-include unittests *.py
 include docs/*.html
 include docs/*.css
 include docs/*.stx
