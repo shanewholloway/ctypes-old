@@ -126,15 +126,6 @@ if sys.platform == "win32":
 
 ################################################################
 
-# We must add the current directory to $PYTHONPATH for the unittests
-# running as separate processes
-pypath = os.environ.get("PYTHONPATH")
-if pypath:
-    pypath = pypath.split(os.pathsep) + [os.getcwd()]
-else:
-    pypath = [os.getcwd()]
-os.environ["PYTHONPATH"] = os.pathsep.join(pypath)
-
 class test(Command):
     # Original version of this class posted
     # by Berthold Hoellmann to distutils-sig@python.org
@@ -171,6 +162,18 @@ class test(Command):
 
     # finalize_options()
 
+    def extend_path(self):
+        # We must add the current directory to $PYTHONPATH for the unittests
+        # running as separate processes
+        pypath = os.environ.get("PYTHONPATH")
+        if pypath:
+            pypath = pypath.split(os.pathsep) + []
+        else:
+            pypath = []
+        if os.getcwd() in pypath:
+            return
+        os.environ["PYTHONPATH"] = os.pathsep.join(pypath)
+
     def run(self):
         import glob, unittest, time
         self.run_command('build')
@@ -179,6 +182,7 @@ class test(Command):
         test_files = [os.path.basename(f) for f in glob.glob(mask)]
 
         self.announce("testing")
+        self.extend_path()
 
         self.testcases = []
         self.ok = self.fail = self.errors = 0
