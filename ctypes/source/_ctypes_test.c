@@ -77,7 +77,7 @@ EXPORT(wchar_t *) my_wcsdup(wchar_t *src)
 	return ptr;
 }
 
-EXPORT(size_t *) my_wcslen(wchar_t *src)
+EXPORT(size_t) my_wcslen(wchar_t *src)
 {
 	return wcslen(src);
 }
