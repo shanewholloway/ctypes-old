@@ -372,9 +372,6 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
             if isinstance(i, interesting):
                 result.append(i)
 
-
-        # todo: get cpp_data, and convert it into typedesc nodes.
-
         return result
 
 ################################################################
