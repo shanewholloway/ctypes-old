@@ -19,7 +19,7 @@
 # See also: http://archive.devx.com/upload/free/features/vcdj/2000/03mar00/fg0300/fg0300.asp
 #
 
-from ctypes.com.typeinfo import LoadTypeLibEx, ITypeInfo, BSTR, \
+from ctypes.com.typeinfo import LoadTypeLibEx, LoadTypeLib, ITypeInfo, BSTR, \
      LPTYPEATTR, LPFUNCDESC, LPVARDESC, HREFTYPE, VARIANT, LPTLIBATTR
 from ctypes.com.typeinfo import TKIND_ENUM, TKIND_INTERFACE, TKIND_DISPATCH, TKIND_COCLASS, \
      TKIND_RECORD
@@ -472,18 +472,25 @@ class dispinterface(IDispatch):
     class __metaclass__(type(IDispatch)):
         def __setattr__(self, name, value):
             if name == '_dispmethods_':
-                setattr(self, '_methods_', IDispatch._methods_ + value)
+                protos = []
+                dispmap = {}
+                for dispid, mthname, proto in value:
+                    protos.append(proto)
+                    dispmap[dispid] = mthname
+                setattr(self, '_methods_', IDispatch._methods_ + protos)
+                type(IDispatch).__setattr__(self, '_dispmap_', dispmap)
             type(IDispatch).__setattr__(self, name, value)
             
 
 def DISPMETHOD(dispid, restype, name, *argtypes):
-    return STDMETHOD(HRESULT, name, *argtypes)
+    return dispid, name, STDMETHOD(HRESULT, name, *argtypes)
 """
 
 class TypeLibReader:
     def __init__(self, filename):
-        self.filename = filename
-        tlb = self.tlb = LoadTypeLibEx(filename)
+        import os
+        self.filename = os.path.abspath(filename)
+        tlb = self.tlb = LoadTypeLibEx(self.filename)
 
         self.coclasses = {}
         self.interfaces = {}
@@ -594,7 +601,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
-        path = r"c:\windows\system32\shdocvw.dll"
+        path = r"fpanel.tlb"
+##        path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\tss5\bin\debug\ITInfo.dll"
 ##        path = r"c:\tss5\bin\debug\Measurement.dll"
 ##        path = r"c:\sms3a.tlb"
