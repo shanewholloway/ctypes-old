@@ -150,6 +150,16 @@ def GetTypeComp(tlb):
 
 ################################################################
 
+class COMError(WindowsError):
+    def __init__(self, *args):
+        WindowsError.__init__(self, *args)
+        self.args = args
+
+    def __str__(self):
+        return str(self.args)
+
+################################################################
+
 class _Constants(object):
     def __init__(self, ti):
         tlb = GetContainingTypeLib(ti)
@@ -360,14 +370,20 @@ class _DispMethod(object):
     def __call__(self, *args, **kw):
         parms = self._build_parms(*args, **kw)
         result = VARIANT()
-        self._comobj.Invoke(self.fd.memid,
-                           byref(guid_null),
-                           0, # LCID
-                           self.fd.invkind,
-                           byref(parms),
-                           byref(result), # pVarResult
-                           None, # pExcepInfo
-                           None) # puArgError
+        excepinfo = EXCEPINFO()
+        uArgError = c_uint()
+        try:
+            self._comobj.Invoke(self.fd.memid,
+                                byref(guid_null),
+                                0, # LCID
+                                self.fd.invkind,
+                                byref(parms),
+                                byref(result), # pVarResult
+                                byref(excepinfo), # pExcepInfo
+                                byref(uArgError)) # puArgError
+        except WindowsError, (errno, strerror):
+            assert excepinfo.pfnDeferredFillIn == 0
+            raise COMError(errno, strerror, excepinfo.as_tuple(), uArgError.value)
         return _wrap(result)
 
     # XXX Note to self: There's a DispGetParam oleaut32 api, is this useful somewhere?
