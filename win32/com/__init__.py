@@ -78,24 +78,32 @@ class _interface_meta(type(Structure)):
     available when the class is first used.
     """
     
-    def __new__(self, name, bases, kwds):
+    def __new__(cls, name, bases, kwds):
         # create a new COM interface class
-        self.VTable_ptr = POINTER("%s_VTable" % name)
-        fields = [("lpVtbl", self.VTable_ptr)]
+        VTable_ptr = POINTER("%s_VTable" % name)
+        fields = [("lpVtbl", VTable_ptr)]
         kwds["_fields_"] = fields
-        result = type(Structure).__new__(self, name, bases, kwds)
+        result = type(Structure).__new__(cls, name, bases, kwds)
+        result.VTable_ptr = VTable_ptr
         if kwds.has_key("_methods_"):
             result.__make_vtable()
             result.__make_methods()
         return result
 
     def __make_vtable(self):
-        class _VTable(Structure):
-            _fields_ = self._methods_
+        print "# making VTable class for", self, id(self)
+        _VTable = type(Structure)("%s_VTable" % self.__name__,
+                                  (Structure,),
+                                  {"_fields_": self._methods_})
         SetPointerType(self.VTable_ptr, _VTable)
+        print "# done", self.VTable_ptr
+
+    def _init_class(self):
+        self.__make_vtable()
+        self.__make_methods()
 
     def __setattr__(self, name, value):
-        if hasattr(self, "_methods_"):
+        if name == "_methods_" and self.__dict__.has_key("_methods_"):
             raise TypeError, "Cannot change _methods_"
         type(Structure).__setattr__(self, name, value)
         if name == "_methods_":
