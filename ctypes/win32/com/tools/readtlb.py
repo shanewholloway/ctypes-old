@@ -670,7 +670,6 @@ class TypeLibReader:
             print >> ofi
             print >> ofi, "#" * 78
             for itf in self.records:
-                print "USES", itf.name, itf._uses
                 print >> ofi
                 print >> ofi, itf.declaration()
 
