@@ -96,9 +96,22 @@ class dispinterface_EventReceiver(COMObject):
         args = self._get_args(pDispParams[0])
         mth = getattr(self, mthname, None)
         if mth is not None:
-            # For symmetry with other code, we *should* also pass the
-            # 'this' parameter, but we don't.
+            # Should we, for symmetry with other code, also pass the
+            # 'this' parameter? Currently we don't.
             mth(this, *args)
         else:
             print "# Unimplemented (%s %s)" % (mthname, args)
         return 0
+
+    def connect(self, source):
+        # connect with a source.
+        # returns data which must be passed to disconnect later.
+        cp = GetConnectionPoint(source, self._com_interfaces_[0])
+        pevents = self._com_pointers_[0][1]
+        cookie = DWORD()
+        cp.Advise(byref(pevents), byref(cookie))
+        return cp, cookie
+
+    def disconnect(self, (cp, cookie)):
+        # disconnect. Call this with the data returned by connect()
+        cp.Unadvise(cookie)
