@@ -840,26 +840,41 @@ static PyObject *
 BSTR_set(void *ptr, PyObject *value, unsigned size)
 {
 	BSTR bstr;
-	wchar_t *s;
-	int len;
 
-	if (PyString_Check(value)) {
+	/* convert value into a PyUnicodeObject or NULL */
+	if (Py_None == value) {
+		value = NULL;
+	} else if (PyString_Check(value)) {
 		value = PyUnicode_FromObject(value);
 		if (!value)
 			return NULL;
-	} else if (!PyUnicode_Check(value)) {
+	} else if (PyUnicode_Check(value)) {
+		Py_INCREF(value); /* for the descref below */
+	} else {
 		PyErr_Format(PyExc_TypeError,
 				"unicode string expected instead of %s instance",
 				value->ob_type->tp_name);
 		return NULL;
+	}
+
+	/* create a BSTR from value */
+	if (value) {
+		bstr = SysAllocStringLen(PyUnicode_AS_UNICODE(value),
+					 PyUnicode_GET_SIZE(value));
+		Py_DECREF(value);
 	} else
-		Py_INCREF(value);
-	s = PyUnicode_AS_UNICODE(value);
-	len = PyUnicode_GET_SIZE(value);
-	/* The programmer has to call SysFreeString somewhere, if needed */
-	bstr = SysAllocStringLen(s, len);
+		bstr = NULL;
+
+	/* free the previous contents, if any */
+	if (*(BSTR *)ptr)
+		SysFreeString(*(BSTR *)ptr);
+	
+	/* and store it */
 	*(BSTR *)ptr = bstr;
-	return value;
+
+	/* We don't need to keep any other object */
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -871,6 +886,9 @@ BSTR_get(void *ptr, unsigned size)
 	if (p)
 		return PyUnicode_FromWideChar(p, SysStringLen(p));
 	else {
+		/* Hm, it seems NULL pointer and zero length string are the
+		   same in BSTR, see Don Box, p 81
+		*/
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
