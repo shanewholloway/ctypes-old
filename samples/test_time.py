@@ -1,4 +1,4 @@
-from ctypes import cdll, c_int, Structure, byref, pointer, POINTER
+from ctypes import cdll, c_int, Structure, byref, pointer, POINTER, c_int, c_char_p
 
 class tm(Structure):
     _fields_ = [("tm_sec", "i"),
@@ -68,11 +68,11 @@ if __name__ == '__main__':
 
     # prototype
     clib.asctime.argtypes = [POINTER(tm)]
-    clib.asctime.restype = "z"
+    clib.asctime.restype = c_char_p# "z"
 
     # prototype
     clib.time.argtypes = [POINTER(c_int)]
-    clib.time.restype = "i"
+    clib.time.restype = c_int #"i"
 
     # prototype
     clib.localtime.argtypes = [POINTER(c_int)]
