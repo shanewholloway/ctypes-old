@@ -2,6 +2,24 @@ import unittest
 
 class SimpleTypesTestCase(unittest.TestCase):
 
+    def setUp(self):
+        import ctypes
+        try:
+            from _ctypes import set_conversion_mode
+        except ImportError:
+            pass
+        else:
+            self.prev_conv_mode = set_conversion_mode("ascii", "strict")
+
+    def tearDown(self):
+        try:
+            from _ctypes import set_conversion_mode
+        except ImportError:
+            pass
+        else:
+            set_conversion_mode(*self.prev_conv_mode)
+        
+
     # XXX Replace by c_char_p tests
     def test_cstrings(self):
         from ctypes import c_char_p, byref
