@@ -1,3 +1,18 @@
+2003-01-28  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Dangerous code checked in.  Pointer instances
+	can point to a single data item, or they can point to an array of
+	values.  Back in the distant past ;-), I had a SetSize() method,
+	which would enable indexes != 0.  Don't know when and why I
+	removed it, but I need it again.  Should it have to be enabled
+	explicitely?  Would be better, it seems.
+ 
+ 	Note that there's no corresponding ass_item implementation with
+	indexes != 0.  This means, we can get and change the items the
+	pointer points to, if they are mutable, but not replace the items
+	by different ones.
+
+
 2003-01-24  Thomas Heller  <theller@python.net>
 
 	* (several): Fixed the alignment and size of the compound
@@ -5,12 +20,12 @@
 
 2003-01-23  Thomas Heller  <theller@python.net>
 
-	* source/_ctypes.c: Raise a TypeError if a SimpleCData type
-	or a CDataType is specified as a CFunction's restype.
+	* source/_ctypes.c: Raise a TypeError if a SimpleCData type or a
+	CDataType is specified as a CFunction's restype.
 	
-	* source/_ctypes.c: CFunction now has a from_param class
-	method. This means that CFunction subclasses can now be used in
-	the argtypes attribute, and so typechecking is done.
+	* source/_ctypes.c: CFunction now has a from_param class method.
+	This means that CFunction subclasses can now be used in the
+	argtypes attribute, and so typechecking is done.
 
 	* unittests: Rewrote the tests from doctest to pyunit.
 
@@ -33,7 +48,7 @@
 2003-01-20  Thomas Heller  <theller@python.net>
 
 	* source/*.[ch]: Introduced PyCArgObject objects, which contain a
-	Python object itself and also the data converted to C. This
+	Python object itself and also the data converted to C.  This
 	replaces the magic 3-tuples, and should be somewhat faster because
 	no two conversions take place.
 
