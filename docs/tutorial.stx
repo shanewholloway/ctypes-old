@@ -170,19 +170,23 @@ ctypes tutorial
     |'c_ulong'    |'unsigned long'    |long       |
     |---------------------------------------------|
     |'c_longlong' |'__int64' or       |long       |
-    |        	  |'long long'        |           |
+    |             |'long long'        |           |
     |---------------------------------------------|
     |'c_ulonglong'|'unsigned __int64' or|long     |
-    |        	  |'unsigned long long'|          |
+    |             |'unsigned long long'|          |
     |---------------------------------------------|
-    |'c_char_p'	  |'char *'           |string or  |
-    |        	  |(NUL terminated)   |'None'     |
+    |'c_float'    |'float'            |float      |
+    |---------------------------------------------|
+    |'c_double'   |'double'           |float      |
+    |---------------------------------------------|
+    |'c_char_p'   |'char *'           |string or  |
+    |             |(NUL terminated)   |'None'     |
     |---------------------------------------------|
     |'c_wchar_p'  |'wchar_t *'        |unicode or |
-    |        	  |(NUL terminated)   |'None'     |
+    |             |(NUL terminated)   |'None'     |
     |---------------------------------------------|
-    |'c_void_p'	  |'void *'           |integer or |
-    |        	  |                   |'None'     |
+    |'c_void_p'   |'void *'           |integer or |
+    |             |                   |'None'     |
     |---------------------------------------------|
 
     All these types can be created by calling them with an optional
@@ -413,7 +417,7 @@ ctypes tutorial
       >>> GetModuleHandle("something silly")
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-	File "<stdin>", line 3, in ValidHandle
+        File "<stdin>", line 3, in ValidHandle
       WindowsError: [Errno 126] The specified module could not be found.
       >>>
 
@@ -552,7 +556,7 @@ ctypes tutorial
       ...
       >>> class MyStruct(Structure):
       ...    _fields_ = [("a", c_int),
-      ...	         ("b", float),
+      ...                ("b", float),
       ...                ("point_array", POINT * 4)]
       >>>
       >>> print len(MyStruct().point_array)
@@ -675,7 +679,7 @@ ctypes tutorial
        ...
        Traceback (most recent call last):
          File "<stdin>", line 1, in ?
-	 File "<stdin>", line 2, in cell
+         File "<stdin>", line 2, in cell
        NameError: name 'cell' is not defined
        >>>
 
