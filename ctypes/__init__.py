@@ -165,30 +165,35 @@ if _os.name == "nt":
         def __repr__(self):
             return "%s(%r)" % (self.__class__.__name__, self.value)
 
-_cache = {}
+# This cache maps types to pointers to them.
+_pointer_type_cache = {}
 
 def POINTER(cls):
     if type(cls) is str:
         klass = type(_Pointer)("LP_%s" % cls,
                                (_Pointer,),
                                {})
-        _cache[cls] = klass
+        _pointer_type_cache[id(klass)] = klass
         return klass
-    klass = _cache.get(cls, None)
+    klass = _pointer_type_cache.get(cls, None)
     if klass is None:
         name = "LP_%s" % cls.__name__
         klass = type(_Pointer)(name,
                                (_Pointer,),
                                {'_type_': cls})
-        _cache[cls] = klass
+        _pointer_type_cache[cls] = klass
     return klass
     
-def SetPointerType(pointer, type):
-    if _cache.get(type, None) is not None:
+def SetPointerType(pointer, cls):
+    if _pointer_type_cache.get(cls, None) is not None:
         raise RuntimeError, \
               "This type already exists in the cache"
-    pointer.set_type(type)
-    _cache[type] = pointer
+    if not _pointer_type_cache.has_key(id(pointer)):
+        raise RuntimeError, \
+              "What's this???"
+    pointer.set_type(cls)
+    _pointer_type_cache[cls] = pointer
+    del _pointer_type_cache[id(pointer)]
 
 
 def pointer(inst):
