@@ -14,26 +14,9 @@ The ctypes module
 
   News
 
-    **'ctypes' version 0.6.0 has been released**, and the
+    **'ctypes' version 0.6.1 has been released**, and the
     documentation has been updated. The changes are summarized
     "here":ctypes/changes.html.
-
-    There have been some (also incompatible) changes, but I'm quite
-    pleased with the result: ctypes is much more consistent than before.
-
-    A proof-of-concept COM framework has been implemented, and added
-    to the package. It is in an early stage, and I would like
-    experienced COM developers to look at it, and submit feedback.
-
-    Other changes are documented "here":ctypes/changes.html.
-
-  Status
-
-    The first public versions of 'ctypes' were marked *experimental*.
-    I'm currently rewriting the internals to do better checking, and
-    implementing unittests for it. It is amazing how many bugs these
-    tests find, although using 'ctypes' has been quite successful. The
-    tests seem to improve the code quality a lot.
 
   Testimonials
 
@@ -70,6 +53,19 @@ The ctypes module
     *ctypes is very cool! Great piece of work.* - Just van Rossum
 
   Old news
+
+    'ctypes' version 0.6.0 has been released, and the
+    documentation has been updated. The changes are summarized
+    "here":ctypes/changes.html.
+
+    There have been some (also incompatible) changes, but I'm quite
+    pleased with the result: ctypes is much more consistent than before.
+
+    A proof-of-concept COM framework has been implemented, and added
+    to the package. It is in an early stage, and I would like
+    experienced COM developers to look at it, and submit feedback.
+
+    Other changes are documented "here":ctypes/changes.html.
 
     'ctypes' now works on Windows, Linux and MacOSX. Thanks
     to *Robin Becker* and *Just van Rossum* for their help.
