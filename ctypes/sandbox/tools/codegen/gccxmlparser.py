@@ -24,10 +24,10 @@ def run_gccxml(fnames, options, verbose=0, xml_file=None):
     handle, c_file = tempfile.mkstemp(suffix=".c", text=True)
     if verbose:
         print >> sys.stderr, "writing temporary C source file %s" % c_file
-    os.write(handle, 'extern "C" {\n');
+##    os.write(handle, 'extern "C" {\n');
     for fname in fnames:
         os.write(handle, '#include <%s>\n' % fname)
-    os.write(handle, '}');
+##    os.write(handle, '}');
     os.close(handle)
 
     if xml_file is None:
@@ -58,7 +58,8 @@ def run_gccxml(fnames, options, verbose=0, xml_file=None):
 
 class GCCXML_Handler(xml.sax.handler.ContentHandler):
     has_values = Set(["Enumeration", "Function", "FunctionType",
-                      "OperatorFunction", "Method", "Constructor"])
+                      "OperatorFunction", "Method", "Constructor",
+                      "Destructor", "OperatorMethod"])
 
     def __init__(self, *args):
         xml.sax.handler.ContentHandler.__init__(self, *args)
@@ -73,12 +74,11 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         # find and call the handler for this element
         mth = getattr(self, name)
         result = mth(attrs)
-        if result is None:
-            return
-        # record the result
-        _id = attrs.get("id", None)
-        if _id is not None:
-            self.all[_id] = result
+        if result is not None:
+            # record the result
+            _id = attrs.get("id", None)
+            if _id is not None:
+                self.all[_id] = result
         # if this element has children, push onto the context
         if name in self.has_values:
             self.context.append(result)
@@ -86,10 +86,13 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def endElement(self, name):
         # if this element has children, pop the context
         if name in self.has_values:
-            self.context = self.context[:-1]
+            self.context.pop()
 
     ################################
     # do-nothing element handlers
+
+    def Class(self, attrs): pass
+    def Destructor(self, attrs): pass
     
     def GCC_XML(self, attrs): pass
     def Namespace(self, attrs): pass
@@ -98,6 +101,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def Base(self, attrs): pass
     def Ellipsis(self, attrs): pass
     def File(self, attrs): pass
+    def OperatorMethod(self, attrs): pass
 
     ################################
     # real element handlers
@@ -114,13 +118,20 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def FundamentalType(self, attrs):
         name = attrs["name"]
-        return nodes.FundamentalType(name)
+        if name == "void":
+            size = ""
+        else:
+            size = attrs["size"]
+        align = attrs["align"]
+        return nodes.FundamentalType(name, size, align)
 
     def _fixup_FundamentalType(self, t): pass
 
     def PointerType(self, attrs):
         typ = attrs["type"]
-        return nodes.PointerType(typ)
+        size = attrs["size"]
+        align = attrs["align"]
+        return nodes.PointerType(typ, size, align)
 
     def _fixup_PointerType(self, p):
         p.typ = self.all[p.typ]
@@ -200,19 +211,23 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def Argument(self, attrs):
         typ = attrs["type"]
-        self.context[-1].add_argument(typ) # name?
+        parent = self.context[-1]
+        if parent is not None:
+            parent.add_argument(typ) # name?
 
     # enumerations
 
     def Enumeration(self, attrs):
         # id, name
         name = attrs["name"]
+        size = attrs["size"]
+        align = attrs["align"]
         if attrs.get("artificial"):
             # enum {} ENUM_NAME;
-            return nodes.Enumeration(name)
+            return nodes.Enumeration(name, size, align)
         else:
             # enum tagENUM {};
-            enum = nodes.Enumeration(None)
+            enum = nodes.Enumeration(None, size, align)
             self.artificial.append(nodes.Typedef(name, enum))
             return enum
 
@@ -283,9 +298,15 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         interesting = (
             nodes.Typedef, nodes.Enumeration, nodes.Function, nodes.Structure, nodes.Union)
         result = []
-        for i in self.all.values():
+        remove = []
+        for n, i in self.all.items():
             mth = getattr(self, "_fixup_" + type(i).__name__)
-            mth(i)
+            try:
+                mth(i)
+            except KeyError: # XXX better exception catching
+                remove.append(n)
+        for n in remove:
+            del self.all[n]
         for i in self.artificial + self.all.values():
             if isinstance(i, interesting):
                 result.append(i)
