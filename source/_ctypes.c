@@ -1582,9 +1582,9 @@ CData_GetContainer(CDataObject *self)
 	while (self->b_base)
 		self = self->b_base;
 	if (self->b_objects == NULL)
-		if (self->b_length)
+		if (self->b_length) {
 			self->b_objects = PyDict_New();
-		else {
+		} else {
 			Py_INCREF(Py_None);
 			self->b_objects = Py_None;
 		}
@@ -1626,12 +1626,10 @@ KeepRef(CDataObject *target, int index, PyObject *keep)
 	PyObject *key;
 
 /* Optimization: no need to store None */
-#if 0
 	if (keep == Py_None) {
 		Py_DECREF(Py_None);
 		return 0;
 	}
-#endif
 	ob = CData_GetContainer(target);
 	if (ob->b_objects == NULL || !PyDict_Check(ob->b_objects)) {
 		Py_XDECREF(ob->b_objects);
