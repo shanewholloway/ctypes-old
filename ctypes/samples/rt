@@ -4,3 +4,4 @@ python test_clib.py
 python test_time.py
 python test_argcount.py
 python test_strchr.py
+python test_incomplete.py
