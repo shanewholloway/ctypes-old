@@ -1,6 +1,7 @@
 *.c
 *.h
 *.ilk
+*.log
 *.pdb
 *.pyc
 *.pyo
@@ -10,7 +11,7 @@ MANIFEST
 _ctypes.pyd
 _ctypes_d.pyd
 archive
-dist
 build
+dist
 extensions
-*.log
+test.output
