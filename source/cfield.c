@@ -782,6 +782,11 @@ S_set(void *ptr, PyObject *value, unsigned length)
 static PyObject *
 z_set(void *ptr, PyObject *value, unsigned size)
 {
+	if (value == Py_None) {
+		*(char **)ptr = NULL;
+		Py_INCREF(value);
+		return value;
+	}
 	if (!PyString_Check(value)) {
 		PyErr_Format(PyExc_TypeError,
 				"string expected instead of %s instance",
