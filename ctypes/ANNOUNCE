@@ -1,54 +1,51 @@
-NOT YET! ctypes 0.9.1 released
+ctypes 0.9.1 released
 =====================
 
 Overview
 
-    ctypes is a ffi (Foreign Function Interface) package for Python.
+    ctypes is a ffi (Foreign Function Interface) package for Python
+    2.3 and higher.
 
-    It allows to call functions exposed from dlls/shared libraries and
-    has extensive facilities to create, access and manipulate simpole
-    and complicated C data types transparently from Python - in other
-    words: wrap libraries in pure Python.
+    ctypes allows to call functions exposed from dlls/shared libraries
+    and has extensive facilities to create, access and manipulate
+    simple and complicated C data types in Python - in other words:
+    wrap libraries in pure Python.  It is even possible to implement C
+    callback functions in pure Python.
 
     ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD.  It may
     also run on other systems, provided that libffi supports this
     platform.
 
+    On windows, ctypes contains a ctypes.com package which allows to
+    descrive, call, and implement custom com interfaces.
+
 
 Changes in 0.9.1
 
-    Array and pointer instances now support slicing, for pointer only
+  ctypes changes
+
+    The _ctypes.call_function function, although private and
+    deprecated, has been put back in - it is used by Gary Bishop's
+    readline module.
+
+    Array and pointer instances now support slicing, for pointers only
     getslice is implemented (setslice is too dangerous, probably).
-    Slices are accepted or returned as lists of the elements, except
+    Slices are represented as lists of the elements, except
     for character and unicode character pointer and arrays, where
-    strings resp. unicode strings are used - much more convenient.
+    strings resp. unicode strings are used instead.
 
+    On windows, the include files were missing from the source
+    distribution.
 
+  ctypes.com changes
 
-ctypes 0.9.0 released
-=====================
+    VARIANT does now handle the COM DATE type (VT_DATE) as Python
+    datetime.
 
-Changes in 0.9.0
+    VARIANT now handles integers and longs - if longs are too large
+    they are stored as doubles (VT_R8). Integers are now stored as
+    VT_I4 instead of VT_INT.
 
-    ctypes now requires Python 2.3 or higher, Python 2.2 is no longer
-    supported.
-
-    The big change is that ctypes now uses the same code base on all
-    platforms, many, many bug should have been fixed this way on
-    non-windows systems.  The destribution now contains libffi, no
-    need to find, download, build and install a compatible version.
-
-    There have been lots of improvements and additions both to ctypes
-    itself, and to the ctypes.com windows framework, too many to
-    remember now and document here.
-
-    Most prominent additions to ctypes.com are:
-
-	A ctypes.com.client module supporting dynamic dispatch
-
-	An internet explorer toolband sample
-
-	Many improvements to the stoplite sample
 
     Detailed changelogs are in CVS (well, sometimes I forget to update
     them):
@@ -80,8 +77,7 @@ Download
 
     Binary windows installers, which contain compiled extension
     modules, are also available, be sure to download the correct one
-    for the
-    Python version you are using.
+    for the Python version you are using.
 
 
 Homepage
