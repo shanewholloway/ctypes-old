@@ -120,8 +120,15 @@ if _os.name == "nt":
             return WinFunctionType
 
 elif _os.name == "posix":
-    from _ctypes import dlopen as _LoadLibrary
+    from _ctypes import dlopen as _dlopen
     _FreeLibrary = None
+    def _LoadLibrary(name):
+        try:
+            return _dlopen(name)
+        except OSError:
+            if not name.endswith(".so"):
+                return _dlopen(name + ".so")
+            raise
 
 from _ctypes import sizeof, byref, addressof, alignment
 from _ctypes import _SimpleCData
