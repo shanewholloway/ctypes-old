@@ -134,7 +134,7 @@ struct fielddesc {
 	char code;
 	SETFUNC setfunc;
 	GETFUNC getfunc;
-	ffi_type *tp; /* always statically allocated */
+	ffi_type *pffi_type; /* always statically allocated */
 };
 
 typedef struct {
@@ -155,6 +155,7 @@ typedef struct {
 	int size;		/* number of bytes */
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
+	ffi_type ffi_type;
 	PyObject *proto;	/* Only for Pointer/ArrayObject */
 	SETFUNC setfunc;	/* Only for ArrayObject */
 	GETFUNC getfunc;	/* Only for ArrayObject */
@@ -208,6 +209,7 @@ PyObject *_CallProc(PPROC pProc,
 
 typedef struct {
 	PyObject_HEAD
+	ffi_type *pffi_type;
 	char tag;
 	union {
 		char c;
