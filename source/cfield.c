@@ -1015,8 +1015,7 @@ static struct fielddesc formattable[] = {
 	{ 'P', P_set, P_get, &ffi_type_pointer},
 	{ 'z', z_set, z_get, &ffi_type_pointer},
 #ifdef Py_USING_UNICODE
-/* Correct or not? */
-	{ 'u', u_set, u_get, &ffi_type_sshort},
+	{ 'u', u_set, u_get, NULL}, /* ffi_type set later */
 	{ 'U', U_set, U_get, &ffi_type_pointer},
 	{ 'Z', Z_set, Z_get, &ffi_type_pointer},
 #endif
@@ -1030,7 +1029,18 @@ static struct fielddesc formattable[] = {
 struct fielddesc *
 getentry(char *fmt)
 {
+	static int initialized = 0;
 	struct fielddesc *table = formattable;
+
+	if (!initialized) {
+		initialized = 1;
+		if (sizeof(wchar_t) == sizeof(short))
+			getentry("u")->pffi_type = &ffi_type_sshort;
+		else if (sizeof(wchar_t) == sizeof(int))
+			getentry("u")->pffi_type = &ffi_type_sint;
+		else if (sizeof(wchar_t) == sizeof(long))
+			getentry("u")->pffi_type = &ffi_type_slong;
+	}
 
 	for (; table->code; ++table) {
 		if (table->code == fmt[0])
