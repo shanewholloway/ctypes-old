@@ -224,7 +224,7 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 	if (stgdict->ffi_type.elements)
 		PyMem_Free(stgdict->ffi_type.elements);
 
-	basedict = PyType_stgdict(((PyTypeObject *)type)->tp_base);
+	basedict = PyType_stgdict((PyObject *)((PyTypeObject *)type)->tp_base);
 	if (basedict && !use_broken_old_ctypes_semantics) {
 		size = offset = basedict->size;
 		align = basedict->align;
