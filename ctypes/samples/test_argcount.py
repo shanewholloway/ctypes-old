@@ -1,4 +1,4 @@
-from ctypes import c_char, c_string, byref, cdll, c_int
+from ctypes import c_char, c_string, byref, cdll, c_int, c_char_p
 
 import os, sys
 if os.name == "nt":
@@ -9,7 +9,7 @@ elif os.name == "posix":
     else:
         strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
 
-strchr.restype = "z"
+strchr.restype = c_char_p #"z"
 strchr.argtypes = [c_string, c_int]
 
 try:
@@ -26,7 +26,7 @@ except ValueError:
 else:
     raise Error("didn't catch wrong number of args")
 
-strchr.restype = "z"
+strchr.restype = c_char_p #"z"
 strchr.argtypes = [c_string, c_int]
 assert "def" ==  strchr("abcdef", ord("d"))
 assert None == strchr("abcdef", ord("x"))
