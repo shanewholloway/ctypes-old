@@ -590,13 +590,6 @@ static int _call_function_pointer(int flags,
 	DWORD dwExceptionCode;
 	EXCEPTION_RECORD record;
 #endif
-	/* XXX check before here */
-	if (restype == NULL) {
-		PyErr_SetString(PyExc_RuntimeError,
-				"No ffi_type for result");
-		return -1;
-	}
-	
 	cc = FFI_DEFAULT_ABI;
 #ifdef MS_WIN32
 	if ((flags & FUNCFLAG_CDECL) == 0)
