@@ -4540,12 +4540,12 @@ EXPORT LONG_LONG _testfunc_q_bhilfd(char b, short h, int i, long l, float f, dou
 
 EXPORT int _testfunc_callback_i_if(int value, int (*func)(int))
 {
-	int initial = value;
+	int sum = 0;
 	while (value != 0) {
-		func(value);
+		sum += func(value);
 		value /= 2;
 	}
-	return initial;
+	return sum;
 }
 
 EXPORT LONG_LONG _testfunc_callback_q_qf(LONG_LONG value, int (*func)(LONG_LONG))
