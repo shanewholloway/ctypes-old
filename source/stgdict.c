@@ -214,6 +214,12 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 	stgdict = PyType_stgdict(type);
 	if (!stgdict)
 		return -1;
+	if (stgdict->flags & DICTFLAG_FINAL) {/* is final ? */
+		PyErr_SetString(PyExc_AttributeError,
+				"_fields_ is final");
+		return -1;
+	}
+	stgdict->flags |= DICTFLAG_FINAL;	/* set final */
 
 	if (stgdict->ffi_type.elements)
 		PyMem_Free(stgdict->ffi_type.elements);
@@ -257,8 +263,8 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 			return -1;
 		}
 		dict = PyType_stgdict(desc);
-		if (dict)
-			stgdict->ffi_type.elements[ffi_ofs + i] = &dict->ffi_type;
+		stgdict->ffi_type.elements[ffi_ofs + i] = &dict->ffi_type;
+		dict->flags |= DICTFLAG_FINAL; /* mark field type final */
 		if (PyTuple_Size(pair) == 3) { /* bits specified */
 			switch(dict->ffi_type.type) {
 			case FFI_TYPE_UINT8:
