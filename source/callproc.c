@@ -555,6 +555,32 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 }
 
 
+ffi_type *GetType(PyObject *obj)
+{
+	StgDictObject *dict = PyType_stgdict(obj);
+	if (dict == NULL)
+		return &ffi_type_sint;
+	return &dict->ffi_type;
+}
+
+
+struct argument {
+	ffi_type *ffi_type;
+	union {
+		char c;
+		char b;
+		short h;
+		int i;
+		long l;
+#ifdef HAVE_LONG_LONG
+		PY_LONG_LONG q;
+#endif
+		double d;
+		float f;
+		void *p;
+	} value;
+};
+
 /*
  * libffi uses:
  *
@@ -570,7 +596,7 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 static int _call_function_pointer(int flags,
 				  PPROC pProc,
 				  PyCArgObject **parms,
-				  PyCArgObject *res,
+				  struct argument *res,
 				  int argcount)
 {
 	ffi_cif cif;
@@ -604,7 +630,7 @@ static int _call_function_pointer(int flags,
 		else
 			values[i] = &parms[i]->value;
 	}
-	if (res->pffi_type == NULL) {
+	if (res->ffi_type == NULL) {
 		PyErr_SetString(PyExc_RuntimeError,
 				"No ffi_type for result");
 		return -1;
@@ -619,7 +645,7 @@ static int _call_function_pointer(int flags,
 	if (FFI_OK != ffi_prep_cif(&cif,
 				   cc,
 				   argcount,
-				   res->pffi_type,
+				   res->ffi_type,
 				   atypes)) {
 		PyErr_SetString(PyExc_RuntimeError,
 				"ffi_prep_cif failed");
@@ -710,7 +736,7 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 /*
  * Convert the C value in result into an instance described by restype
  */
-static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
+static PyObject *GetResult(PyObject *restype, struct argument *result)
 {
 	StgDictObject *dict;
 
@@ -795,11 +821,9 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *restype)
 {
 	int i, n, argcount;
-	PyCArgObject result;
+	struct argument result;
 	PyCArgObject **pargs, **pp;
 	PyObject *retval = NULL;
-
-	result.obj = NULL;
 
 	n = argcount = PyTuple_GET_SIZE(argtuple);
 
@@ -857,7 +881,7 @@ PyObject *_CallProc(PPROC pProc,
 		}
 	}
 
-	PrepareResult(restype, &result);
+	result.ffi_type = GetType(restype);
 
 	if (-1 == _call_function_pointer(flags, pProc, pargs, &result, argcount))
 		goto error;
@@ -875,7 +899,6 @@ PyObject *_CallProc(PPROC pProc,
 	for (i = 0; i < argcount; ++i) {
 		Py_XDECREF(pargs[i]);
 	}
-	Py_XDECREF(result.obj);
 	return retval;
 }
 

@@ -253,6 +253,8 @@ struct basespec {
 
 extern char basespec_string[];
 
+extern ffi_type *GetType(PyObject *obj);
+
 /*
  Local Variables:
  compile-command: "python setup.py -q build install --home ~"
