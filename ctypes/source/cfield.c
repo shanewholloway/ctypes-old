@@ -36,7 +36,9 @@ CField_FromDesc(PyObject *desc, int index,
 	SETFUNC setfunc = NULL;
 	GETFUNC getfunc = NULL;
 	StgDictObject *dict;
-
+#ifdef _DEBUG
+	_asm int 3;
+#endif
 	self = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type,
 						   NULL);
 	if (self == NULL)

@@ -957,6 +957,9 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->size = fmt->tp->size;
 	stgdict->setfunc = fmt->setfunc;
 	stgdict->getfunc = fmt->getfunc;
+
+	stgdict->tp = fmt->tp;
+//	Py_DECREF(proto);
 	/* This consumes the refcount on proto which we have */
 	stgdict->proto = proto;
 
@@ -2723,34 +2726,9 @@ Simple_get_value(CDataObject *self)
 	return dict->getfunc(self->b_ptr, self->b_size);
 }
 
-static PyObject *
-Simple_as_parameter(CDataObject *self)
-{
-	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
-	char *fmt = PyString_AsString(dict->proto);
-	PyCArgObject *parg;
-	struct fielddesc *fd;
-	
-	fd = getentry(fmt);
-	assert(fd);
-	
-	parg = new_CArgObject();
-	if (parg == NULL)
-		return NULL;
-	
-	parg->tag = fmt[0];
-	Py_INCREF(self);
-	parg->obj = (PyObject *)self;
-	memcpy(&parg->value, self->b_ptr, self->b_size);
-	return (PyObject *)parg;	
-}
-
 static PyGetSetDef Simple_getsets[] = {
 	{ "value", (getter)Simple_get_value, (setter)Simple_set_value,
 	  "current value", NULL },
-	{ "_as_parameter_", (getter)Simple_as_parameter, NULL,
-	  "return a magic value so that this can be converted to a C parameter (readonly)",
-	  NULL },
 	{ NULL, NULL }
 };
 
