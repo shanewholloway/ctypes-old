@@ -739,17 +739,34 @@ class TypeLibReader:
             interfaces = self.interfaces.values()
 
             if 1:
+                itfnames = [i.name for i in interfaces]
                 done = ["IUnknown", "IDispatch", "dispinterface"]
+                skipped = []
                 while interfaces:
                     interfaces = [i for i in interfaces if i.name not in done]
                     for itf in interfaces:
+                        do_this = 1
                         for b in itf._uses:
                             if b not in done:
-                                break
-                        else:
+                                # Prevent an infinite loop if a required interface is not
+                                # defined here.  The generated module will still need to
+                                # be edited by hand before it can be imported.
+                                if b in itfnames:
+                                    do_this = 0
+                                elif b not in skipped:
+                                    skipped.append(b + '')
+                        
+                        if do_this:
                             print >> ofi
                             print >> ofi, itf.declaration()
                             done.append(itf.name)
+
+                if skipped:
+                    print >> ofi
+                    print >> ofi, "### Some base classes were not found."
+                    print >> ofi, "### They must be imported by hand near the top of the file:"
+                    for b in skipped:
+                        print >> ofi, "###  -", b
             else:
                 # We *try* to sort the interfaces so that dependencies are
                 # satisfied.  If this fails, the generated file must be
@@ -784,6 +801,11 @@ class TypeLibReader:
             for guid, cls in self.coclasses.iteritems():
                 print >> ofi
                 print >> ofi, cls.declaration()
+                
+        # Warning: the coclasses may also reference interfaces defined elsewhere.
+        # These also need to be added by hand.  It would be very nice to have it
+        # figure things out from the importlibs referenced in the typelib (looking
+        # in the same directory as the source typelib and also in the path).
 
 def main():
     if len(sys.argv) > 1:
