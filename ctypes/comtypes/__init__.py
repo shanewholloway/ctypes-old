@@ -133,7 +133,20 @@ class IUnknown(object):
         "Decrease the internal refcount by one"
         return self.__com_Release()
 
-__all__ = "IUnknown GUID HRESULT BSTR STDMETHOD".split()
+class CoClass(object):
+    # creation, and so on
+
+    def create_instance(self):
+        oledll.ole32.CoInitialize(None)
+        p = POINTER(self._com_interfaces_[0])()
+        oledll.ole32.CoCreateInstance(byref(self._clsid_),
+                                      None,
+                                      7, # CLSCTX
+                                      byref(p._iid_),
+                                      byref(p))
+        return p
+
+__all__ = ["CoClass", "IUnknown", "GUID", "HRESULT", "BSTR", "STDMETHOD"]
 
 if __name__ == "__main__":
 
