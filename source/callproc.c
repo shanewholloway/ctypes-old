@@ -533,6 +533,70 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 
 #ifndef MS_WIN32
 /*
+  There's a problem with current CVS versions of libffi (2003-01-21).
+  It redefines ffi_type_slong and ffi_type_ulong to
+  ffi_type_sint64 and ffi_type_uint64.
+
+  Fortunately, ctypes' unittests catch this.
+
+	printf("SIZEOF_LONG %d\n", SIZEOF_LONG);
+
+	printf("ffi_type_slong %p\n", &ffi_type_slong);
+	printf("ffi_type_sint64 %p\n", &ffi_type_sint64);
+	printf("ffi_type_sint %p\n", &ffi_type_sint);
+	printf("ffi_type_sint32 %p\n", &ffi_type_sint32);
+*/
+#if (SIZEOF_LONG_LONG == 8 && SIZEOF_LONG == 4)
+#undef ffi_type_ulong
+#define ffi_type_ulong ffi_type_uint32
+#define ffi_type_ulonglong ffi_type_uint64
+#undef ffi_type_slong
+#define ffi_type_slong ffi_type_sint32
+#define ffi_type_slonglong ffi_type_sint64
+#endif
+
+ffi_type *tag2ffitype(char tag)
+{
+	switch (tag) {
+	case 'c':
+		return &ffi_type_schar;
+	case 'b':
+		return &ffi_type_sint8;
+	case 'B':
+		return &ffi_type_uint8;
+	case 'h':
+		return &ffi_type_sshort;
+	case 'H':
+		return &ffi_type_ushort;
+	case 'i':
+		return &ffi_type_sint;
+	case 'I':
+		return &ffi_type_uint;
+	case 'l':
+		return &ffi_type_slong;
+	case 'L':
+		return &ffi_type_ulong;
+	case 'q':
+		return &ffi_type_slonglong;
+	case 'Q':
+		return &ffi_type_ulonglong;
+	case 'z':
+	case 'Z':
+	case 'P':
+		return&ffi_type_pointer;
+	case 'd':
+		return&ffi_type_double;
+	case 'f':
+		return&ffi_type_float;
+	case 'v':
+		return &ffi_type_void;
+	default:
+		printf("PARM ????? %c\n", tag);
+		return NULL;
+	}	
+}
+
+/*
  * libffi uses:
  *
  * ffi_status ffi_prep_cif(ffi_cif *cif, ffi_abi abi,
@@ -556,138 +620,14 @@ static int _call_function_pointer(int flags,
 	void **values;
 	int i;
 
-/*
-  There's a problem with current CVS versions of libffi (2003-01-21).
-  It redefines ffi_type_slong and ffi_type_ulong to
-  ffi_type_sint64 and ffi_type_uint64.
-
-  Fortunately, ctypes' unittests catch this.
-
-	printf("SIZEOF_LONG %d\n", SIZEOF_LONG);
-
-	printf("ffi_type_slong %p\n", &ffi_type_slong);
-	printf("ffi_type_sint64 %p\n", &ffi_type_sint64);
-	printf("ffi_type_sint %p\n", &ffi_type_sint);
-	printf("ffi_type_sint32 %p\n", &ffi_type_sint32);
-*/
-#if (SIZEOF_LONG_LONG == 8 && SIZEOF_LONG == 4)
-#undef ffi_type_ulong
-#define ffi_type_ulong ffi_type_uint32
-#define ffi_type_ulonglong ffi_type_uint64
-#undef ffi_type_slong
-#define ffi_type_slong ffi_type_sint32
-#define ffi_type_slonglong ffi_type_sint64
-#endif
-
 	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
 	values = (void **)alloca(argcount * sizeof(void *));
 
 	for (i = 0; i < argcount; ++i) {
-		switch(parms[i]->tag) {
-		case 'c':
-			atypes[i] = &ffi_type_schar;
-			break;
-		case 'b':
-			atypes[i] = &ffi_type_sint8;
-			break;
-		case 'B':
-			atypes[i] = &ffi_type_uint8;
-			break;
-		case 'h':
-			atypes[i] = &ffi_type_sshort;
-			break;
-		case 'H':
-			atypes[i] = &ffi_type_ushort;
-			break;
-		case 'i':
-			atypes[i] = &ffi_type_sint;
-			break;
-		case 'I':
-			atypes[i] = &ffi_type_uint;
-			break;
-		case 'l':
-			atypes[i] = &ffi_type_slong;
-			break;
-		case 'L':
-			atypes[i] = &ffi_type_ulong;
-			break;
-		case 'q':
-			atypes[i] = &ffi_type_slonglong;
-			break;
-		case 'Q':
-			atypes[i] = &ffi_type_ulonglong;
-			break;
-		case 'z':
-		case 'Z':
-		case 'P':
-			atypes[i] = &ffi_type_pointer;
-			break;
-		case 'd':
-			atypes[i] = &ffi_type_double;
-			break;
-		case 'f':
-			atypes[i] = &ffi_type_float;
-			break;
-		default:
-			printf("PARM ????? %c\n", parms[i]->tag);
-			atypes[i] = NULL;
-			break;
-		}
+		atypes[i] = tag2ffitype(parms[i]->tag);
 		values[i] = &parms[i]->value;
 	}
-	switch(res->tag) {
-	case 'c':
-		rtype = &ffi_type_schar;
-		break;
-	case 'b':
-		rtype = &ffi_type_sint8;
-		break;
-	case 'B':
-		rtype = &ffi_type_uint8;
-		break;
-	case 'h':
-		rtype = &ffi_type_sshort;
-		break;
-	case 'H':
-		rtype = &ffi_type_ushort;
-		break;
-	case 'i':
-		rtype = &ffi_type_sint;
-		break;
-	case 'I':
-		rtype = &ffi_type_uint;
-		break;
-	case 'l':
-		rtype = &ffi_type_slong;
-		break;
-	case 'L':
-		rtype = &ffi_type_ulong;
-		break;
-	case 'q':
-		rtype = &ffi_type_slonglong;
-		break;
-	case 'Q':
-		rtype = &ffi_type_ulonglong;
-		break;
-	case 'z':
-	case 'Z':
-	case 'P':
-		rtype = &ffi_type_pointer;
-		break;
-	case 'd':
-		rtype = &ffi_type_double;
-		break;
-	case 'f':
-		rtype = &ffi_type_float;
-		break;
-	case 'v':
-		rtype = &ffi_type_void;
-		break;
-	default:
-		printf("RES ????? %c\n", res->tag);
-		rtype = NULL;
-		break;
-	}
+	rtype = tag2ffitype(res->tag);
     
 	if (FFI_OK != ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
 				   argcount,
