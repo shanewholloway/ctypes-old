@@ -80,7 +80,13 @@ class PointerType(object):
         self.typ = typ
 
     def depends(self):
-        return [get_pointed_to(self)]
+        # Well, if the pointer points to a structure or union,
+        # we don't need the complete struct or union definition.
+        # The header will suffice.
+        t = get_pointed_to(self)
+        if type(t) in (Structure, Union):
+            return []
+        return [t]
 
     def __repr__(self):
         return "<POINTER(%s)>" % self.typ
