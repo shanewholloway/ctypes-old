@@ -257,15 +257,16 @@ EXPORT(double)
 integrate(double a, double b, double (*f)(double), long nstep)
 {
 	double x, sum=0.0, dx=(b-a)/(double)nstep;
+/*
 	fprintf(stderr, "\nintegrate got %f %f %ld\n",
 		a, b, nstep);
+*/
 	for(x=a+0.5*dx; (b-x)*(x-a)>0.0; x+=dx) {
-		double result;
-		result = f(x);
-		fprintf(stderr, "called f(%f) -> %f\n", x, result);
+		double result = f(x);
+/*		fprintf(stderr, "called f(%f) -> %f\n", x, result);*/
 		sum += result;
 	}
-	fprintf(stderr, "\nintegrate returns %f\n", sum/(double)nstep);
+/*	fprintf(stderr, "\nintegrate returns %f\n", sum/(double)nstep);*/
 	return sum/(double)nstep;
 }
 
