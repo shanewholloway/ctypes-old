@@ -1,13 +1,3 @@
-/*
- * Copyright 1999-2002, Thomas Heller
- *
- * $Id$
- *
- */
-
-/*
- ToDo:
- */
 #include "Python.h"
 #include "ctypes.h"
 
