@@ -132,7 +132,7 @@ class Field(object):
         self.name = name
         self.typ = typ
         self.bits = bits
-        self.offset = offset
+        self.offset = int(offset)
 
 class CvQualifiedType(object):
     def __init__(self, typ, attrib):
