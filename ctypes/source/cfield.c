@@ -719,6 +719,9 @@ U_set(void *ptr, PyObject *value, unsigned length)
 {
 	unsigned int size;
 
+	/* It's easier to calculate in characters than in bytes */
+	length /= sizeof(wchar_t);
+
 	if (PyString_Check(value)) {
 		value = PyUnicode_FromEncodedObject(value,
 						    conversion_mode_encoding,
@@ -732,21 +735,17 @@ U_set(void *ptr, PyObject *value, unsigned length)
 		return NULL;
 	} else
 		Py_INCREF(value);
-	size = PyUnicode_GET_DATA_SIZE(value);
+	size = PyUnicode_GET_SIZE(value);
 	if (size > length) {
 		PyErr_Format(PyExc_ValueError,
-			     "too long (%d instead of less than %d)",
+			     "too long (%d chars instead of less than %d)",
 			     size, length);
 		Py_DECREF(value);
 		return NULL;
-	} else if (size < length-sizeof(wchar_t))
+	} else if (size < length-1)
 		/* copy terminating NUL character */
-		size += sizeof(wchar_t);
-#ifdef HAVE_USABLE_WCHAR_T
-	memcpy((wchar_t *)ptr, PyUnicode_AS_UNICODE(value), size);
-#else
-#error FIXME: use PyUnicode_FromWideChar()
-#endif
+		size += 1;
+	PyUnicode_AsWideChar(value, (wchar_t *)ptr, size);
 	return value;
 }
 
