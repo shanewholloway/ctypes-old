@@ -144,7 +144,7 @@ class Generator(ctypes.wrap.codegenerator.Generator):
             arglist = []
             for typ, name, idlflags, default in m.arguments:
                 if default is not None:
-                    arglist.append("( %r, '%s', %r )" % (
+                    arglist.append("( %r, %s, '%s', %r )" % (
                         idlflags,
                         self.type_name(typ),
                         name,
