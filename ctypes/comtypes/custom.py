@@ -32,77 +32,26 @@ def param_info(ti, ed):
 def method_proto(name, ti, fd):
     # return resulttype, argtypes, paramflags for a com method
     assert fd.funckind == comtypes.automation.typeinfo.FUNC_PUREVIRTUAL, fd.funckind # FUNC_PUREVIRTUAL
+    assert fd.callconv == comtypes.automation.typeinfo.CC_STDCALL, fd.callconv
 ##    names = ti.GetNames(fd.memid, fd.cParams + 1)
     restype = param_info(ti, fd.elemdescFunc)[1] # result type of com method
     argtypes = [] # argument types of com method
     parmflags = []
     for i in range(fd.cParams):
         # flags, typ[, default]
-        flags, typ = param_info(ti, fd.lprgelemdescParam[i])
+        flags, typ = param_info(ti, fd.lprgelemdescParam[i])[:2]
         argtypes.append(typ)
         parmflags.append(flags)
     proto = comtypes.COMMETHODTYPE(restype, tuple(argtypes), tuple(parmflags))
     return proto
 
-# XXX Merge _ComMethod and _ComProperty.
-# Retrieve proto lazy in __call__, __setitem__, __getitem__
-class _ComBase(object):
-    def __init__(self, obj, oVft, name, proto):
-        self.comobj = obj._comobj
-        self.typecomp = obj._typecomp
-        self.typeinfo = obj._typeinfo
-        self.comcall = proto(oVft, name)
-        self.name = name
-
-    def do_call(self, comcall, *args, **kw):
-        retvals = []
-        for index, x in enumerate(comcall.parmflags):
-            if x & 2: # PARAMFLAG_FOUT
-                typ = comcall.argtypes[index]._type_
-                inst = typ()
-                args = args[:index] + (ctypes.byref(inst),) + args[index:]
-                retvals.append(inst)
-        result = comcall(self.comobj, *args, **kw)
-        if retvals:
-            result = tuple([x.value for x in retvals])
-            if len(result) == 1:
-                result = result[0]
-        return result
-
-class _ComMethod(_ComBase):
-    def __call__(self, *args, **kw):
-        # type 1
-        return self.do_call(self.comcall, *args, **kw)
-
-class _ComProperty(_ComBase):
-    def __getitem__(self, args):
-        # type 2
-        if not isinstance(args, tuple):
-            args = (args,)
-        return self.do_call(self.comcall, *args)
-
-    def __setitem__(self, index, value):
-        # type 4
-        kind, desc = self.typecomp.Bind(self.name, 4)
-        assert kind == "function"
-        proto = method_proto(self.name, self.typeinfo, desc)
-        comcall = proto(desc.oVft/4, self.name)
-        if isinstance(index, tuple):
-            args = index + (value,)
-        else:
-            args = (index, value)
-        self.do_call(comcall, *args)
-
-    def set(self, value):
-        self.comcall(self.comobj, value)
-
-def get_custom_interface(comobj, typeinfo):
+def get_custom_interface(comobj, typeinfo=None):
     if typeinfo is None:
         typeinfo = comobj.GetTypeInfo()
     ta = typeinfo.GetTypeAttr()
     if ta.typekind == comtypes.automation.typeinfo.TKIND_INTERFACE:
         # everything ok
-        return typeinfo, comobj
+        return comobj, typeinfo
     if ta.typekind == comtypes.automation.typeinfo.TKIND_DISPATCH:
         # try to get the dual interface portion from a dispatch interface
         href = typeinfo.GetRefTypeOfImplType(-1)
@@ -114,43 +63,127 @@ def get_custom_interface(comobj, typeinfo):
         # we must QI for this interface, but using IDispatch
         iid = ta.guid
         comobj = comobj.QueryInterface(comtypes.automation.IDispatch, iid)
-        return typeinfo, comobj
+        return comobj, typeinfo
     raise TypeError, "could not get custom interface"
 
+PDisp = ctypes.POINTER(comtypes.automation.IDispatch)
+
+def _wrap(obj):
+    if isinstance(obj, PDisp):
+        return _Dynamic(obj)
+    return obj
+
+def _unwrap(obj):
+    return getattr(obj, "_comobj", obj)
+
+class _ComInvoker(object):
+    def __init__(self, comobj, name, caller=None, getter=None, setter=None):
+        self.comobj = comobj
+        self.name = name
+        self.caller = caller
+        self.getter = getter
+        self.setter = setter
+
+    def __repr__(self):
+        return "<_ComInvoker %s (call=%s, get=%s, set=%s)>" % \
+               (self.name, self.caller, self.getter, self.setter)
+
+    def _do_invoke(self, comcall, args, kw):
+        args = [_unwrap(a) for a in args]
+        retvals = []
+        for index, x in enumerate(comcall.parmflags):
+            if x & 2: # PARAMFLAG_FOUT
+                typ = comcall.argtypes[index]._type_
+                inst = typ()
+                args = args[:index] + [ctypes.byref(inst)] + args[index:]
+                retvals.append(inst)
+        result = comcall(self.comobj, *args, **kw)
+        if retvals:
+            result = tuple([_wrap(x.value) for x in retvals])
+            if len(result) == 1:
+                result = result[0]
+        return result
+
+    def __call__(self, *args, **kw):
+        if not self.caller:
+            raise TypeError, "uncallable object"
+        return self._do_invoke(self.caller, args, kw)
+
+    def __getitem__(self, index):
+        if not self.getter:
+            raise TypeError, "unindexable object"
+        if isinstance(index, tuple):
+            return self._do_invoke(self.getter, index, {})
+        return self._do_invoke(self.getter, (index,), {})
+
+    def __setitem__(self, index, value):
+        if not self.setter:
+            raise TypeError, "object doesn't support item assignment"
+        if isinstance(index, tuple):
+            self._do_invoke(self.setter, index + (value,), {})
+        else:
+            self._do_invoke(self.setter, (index, value), {})
+
+    def set(self, value):
+        self._do_invoke(self.setter, (value,), {})
+
+    def get(self):
+        if not self.getter:
+            return self
+        if 1 in self.getter.parmflags:
+            return self
+        return self._do_invoke(self.getter, (), {})
+
+from comtypes.automation import INVOKE_FUNC as _FUNC, INVOKE_PROPERTYGET as _PROPGET, \
+     INVOKE_PROPERTYPUT as _PROPPUT
+
+################################################################
+
 class _Dynamic(object):
+    _typecomp = _typeinfo = _comobj = _commap = None # pychecker
+    
     def __init__(self, comobj, typeinfo=None):
-        typeinfo, comobj = get_custom_interface(comobj, typeinfo)
+        comobj, typeinfo = get_custom_interface(comobj, typeinfo)
         self.__dict__["_typeinfo"] = typeinfo
-        self.__dict__["_typecomp"] = self._typeinfo.GetTypeComp()
+        self.__dict__["_typecomp"] = typeinfo.GetTypeComp()
         self.__dict__["_comobj"] = comobj
+        self.__dict__["_commap"] = {}
         
     def __getattr__(self, name):
-        kind, desc = self._typecomp.Bind(name, 1 + 2) # only METHOD and PROPGET
-        if kind == "function":
-            proto = method_proto(name, self._typeinfo, desc)
-            if desc.invkind == 2:
-                if not [f for f in proto.parmflags if f & 1]:
-                    # does not need "in" args -> invoke it
-                    mth = _ComMethod(self, desc.oVft/4, name, proto)
-                    return mth()
-                # We should also try to bind PROPPUT and PROPPUTREF,
-                # when _ComProperty.__setitem__ is called.  For this,
-                # we need self._typecomp in _ComProperty.
-                prop = _ComProperty(self, desc.oVft/4, name, proto)
-                return prop
-            mth = _ComMethod(self, desc.oVft/4, name, proto)
-            self.__dict__[name] = mth
-            return mth
-        raise AttributeError, name
+        invoker = self.__get_invoker(name, _FUNC | _PROPGET | _PROPPUT)
+        return invoker.get()
 
     def __setattr__(self, name, value):
-        kind, desc = self._typecomp.Bind(name, 4)
-        if kind == "function":
-            proto = method_proto(name, self._typeinfo, desc)
-            prop = _ComProperty(self, desc.oVft/4, name, proto)
-            prop.set(value)
-            return
-        raise "NYI"
+        prop = self.__get_invoker(name, _PROPPUT)
+        prop.set(value)
+
+    def __get_invoker(self, name, what):
+        try:
+            return self._commap[(name, what)]
+        except KeyError:
+            prop = self.__create_invoker(name, what)
+            self._commap[(name, what)] = prop
+            return prop
+
+    def __create_invoker(self, name, what):
+        comcalls = {}
+        for invkind in (_FUNC, _PROPGET, _PROPPUT):
+            if what and invkind:
+                try:
+                    kind, desc = self._typecomp.Bind(name, invkind)
+                except WindowsError:
+                    continue
+                assert desc.invkind == invkind
+                if kind != "function":
+                    raise "NYI" # can this happen?
+                proto = method_proto(name, self._typeinfo, desc)
+                comcalls[invkind] = proto(desc.oVft/4, name)
+        return _ComInvoker(self._comobj, name,
+                           caller=comcalls.get(_FUNC),
+                           getter=comcalls.get(_PROPGET),
+                           setter=comcalls.get(_PROPPUT))
+                
+        
 
 ################################################################
 
