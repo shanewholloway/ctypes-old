@@ -148,9 +148,11 @@ def main(args=None):
     if options.kind:
         types = []
         for char in options.kind:
-            typ = {"d": [typedesc.Variable],
+            typ = {"a": [typedesc.Alias],
+                   "d": [typedesc.Variable],
                    "e": [typedesc.Enumeration, typedesc.EnumValue],
                    "f": [typedesc.Function],
+                   "m": [typedesc.Macro],
                    "s": [typedesc.Structure],
                    "t": [typedesc.Typedef],
                    }[char]
