@@ -163,7 +163,7 @@ typedef struct {
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
-	PyObject *converters;	/* tuple( [t.from_param for t in argtypes */
+	PyObject *converters;	/* tuple([t.from_param for t in argtypes]) */
 	PyObject *restype;	/* CDataObject or NULL */
 	int flags;		/* calling convention and such */
 	int nArgBytes;		/* number of argument bytes for callback */
