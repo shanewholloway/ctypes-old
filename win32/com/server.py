@@ -74,27 +74,24 @@ class _Logger(object):
         return 0
 
 def inproc_find_class(clsid):
-    import _winreg
-##    print str(clsid)
-    key = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s" % clsid)
-    import sys
+    import _winreg, sys
+    key = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s\\InprocServer32" % clsid)
     try:
-        pathdir = _winreg.QueryValue(key, "PythonPath")
+        pathdir = _winreg.QueryValueEx(key, "PythonPath")[0]
     except WindowsError:
         pass
     else:
         if not pathdir in sys.path:
-            sys.path.insert(0, pathdir)
-##            print "appended %s to sys.path" % pathdir
-##            print "SYS.PATH", sys.path
-    pythonclass = _winreg.QueryValue(key, "PythonClass")
-##    print pythonclass
+            sys.path.insert(0, str(pathdir))
+            print "appended %s to sys.path" % pathdir
+            print "SYS.PATH", sys.path
+    pythonclass = _winreg.QueryValueEx(key, "PythonClass")[0]
     parts = pythonclass.split(".")
     modname = ".".join(parts[:-1])
     classname = parts[-1]
     __import__(modname)
     mod = sys.modules[modname]
-##    print "imported", mod
+    print "imported", mod
 
     # It was a nice idea to 'reload' the module, so that during
     # debugging we would always run uptodate versions of the code.
@@ -106,11 +103,11 @@ def inproc_find_class(clsid):
 ##    if __debug__:
 ##        reload(mod)
 
-##    print "returning", getattr(mod, classname)
+    print "returning", getattr(mod, classname)
     return getattr(mod, classname)
 
 # Fake implementation, with hardcoded names
-def inproc_find_class(clsid):
+def X_inproc_find_class(clsid):
     import sys
     pathdir = r"c:\sf\ctypes_head\win32\com\samples\server"
     if not pathdir in sys.path:
@@ -126,7 +123,7 @@ def DllGetClassObject(rclsid, riid, ppv):
     # parameters. rcslid is a pointer to the CLSID for the coclass we
     # want to be created, riid is a pointer to the requested
     # interface.
-##    _Logger.install()
+    _Logger.install()
 
     iid = GUID.from_address(riid)
     clsid = GUID.from_address(rclsid)
@@ -134,6 +131,8 @@ def DllGetClassObject(rclsid, riid, ppv):
 
     # Use the clsid to find additional info in the registry.
     cls = inproc_find_class(clsid)
+    print "DllGetClassObject", clsid, cls
+
     # XXX Hm, does inproc_findclass return None, or raise an Exception?
     if not cls:
         return CLASS_E_CLASSNOTAVAILABLE
@@ -157,12 +156,12 @@ g_locks = 0
 
 def DllCanUnloadNow():
     # XXX TODO: Read about inproc server refcounting in Don Box
-##    _Logger.install()
+    _Logger.install()
     if g_locks:
-##        print "* DllCanUnloadNow -> S_FALSE", _active_objects
+        print "* DllCanUnloadNow -> S_FALSE", _active_objects
         return S_FALSE
     else:
-##        print "* DllCanUnloadNow -> S_OK"
+        print "* DllCanUnloadNow -> S_OK"
         return S_OK
     # Hm Call ole32.CoUnitialize here?
 
