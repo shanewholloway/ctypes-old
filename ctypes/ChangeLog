@@ -1,5 +1,7 @@
 2004-09-16  Thomas Heller  <theller@python.net>
 
+	* (Message): ctypes 0.9.1 released.
+	
 	* (Message): The internal conversions that ctypes does between
 	unicode and strings can now use a specified encoding and error
 	handling.  A set_conversion_mode() function allows to set them, it
