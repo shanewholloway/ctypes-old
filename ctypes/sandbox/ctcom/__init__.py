@@ -135,7 +135,7 @@ from _ctypes import _Pointer
 class PPUNK(_Pointer):
     # Class to represent pointers to COM interface pointers.
     # Useful as argtype for methods which expect pointers to
-    # COM interfaces pointer subclasses (such as QueryInterface)
+    # COM interface pointers such as QueryInterface (VOID FAR * FAR *)
     def from_param(self, obj):
         # We accept two types of arguments here:
         # - pointers to instances of a COMPointer (sub)class
@@ -149,6 +149,15 @@ class PPUNK(_Pointer):
         if not isinstance(obj, _Pointer) or \
                not issubclass(obj._type_, COMPointer):
             raise TypeError, "expected a reference to a COMPointer"
+        return obj
+    from_param = classmethod(from_param)
+
+class PUNK(_Pointer):
+    # Useful as argtype for methods which expect COM interface
+    # pointers such as ? (VOID FAR *)
+    def from_param(self, obj):
+        if not isinstance(obj, COMPointer):
+            raise TypeError, "expected a COMPointer"
         return obj
     from_param = classmethod(from_param)
 
@@ -177,6 +186,15 @@ IUnknown._methods_ = [("QueryInterface", [REFIID, PPUNK]),
 #
 CLSCTX_INPROC_SERVER = 0x1
 CLSCTX_LOCAL_SERVER = 0x4
+
+if 0:
+    class IMyInterface(IUnknown):
+        _iid_ = GUID("{1738f9ad-482c-402a-8c6c-578c43ed5624}")
+        _methods_ = []
+        
+    class IMyInterfacePointer(COMPointer):
+        _interface_ = IMyInterface
+
 
 def test(runperf=0):
 
