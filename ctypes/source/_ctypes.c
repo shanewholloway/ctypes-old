@@ -2290,6 +2290,14 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	if (PyString_Check(init)) {
 		PyString_AsStringAndSize(init, &data, &size);
+	} else if (PyInt_Check(init)) {
+		size = PyInt_AS_LONG(init);
+		data = NULL;
+		if (size < 0) {
+			PyErr_SetString(PyExc_ValueError,
+					"string size must be positive");
+			return NULL;
+		}
 	} else {
 		PyErr_SetString(PyExc_TypeError,
 				"string or None expected");
@@ -2307,7 +2315,10 @@ CString_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	obj->b_ptr = PyMem_Malloc(size+1);
 	obj->b_size = size+1;
 	obj->b_needsfree = 1;
-	memcpy(obj->b_ptr, data, size);
+	if (data)
+		memcpy(obj->b_ptr, data, size);
+	else
+		memset(obj->b_ptr, 0, size);
 	obj->b_ptr[size] = '\0';
 	return (PyObject *)obj;
 }

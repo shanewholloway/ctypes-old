@@ -28,8 +28,21 @@ class StringTestCase(unittest.TestCase):
         self.failUnless(cs.raw == "XY\000\000\000\000\000")
 
         self.assertRaises(TypeError, c_string, u"123")
-        self.assertRaises(TypeError, c_string, 0)
+
+    def test_sized_strings(self):
+        from ctypes import c_string
+
+        # New in releases later than 0.4.0: 
+        self.assertRaises(TypeError, c_string, None)
         
+        # New in releases later than 0.4.0:
+        # c_string(number) returns an empty string of size number+1
+        self.failUnless(len(c_string(0)) == 1)
+        self.failUnless(len(c_string(32)) == 33)
+        self.assertRaises(ValueError, c_string, -1)
+
+        self.failUnless(c_string(2).value == "")
+        self.failUnless(c_string(2).raw == "\000\000\000")
 
     def test_toolong(self):
         from ctypes import c_string
