@@ -1,3 +1,9 @@
+2004-05-06  Thomas Heller  <theller@python.net>
+
+	* Finally fixed the sometimes shortened traceback prints when an
+	exception occurrs in a callback function - only the exception
+	class was printed, not the value.
+
 2004-05-03  Thomas Heller  <theller@python.net>
 
 	* win32\com\client.py: Add a COMError class, compatible to that
