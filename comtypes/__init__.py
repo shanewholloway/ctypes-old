@@ -258,7 +258,7 @@ def encode_idl(names):
     result = sum([PARAMFLAGS.get(n, 0) for n in names])
     return result & 3 # that's what _ctypes accept
 
-def COMMETHOD2(idlflags, restype, methodname, *argspec):
+def COMMETHOD(idlflags, restype, methodname, *argspec):
     paramflags = []
     argtypes = []
 
