@@ -6,7 +6,7 @@ if os.name == "nt":
 elif os.name == "posix":
     strchr = cdll.LoadLibrary("/lib/libc.so.6").strchr
 
-strchr.restype = "s"
+strchr.restype = "z"
 strchr.argtypes = [c_string, c_int]
 
 try:
@@ -23,7 +23,7 @@ except ValueError:
 else:
     raise Error("didn't catch wrong number of args")
 
-strchr.restype = "s"
+strchr.restype = "z"
 strchr.argtypes = [c_string, c_int]
 assert "def" ==  strchr("abcdef", ord("d"))
 assert None == strchr("abcdef", ord("x"))
