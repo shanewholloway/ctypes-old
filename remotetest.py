@@ -86,7 +86,8 @@ def server(verbose, args, pickle_name):
         p = os.path.dirname(a)
         if p not in sys.path:
             sys.path.insert(0, p)
-    d = cPickle.load(open(pickle_name, "r"))
+    data = open(pickle_name, "r").read()
+    d = cPickle.loads(data)
 
     result = runner._makeResult(d)
     for a in args:
@@ -96,7 +97,8 @@ def server(verbose, args, pickle_name):
     for name in "errors failures testsRun".split():
         options[name] = getattr(result, name)
 
-    cPickle.dump(options, open(pickle_name, "w"))
+    data = cPickle.dumps(options)
+    open(pickle_name, "w").write(data)
 
 ################################################################
 
@@ -115,14 +117,16 @@ def client(verbose, args):
         p = os.path.dirname(a)
         if p not in sys.path:
             sys.path.insert(0, p)
-        cPickle.dump(d, open(".result.pck", "w"))
+        data = cPickle.dumps(s)
+        open(".result.pck", "w").write(data)
         if verbose == 2:
             os.system("%s remotetest.py -v -p %s %s" % (sys.executable, ".result.pck", a))
         elif verbose == 1:
             os.system("%s remotetest.py -p %s %s" % (sys.executable, ".result.pck", a))
         else:
             os.system("%s remotetest.py -q -p %s %s" % (sys.executable, ".result.pck", a))
-        d = cPickle.load(open(".result.pck", "r"))
+        data = open(".result.pck", "r").read()
+        d = cPickle.loads(data)
         result = runner._makeResult(d)
         os.unlink(".result.pck")
     runner.report(result, duration = time.time() - starttime)
