@@ -17,7 +17,9 @@
  *   related.
  */
 
+
 #include "Python.h"
+#include "structmember.h"
 
 #ifdef MS_WIN32
 #include <windows.h>
@@ -284,6 +286,13 @@ PyCArg_repr(PyCArgObject *self)
 	return PyString_FromString(buffer);
 }
 
+static PyMemberDef PyCArgType_members[] = {
+	{ "_obj", T_OBJECT,
+	  offsetof(PyCArgObject, obj), READONLY,
+	  "the wrapped object" },
+	{ NULL },
+};
+
 PyTypeObject PyCArg_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -306,6 +315,15 @@ PyTypeObject PyCArg_Type = {
 	0,					/* tp_setattro */
 	0,					/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT,			/* tp_flags */
+	0,					/* tp_doc */
+	0,					/* tp_traverse */
+	0,					/* tp_clear */
+	0,					/* tp_richcompare */
+	0,					/* tp_weaklistoffset */
+	0,					/* tp_iter */
+	0,					/* tp_iternext */
+	0,					/* tp_methods */
+	PyCArgType_members,			/* tp_members */
 };
 
 /****************************************************************/
