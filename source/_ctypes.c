@@ -399,21 +399,18 @@ CDataType_from_param(PyObject *type, PyObject *value)
 	}
 	if (PyCArg_CheckExact(value)) {
 		PyCArgObject *p = (PyCArgObject *)value;
-		PyObject *ob = p->obj;
-		StgDictObject *dict;
-		dict = PyType_stgdict(type);
+		StgDictObject *dict = PyType_stgdict(type);
 
 		/* If we got a PyCArgObject, we must check if the object packed in it
 		   is an instance of the type's dict->proto */
-		if(dict && ob
-		   && PyObject_IsInstance(ob, dict->itemtype)) {
+		if(PyObject_IsInstance(p->obj, dict->itemtype)) {
 			Py_INCREF(value);
 			return value;
 		}
 		PyErr_Format(PyExc_TypeError,
 			     "expected %s instance instead of pointer to %s",
 			     ((PyTypeObject *)type)->tp_name,
-			     ob->ob_type->tp_name);
+			     p->obj->ob_type->tp_name);
 		return NULL;
 	}
 	PyErr_Format(PyExc_TypeError,
@@ -725,9 +722,10 @@ PointerType_set_type(PyTypeObject *self, PyObject *type)
 static PyObject *
 PointerType_from_param(PyObject *type, PyObject *value)
 {
-	if (value == Py_None)
-		return PyInt_FromLong(0); /* NULL pointer */
-
+	if (value == Py_None) {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		StgDictObject *v = PyObject_stgdict(value);
 		StgDictObject *t = PyType_stgdict(type);
@@ -1218,38 +1216,19 @@ static PyObject *
 string_ptr_from_param(PyObject *type, PyObject *value)
 {
 	StgDictObject *typedict = PyType_stgdict(type);
-	StgDictObject *itemdict = PyType_stgdict(typedict->itemtype);
 
-	/* z_set and Z_set accept integers as well. Until that is fixed, we
-	 have to typecheck here. */
-	if (value == Py_None || PyString_Check(value) || PyUnicode_Check(value)) {
-		/* Call setfunc */
-		PyCArgObject *parg;
-		StgDictObject *dict = PyType_stgdict(type);
-
-		parg = new_CArgObject();
-		parg->pffi_type = &ffi_type_pointer;
-		parg->obj = dict->setfunc(&parg->value, value, 0, type);
-		if (parg->obj == NULL) {
-			Py_DECREF(parg);
-			return NULL;
-		}
-		return (PyObject *)parg;
-	}
 	if (ArrayObject_Check(value) || PointerObject_Check(value)) {
 		/* c_char array instance or pointer(c_char(...)) */
-		StgDictObject *dt = PyObject_stgdict(value);
-		StgDictObject *dict = dt && dt->itemtype ? PyType_stgdict(dt->itemtype) : NULL;
-		if (dict && (dict->setfunc == itemdict->setfunc)) {
+		PyObject *valueitemtype = PyObject_stgdict(value)->itemtype;
+		if (PyObject_IsSubclass(valueitemtype, typedict->itemtype)) {
 			Py_INCREF(value);
 			return value;
 		}
 	}
 	if (PyCArg_CheckExact(value)) {
 		/* byref(c_char(...)) */
-		PyCArgObject *a = (PyCArgObject *)value;
-		StgDictObject *dict = PyObject_stgdict(a->obj);
-		if (dict && (dict->setfunc == itemdict->setfunc)) {
+  		PyCArgObject *a = (PyCArgObject *)value;
+		if (PyObject_IsInstance(a->obj, typedict->itemtype)) {
 			Py_INCREF(value);
 			return value;
 		}
@@ -1257,6 +1236,21 @@ string_ptr_from_param(PyObject *type, PyObject *value)
 	if (PyObject_IsInstance(value, type)) {
 		Py_INCREF(value);
 		return value;
+	}
+	/* z_set and Z_set accept integers as well. Until that is fixed, we
+	 have to typecheck here. */
+	if (value == Py_None || PyString_Check(value) || PyUnicode_Check(value)) {
+		/* Call setfunc */
+		PyCArgObject *parg;
+
+		parg = new_CArgObject();
+		parg->pffi_type = &ffi_type_pointer;
+		parg->obj = typedict->setfunc(&parg->value, value, 0, type);
+		if (parg->obj == NULL) {
+			Py_DECREF(parg);
+			return NULL;
+		}
+		return (PyObject *)parg;
 	}
 	/* XXX better message */
 	PyErr_SetString(PyExc_TypeError,
@@ -1827,9 +1821,6 @@ KeepRef(CDataObject *target, int index, PyObject *keep)
 /*
   CData_Type
  */
-
-char basespec_string[] = "base specification";
-
 static int
 CData_traverse(CDataObject *self, visitproc visit, void *arg)
 {
@@ -1847,7 +1838,7 @@ CData_clear(CDataObject *self)
 		/* If a BSTR instance owns the memory (b_base is NULL), we
 		   have to call SysFreeString.
 		*/
-		if (PyObject_IsInstance(self, CTYPE_BSTR)) {
+		if (PyObject_IsInstance((PyObject *)self, CTYPE_BSTR)) {
 			if (*(BSTR *)self->b_ptr)
 				SysFreeString(*(BSTR *)self->b_ptr);
 		}
