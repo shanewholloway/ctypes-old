@@ -169,22 +169,7 @@ static void _CallPythonObject(void *mem,
 		}
 		/* XXX error handling! */
 	}
-
-#ifdef MS_WIN32
-	__try {
-		result = NULL;
-#endif
-		result = PyObject_CallObject(callable, arglist);
-#ifdef MS_WIN32
-	}
-	/* This may leak arbitrary python references, but
-	   we have no choice except aborting with a fatal error.
-	   See http://mail.python.org/pipermail/python-dev/2003-April/034574.html
-	*/
-	__except (dwExceptionCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
-		SetException(dwExceptionCode);
-	}
-#endif
+	result = PyObject_CallObject(callable, arglist);
 	if (!result) {
 		Extend_Error_Info("(in callback) ");
 		PyErr_Print();
