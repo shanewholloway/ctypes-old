@@ -65,7 +65,22 @@ DEFAULT_UNREACHABLE
 MAXLONGLONG
 IMAGE_ORDINAL_FLAG64
 SECURITY_NT_AUTHORITY
+_I8_MIN
+_I8_MAX
+_UI8_MAX
+_I16_MIN
+_I16_MAX
+_UI16_MAX
+_I32_MIN
+_I32_MAX
+_UI32_MAX
+_I64_MIN
+_I64_MAX
+_UI64_MAX
 """.strip().split()
+
+# The _I8_MIN symbols and friends are in limits.h, they have constanrs
+# with i8 i16 i32 i64 suffixes which gccxml refuses to compile.
 
 EXCLUDED_linux = """
 _IOT_termios
@@ -75,6 +90,8 @@ if sys.platform == "win32":
     EXCLUDED = EXCLUDED_win32
 elif sys.platform.startswith("linux"):
     EXCLUDED = EXCLUDED_linux
+else:
+    EXCLUDED = []
 
 EXCLUDED = [text for text in EXCLUDED
             if not text.startswith("#")]
@@ -93,6 +110,8 @@ if sys.platform == "win32":
     EXCLUDED_RE = EXCLUDED_RE_win32
 elif sys.platform.startswith("linux"):
     EXCLUDED_RE = EXCLUDED_RE_linux
+else:
+    EXCLUDED_RE = []
 
 EXCLUDED_RE = [re.compile(pat) for pat in EXCLUDED_RE
                if not pat.startswith("#")]
