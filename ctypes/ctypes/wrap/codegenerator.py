@@ -2,6 +2,14 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.5  2005/03/11 15:40:44  theller
+# Detect an 'Enum' com method, and create an __iter__ method in this class.
+#
+# Detect a COM enumerator by checking for the 4 Enum methods, in the
+# correct order, and make this class a Python iterator by generating
+# __iter__() and next() methods.  IMO it's better to do this in the
+# generated code than to mix in another class.
+#
 # Revision 1.4  2005/03/11 10:18:02  theller
 # Various fixes.  And autodetect whether to generate ctypes.com or
 # comtypes wrapper code for com interfaces.
@@ -276,11 +284,26 @@ class Generator(object):
         for struct in head.struct.bases:
             self.generate(struct.get_head())
             self.more.add(struct)
+        if head.struct.location:
+            print >> self.stream, "# %s %s" % head.struct.location
         basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
             self.need_GUID()
+            method_names = [m.name for m in head.struct.members if type(m) is typedesc.Method]
             print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
             print >> self.stream, "    _iid_ = GUID('{}') # please look up iid and fill in!"
+            if "Enum" in method_names:
+                print >> self.stream, "    def __iter__(self):"
+                print >> self.stream, "        return self.Enum()"
+            elif method_names == "Next Skip Reset Clone".split():
+                print >> self.stream, "    def __iter__(self):"
+                print >> self.stream, "        return self"
+                print >> self.stream
+                print >> self.stream, "    def next(self):"
+                print >> self.stream, "         arr, fetched = self.Next(1)"
+                print >> self.stream, "         if fetched == 0:"
+                print >> self.stream, "             raise StopIteration"
+                print >> self.stream, "         return arr[0]"
         else:
             methods = [m for m in head.struct.members if type(m) is typedesc.Method]
             if methods:
@@ -291,9 +314,7 @@ class Generator(object):
                 print >> self.stream, "class %s(Structure):" % head.struct.name
             elif type(head.struct) == typedesc.Union:
                 print >> self.stream, "class %s(Union):" % head.struct.name
-        if head.struct.location:
-            print >> self.stream, "    # %s %s" % head.struct.location
-        print >> self.stream, "    pass"
+            print >> self.stream, "    pass"
         self.names.add(head.struct.name)
 
     _structures = 0
