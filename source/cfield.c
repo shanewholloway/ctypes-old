@@ -111,12 +111,15 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 static PyObject *
 CField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
 {
+	CDataObject *src;
 	if (inst == NULL) {
 		Py_INCREF(self);
 		return (PyObject *)self;
 	}
+	assert(CDataObject_Check(inst));
+	src = (CDataObject *)inst;
 	return CData_get(self->proto, self->getfunc, inst,
-			 self->index, self->offset, self->size);
+			 self->index, self->size, src->b_ptr + self->offset);
 }
 
 static PyMemberDef CField_members[] = {
