@@ -10,3 +10,6 @@ test:
 
 dist: clean
 	cd ..; tar -czf wtl.tgz wtl
+
+exetest:
+	python setup.py py2exe --icon blinky.ico

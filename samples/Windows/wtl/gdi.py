@@ -1,16 +1,35 @@
-from ctypes import windll, cdll, Structure, pointer, WinError, sizeof
-from ctypes import c_short, c_long, c_char_p
-from windows import ValidHandle
+## 	   Copyright (c) 2003 Henk Punt
 
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal in the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+
+## The above copyright notice and this permission notice shall be
+## included in all copies or substantial portions of the Software.
+
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+## NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+## LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+## OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
+
+from ctypes import *
+from windows import *
 
 class BITMAP(Structure):
-    _fields_ = [("bmType", c_long),
-    		("bmWidth", c_long),
-    		("bmHeight", c_long),
-    		("bmWidthBytes", c_long),
-    		("bmPlanes", c_short),
-    		("bmBitsPixel", c_short),
-    		("bmBits", c_char_p)]
+    _fields_ = [("bmType", LONG),
+    		("bmWidth", LONG),
+    		("bmHeight", LONG),
+    		("bmWidthBytes", LONG),
+    		("bmPlanes", WORD),
+    		("bmBitsPixel", WORD),
+    		("bmBits", LPVOID)]
 
 MONO_FONT = 8
 OBJ_FONT = 6
@@ -23,6 +42,7 @@ SYSTEM_FONT= 13
 SYSTEM_FIXED_FONT= 16
 
 COLOR_ACTIVEBORDER = 10
+CLR_NONE = 0xffffffff
 
 HS_BDIAGONAL   =3
 HS_CROSS       =4
