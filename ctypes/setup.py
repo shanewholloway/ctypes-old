@@ -217,8 +217,6 @@ class test(Command):
          "directory that contains the test definitions"),
         ('test-prefix=', None,
          "prefix to the testcase filename"),
-        ('test-suffixes=', None,
-         "a list of suffixes used to generate names the of the testcases"),
         ('verbosity=', 'V', "verbosity"),
         ]
 
@@ -228,7 +226,6 @@ class test(Command):
         # (unless overridden by the user or client)
         self.test_dir = 'unittests'
         self.test_prefix = 'test_'
-        self.test_suffixes = None
         self.verbosity = 1
 
     # initialize_options()
@@ -240,14 +237,6 @@ class test(Command):
             raise DistutilsOptionError, \
                   "verbosity must be an integer"
 
-        if self.test_suffixes is None:
-            self.test_suffixes = []
-            pref_len = len(self.test_prefix)
-            for file in os.listdir(self.test_dir):
-                if (file[-3:] == ".py" and
-                    file[:pref_len]==self.test_prefix):
-                    self.test_suffixes.append(file[pref_len:-3])
-
         build = self.get_finalized_command('build')
         self.build_purelib = build.build_purelib
         self.build_platlib = build.build_platlib
@@ -257,10 +246,13 @@ class test(Command):
 
     def run(self):
         
-        import sys, unittest
+        import glob, unittest
         # Invoke the 'build' command to "build" pure Python modules
         # (ie. copy 'em into the build tree)
         self.run_command('build')
+
+        mask = os.path.join(self.test_dir, self.test_prefix + "*.py")
+        test_files = [os.path.basename(f) for f in glob.glob(mask)]
 
         # remember old sys.path to restore it afterwards
         old_path = sys.path[:]
@@ -275,11 +267,12 @@ class test(Command):
         # Import all test modules, collect unittest.TestCase classes,
         # and build a TestSuite from them.
         test_suites = []
-        for case in self.test_suffixes:
+        for f in test_files:
+            modname = os.path.splitext(f)[0]
             try:
-                mod = __import__(os.path.splitext(self.test_prefix + case)[0])
+                mod = __import__(modname)
             except Exception, detail:
-                self.warn("Could not import %s (%s)" % (self.test_prefix + case, detail))
+                self.warn("Could not import %s (%s)" % (modname, detail))
                 continue
             for name in dir(mod):
                 if name.startswith("_"):
