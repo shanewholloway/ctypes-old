@@ -10,8 +10,6 @@
 
 static PyInterpreterState *g_interp;	/* need this to create new thread states */
 
-
-
 static void EnterPython(void)
 {
 	PyThreadState *pts;
