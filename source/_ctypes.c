@@ -1934,15 +1934,17 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		assert(PyType_Check(type));
 		if (PyTuple_Check(value)) {
 			PyObject *ob;
+			PyObject *result;
 			ob = PyObject_CallObject(type, value);
 			if (ob == NULL) {
 				Extend_Error_Info(PyExc_RuntimeError, "(%s) ",
 						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
-			/* Doesn't this leak a ref to 'ob'? */
-			return _CData_set(dst, type, setfunc, ob,
-					  size, ptr);
+			result = _CData_set(dst, type, setfunc, ob,
+					    size, ptr);
+			Py_DECREF(ob);
+			return result;
 		} else if (value == Py_None && PointerTypeObject_Check(type)) {
 			*(void **)dst->b_ptr = NULL;
 			Py_INCREF(Py_None);
