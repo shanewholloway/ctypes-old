@@ -137,4 +137,10 @@ class EnumValue(object):
         self.value = value
         self.enumeration = enumeration
 
+class Variable(object):
+    def __init__(self, name, typ, init):
+        self.name = name
+        self.typ = typ
+        self.init = init
+
 ################################################################
