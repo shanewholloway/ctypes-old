@@ -1348,7 +1348,7 @@ Simple_asparam(CDataObject *self, struct argument *pa)
 	/* Hm, Aren't here any little/big endian issues? */
 	memcpy(&pa->value, self->b_ptr, self->b_size);
 	Py_INCREF(self);
-	pa->keep = self;
+	pa->keep = (PyObject *)self;
 	return 0;
 }
 
