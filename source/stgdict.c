@@ -207,6 +207,10 @@ StgDict_FromDict(PyObject *fields, PyObject *typedict, int isStruct, int pack)
 	/* Adjust the size according to the alignment requirements */
 	size = ((size + total_align - 1) / total_align) * total_align;
 
+	stgdict->ffi_type.type = FFI_TYPE_STRUCT;
+	stgdict->ffi_type.alignment = total_align;
+	stgdict->ffi_type.size = size;
+
 	stgdict->size = size;
 	stgdict->align = total_align;
 	stgdict->length = len;
