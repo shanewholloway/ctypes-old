@@ -124,7 +124,7 @@ class NumberTestCase(unittest.TestCase):
             self.failUnless(sizeof(t()) == size)
 
     def test_alignments(self):
-        from _ctypes import alignment
+        from ctypes._ctypes import alignment
         for t in signed_types + unsigned_types + float_types:
             code = t._type_ # the typecode
             align = struct.calcsize("c%c" % code) - struct.calcsize(code)
