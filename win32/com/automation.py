@@ -318,14 +318,14 @@ class VARIANT(Structure):
             oleaut32.VariantClear(byref(self))
             self.vt = VT_BOOL
             self._.VT_BOOL = value and -1 or 0
-        elif hasattr(typ, "_type_") and issubclass(typ._type_, IDispatch):
+        elif hasattr(value, "QueryInterface") and issubclass(typ._type_, IDispatch):
             p = POINTER(IDispatch)()
             value.QueryInterface(byref(IDispatch._iid_), byref(p))
             p.AddRef()
             oleaut32.VariantClear(byref(self))
             self.vt = VT_DISPATCH
             self._.VT_DISPATCH = p
-        elif issubclass(typ._type_, IUnknown) and issubclass(typ._type_, IUnknown):
+        elif hasattr(value, "QueryInterface") and issubclass(typ._type_, IUnknown):
             p = POINTER(IUnknown)()
             value.QueryInterface(byref(IUnknown._iid_), byref(p))
             p.AddRef()
