@@ -1758,18 +1758,15 @@ CData_EnsureList(CDataObject *mem, int index, int length)
 static int
 CData_traverse(CDataObject *self, visitproc visit, void *arg)
 {
-#define TRAVERSE(o) if(o && visit(o, arg) < 0) return -1
-	TRAVERSE(self->b_objects);
-	TRAVERSE((PyObject *)self->b_base);
-#undef TRAVERSE
+	Py_VISIT(self->b_objects);
+	Py_VISIT((PyObject *)self->b_base);
 	return 0;
 }
 
 static int
 CData_clear(CDataObject *self)
 {
-	Py_XDECREF(self->b_objects);
-	self->b_objects = NULL;
+	Py_CLEAR(self->b_objects);
 	if (self->b_needsfree) {
 #ifdef MS_WIN32
 		static SETFUNC BSTR_set;
@@ -1793,8 +1790,7 @@ CData_clear(CDataObject *self)
 		PyMem_Free(self->b_ptr);
 	}
 	self->b_ptr = NULL;
-	Py_XDECREF(self->b_base);
-	self->b_base = NULL;
+	Py_CLEAR(self->b_base);
 	return 0;
 }
 
@@ -2639,13 +2635,11 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *args, PyObject *kwds)
 static int
 CFuncPtr_traverse(CFuncPtrObject *self, visitproc visit, void *arg)
 {
-#define TRAVERSE(o) if (o && visit(o, arg) < 0) return -1
-	TRAVERSE(self->callable);
-	TRAVERSE(self->restype);
-	TRAVERSE(self->argtypes);
-	TRAVERSE(self->converters);
-	TRAVERSE(self->b_objects);
-#undef TRAVERSE
+	Py_VISIT(self->callable);
+	Py_VISIT(self->restype);
+	Py_VISIT(self->argtypes);
+	Py_VISIT(self->converters);
+	Py_VISIT(self->b_objects);
 	return 0;
 }
 

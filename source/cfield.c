@@ -212,18 +212,14 @@ static PyMemberDef CField_members[] = {
 static int
 CField_traverse(CFieldObject *self, visitproc visit, void *arg)
 {
-#define TRAVERSE(o) if(o && visit(o, arg) < 0) return -1
-	TRAVERSE(self->proto);
-#undef TRAVERSE
+	Py_VISIT(self->proto);
 	return 0;
 }
 
 static int
 CField_clear(CFieldObject *self)
 {
-	PyObject *tmp = self->proto;
-	self->proto = NULL;
-	Py_XDECREF(tmp);
+	Py_CLEAR(self->proto);
 	return 0;
 }
 
