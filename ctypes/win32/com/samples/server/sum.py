@@ -64,9 +64,6 @@ def main():
     # *not* pythonw.exe, so a console will be created when the object
     # is run. At least it is nice to see tracebacks if they occurr.
     #
-    # The object will be registered to run with a "/automation"
-    # command line flag when started by COM.
-    #
     # You can start the object from Oleview for example, look under
     # Object Classes->All Objects->Sum Object to locate it.
     #
