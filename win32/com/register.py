@@ -1,5 +1,5 @@
 from ctypes.com.server import CLSCTX_LOCAL_SERVER, CLSCTX_INPROC_SERVER
-import _winreg, sys, imp
+import _winreg, sys, imp, os
 
 ################################################################
 # Registration
@@ -23,69 +23,82 @@ def main_is_frozen():
             or hasattr(sys, "frozen") # McMillan installer
             )
 
-def _register(cls):
-    h = _winreg.CreateKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s" % cls._reg_clsid_)
-    name = "CLSID\\%s" % cls._reg_clsid_
+class Registrar:
+    """Registrar registers or unregisters a COM coclass in the registry.
 
-    if not hasattr(cls, "_reg_clsctx_") or cls._reg_clsctx_ & CLSCTX_LOCAL_SERVER:
-        if main_is_frozen():
-            value = sys.executable
-        else:
-            import os
-            value = "%s %s" % \
-                    (sys.executable, os.path.abspath(sys.argv[0]))
-        print "LocalServer32", value
-        _winreg.SetValue(h, "LocalServer32", _winreg.REG_SZ, value)
-
-    if hasattr(cls, "_reg_clsctx_") and cls._reg_clsctx_ & CLSCTX_INPROC_SERVER:
-        import _ctypes
-        import os
-        value = os.path.abspath(_ctypes.__file__)
-        print "InprocServer32", value
-        _winreg.SetValue(h, "InprocServer32", _winreg.REG_SZ, value)
-
-    if hasattr(cls, "_reg_progid_"):
-
-        _winreg.SetValue(_winreg.HKEY_CLASSES_ROOT, "AppID\\%s" % cls._reg_clsid_,
-                         _winreg.REG_SZ,
-                         cls._reg_progid_)
-
-        _winreg.SetValue(h, "ProgID",
-                         _winreg.REG_SZ,
-                         cls._reg_progid_)
-        
-        desc = getattr(cls, "_reg_desc_", cls._reg_progid_)
-        _winreg.SetValue(_winreg.HKEY_CLASSES_ROOT, cls._reg_progid_,
-                         _winreg.REG_SZ,
-                         desc)
-
-        _winreg.SetValue(h, "",
-                         _winreg.REG_SZ,
-                         desc)
-
-        _winreg.SetValue(_winreg.HKEY_CLASSES_ROOT, "%s\\CLSID" % cls._reg_progid_,
-                         _winreg.REG_SZ,
-                         cls._reg_clsid_)
-
-    if hasattr(cls, "_typelib_") and not main_is_frozen():
-        from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
-        import os
-        path = os.path.abspath(cls._typelib_.path)
-        try:
-            LoadTypeLibEx(path, REGKIND_REGISTER)
-            print "Registered Typelib", path
-        except:
-            import traceback
-            traceback.print_exc()
-        
-    print "Registered COM class", cls
-
-
-def register(*classes):
-    for cls in classes:
-        _register(cls)
-    register_typelib()
+    It can be extended by overriding the build_table method.
+    """
+    _reg_progid_ = None
+    _reg_clsctx_ = CLSCTX_LOCAL_SERVER | CLSCTX_INPROC_SERVER
     
+    def __init__(self, cls):
+        self._cls = cls
+        self._reg_clsid_ = cls._reg_clsid_
+        if hasattr(cls, "_reg_progid_"):
+            self._reg_progid_ = cls._reg_progid_
+        self._reg_desc_ = getattr(cls, "_reg_desc_", self._reg_progid_)
+        self._reg_clsctx_ = getattr(cls, "_reg_clsctx_", self._reg_clsctx_)
+
+    def build_table(self):
+        """Return a sequence of tuples containing registry entries.
+
+        The tuples must be (key, subkey, name, value).
+        """
+        HKCR = _winreg.HKEY_CLASSES_ROOT
+        if main_is_frozen():
+            exe = sys.executable
+        else:
+            # Or pythonw.exe?
+            exe = "%s %s" % (sys.executable, os.path.abspath(sys.argv[0]))
+        import _ctypes
+
+        modname = self._cls.__module__
+        if modname == "__main__":
+            modname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+            path = os.path.abspath(os.path.dirname(sys.argv[0]))
+        else:
+            mod = sys.modules[self._cls.__module__]
+            path = os.path.abspath(os.path.dirname(mod.__file__))
+
+        classname = "%s.%s" % (modname, self._cls.__name__)
+
+        # rootkey, subkey, valuename, value
+        table = [(HKCR, "CLSID\\%s" % self._reg_clsid_, "", self._reg_desc_),
+                 
+                 (HKCR, "CLSID\\%s\\LocalServer32" % self._reg_clsid_, "", exe),
+                 
+##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonClass", classname),
+##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "PythonPath", path),
+##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "", _ctypes.__file__),
+##                 (HKCR, "CLSID\\%s\\InprocServer32" % self._reg_clsid_, "ThreadingModel", "Both"),
+                 
+                 (HKCR, "CLSID\\%s\\ProgID" % self._reg_clsid_, "", self._reg_progid_),
+                 
+                 
+                 (HKCR, "AppID\\%s" % self._reg_clsid_, "", self._reg_progid_),
+                 (HKCR, "%s\\CLSID" % self._reg_progid_, "", self._reg_clsid_),
+                 (HKCR, self._reg_progid_, "", self._reg_desc_),
+                 ]
+        table.sort()
+        table.reverse() # so the "deepest" entries com first
+        return table
+
+    def unregister(self):
+        for root, key, name, value in self.build_table():
+            try:
+                _winreg.DeleteKey(root, key)
+            except WindowsError, detail:
+                if detail.errno != 2:
+                    raise
+
+    def register(self):
+        for root, key, name, value in self.build_table():
+            if key:
+                handle = _winreg.CreateKey(root, key)
+            else:
+                handle = root
+            _winreg.SetValueEx(handle, name, None, _winreg.REG_SZ, value)
+
 def register_typelib():
     if main_is_frozen():
         from ctypes.com.automation import REGKIND_REGISTER, LoadTypeLibEx
@@ -120,43 +133,17 @@ def unregister_typelib():
             import traceback
             traceback.print_exc()
 
-REG_KEYS = "LocalServer32 InprocServer32 PythonClass PythonPath Control MiscStatus ProgID".split()
-
-def _unregister(cls):
-    unregister_typelib()
-
-    if hasattr(cls, "_typelib_") and not main_is_frozen():
-        from ctypes import byref
-        from ctypes.com.automation import oleaut32
-        SYS_WIN32 = 1
-        tlib = cls._typelib_
-        oleaut32.UnRegisterTypeLib(byref(tlib.guid),
-                                   tlib.version[0],
-                                   tlib.version[1],
-                                   0, # XXX lcid
-                                   SYS_WIN32)
-    try:
-        h = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s" % cls._reg_clsid_)
-    except WindowsError, detail:
-        if detail.errno == 2:
-            return
-
-    for name in REG_KEYS:
-        try:
-            _winreg.DeleteKey(h, name)
-            print "deleted", name
-        except WindowsError, detail:
-            if detail.errno != 2:
-                raise
-
-    _winreg.DeleteKey(h, "")
-
-    h = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "AppID")
-    _winreg.DeleteKey(h, cls._reg_clsid_)
-
-##    h = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, "%s\\CLSID" % cls._reg_progid_)
-##    _winreg.DeleteKey(h, cls._reg_clsid_)
-
+def register(*classes):
+    for cls in classes:
+        cls._get_registrar().register()
+    register_typelib()
+    
 def unregister(*classes):
     for cls in classes:
-        _unregister(cls)
+        cls._get_registrar().unregister()
+
+if __name__ == '__main__':
+    import sys
+    sys.path.insert(0, "samples\\server")
+    import sum, ctypes.com.server
+    ctypes.com.server.UseCommandLine(sum.SumObject)

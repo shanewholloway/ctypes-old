@@ -59,7 +59,7 @@ REFCLSID = REFGUID = REFIID = POINTER(GUID)
 # COM interface and pointer meta and baseclasses
 #
 
-def STDMETHOD(restype, name, *argtypes):
+def STDMETHOD(restype, name, *argtypes, **kw):
     # First argument (this) for COM method implementation is really an
     # IUnknown pointer, but we don't want this to be built all the time,
     # since we probably don't use it, so use c_voidp
@@ -185,6 +185,11 @@ class COMObject:
     _refcnt = 0
     _factory = None
 
+    def _get_registrar(self):
+        from ctypes.com.register import Registrar
+        return Registrar(self)
+    _get_registrar = classmethod(_get_registrar)
+    
     def __init__(self):
         # actually this contains (iid, interface) pairs, where iid is
         # a GUID instance, and interface is an IUnknown or subclass instance.
