@@ -367,6 +367,7 @@ class InterfaceReader(TypeInfoReader):
 
     def _get_methods(self, ta):
         methods = []
+        self.properties = {}
 
         for i in range(ta.cFuncs):
             pfd = LPFUNCDESC()
@@ -380,9 +381,15 @@ class InterfaceReader(TypeInfoReader):
             name = BSTR()
             self.ti.GetDocumentation(fd.memid, byref(name), None, None, None)
             if fd.invkind == DISPATCH_PROPERTYGET: # same as INVOKE_PROPERTYGET
-                name = "_get_" + mangle_name(name.value)
+                name = mangle_name(name.value)
+                prop = self.properties.get(name, 0) + DISPATCH_PROPERTYGET
+                self.properties[name] = prop
+                name = "_get_" + name
             elif fd.invkind == DISPATCH_PROPERTYPUT: # same as INVOKE_PROPERTYPUT
-                name = "_put_" + mangle_name(name.value)
+                name = mangle_name(name.value)
+                prop = self.properties.get(name, 0) + DISPATCH_PROPERTYPUT
+                self.properties[name] = prop
+                name = "_put_" + name
             elif fd.invkind == DISPATCH_METHOD: # same as INVOKE_FUNC
                 name = mangle_name(name.value)
             elif fd.invkind == DISPATCH_PROPERTYPUTREF: # same as INVOKE_PROPERTYPUTREF
@@ -405,18 +412,43 @@ class InterfaceReader(TypeInfoReader):
             self.ti.ReleaseFuncDesc(pfd)
         return methods
     
-    def definition(self):
+    def definition(self, make_properties=0):
         pta = LPTYPEATTR()
         self.ti.GetTypeAttr(byref(pta))
         ta = pta.contents
         methods = self._get_methods(ta)
         self.ti.ReleaseTypeAttr(pta)
 
+        method_dict = {}
+
         l = []
         l.append("%s._methods_ = %s._methods_ + [" % (self.name, self.baseinterface))
         for m in methods:
             l.append('    %s,' % m.declaration())
+            method_dict[m.name] = m.restype, m.argtypes
         l.append("]")
+
+        if make_properties:
+            for name, flags in self.properties.items():
+                get = "None"
+                if flags & DISPATCH_PROPERTYGET:
+                    restype, argtypes = method_dict["_get_" + name]
+                    get = "_get_%s" % name
+
+                    l.append("def _get_%s(self):" % name)
+                    l.append("    result = %s()" % restype)
+                    l.append("    self._get_%s(byref(result))" % name)
+                    l.append("    return result.value")
+                put = "None"
+                if flags & DISPATCH_PROPERTYPUT:
+                    put = "_put_%s" % name
+
+                    l.append("def _put_%s(self, value):" % name)
+                    l.append("    self._put_%s(value)" % name)
+
+                l.append("POINTER(%s).%s = property(%s, %s)" % (self.name, name, get, put))
+                l.append("")
+
         return "\n".join(l)
 
     def _get_argtypes(self, n, pelemdesc):
@@ -456,9 +488,9 @@ class DispatchInterfaceReader(InterfaceReader):
             self.baseinterface = "dispinterface"
             self.is_dispinterface = 1
 
-    def definition(self):
+    def definition(self, make_properties=0):
         if not self.is_dispinterface:
-            return InterfaceReader.definition(self)
+            return InterfaceReader.definition(self, make_properties=make_properties)
         pta = LPTYPEATTR()
         self.ti.GetTypeAttr(byref(pta))
         ta = pta.contents
@@ -619,7 +651,7 @@ class TypeLibReader:
         # not sure
         return 0
 
-    def dump(self, ofi=None):
+    def dump(self, ofi=None, make_properties=0):
 
         print >> ofi, "# Generated from %s" % self.filename
         print >> ofi, HEADER
@@ -675,7 +707,7 @@ class TypeLibReader:
         if self.interfaces:
             for itf in interfaces:
                 print >> ofi
-                print >> ofi, itf.definition()
+                print >> ofi, itf.definition(make_properties=make_properties)
 
         if self.coclasses:
             print >> ofi
@@ -695,8 +727,8 @@ def main():
 ##        path = r"c:\windows\system32\simpdata.tlb"
 ##        path = r"c:\windows\system32\nscompat.tlb"
 ##        path = r"c:\windows\system32\mshtml.tlb"
-        path = r"..\samples\server\sum.tlb"
-##        path = r"c:\windows\system32\shdocvw.dll"
+##        path = r"..\samples\server\sum.tlb"
+        path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 ## XXX Does definitely *not* work with the Excel type library
 ##        path = r"c:\Programme\Microsoft Office\Office\XL5EN32.OLB"
@@ -712,6 +744,7 @@ def main():
     stop = time.clock()
     print "# -*- python -*-"
     reader.dump()
+##    reader.dump(make_properties=1)
     
 
 if __name__ == '__main__':
