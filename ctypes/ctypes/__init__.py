@@ -105,7 +105,7 @@ elif _os.name == "posix":
     from _ctypes import dlopen as _LoadLibrary
     _FreeLibrary = None
 
-from _ctypes import sizeof, byref, addressof
+from _ctypes import sizeof, byref, addressof, alignment
 from _ctypes import _SimpleCData
 
 class c_short(_SimpleCData):

@@ -35,7 +35,6 @@ class StructureTestCase(unittest.TestCase):
                                  (calcsize("%c" % (code)), code))
 
     def test_struct_alignment(self):
-        from _ctypes import alignment
         class X(Structure):
             _fields_ = [("x", c_char * 3)]
         self.failUnlessEqual(alignment(X), calcsize("s"))
@@ -67,7 +66,6 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(sizeof(XX), calcsize("3s 3s 0s"))
 
     def test_emtpy(self):
-        from _ctypes import alignment
         # I had problems with these
         #
         # Although these are patological cases: Empty Structures!
