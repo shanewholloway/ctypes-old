@@ -204,8 +204,6 @@ CField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 static PyObject *
 CField_get(CFieldObject *self, CDataObject *src, PyTypeObject *type)
 {
-	StgDictObject *dict;
-
 	if (src == NULL) {
 		Py_INCREF(self);
 		return (PyObject *)self;
