@@ -1,4 +1,12 @@
 /*
+  Short-term todo list:
+
+  - For faster instance creation with b_base, the _basespec_ trick should be
+  avoided.
+ */
+
+
+/*
   ToDo:
 
   Get rid of the checker (and also the converters) field in CFuncPtrObject and
@@ -2133,6 +2141,23 @@ _CData_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 
 
 /******************************************************************/
+static void CData_MallocBuffer(CDataObject *obj, StgDictObject *dict)
+{
+	if (dict->size <= sizeof(obj->b_value)) {
+		/* No need to call malloc, can use the default buffer */
+		obj->b_ptr = (char *)&obj->b_value;
+		obj->b_needsfree = 0;
+	} else {
+		/* In python 2.4, and ctypes 0.9.6, the malloc call took about
+		   33% of the creation time for c_int().
+		*/
+		obj->b_ptr = PyMem_Malloc(dict->size);
+		obj->b_needsfree = 1;
+		memset(obj->b_ptr, 0, dict->size);
+	}
+	obj->b_size = dict->size;
+}
+
 static PyObject *
 GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -2200,9 +2225,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			obj->b_objects = NULL;
 			obj->b_length = length;
 			
-			obj->b_size = size;
-			obj->b_ptr = PyMem_Malloc(size);
-			obj->b_needsfree = 1;
+			CData_MallocBuffer(obj, dict);
 			memcpy(obj->b_ptr, spec->adr, size);
 		}
 		/* don't pass this to tp_init! */
@@ -2217,18 +2240,7 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		obj->b_objects = NULL;
 		obj->b_length = length;
 
-		/* 0.7 us in Python 2.3, 20 % of total creation time for c_int() */
-		/* same ABSOLUTE time, but smaller percentage in Python 2.2 */
-		/* We could save this time if the buffer in this case
-		   would be part of the object already */
-
-		/* In python 2.4, and ctypes 0.9.6, the malloc call takes about
-		   33% of the creation time for c_int().
-		*/
-		obj->b_ptr = PyMem_Malloc(size);
-		obj->b_needsfree = 1;
-		memset(obj->b_ptr, 0, size);
-		obj->b_size = size;
+		CData_MallocBuffer(obj, dict);
 	}
 	return (PyObject *)obj;
 }
