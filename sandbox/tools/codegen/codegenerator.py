@@ -186,10 +186,9 @@ class Generator(object):
             result = "ctypes.POINTER(%s)" % self.type_name(t.typ, generate)
             # XXX Better to inspect t.typ!
             if result.startswith("ctypes.POINTER(ctypes.WINFUNCTYPE"):
-                return result[15:-1]
+                return result[len("ctypes.POINTER("):-1]
             if result.startswith("ctypes.POINTER(ctypes.CFUNCTYPE"):
-                return result[15:-1]
-            # XXX See comment above...
+                return result[len("ctypes.POINTER("):-1]
             elif result == "ctypes.POINTER(None)":
                 return "ctypes.c_void_p"
             return result
