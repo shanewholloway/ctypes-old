@@ -918,6 +918,7 @@ z_set(void *ptr, PyObject *value, unsigned size)
 static PyObject *
 z_get(void *ptr, unsigned size)
 {
+	/* XXX What about invalid pointers ??? */
 	if (*(void **)ptr)
 		return PyString_FromString(*(char **)ptr);
 	else {
