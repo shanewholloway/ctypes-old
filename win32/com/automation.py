@@ -465,6 +465,9 @@ class EXCEPINFO(Structure):
                 ("pvReserved", c_void_p),
                 ("pfnDeferredFillIn", c_int), # XXX
                 ("scode", SCODE)]
+    def as_tuple(self):
+        return (self.wCode, self.bstrSource, self.bstrDescription,
+                self.bstrHelpFile, self.dwHelpContext, self.scode)
 assert(sizeof(EXCEPINFO) == 32)
 
 class TLIBATTR(Structure):
