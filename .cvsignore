@@ -8,11 +8,12 @@
 *.tlb
 *.zip
 MANIFEST
+*.c.gcov
 _ctypes.pyd
 _ctypes_d.pyd
 archive
 build
+comtypes
 dist
 extensions
 test.output
-comtypes
