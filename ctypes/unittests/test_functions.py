@@ -136,6 +136,15 @@ class FunctionTestCase(unittest.TestCase):
         cb = AnotherCallback(callback)
         self.assertRaises(TypeError, f, -10, cb)
 
+    def test_errors(self):
+        f = dll._testfunc_p_p
+        f.restype = "i"
+
+        class X(Structure):
+            _fields_ = [("y", "i")]
+
+        self.assertRaises(TypeError, f, X()) #cannot convert parameter
+
 def test_longlong_callbacks():
     # Currently not possible, it fails because there's no way to specify the
     # type of a callback function in argtypes!
