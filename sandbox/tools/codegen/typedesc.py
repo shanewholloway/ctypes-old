@@ -10,6 +10,23 @@ class _HasArgs(object):
 
 ################
 
+class Alias(object):
+    # a C preprocessor alias, like #define A B
+    def __init__(self, name, alias, typ=None):
+        self.name = name
+        self.alias = alias
+        self.typ = typ
+
+class Macro(object):
+    # a C preprocessor definition with arguments
+    def __init__(self, name, args, body):
+        # all arguments are strings, args is the literal argument list
+        # *with* the parens around it:
+        # Example: Macro("CD_INDRIVE", "(status)", "((int)status > 0)")
+        self.name = name
+        self.args = args
+        self.body = body
+
 class File(object):
     def __init__(self, name):
         self.name = name
