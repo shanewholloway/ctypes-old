@@ -279,9 +279,9 @@ class GCCXML_Handler(handler.ContentHandler):
             _id = attrs.get("id", None)
             if _id is not None:
                 self.all[_id] = result
-        else:
-            import warnings
-            warnings.warn(name, Warning)
+##        else:
+##            import warnings
+##            warnings.warn(name, Warning)
         if name in self.has_values:
             self.context.append(result)
 
@@ -398,6 +398,9 @@ class Visitor(object):
         mth = getattr(self, obj.__class__.__name__, None)
         if mth is not None:
             mth(obj)
+##        else:
+##            import warnings
+##            warnings.warn(type(obj), Warning)
 
     def go(self):
         for o in self.__objects:
