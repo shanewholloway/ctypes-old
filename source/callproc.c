@@ -863,8 +863,11 @@ static PyObject *GetResult(PyObject *restype, PyCArgObject *result)
 		return (PyObject *)pd;
 	}
 	if (PyCallable_Check(restype))
-		return PyObject_CallFunctionObjArgs(restype,
-						    result->value.i, NULL);
+		/* XXX There's a problem here when sizeof(result) != sizeof(int)
+		   Should we disallow this if restype is a CDataType??
+		*/
+		return PyObject_CallFunction(restype, "i",
+					     result->value.i);
 	/* Should be unreached */
 	assert(FALSE);
 	return NULL; /* to silence the compiler */
