@@ -69,11 +69,13 @@ CField_FromDesc(PyObject *desc, int index,
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
+#ifdef HAVE_USABLE_WCHAR_T
 			if (idict->getfunc == getentry("u")->getfunc) {
 				struct fielddesc *fd = getentry("U");
 				getfunc = fd->getfunc;
 				setfunc = fd->setfunc;
 			}
+#endif
 		}
 	}
 
