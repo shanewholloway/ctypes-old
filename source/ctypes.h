@@ -138,7 +138,8 @@ struct fielddesc {
 typedef struct {
 	PyObject_HEAD
 	int offset;
-	int size;
+	int size;			/* for bitfields, contains bitoffset and bitcount */
+					
 	int index;			/* Index into CDataObject's
 					   object array */
 	PyObject *proto;		/* a type or NULL */
@@ -224,14 +225,16 @@ extern int StgDict_clone(StgDictObject *src, StgDictObject *dst);
 
 typedef int(* PPROC)(void);
 
-PyObject *_CallProc(PPROC pProc,
-		    PyObject *arguments,
-		    void *pIUnk,
-		    int flags,
-		    PyObject *argtypes,
-		    PyObject *restype,
-		    PyObject *checker);
+extern PyObject *_CallProc(PPROC pProc,
+			   PyObject *arguments,
+			   void *pIUnk,
+			   int flags,
+			   PyObject *argtypes,
+			   PyObject *restype,
+			   PyObject *checker);
  
+extern PyObject *
+CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr);
 
 #define FUNCFLAG_STDCALL 0x0
 #define FUNCFLAG_CDECL   0x1
