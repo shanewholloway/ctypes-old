@@ -432,138 +432,6 @@ PyTypeObject PyCArg_Type = {
  *    and value.
  */
 
-/*
- * Convert a single Python object into a PyCArgObject and return it.
- */
-static PyCArgObject *ConvParam(PyObject *obj, int index)
-{
-	PyCArgObject *parm;
-	if (PyCArg_CheckExact(obj)) {
-		Py_INCREF(obj);
-		return (PyCArgObject *)obj;
-	}
-
-	parm = new_CArgObject();
-	if (!parm)
-		return NULL;
-
-	/* check for None, integer, string or unicode and use directly if successful */
-	if (obj == Py_None) {
-		parm->pffi_type = &ffi_type_pointer;
-		parm->tag = 'P';
-		parm->value.p = NULL;
-		Py_INCREF(Py_None);
-		parm->obj = Py_None;
-		return parm;
-	}
-
-	if (PyInt_Check(obj)) {
-		parm->pffi_type = &ffi_type_sint;
-		parm->tag = 'i';
-		parm->value.i = PyInt_AS_LONG(obj);
-		Py_INCREF(obj);
-		parm->obj = obj;
-		return parm;
-	}
-
-	if (PyLong_Check(obj)) {
-		parm->pffi_type = &ffi_type_sint;
-		parm->tag = 'i';
-		parm->value.i = (long)PyLong_AsUnsignedLong(obj);
-		if (parm->value.i == -1 && PyErr_Occurred()) {
-			PyErr_Clear();
-			parm->value.i = PyLong_AsLong(obj);
-			if (parm->value.i == -1 && PyErr_Occurred()) {
-				PyErr_SetString(PyExc_OverflowError,
-						"long int too long to convert");
-				return NULL;
-			}
-		}
-		Py_INCREF(obj);
-		parm->obj = obj;
-		return parm;
-	}
-
-	if (PyString_Check(obj)) {
-		parm->pffi_type = &ffi_type_pointer;
-		parm->tag = 'P';
-		parm->value.p = PyString_AS_STRING(obj);
-		Py_INCREF(obj);
-		parm->obj = obj;
-		return parm;
-	}
-
-#ifdef HAVE_USABLE_WCHAR_T
-	if (PyUnicode_Check(obj)) {
-		parm->pffi_type = &ffi_type_pointer;
-		parm->tag = 'P';
-		parm->value.p = PyUnicode_AS_UNICODE(obj);
-		Py_INCREF(obj);
-		parm->obj = obj;
-		return parm;
-	}
-#endif
-	{
-		PyObject *arg;
-		arg = PyObject_GetAttrString(obj, "_as_parameter_");
-		/* Which types should we exactly allow here?
-		   integers are required for using Python classes
-		   as parameters (they have to expose the '_as_parameter_'
-		   attribute)
-		*/
-		if (arg == 0) {
-			Py_DECREF(parm);
-			PyErr_Format(PyExc_TypeError,
-				     "Don't know how to convert parameter %d", index);
-			return NULL;
-		}
-		if (PyCArg_CheckExact(arg)) {
-			Py_DECREF(parm);
-			return (PyCArgObject *)arg;
-		}
-		if (PyInt_Check(arg)) {
-			parm->pffi_type = &ffi_type_sint;
-			parm->tag = 'i';
-			parm->value.i = PyInt_AS_LONG(arg);
-			Py_DECREF(arg);
-			Py_INCREF(obj);
-			parm->obj = obj;
-			return parm;
-		}
-#if 0
-/* Does this make sense? Now that even Structure and Union types
-   have an _as_parameter_ property implemented in C, which returns
-   a PyCArgObject?
-*/
-#ifdef CAN_PASS_BY_VALUE
-		if (CDataObject_Check(arg)) {
-			CDataObject *mem = (CDataObject *)arg;
-			parm->tag = 'V';
-			parm->value.p = mem->b_ptr;
-			parm->size = mem->b_size;
-			/* This consumes the refcount of arg */
-			parm->obj = arg;
-			return parm;
-		}
-#endif
-#endif
-		Py_DECREF(parm);
-		PyErr_Format(PyExc_TypeError,
-			     "Don't know how to convert parameter %d", index);
-		return NULL;
-	}
-}
-
-
-ffi_type *GetType(PyObject *obj)
-{
-	StgDictObject *dict = PyType_stgdict(obj);
-	if (dict == NULL)
-		return &ffi_type_sint;
-	return &dict->ffi_type;
-}
-
-
 struct argument {
 	ffi_type *ffi_type;
 	union {
@@ -582,6 +450,122 @@ struct argument {
 };
 
 /*
+ * Convert a single Python object into a PyCArgObject and return it.
+ */
+static int ConvParam(PyObject *obj, int index, struct argument *pa)
+{
+	if (PyCArg_CheckExact(obj)) {
+		PyCArgObject *carg = (PyCArgObject *)obj;
+		pa->ffi_type = carg->pffi_type;
+		/* XXX What about structures by value? */
+		memcpy(&pa->value, &carg->value, sizeof(pa->value));
+		return 0;
+	}
+
+	/* check for None, integer, string or unicode and use directly if successful */
+	if (obj == Py_None) {
+		pa->ffi_type = &ffi_type_pointer;
+		pa->value.p = NULL;
+		return 0;
+	}
+
+	if (PyInt_Check(obj)) {
+		pa->ffi_type = &ffi_type_sint;
+		pa->value.l = PyInt_AS_LONG(obj);
+		return 0;
+	}
+
+	if (PyLong_Check(obj)) {
+		pa->ffi_type = &ffi_type_sint;
+		pa->value.l = (long)PyLong_AsUnsignedLong(obj);
+		if (pa->value.l == -1 && PyErr_Occurred()) {
+			PyErr_Clear();
+			pa->value.l = PyLong_AsLong(obj);
+			if (pa->value.l == -1 && PyErr_Occurred()) {
+				PyErr_SetString(PyExc_OverflowError,
+						"long int too long to convert");
+				return -1;
+			}
+		}
+		return 0;
+	}
+
+	if (PyString_Check(obj)) {
+		pa->ffi_type = &ffi_type_pointer;
+		pa->value.p = PyString_AS_STRING(obj);
+		return 0;
+	}
+
+#ifdef HAVE_USABLE_WCHAR_T
+	if (PyUnicode_Check(obj)) {
+		pa->ffi_type = &ffi_type_pointer;
+		pa->value.p = PyUnicode_AS_UNICODE(obj);
+		return 0;
+	}
+#endif
+
+	{
+		PyObject *arg;
+		arg = PyObject_GetAttrString(obj, "_as_parameter_");
+		/* Which types should we exactly allow here?
+		   integers are required for using Python classes
+		   as parameters (they have to expose the '_as_parameter_'
+		   attribute)
+		*/
+		if (arg == 0) {
+			PyErr_Format(PyExc_TypeError,
+				     "Don't know how to convert parameter %d", index);
+			return -1;
+		}
+		if (PyCArg_CheckExact(arg)) {
+			PyCArgObject *carg = (PyCArgObject *)arg;
+			pa->ffi_type = carg->pffi_type;
+			/* XXX What about structures by value? */
+			memcpy(&pa->value, &carg->value, sizeof(pa->value));
+			Py_DECREF(arg); /* XXX */
+			return 0;
+		}
+		if (PyInt_Check(arg)) {
+			pa->ffi_type = &ffi_type_sint;
+			pa->value.l = PyInt_AS_LONG(arg);
+			Py_DECREF(arg);
+			return 0;
+		}
+#if 0
+/* Does this make sense? Now that even Structure and Union types
+   have an _as_parameter_ property implemented in C, which returns
+   a PyCArgObject?
+*/
+#ifdef CAN_PASS_BY_VALUE
+		if (CDataObject_Check(arg)) {
+			CDataObject *mem = (CDataObject *)arg;
+			parm->tag = 'V';
+			parm->value.p = mem->b_ptr;
+			parm->size = mem->b_size;
+			/* This consumes the refcount of arg */
+			parm->obj = arg;
+			return parm;
+		}
+#endif
+#endif
+		Py_DECREF(arg);
+		PyErr_Format(PyExc_TypeError,
+			     "Don't know how to convert parameter %d", index);
+		return -1;
+	}
+}
+
+
+ffi_type *GetType(PyObject *obj)
+{
+	StgDictObject *dict = PyType_stgdict(obj);
+	if (dict == NULL)
+		return &ffi_type_sint;
+	return &dict->ffi_type;
+}
+
+
+/*
  * libffi uses:
  *
  * ffi_status ffi_prep_cif(ffi_cif *cif, ffi_abi abi,
@@ -595,41 +579,19 @@ struct argument {
  */
 static int _call_function_pointer(int flags,
 				  PPROC pProc,
-				  PyCArgObject **parms,
+				  void **avalues,
+				  ffi_type **atypes,
 				  struct argument *res,
 				  int argcount)
 {
 	ffi_cif cif;
-	ffi_type **atypes;
-	void **values;
-	int i;
 	int cc;
 #ifdef MS_WIN32
 	int delta;
 	DWORD dwExceptionCode;
 	EXCEPTION_RECORD record;
 #endif
-	atypes = (ffi_type **)alloca(argcount * sizeof(ffi_type *));
-	values = (void **)alloca(argcount * sizeof(void *));
-
-	for (i = 0; i < argcount; ++i) {
-		ffi_type *tp = parms[i]->pffi_type;
-		if (tp == NULL) {
-			PyErr_SetString(PyExc_RuntimeError,
-					"No ffi_type for an argument");
-			return -1;
-		}
-		atypes[i] = tp;
-		/* For structure parameters (by value), parg->value doesn't
-		   contain the structure data itself, instead parg->value.p
-		   *points* to the structure's data. See also _ctypes.c, function
-		   Struct_as_parameter().
-		*/
-		if (tp->type == FFI_TYPE_STRUCT)
-			values[i] = parms[i]->value.p;
-		else
-			values[i] = &parms[i]->value;
-	}
+	/* XXX check before here */
 	if (res->ffi_type == NULL) {
 		PyErr_SetString(PyExc_RuntimeError,
 				"No ffi_type for result");
@@ -659,7 +621,7 @@ static int _call_function_pointer(int flags,
 #endif
 		delta =
 #endif
-			ffi_call(&cif, (void *)pProc, &res->value, values);
+			ffi_call(&cif, (void *)pProc, &res->value, avalues);
 #ifdef MS_WIN32
 #ifndef DEBUG_EXCEPTIONS
 	}
@@ -825,57 +787,54 @@ PyObject *_CallProc(PPROC pProc,
 {
 	int i, n, argcount;
 	struct argument result;
-
-	PyCArgObject **pargs, **pp;
+	struct argument *args, *pa;
+	ffi_type **atypes;
+	void **avalues;
 	PyObject *retval = NULL;
 
 	n = argcount = PyTuple_GET_SIZE(argtuple);
-
-	/* a COM object this pointer */
+	/* an optional COM object this pointer */
 	if (pIunk)
 		++argcount;
 
-	pargs = (PyCArgObject **)alloca(sizeof(PyCArgObject *) * argcount);
-	memset(pargs, 0, sizeof(pargs) * argcount);
+	args = (struct argument *)alloca(sizeof(struct argument) * argcount);
+	memset(args, 0, sizeof(struct argument) * argcount);
 
 	if (pIunk) {
-		pargs[0] = new_CArgObject();
-		if (pargs[0] == NULL)
-			return NULL;
-		pargs[0]->pffi_type = &ffi_type_pointer;
-		pargs[0]->tag = 'P';
-		pargs[0]->value.p = pIunk;
-		pp = &pargs[1];
+		args[0].ffi_type = &ffi_type_pointer;
+		args[0].value.p = pIunk;
+		pa = &args[1];
 	} else {
-		pp = &pargs[0];
+		pa = &args[0];
 	}
 
 	/* Convert the arguments */
-	for (i = 0; i < n; ++i, ++pp) {
+	for (i = 0; i < n; ++i, ++pa) {
 		PyObject *converter;
 		PyObject *arg;
+		int err;
 
 		arg = PyTuple_GET_ITEM(argtuple, i);	/* borrowed ref */
 		if (argtypes) {
+			PyObject *v;
 			converter = PyTuple_GET_ITEM(argtypes, i);
-			/* new ref */
-			arg = PyObject_CallFunctionObjArgs(converter,
+			v = PyObject_CallFunctionObjArgs(converter,
 							   arg,
 							   NULL);
-			if (arg == NULL) {
+			if (v == NULL) {
 				Extend_Error_Info("while constructing argument %d:\n", i+1);
 				goto cleanup;
 			}
 
-			*pp = ConvParam(arg, i+1);
-			Py_DECREF(arg);
-			if (!*pp) {
+			err = ConvParam(v, i+1, pa);
+			Py_DECREF(v);
+			if (-1 == err) {
 				Extend_Error_Info("while constructing argument %d:\n", i+1);
 				goto cleanup;
 			}
 		} else {
-			*pp = ConvParam(arg, i+1);
-			if (!*pp) {
+			err = ConvParam(arg, i+1, pa);
+			if (-1 == err) {
 				Extend_Error_Info("while constructing argument %d:\n", i+1);
 				goto cleanup; /* leaking ? */
 			}
@@ -884,7 +843,14 @@ PyObject *_CallProc(PPROC pProc,
 
 	result.ffi_type = GetType(restype);
 
-	if (-1 == _call_function_pointer(flags, pProc, pargs, &result, argcount))
+	avalues = (void **)alloca(sizeof(void *) * argcount);
+	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
+	for (i = 0; i < argcount; ++i) {
+		avalues[i] = (void *)&args[i].value;
+		atypes[i] = args[i].ffi_type;
+	}
+
+	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes, &result, argcount))
 		goto cleanup;
 
 #ifdef MS_WIN32
@@ -897,9 +863,6 @@ PyObject *_CallProc(PPROC pProc,
 #endif
 		retval = GetResult(restype, &result);
   cleanup:
-	for (i = 0; i < argcount; ++i) {
-		Py_XDECREF(pargs[i]);
-	}
 	return retval;
 }
 
