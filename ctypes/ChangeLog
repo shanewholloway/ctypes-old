@@ -1,3 +1,9 @@
+2004-11-19  Thomas Heller  <theller@python.net>
+
+	* (Message): The _fields_ attribute can now be set *after* a
+	Structure or Union type has been created.
+	XXX Describe the exact semantics.
+
 2004-10-29  Thomas Heller  <theller@python.net>
 
 	* (Message): Define a new protocol for function's restype.  If it
