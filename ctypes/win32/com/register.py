@@ -18,7 +18,7 @@ import _winreg, sys, imp
 # is used instead.
 
 def is_frozen():
-    return hasattr(sys, "importers") or imp.is_frozen("__main__")
+    return hasattr(sys, "importers") or imp.is_frozen("__main__") or hasattr(sys, "frozen")
 
 def _register(cls):
     h = _winreg.CreateKey(_winreg.HKEY_CLASSES_ROOT, "CLSID\\%s" % cls._reg_clsid_)
