@@ -983,6 +983,16 @@ add_getset(PyTypeObject *type, PyGetSetDef *gsp)
 	return 0;
 }
 
+static int
+Array_asparam(CDataObject *self, struct argument *pa)
+{
+	pa->ffi_type = &ffi_type_pointer;
+	pa->value.p = self->b_ptr;
+	Py_INCREF(self);
+	pa->keep = (PyObject *)self;
+	return 0;
+}
+
 static PyObject *
 ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -1055,6 +1065,8 @@ ArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	stgdict->getfunc = generic_getfunc;
 	stgdict->setfunc = StructUnion_setfunc;
+	stgdict->asparam = Array_asparam;
+
 	/* Special casing character arrays.
 	   A permanent annoyance: char arrays are also strings!
 	*/
@@ -1619,7 +1631,7 @@ CFuncPtr_asparam(CDataObject *self, struct argument *pa)
 	pa->ffi_type = &ffi_type_pointer;
 	pa->value.p = *(void **)self->b_ptr;
 	Py_INCREF(self);
-	pa->keep = self;
+	pa->keep = (PyObject *)self;
 	return 0;
 }
 
@@ -3454,26 +3466,6 @@ static PySequenceMethods Array_as_sequence = {
 	0,					/* sq_inplace_repeat; */
 };
 
-static PyObject *
-Array_as_parameter(CDataObject *self)
-{
-	PyCArgObject *p = new_CArgObject();
-	if (p == NULL)
-		return NULL;
-	p->tag = 'P';
-	p->pffi_type = &ffi_type_pointer;
-	p->value.p = (char *)self->b_ptr;
-	Py_INCREF(self);
-	p->obj = (PyObject *)self;
-	return (PyObject *)p;
-}
-
-static PyGetSetDef Array_getsets[] = {
-	{ "_as_parameter_", (getter)Array_as_parameter,
-	  (setter)NULL, "convert to a parameter", NULL },
-	{ NULL },
-};
-
 PyTypeObject Array_Type = {
 	PyObject_HEAD_INIT(NULL)
 	0,
@@ -3505,7 +3497,7 @@ PyTypeObject Array_Type = {
 	0,					/* tp_iternext */
 	0,					/* tp_methods */
 	0,					/* tp_members */
-	Array_getsets,				/* tp_getset */
+	0,					/* tp_getset */
 	0,					/* tp_base */
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
