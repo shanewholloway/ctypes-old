@@ -1,0 +1,114 @@
+Purpose
+
+  This file describes the implementation of the '_ctypes' module.
+
+ctypes internals
+
+  'Structure' is the most important (externally visible) part of the
+  _ctypes module.
+
+  It consists of the following building blocks:
+
+  - 'StgDictObject', which is a subclass of 'PyDictObject'
+
+  - 'MemoryTypeObject' metaclass, subclass of 'PyTypeObject'
+
+  - 'MemoryObject', subclass of 'object'
+
+  - 'CFieldObject'
+
+  Among other C compatible data types implemented in the '_ctypes'
+  module, 'Structure' instances store their attributes in a C
+  accessible memory block.
+
+  The memory block must have a certain size, combining memory blocks
+  has certain alignment requirement, and so on. (XXX Have to explain
+  the need for the 'length' field)
+
+  StgDictObject
+
+    'StgDictObject' works around the problem that it's currently not possible
+    to attach additional C accessible structure members to type objects.
+
+    For cases where this is needed, we replace the type's 'tp_dict'
+    member, which is normally a 'PyDictObject' instance, with a StgDictObject
+    instance.
+
+    StgInfoObject is a subclass of PyDictObject, but has additional C
+    accessible fields::
+
+        struct {
+	        int size;
+		int align;
+		int length;
+		PyObject *proto;
+	};
+
+    These fields hold information about the memory block's requirements.
+
+  MemoryTypeObject
+
+    'MemoryTypeObject' is used as the (base) metaclass for Structure
+    and other C data types. The constructor makes sure several
+    requirements are met (a Structure subclass must have a '_fields_'
+    attribute, _Pointer and Array subclasses must have a '_type_'
+    attribute, and so on). It also analyzes the memory requirements,
+    and replaces the type's tp_dict member by a StgDictObject
+    instance.
+
+    There are C api functions to access the StgDictObject of 'type' objects::
+
+      /*
+       * Retrieve the size, align, and length fields of the type object's
+       * StgDictObject if it has one. Returns 0 on success.
+       * If an error cccurrs, -1 is returned and an exception is set.
+       */
+      int PyType_stginfo(PyTypeObject *self,
+			 int *psize,
+			 int *palign,
+			 int *plength);
+
+      /*
+       * Return the proto field of the type's StgDictObject, if there is one.
+       * Returns NULL if an error occurrs, but does not set an exception.
+       * Returns a borrowed reference.
+       */
+      PyObject *PyType_spamdictproto(PyObject *self);
+			 
+
+  MemoryObject
+
+    This is the base class for all concrete C data types. It contains
+    the memory block described by the type's StgDictObject.
+
+    There are C api functions to access the StgDictObject of the object's
+    type::
+
+      /*
+       * Retrieve the size, align, and length fields of the object type's
+       * StgDictObject if it has one. Returns 0 on success.
+       * If an error cccurrs, -1 is returned and an exception is set.
+       */
+      int PyObject_stginfo(PyObject *self,
+			   int *psize,
+			   int *palign,
+			   int *plength);
+
+      /*
+       * Return the proto field of the object type's StgDictObject,
+       * if there is one. Returns NULL if an error occurrs,
+       * but does not set an exception.
+       * Returns a borrowed reference.
+       */
+      PyObject *PyObject_spamdictproto(PyObject *self);
+			 
+
+  CFieldObject
+
+    This is a descriptor object: it knows how to convert between C and
+    Python data types and back, and how to store and retrieve the data
+    from the memory block.
+
+    When a new subclass of Structure is created (by the metaclass),
+    the constructor populates the new class' tp_dict with CFieldObject
+    instances constructed from the '_fields_' attribute.

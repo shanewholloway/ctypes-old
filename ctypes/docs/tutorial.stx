@@ -1,0 +1,793 @@
+The ctypes module
+
+  'ctypes' is a Python module allowing to create and manipulate C data
+  types in Python. These can then be passed to C-functions loaded from
+  dynamic link libraries.
+
+  For background information about the C data types, see also
+  "Standard C Types":http://www-ccs.ucsd.edu/c/types.html at UCSD
+  (external link).
+
+<!--  For details about common operations, see "ctypes reference":reference.html
+-->
+
+  **New downloads are available, see the bottom of this page!**
+
+  Purpose
+
+    The purpose of this module is to be a greatly enhanced and much
+    more complete replacement of Sam Rushing's calldll/npstruct/windll
+    modules. 'ctypes' is not based on Sam's work, it has different
+    roots.
+
+
+  Requirements
+
+    Internally 'ctypes' makes heavy use of the new type system
+    introduced in Python 2.2, so it will not work in earlier versions.
+
+
+  Loading dynamic link libraries into Python
+
+    'ctypes' exports the objects 'windll', 'cdll' and 'oledll' to load
+    dynamic link libraries.
+
+    You can load libraries by retrieving them as attributes.  'cdll'
+    loads libraries which export functions using the 'cdecl' calling
+    convention, while 'windll' libraries call functions using the
+    'stdcall' calling convention. 'oledll' also uses the 'stdcall'
+    calling convention, and assumes the functions return a Windows
+    'HRESULT'. These are used to automatically raise 'WindowsError'
+    Python exceptions when the function call failes.
+
+    Here are some examples::
+
+      >>> from ctypes import windll, cdll
+      >>> print windll.kernel32
+      <WinDLL 'kernel32', handle 77e80000 at 7ecfe8>
+      >>> print cdll.msvcrt
+      <CDLL 'msvcrt', handle 78000000 at 80b010>
+
+  Retrieving functions from loaded dlls
+
+    Functions are (lazily) exposed as attributes of dlls::
+
+      >>> from ctypes import windll, cdll
+      >>> print cdll.msvcrt.printf
+      <_cdecl_Function 'printf', address 78025147 at 80a2b0>
+      >>> print windll.kernel32.GetModuleHandleA
+      <_stdcall_Function 'GetModuleHandleA', address 77e8380e at 7e95b8>
+      >>> print windll.kernel32.MyOwnFunction
+      Traceback (most recent last):
+        File "<stdin>", line 1, in ?
+	File "ctypes.py", line 179, in __getattr__
+	  func = DynFunction(name, self, 0)
+      ValueError: function 'MyOwnFunction' not found
+
+    Note that win32 system dlls like 'kernel32', 'user32', and others,
+    sometimes expose ANSI as well as UNICODE versions of
+    functions. The UNICODE version is exposed with an 'W' appended to
+    the name, while the ANSI version is exposed with an 'A' appended
+    to the name. The win32 'GetModuleHandle' function, which returns a
+    *module handle* for a given module name, has these C prototypes::
+
+      /* ANSI version */
+      HMODULE GetModuleHandleA(LPCSTR lpModuleName);
+      /* UNICODE version */
+      HMODULE GetModuleHandleW(LPCWSTR lpModuleName);
+
+    'windll' does not try to hide these differences, you must load the
+    version you need explicitely by specifying 'GetModuleHandleA' or
+    'GetModuleHandleW' explicitely, and call them with normal strings
+    or unicode strings respectively.
+
+    Sometimes, dlls export functions with names which aren't valid
+    Python identifiers, like '"??2@YAPAXI@Z"'. In this case you have
+    to use 'getattr' to retrieve the function::
+
+      >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z")
+      <_ctypes.ExportedFunction object at 0x007A60E0>
+      >>>
+
+
+  Calling functions
+
+    You can call these functions like any other Python callable. This
+    example uses the 'time()' function, which returns system time in
+    seconds since the UNIX epoch, and the 'GetModuleHandleA()'
+    function, which returns a win32 module handle.
+
+    This example calls both functions with a NULL pointer::
+
+      >>> from ctypes import cdll, windll
+      >>> print cdll.msvcrt.time(0)
+      1022091405
+      >>> print hex(windll.kernel32.GetModuleHandleA(0))
+      0x1d000000
+
+    'ctypes' tries at its best to protect you from calling functions
+    with the wrong number of arguments.  It does this by examining the
+    stack after the function returns::
+
+      >>> windll.kernel32.GetModuleHandleA()
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Procedure probably called with not enough arguments
+      >>> windll.kernel32.GetModuleHandleA(0, 0)
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Procedure probably called with too many arguments
+      >>>
+
+    'ctypes' uses win32 structured exception handling to prevent
+    crashes from general protection faults when functions are called
+    with invalid argument values::
+
+      >>> windll.kernel32.GetModuleHandleA(32)
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      WindowsError: exception: access violation
+      >>>
+
+    There are, however, enough ways to crash Python with 'ctypes',
+    so you should be careful.
+
+
+  Calling functions with integers, strings and unicode strings
+
+    Python integers, strings and unicode strings are the only Python
+    objects that may directly be used as parameters in C API calls.
+
+    Examples (please note that printf prints to the real standard
+    output channel, *not* to 'sys.stdout', so these examples will only
+    work at the console prompt, not from within *idle* or *PythonWin*)::
+
+      >>> from ctypes import cdll; msvcrt = cdll.msvcrt
+      >>> msvcrt.printf("Hello, %s\n", "World!")
+      Hello, World!
+      14
+      >>> msvcrt.printf("Hello, %S", u"World!") # Note the upper case S!
+      Hello, World!
+      14
+      >>> msvcrt.printf("%d bottles of beer\n", 42)
+      42 bottles of beer
+      19
+      >>> msvcrt.printf("%f bottles of beer\n", 42.5)
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      TypeError: Don't know how to convert parameter 2
+      >>>
+
+
+  Calling functions with other simple Python data types
+
+    Python floats have to be wrapped in 'c_float()' or
+    'c_double()' calls, so that they can be converted to the
+    correct C data type (float or double)::
+
+      >>> from ctypes import cdll, c_double
+      >>> printf = cdll.msvcrt.printf
+      >>> printf("An int %d, a double %f\n", 1234, c_double(3.14))
+      Integer 1234, double 3.1400001049
+      34
+      >>>
+
+    Wrapping Python numbers in 'c_double' or 'c_float' objects create
+    *mutable* C data types. There are also other wrappers like
+    'c_int', 'c_string', and more. The current value of all these
+    objects can be read and written from Python as the 'value'
+    property.
+
+
+  Calling functions with your own custom data types
+
+    XXX explain the required _as_parameter_ property
+
+
+  Specifying required argument types
+
+    It is possible to specify the required argument types of functions
+    exported from DLLs by assigning the 'argtypes' attribute.  This
+    must be set to a list of C data types (note that 'printf' is a bad
+    example here, because it takes a variable number and different
+    types of parameters depending on the format string)::
+
+      >>> from ctypes import cdll, c_int, c_string, c_double
+      >>> printf = cdll.msvcrt.printf
+      >>> printf.argtypes = [c_string, c_string, c_int, c_double]
+      >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2)
+      String 'Hi', Int 10, Double 2.200000
+
+    Specifying a format protects against incompatible argument types
+    (just as a prototype for a C function), and tries to convert the
+    arguments to valid types::
+
+      >>> printf("%d %d %d", 1, 2, 3)
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      TypeError: argument 2 must be string, not int
+      >>> printf("%s %d %f", "X", 2, 3)
+      X 2 3.000000
+      13
+      >>>
+
+    XXX Explain this for other C datatypes (Structures, Pointers)
+
+    XXX How to specify other Python datatypes: requires a from_param
+    classmethod
+
+
+  Return types
+
+    XXX Move this after the 'Passing parameters by reference section'?
+
+    By default functions are assumed to return integers.  A different
+    return type can be specified by setting the 'restype' attribute of
+    the function object.
+
+    Allowed values are the single character strings '"i"', '"d"', '"f"',
+    '"s"', which specify the C 'int', 'double', 'float', and 'char *'
+    data types, and pointers to other data types::
+
+      >>> from ctypes import c_string, byref, cdll
+      >>> strchr = cdll.msvcrt.strchr
+      >>> strchr("abcdef", ord("d"))
+      8059983
+      >>> strchr.restype = "s"
+      >>> strchr("abcdef", ord("d"))
+      'def'
+      >>> print strchr("abcdef", ord("x"))
+      None
+      >>>
+
+    If you want to avoid the 'ord("x")' calls above, you can also use
+    the 'c_char' datatype::
+
+      >>> from ctypes import c_char, c_string, byref, cdll
+      >>> msvcrt = cdll.msvcrt
+      >>> msvcrt.strchr.restype = "s"
+      >>> msvcrt.strchr.argtypes = [c_string, c_char]
+      >>> msvcrt.strchr("abcdef", "d")
+      'def'
+      >>> msvcrt.strchr("abcdef", "def")
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      TypeError: one character string expected
+      >>> print msvcrt.strchr("abcdef", "x")
+      None
+      >>>
+
+    **New in version 0.2.0**: you can use a callable Python object (a
+    function, a class, a class-method) and assign it to the 'restype'
+    attribute.  This callable will be called with the integer the C
+    function returns, and the result of this call will be used as the
+    result of the function call. This is useful to check for error
+    return values and automatically raise an exception::
+
+      >>> from ctypes import windll, WinError
+      >>> GetModuleHandle = windll.kernel32.GetModuleHandleA
+      >>> def ValidHandle(value):
+      ...     if value == 0:
+      ...         raise WinError()
+      ...     return value
+      ...
+      >>>
+      >>> GetModuleHandle.restype = ValidHandle
+      >>> GetModuleHandle(None)
+      486539264
+      >>> GetModuleHandle("something silly")
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+	File "<stdin>", line 3, in ValidHandle
+      WindowsError: [Errno 126] The specified module could not be found.
+      >>>
+
+    'WinError' is a function which will call Windows' FormatMessage
+    api to get the string representation of an error code.  'WinError'
+    takes an optional error code parameter, if none is used, it calls
+    'GetLastError' to retrieve it.
+
+
+  Passing parameters by reference
+
+    Sometimes a C api function expects a *pointer* to simple data type
+    as parameter, and the C function writes into the corresponding
+    location. This is also known as *passing parameters by reference*.
+
+    Lightweight pointers are created by calling 'byref(obj)' ::
+
+      >>> from ctypes import c_int, c_float, c_string, byref, cdll
+      >>> msvcrt = cdll("msvcrt")
+      >>> i = c_int()
+      >>> f = c_float()
+      >>> s = c_string('\000' * 32)
+      >>> print i.value, f.value, repr(s.value)
+      0 0.0 ''      
+      >>> msvcrt.sscanf("1 3.14 Hello", "%d %f %s",
+      ...               byref(i), byref(f), s)
+      3
+      >>> print i.value, f.value, repr(s.value)
+      1 3.1400001049 'Hello'
+
+    Beware: 'byref()' creates a lightweight pointer, which should only
+    be used to pass a parameter by reference to an API call. Full
+    pointers can also be created with 'ctypes', read on.
+
+
+  COM
+
+    to be written. In short: You *can* call methods on COM objects,
+    you can even *implement* and expose COM objects.
+
+    For now, see the 'test' directory of the source distribution for
+    examples.
+
+
+
+  Structures and Unions
+
+    Structures and unions must derive from the 'Structure' and 'Union'
+    base classes which are defined in the 'ctypes' module. Each
+    subclass must define a '_fields_' attribute.  '_fields_' must be a
+    list of *2-tuples*, containing a *field name* and a *field type*.
+
+    Field names are strings denoting the name of the fields, field
+    types can be a format character specifying the type of the field
+    in a similar way as Python's "struct
+    module":http://www.python.org/doc/current/lib/module-struct.html :
+    
+    |-----------------------------------------|
+    |format|C type             |Python type   |
+    |=========================================|
+    |c     |char               |character     |
+    |-----------------------------------------|
+    |b     |char               |integer       |
+    |-----------------------------------------|
+    |B     |unsigned char      |integer       |
+    |-----------------------------------------|
+    |h     |short              |integer       |
+    |-----------------------------------------|
+    |H     |unsigned short     |integer       |
+    |-----------------------------------------|
+    |i     |int                |integer       |
+    |-----------------------------------------|
+    |I     |unsigned int       |integer       |
+    |-----------------------------------------|
+    |l     |long               |integer       |
+    |-----------------------------------------|
+    |L     |unsigned long      |long          |
+    |-----------------------------------------|
+    |q     |__int64            |long          |
+    |-----------------------------------------|
+    |Q     |unsigned __int64   |long          |
+    |-----------------------------------------|
+    |s     |char[]             |string without|
+    |      |                   |NUL bytes     |
+    |-----------------------------------------|
+    |S     |char[]             |string with   |
+    |      |                   |NUL bytes     |
+    |-----------------------------------------|
+    |z     |char *             |string        |
+    |-----------------------------------------|
+    |Z     |wchar_t *          |unicode       |
+    |-----------------------------------------|
+    |w     |wchar[]            |unicode       |
+    |-----------------------------------------|
+
+    <!--
+
+    |---------------------------------------------------|
+    |format|C type             |Python type   |mutable  |
+    |      |                   |              |Python   |
+    |      |                   |              |type     |
+    |===================================================|
+    |c     |char               |character     |c_char   |
+    |---------------------------------------------------|
+    |b     |char               |integer       |         |
+    |---------------------------------------------------|
+    |B     |unsigned char      |integer       |c_uchar  |
+    |---------------------------------------------------|
+    |h     |short              |integer       |c_short  |
+    |---------------------------------------------------|
+    |H     |unsigned short     |integer       |         |
+    |---------------------------------------------------|
+    |i     |int                |integer       |c_int    |
+    |---------------------------------------------------|
+    |I     |unsigned int       |integer       |         |
+    |---------------------------------------------------|
+    |l     |long               |integer       |         |
+    |---------------------------------------------------|
+    |L     |unsigned long      |long          |         |
+    |---------------------------------------------------|
+    |q     |__int64            |long          |         |
+    |---------------------------------------------------|
+    |Q     |unsigned __int64   |long          |         |
+    |---------------------------------------------------|
+    |s     |char[]             |string without|c_char_p |
+    |      |                   |NUL bytes     |         |
+    |---------------------------------------------------|
+    |S     |char[]             |string with   |         |
+    |      |                   |NUL bytes     |         |
+    |---------------------------------------------------|
+    |z     |char *             |string        |c_char_p |
+    |---------------------------------------------------|
+    |Z     |wchar_t *          |unicode       |c_wchar_p|
+    |---------------------------------------------------|
+    |w     |wchar[]            |unicode       |         |
+    |---------------------------------------------------|
+
+    -->
+
+
+    The format characters 's', 'S' and 'w' may be preceeded by a
+    decimal integer, which specifies how many characters this field
+    contains. If the repeat count is missing, the field width is 1.
+
+    Here is a simple example of a POINT structure, which contains two
+    integers named 'x' and 'y' ::
+
+      >>> from ctypes import Structure
+      >>> class POINT(Structure):
+      ...     _fields_ = [("x", "i"),
+      ...                 ("y", "i")]
+      ...
+      >>> point = POINT(10, 20)
+      >>> print point.x, point.y
+      10 20
+      >>>
+
+    You can, however, build much more complicated
+    structures. Structures can itself contain other structures by
+    using a structure as a field type.
+
+    Here is a RECT structure which contains two POINTs named
+    'upperleft' and 'lowerright' ::
+
+      >>> class RECT(Structure):
+      ...     _fields_ = [("upperleft", POINT),
+      ...                 ("lowerright", POINT)]
+      ...
+      >>> rc = RECT(point)
+      >>> print rc.upperleft.x, rc.upperleft.y
+      10 20
+      >>> print rc.lowerright.x, rc.lowerright.y
+      0 0
+      >>>
+
+  Arrays
+
+    Arrays are sequences, containing a fixed number of instances of
+    the same type.
+
+    The "classical" way to create Array classes is by subclassing
+    'Array', supplying '_type_' and a '_length_' class attributes.
+    Again, '_type_' must be a Structure subclass or a format character
+    (with optional length field for 's' or 'S')::
+
+      from ctypes import Array
+      class TenPointsArray(Array):
+          _type_ = POINT
+          _length_ = 10
+
+
+    You can also create Array subclasses by multiplying a data type
+    class with a positive integer::
+
+      TenPointsArray = POINT * 10
+
+    This is especially useful if you are not interested in the class
+    itself, only in the instances. Here is an example of an somewhat
+    artifical data type, a structure containing 4 POINTs among other
+    stuff::
+
+      >>> from ctypes import Structure
+      >>> class POINT(Structure):
+      ...    _fields_ = ("x", "i"), ("y", "i")
+      ...
+      >>> class MyStruct(Structure):
+      ...    _fields_ = [("a", "i"),
+      ...	         ("b", "f"),
+      ...                ("point_array", POINT * 4)]
+      >>>
+      >>> print len(MyStruct().point_array)
+      4
+
+
+    Instances are created in the usual way, by calling the class::
+
+      arr = TenPointsArray()
+      for pt in arr:
+          print pt.x, pt.y
+
+    The above code print a series of '0 0' lines, because the array
+    contents is initialized to zeros.
+
+  Pointers
+
+    Note: This section is out of date and needs to be rewritten. In
+    the meantime refer to the samples in the source distribution for
+    examples.
+
+    Pointers are created by subclassing 'ctypes._Pointer', supplying a
+    '_type_' class attribute. '_type_' must be a 'Structure' subclass::
+
+      from ctypes import _Pointer
+      class LPINT(_Pointer):
+          _type_ = c_int
+
+      lpint = LPINT()
+      lpint.contents = c_int(42)
+
+    '_Pointer' instances have a 'contents' attribute, which contains the
+    pointed at value, and can be read and written::
+
+      print lpint.contents.value
+
+      lpint.contents.value = c_int(3)
+      lpint.contents.value = "abc" # raises TypeError
+
+    A more convenient way to create Pointers is the 'Pointer'
+    function.  Calling 'Pointer' with a *class* returns a '_Pointer'
+    subclass, calling 'Pointer' with an *instance* returns an instance
+    of the pointer class pointing to the passed value. If you call
+    'Pointer'with an instance, a new class is created on the fly::
+
+      >>> from ctypes import Pointer, c_int
+      >>> LPINT = Pointer(c_int)
+      >>> print LPINT
+      <class 'ctypes.LP_c_int'>
+      >>> pi = LPINT(c_int(42))
+      >>> print pi
+      <ctypes.LP_c_int object at 0x...>
+      >>> pi2 = Pointer(c_int(22))
+      >>> print pi2
+      <ctypes.LP_c_int object at 0x...>
+      >>> print pi2.__class__
+      <class 'ctypes.LP_c_int'>
+
+    Note that calling Pointer with a class *instance* creates a new
+    pointer *class* on the fly, and returns an instance of this class.
+
+  Structures and Unions (again)
+
+    The shorthand notation for creating Pointer and Array subclasses
+    is very convenient in combination with Structures containing
+    Pointers or Arrays.
+
+    blahg blah
+
+  Incomplete Types
+
+    *Incomplete Types* are structures, unions or arrays whose members
+    are not yet specified. In the 'ctypes' context, you can create
+    Pointers to these types by passing their name (as a string) to the
+    Pointer function, and complete the _Pointer subclass later.
+
+    Consider this example (C-code)::
+
+      struct cell;
+
+      struct {
+          int value;
+          struct cell *next;
+      } cell;
+
+    The straightforward translation into Python would be::
+
+      class cell(Structure):
+          _fields_ = [("value", "i"),
+	              ("next", Pointer(cell))]
+
+    Unfortunately this will not work - it raises a name error::
+
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+        File "<stdin>", line 2, in cell
+      NameError: name 'cell' is not defined
+
+    because 'class cell' is not available in the class statement itself.
+
+    We can do it by creating an *incomplete _Pointer subclass* by
+    calling Pointer with the class _name_, and later setting the
+    complete type of the _Pointer subclass 'lpcell' ::
+
+      from ctypes import Structure, Pointer, SetPointerType
+      lpcell = POINTER("cell")
+
+      class cell(Structure):
+          _fields_ = [("value", "i"),
+                      ("next", lpcell)]
+
+      SetPointerType(lpcell, cell)
+
+  Callback functions
+
+    Sometimes, functions expect a function pointer (callback function)
+    as an argument.
+
+    'ctypes' has a 'CFunction' base type, which is used to define and
+    create function pointers from Python callable objects.
+
+    Subclasses must provide a '_types_' attribute, which is a string
+    containing format specifiers (only 'i' for 'int' and 's' for 'char
+    *' are currently allowed) for the arguments the function expects
+    and a '_stdcall_' attribute, which must be '1' to specify the
+    '__stdcall' calling convention, or '0' to specify '__cdecl'
+    calling convention.
+
+    Instances of function pointers are created by calling the
+    (sub)class with a *Python callable* as argument. This callable
+    must return None (which will be interpreted as '0'), or an
+    integer.
+    
+    We are now trying to create a C callable function ('callback')
+    which we can pass to the standard C library 'qsort' function.
+    'qsort' expects
+
+    The following example creates a C callable function ('callback')
+    usable by the 'qsort' standard library function::
+
+      class CMPFUNC(CFunction):
+          _types_ = 'ii'
+	  _stdcall_ = 1
+
+      def compare(adr1, adr2):
+          return cmp(adr1, adr2)
+
+      cmpfunc = CMPFUNC(compare)
+
+    Note that the same effect could be achived by this code::
+
+      class CMPFUNC(CFunction):
+          _types_ = 'ii'
+	  _stdcall_ = 0
+
+      cmpfunc = CMPFUNC(cmp)
+
+    'cmpfunc' will now be a *pointer* to a C callable function with
+    this signature::
+
+      int __cdecl cmpfunc(int, int);
+
+    Beware: If you use the 'qsort' standard library function to sort
+    an array of integers, the 'compare' function will receive
+    *pointers* into the array, not the array items itself, so the
+    above code will *not* work with qsort.
+
+    To remedy, we must expect *pointers* in the compare function, and
+    retrieve the actual contents, and compare those.
+
+    This code implements a function doing this::
+
+      from ctypes import CFunction, c_int
+
+      class CMPFUNC(CFunction):
+          _types_ = "ii"
+	  _stdcall_ = 0
+
+      def compare(a1, a2):
+          v1 = c_int.from_pointer(a1).value
+	  v2 = c_int.from_pointer(a2).value
+	  return cmp(v1, v2)
+
+      cmpfunc = CMPFUNC(compare)
+
+    Assuming 'ia10' is an array in 10 integers, and '4' is sizeof(int),
+    we can sort the array contents in this way::
+
+       msvcrt.qsort(ia, len(ia), 4, compare)
+
+  Surprises
+
+    There are some corners in 'ctypes' where you may be expect
+    something else than what actually happens.
+
+    Consider the following example::
+
+      >>> from ctypes import Structure
+      >>> class POINT(Structure):
+      ...     _fields_ = ("x", "i"), ("y", "i")
+      ...
+      >>> class RECT(Structure):
+      ...     _fields_ = ("a", POINT), ("b", POINT)
+      ...
+      >>> p1 = POINT(1, 2)
+      >>> p2 = POINT(3, 4)
+      >>> rc = RECT(p1, p2)
+      >>> print rc.a.x, rc.a.y, rc.b.x, rc.b.y
+      1 2 3 4
+      >>> # now swap the two points
+      >>> rc.a, rc.b = rc.b, rc.a
+      >>> print rc.a.x, rc.a.y, rc.b.x, rc.b.y
+      3 4 3 4
+
+    Hm. We certainly expected the last statement to print '3 4 1 2'.
+    What happended? Here are the steps of the 'rc.a, rc.b = rc.b,
+    rc.a' line above::
+
+      >>> temp0, temp1 = rc.b, rc.a
+      >>> rc.a = temp0
+      >>> rc.b = temp1
+
+    Note that 'temp0' and 'temp1' are objects still using the internal
+    buffer of the 'rc' object above. So executing 'rc.a = temp0'
+    copies the buffer contents of 'temp0' into 'rc' 's buffer.  This, in turn,
+    changes the contents of 'temp1'. So, the last assignment 'rc.b = temp1',
+    doesn't have the expected effect.
+
+    Keep in mind that retrieving subobjects from Structure, Unions,
+    and Arrays doesn't *copy* the subobject, it does more retrieve a
+    wrapper object accessing the root-object's underlying buffer.
+
+
+  Bugs, ToDo and non-implemented things
+
+    Bitfields are not implemented. This probably counts as bug.
+
+    Enumeration types are not implemented. I do not consider this as a
+    bug - they can be implemented as well in pure python (maybe as
+    'int' subclasses).
+
+    What about 'long double'? They exist in MSVC for example, and have
+    80 bits.
+
+    The whole unicode / wchar stuff is not yet implemented - although
+    it is mentioned above.
+
+    C function pointers returning something else than integers (or
+    void) cannot be constructed. Actually they can return anything
+    which has sizeof(x) == sizeof(int).
+
+  Download
+
+    There is an experimental implementation which I make available for
+    download, version 0.2.0.
+
+    The source archive contains all the sources, the documentation you
+    are reading here, and sample files in a 'test' subdirectory:
+    "ctypes-0.2.0.zip":ctypes-0.2.0.zip. It requires MSVC 6.
+
+    Some of the samples show an additional feature of 'ctypes': it is
+    possible to call methods on COM-objects as well, there's a sample
+    using MS Word as client, and another one creating a type library.
+
+    The binary distribution only contains the 'ctypes' module as well
+    as the underlying '_ctypes' extension module, built for Python
+    2.2: "ctypes-0.2.0.win32-py2.2.exe":ctypes-0.2.0.win32-py2.2.exe.
+
+    These files are distibuted under the "MIT license":LICENSE.txt.
+
+  Development Snapshots
+
+   Version 0.3.5
+
+    Here are even newer versions: snapshots which contain bugfixes
+    and/or new code, but are somewhat incomplete: documentation is not
+    up to date or whatever.
+
+    "ctypes-0.3.5.tar.gz":ctypes-0.3.5.tar.gz - a version which should
+    also run on linux (tested on an SuSE linux i386 system). You need
+    to get and install the "*libffi
+    library*":http://sources.redhat.com/libffi from the CVS repository
+    at 'sources.redhat.com' ::
+
+       cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/libffi login
+	    (password is ``anoncvs'')
+       cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/libffi co libffi
+       ./configure
+       make
+       make install
+
+    'ctypes' will *not* work with *libffi-1.20*, it needs the CVS
+    version.
+
+    For convenience, I also make libffi available here:
+    "libffi-2.00-beta.tar.gz":libffi-2.00-beta.tar.gz
+
+   Version 0.3.6
+
+    Changes: I rewrote the conversion functions between primitive C
+    data types (signed and unsigned integers of various length) and
+    Python types. Now conversion and range checking actually works.
+
+<!-- Local Variables: compile-command: "make_html" End: -->
