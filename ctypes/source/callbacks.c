@@ -196,6 +196,7 @@ static void _CallPythonObject(void *mem,
 		if ((result != Py_None)
 		    && !PyArg_Parse(result, format, mem))
 			PyErr_Print();
+		printf("parse %s\n", format);
 	}
   Done:
 	Py_XDECREF(arglist);
@@ -491,7 +492,6 @@ static void closure_fcn(ffi_cif *cif,
 		pArgs[i] = *(void ***)args[i];
 	}
 
-	/* Fixme: return type */
 	_CallPythonObject(resp,
 			  p->format,
 			  p->callable,
@@ -508,6 +508,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	int result;
 	ffi_info *p;
 	int nArgs, i;
+	PyCArgObject cResult;
 
 	nArgs = PySequence_Size(converters);
 	p = malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
@@ -525,8 +526,8 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	/* XXX Check for FFI_OK */
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
 
-	PrepareResult(restype, &result);
-	switch (result.tag) {
+	PrepareResult(restype, &cResult);
+	switch (cResult.tag) {
 		/* "bBhHiIlLqQdfP" */
 	case 'b':
 	case 'B':
@@ -552,7 +553,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		p->format = "f";
 		break;
 	default:
-		PyErr_Format(PyExc_TypeError, "invalid restype %c", result.tag);
+		PyErr_Format(PyExc_TypeError, "invalid restype %c", cResult.tag);
 		return NULL;
 	}
 	p->converters = converters;
