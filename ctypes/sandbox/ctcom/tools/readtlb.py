@@ -442,7 +442,7 @@ if __name__ == '__main__':
         path = sys.argv[1]
     else:
         path = r"c:\tss5\bin\debug\ITInfo.dll"
-        path = r"c:\sms3a.tlb"
+##        path = r"c:\sms3a.tlb"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementControl.dll"
 ##        path = r"c:\tss5\bin\debug\ITMeasurementSource.dll"
 

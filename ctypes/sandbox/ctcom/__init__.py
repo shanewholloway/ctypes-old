@@ -1,16 +1,18 @@
 from ctypes import Structure, POINTER, c_voidp, c_ubyte, c_byte, c_int, \
      c_ushort, c_short, c_uint, c_long, c_ulong, c_wchar_p, c_wstring
-from ctypes import oledll, byref
+from ctypes import oledll, byref, sizeof
 ole32 = oledll.ole32
+
+from windows import *
 
 ################################################################
 # COM data types
 #
 class GUID(Structure):
-    _fields_ = [("Data1", "I"),
-                ("Data2", "h"),
-                ("Data3", "h"),
-                ("Data4", c_ubyte * 8)]
+    _fields_ = [("Data1", DWORD),
+                ("Data2", WORD),
+                ("Data3", WORD),
+                ("Data4", BYTE * 8)]
 
     def __init__(self, name=None):
         if name is not None:
@@ -34,6 +36,8 @@ class GUID(Structure):
     def __eq__(self, other, IsEqualGUID=ole32.IsEqualGUID):
         return isinstance(other, GUID) and \
                IsEqualGUID(byref(self), byref(other))               
+
+assert(sizeof(GUID) == 16)
 
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
 
