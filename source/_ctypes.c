@@ -3352,20 +3352,6 @@ static PyTypeObject Pointer_Type = {
 
 
 /******************************************************************/
-PyObject *
-ToPython(void *ptr, char tag)
-{
-	struct fielddesc *fd = getentry(&tag);
-	if (!fd) {
-		PyErr_Format(PyExc_ValueError,
-			     "invalid format char for restype '%c'",
-			     tag);
-		return NULL;
-	}
-	return fd->getfunc(ptr, 0);
-}
-
-/******************************************************************/
 /*
  *  Module initialization.
  */

@@ -235,8 +235,6 @@ extern PyCArgObject *new_CArgObject(void);
 #define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
 extern PyCArgObject *new_CArgObject(void);
 
-extern PyObject *ToPython(void *, char tag);
-
 extern PyObject *
 CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
 	  int index, int size, char *ptr);
