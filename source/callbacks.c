@@ -577,9 +577,9 @@ static void LoadPython(void)
 	PyObject *mod;
 	PyEval_InitThreads();
 	Py_Initialize();
-	mod = PyImport_ImportModule("ctcom.server");
+	mod = PyImport_ImportModule("ctypes.com.server");
 	if (mod == NULL) {
-		MyPyErr_Print("Could not import ctcom.server");
+		MyPyErr_Print("Could not import ctypes.com.server");
 		return;
 	}
 #ifndef CTYPES_USE_GILSTATE
@@ -592,13 +592,12 @@ static void LoadPython(void)
 	Py_DECREF(mod);
 }
 
-#if 0
 long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	PyObject *mod, *func, *result;
 	long retval;
 
-	mod = PyImport_ImportModule("ctcom.server");
+	mod = PyImport_ImportModule("ctypes.com.server");
 	if (!mod)
 		/* There has been a warning before about this already */
 		return E_FAIL;
@@ -646,7 +645,7 @@ long Call_CanUnloadNow(void)
 	PyObject *mod, *func, *result;
 	long retval;
 
-	mod = PyImport_ImportModule("ctcom.server");
+	mod = PyImport_ImportModule("ctypes.com.server");
 	if (!mod) {
 		MyPyErr_Print(NULL);
 		return E_FAIL;
@@ -691,7 +690,6 @@ STDAPI DllCanUnloadNow(void)
 	LeavePython();
 	return result;
 }
-#endif
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvRes)
 {

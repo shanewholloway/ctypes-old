@@ -33,8 +33,8 @@ elif (hasattr(distutils.core, 'extension_keywords') and
 
 if os.name == "nt":
     extensions = [Extension("_ctypes",
-##                            export_symbols=["DllGetClassObject,PRIVATE",
-##                                            "DllCanUnloadNow,PRIVATE"],
+                            export_symbols=["DllGetClassObject,PRIVATE",
+                                           "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
                             **kw)
                   ]
