@@ -11,7 +11,7 @@ dlls. It allows wrapping these libraries in pure Python.
 
 # XXX explain LIBFFI_SOURCES
 ##LIBFFI_SOURCES='libffi-src'
-LIBFFI_SOURCES='../gcc/libffi'
+LIBFFI_SOURCES='../libffi'
 
 ################################################################
 
