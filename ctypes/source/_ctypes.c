@@ -2346,16 +2346,12 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	CFuncPtrObject *self;
 	int index;
 	char *name = NULL;
-	PyObject *cls = NULL;
 
-	if (!PyArg_ParseTuple(args, "is|O", &index, &name, &cls))
+	if (!PyArg_ParseTuple(args, "is", &index, &name))
 		return NULL;
 	
 	self = (CFuncPtrObject *)GenericCData_new(type, args, kwds);
-
 	self->index = index + 0x1000;
-	if (cls)
-		return PyMethod_New((PyObject *)self, NULL, cls);
 	return (PyObject *)self;
 }
 #endif
