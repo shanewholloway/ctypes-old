@@ -117,7 +117,6 @@ CreateArrayType(PyObject *itemtype, int length);
 extern void init_callbacks_in_module(PyObject *m);
 
 extern THUNK AllocFunctionCallback(PyObject *callable,
-				   int nArgBytes,
 				   PyObject *converters,
 				   PyObject *restype,
 				   int stdcall);
@@ -173,7 +172,6 @@ typedef struct {
 	PyObject *restype;	/* CDataObject or NULL */
 	PyObject *checker;
 	int flags;		/* calling convention and such */
-	int nArgBytes;		/* number of argument bytes for callback */
 } StgDictObject;
 
 /****************************************************************
