@@ -22,7 +22,11 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def demangle(self, name):
         if name.startswith("__"):
             name = "_py_" + name
-        return name.replace("$", "_")
+        if name[:0] and name[0] in "0123456789":
+            name = "_%c" % name[0] + name
+        name = name.replace("$", "_")
+        name = name.replace(".", "_")
+        return  name
 
     def startElement(self, name, attrs):
         # find and call the handler for this element
