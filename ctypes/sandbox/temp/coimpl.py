@@ -14,8 +14,6 @@ HRESULT = c_ulong
 
 ################
 
-PIUnknown = POINTER("IUnknown")
-
 def STDMETHOD(restype, name, *argtypes):
     return name, STDAPI(restype, PIUnknown, *argtypes)
 
@@ -32,7 +30,7 @@ class _interface_meta(type(Structure)):
         SetPointerType(self.VTable_ptr, _VTable)
 
     def __call__(self, *args):
-        print "__call__"
+##        print "__call__"
         result = type(Structure).__call__(self, *args)
         if not hasattr(self, "AddRef"):
             self.make_vtable()
@@ -40,28 +38,24 @@ class _interface_meta(type(Structure)):
         return result
 
     def make_methods(self):
-        print "make client methods for interface", self.__name__
+##        print "make client methods for interface", self.__name__
         import new
         index = 0
         for name, PROTO in self._fields_[0][1]._type_._fields_: # VTable._fields_
-            print "\t%d %s" % (index, name)
+##            print "\t%d %s" % (index, name)
             clientPROTO = STDAPI(PROTO._restype_, *PROTO._argtypes_[1:])
             mth = new.instancemethod(clientPROTO(index), None, self)
             setattr(self, name, mth)
             index += 1
 
-print "# creating IUnknown"
 class IUnknown(Structure):
     __metaclass__ = _interface_meta
 
+PIUnknown = POINTER(IUnknown)
 
 IUnknown._methods_ = [STDMETHOD(c_int, "QueryInterface", REFIID, POINTER(PIUnknown)),
                       STDMETHOD(c_ulong, "AddRef"),
                       STDMETHOD(c_ulong, "Release")]
-print "# done IUnknown"
-print
-    
-SetPointerType(PIUnknown, IUnknown)
 
 ################################################################
 # implementing a COM interface pointer
@@ -101,13 +95,9 @@ dll = CDLL(_ctypes.__file__)
 
 ob = COClass()
 
-print "# make interface pointer"
 itf = ob.make_interface_pointer(IUnknown)
-print "# done make interface pointer"
 
-print "# make interface pointer"
 itf = ob.make_interface_pointer(IUnknown)
-print "# done make interface pointer"
 
 print "From Python"
 
