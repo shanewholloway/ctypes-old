@@ -2313,7 +2313,7 @@ CFuncPtr_FromVtblIndex(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	self->index = index + 0x1000;
 	if (cls)
-		return PyMethod_New(self, NULL, cls);
+		return PyMethod_New((PyObject *)self, NULL, cls);
 	return (PyObject *)self;
 }
 #endif
@@ -2349,8 +2349,8 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 
 	if (1 == PyTuple_GET_SIZE(args)
-	    && PyInt_Check(PyTuple_GET_ITEM(args, 0))
-	    || PyLong_Check(PyTuple_GET_ITEM(args, 0))) {
+	    && (PyInt_Check(PyTuple_GET_ITEM(args, 0))
+		|| PyLong_Check(PyTuple_GET_ITEM(args, 0)))) {
 		CDataObject *ob;
 		void *ptr = PyLong_AsVoidPtr(PyTuple_GET_ITEM(args, 0));
 		if (ptr == NULL)
