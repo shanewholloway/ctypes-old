@@ -163,6 +163,7 @@ dont_assert_size = set(
     )
 
 dll_names = """\
+imagehlp
 user32
 kernel32
 gdi32
@@ -188,6 +189,7 @@ msvcrt
 msimg32
 netapi32
 rpcrt4""".split()
+##glut32
 
 ##rpcndr
 ##ntdll
@@ -339,10 +341,13 @@ class Generator(object):
             else:
                 print >> self.stream, "%s._fields_ = [" % body.struct.name
             for f in fields:
+                if not f.name:
+                    print >> self.stream, "    # Unnamed field renamed to '_'"
+                fieldname = f.name or "_"
                 if f.bits is None:
-                    print >> self.stream, "    ('%s', %s)," % (f.name, type_name(f.typ))
+                    print >> self.stream, "    ('%s', %s)," % (fieldname, type_name(f.typ))
                 else:
-                    print >> self.stream, "    ('%s', %s, %s)," % (f.name, type_name(f.typ), f.bits)
+                    print >> self.stream, "    ('%s', %s, %s)," % (fieldname, type_name(f.typ), f.bits)
             print >> self.stream, "]"
         if methods:
             print >> self.stream, "%s._methods_ = [" % body.struct.name
@@ -371,7 +376,7 @@ class Generator(object):
             else:
                 return dll._name
 ##        print >> sys.stderr, "warning: dll not found for function %s" % name
-        return "???"
+##        return "???"
         return None
 
     _functiontypes = 0
@@ -385,11 +390,19 @@ class Generator(object):
             self.generate_all(func.arguments)
             args = [type_name(a) for a in func.arguments]
             if "__stdcall__" in func.attributes:
-                print >> self.stream, "%s = STDCALL('%s', %s, '%s', [%s])" % \
-                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
+                print >> self.stream, "@ stdcall(%s, %s)" % \
+                      (type_name(func.returns), ", ".join(["'%s'" % dllname] + args))
+##                print >> self.stream, "%s = STDCALL('%s', %s, '%s', [%s])" % \
+##                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
             else:
-                print >> self.stream, "%s = CDECL('%s', %s, '%s', [%s])" % \
-                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
+##                print >> self.stream, "%s = CDECL('%s', %s, '%s', [%s])" % \
+##                      (func.name, dllname, type_name(func.returns), func.name, ", ".join(args))
+                print >> self.stream, "@ cdecl(%s, %s)" % \
+                      (type_name(func.returns), ", ".join(["'%s'" % dllname] + args))
+            argnames = ["p%d" % i for i in range(1, 1+len(args))]
+            print >> self.stream, "def %s(%s):" % (func.name, ", ".join(argnames))
+            print >> self.stream, "    return _api_(%s)" % ", ".join(argnames)
+            print >> self.stream
             self._functiontypes += 1
         else:
             self._notfound_functiontypes += 1
@@ -441,27 +454,42 @@ class Generator(object):
 
 ################################################################
 
-def generate_code(xmlfile, outfile, symbols=None):
+def generate_code(xmlfile, outfile, expressions=None, symbols=None):
+    # expressions is a sequence of compiled regular expressions,
+    # symbols is a sequence of names
     from gccxmlparser import parse
     items = parse(xmlfile)
 
     todo = []
 
     if symbols:
-        syms = set(symbols.split(","))
+        syms = set(symbols)
         for i in items:
             if i.name in syms:
                 todo.append(i)
                 syms.remove(i.name)
 
-        items = todo
         if syms:
-            print "SYMS NOT FOUND", list(syms)
+            print "symbols not found", list(syms)
+
+    if expressions:
+        for i in items:
+            for s in expressions:
+                if i.name is None:
+                    continue
+                match = s.match(i.name)
+                # we only want complete matches
+                if match and match.group() == i.name:
+                    todo.append(i)
+                    break
+    if symbols or expressions:
+        items = todo
 
     gen = Generator(outfile)
     # output header
     print >> outfile, "from ctypes import *"
-    print >> outfile, "from _support import STDCALL, CDECL"
+##    print >> outfile, "from _support import STDCALL, CDECL"
+    print >> outfile, "from deco import stdcall"
     print >> outfile, "def const(x): return x"
     print >> outfile
     loops = gen.generate_code(items)
