@@ -106,6 +106,9 @@ if sys.platform != 'darwin' and os.path.exists('/usr/include/ffi.h') \
     # A system with a pre-existing libffi.
     LIBFFI_SOURCES=None
 
+if sys.platform == 'win32':
+    LIBFFI_SOURCES=None
+
 ################################################################
 
 packages = ["ctypes"]
@@ -163,55 +166,95 @@ class test(Command):
 
     # finalize_options()
 
-
     def run(self):
-        
-        import glob, unittest
-        # Invoke the 'build' command to "build" pure Python modules
-        # (ie. copy 'em into the build tree)
+        import glob, unittest, time
         self.run_command('build')
 
         mask = os.path.join(self.test_dir, self.test_prefix + "*.py")
         test_files = [os.path.basename(f) for f in glob.glob(mask)]
 
-        # remember old sys.path to restore it afterwards
-        old_path = sys.path[:]
-
-        # extend sys.path
-        sys.path.insert(0, self.build_purelib)
-        sys.path.insert(0, self.build_platlib)
-        sys.path.insert(0, self.test_dir)
-        
         self.announce("testing")
 
-        # Import all test modules, collect unittest.TestCase classes,
-        # and build a TestSuite from them.
-        test_suites = []
-        for f in test_files:
-            modname = os.path.splitext(f)[0]
-            try:
-                mod = __import__(modname)
-            except Exception, detail:
-                self.warn("Could not import %s (%s)" % (modname, detail))
-                continue
-            for name in dir(mod):
-                if name.startswith("_"):
-                    continue
-                o = getattr(mod, name)
-                if type(o) is type(unittest.TestCase) and issubclass(o, unittest.TestCase):
-                    test_suites.append(unittest.makeSuite(o))
+        self.testcases = []
+        self.ok = self.fail = self.errors = 0
+        self.tracebacks = []
 
-        if test_suites:
-            self.announce("running unittests")
+        start_time = time.time()
+        for t in test_files:
+            testcases = self.run_test(os.path.join(self.test_dir, t))
+            for case in testcases:
+                if self.verbosity > 1:
+                    print >> sys.stderr, case
+                elif self.verbosity == 1:
+                    if case.endswith("ok"):
+                        sys.stderr.write(".")
+                    elif case.endswith("FAIL"):
+                        sys.stderr.write("F")
+                    elif case.endswith("ERROR"):
+                        sys.stderr.write("E")
+        stop_time = time.time()
 
-            runner = unittest.TextTestRunner(verbosity=self.verbosity)
-            suite = unittest.TestSuite(test_suites)
-            runner.run(suite)
+        print >> sys.stderr
+        for f in self.tracebacks:
+            print >> sys.stderr, "=" * 42
+            print >> sys.stderr, f[0]
+            print >> sys.stderr, "-" * 42
+            print >> sys.stderr, "\n".join(f[1:])
+            print >> sys.stderr
 
-        # restore sys.path
-        sys.path = old_path[:]
+        print >> sys.stderr, "-" * 70
+        print >> sys.stderr, "Ran %d tests in %.3fs" % (len(self.testcases), stop_time - start_time)
+        print >> sys.stderr
+        if self.fail + self.errors == 0:
+            print >> sys.stderr, "OK"
+        else:
+            if self.errors:
+                print >> sys.stderr, "FAILED (failures=%d, errors=%d)" % (self.fail, self.errors)
+            else:
+                print >> sys.stderr, "FAILED (failures=%d)" % self.fail
 
     # run()
+
+    def run_test(self, path):
+        # Run a test file in a separate process, and parse the output.
+        # Collect the results in the ok, fail, error, testcases and
+        # tracebacks instance vars.
+        # A sequence of testcase names together with their outcome is returned.
+        i, o = os.popen4("%s %s -v" % (sys.executable, path))
+        i.close()
+        cases = []
+        while 1:
+            line = o.readline()
+            if not line:
+                break
+            line = line.rstrip()
+            if line.startswith('test'):
+                cases.append(line)
+                if line.endswith("ok"):
+                    self.ok += 1
+                elif line.endswith("FAIL"):
+                    self.fail += 1
+                elif line.endswith("ERROR"):
+                    self.errors += 1
+            elif line == "=" * 70:
+                # failure or error
+                name = o.readline().rstrip()
+                assert o.readline().rstrip() == "-" * 70
+                tb = [name]
+                while 1:
+                    data = o.readline()
+                    if not data.rstrip():
+                        break
+                    tb.append(data.rstrip())
+                self.tracebacks.append(tb)
+            elif line.rstrip() == '-' * 70:
+                pass
+            elif line.startswith("Ran "):
+                pass
+    ##        else:
+    ##            print line
+        self.testcases.extend(cases)
+        return cases
 
 # class test
 
