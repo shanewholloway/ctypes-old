@@ -1581,13 +1581,14 @@ CData_GetContainer(CDataObject *self)
 {
 	while (self->b_base)
 		self = self->b_base;
-	if (self->b_objects == NULL)
+	if (self->b_objects == NULL) {
 		if (self->b_length) {
 			self->b_objects = PyDict_New();
 		} else {
 			Py_INCREF(Py_None);
 			self->b_objects = Py_None;
 		}
+	}
 	return self;
 }
 
