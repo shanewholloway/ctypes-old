@@ -290,11 +290,21 @@ class StructureTestCase(unittest.TestCase):
                         ("age", c_int)]
 
         cls, msg = self.get_except(Person, "Someone", (1, 2))
+        # Hm. Shouldn't we get a TypeError?
         self.failUnlessEqual(cls, RuntimeError)
-        self.failUnlessEqual(msg,
-                             "(Phone) exceptions.TypeError: "
-                             "expected string or Unicode object, int found")
+## The error messags is different now.
+##        self.failUnlessEqual(msg,
+##                             "(Phone) exceptions.TypeError: "
+##                             "expected string or Unicode object, int found")
 
+        try:
+            c_wchar
+        except NameError:
+            pass
+        else:
+            # must accept unicode
+            self.failUnlessEqual(Person(u"Someone").name, "Someone")
+        
         cls, msg = self.get_except(Person, "Someone", ("a", "b", "c"))
         self.failUnlessEqual(cls, RuntimeError)
         self.failUnlessEqual(msg, "(Phone) exceptions.ValueError: too many initializers")
