@@ -232,6 +232,9 @@ class CDLL:
         setattr(self, name, func)
         return func
 
+    def __getitem__(self, name):
+        return getattr(self, name)
+
     def __del__(self, FreeLibrary=_FreeLibrary):
         if self._handle != 0 and FreeLibrary:
             FreeLibrary(self._handle)
@@ -273,6 +276,9 @@ class _DLLS:
         dll = self._dlltype(name)
         setattr(self, name, dll)
         return dll
+
+    def __getitem__(self, name):
+        return getattr(self, name)
 
     def LoadLibrary(self, name):
         return self._dlltype(name)
