@@ -303,7 +303,7 @@ class my_build_ext(build_ext.build_ext):
         lib_dir = os.path.abspath(os.path.join(inst_dir, 'lib'))
         inc_dir = os.path.abspath(os.path.join(inst_dir, 'include'))
 
-1        for ext in self.extensions:
+        for ext in self.extensions:
             ext.include_dirs.append(inc_dir)
             ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
             ext.library_dirs.append(lib_dir)
