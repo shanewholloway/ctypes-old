@@ -226,6 +226,35 @@ class Generator(object):
             return t.name
         return t.name
 
+    ################################################################
+
+    def Alias(self, alias):
+        if alias in self.done:
+            return
+        if alias.typ is not None: # we can reslove it
+            self.generate(alias.typ)
+            print >> self.stream, "%s = %s # alias" % (alias.name, alias.alias)
+        else: # we cannot resolve it
+            print >> self.stream, "# %s = %s # alias" % (alias.name, alias.alias)
+            
+        self.done.add(alias)
+
+    def Macro(self, macro):
+        if macro in self.done:
+            return
+        # We don't know if we can generate valid, error free Python
+        # code All we can do is to try to compile the code.  If the
+        # compile fails, we know it cannot work, so we generate
+        # commented out code.  If it succeeds, it may fail at runtime.
+        code = "def %s%s: return %s # macro" % (macro.name, macro.args, macro.body)
+        try:
+            compile(code, "<string>", "exec")
+        except SyntaxError:
+            print >> self.stream, "#", code
+        else:
+            print >> self.stream, code
+        self.done.add(macro)
+
     def StructureHead(self, head):
         if head in self.done:
             return
