@@ -510,6 +510,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	ffi_info *p;
 	int nArgs, i;
 	PyCArgObject cResult;
+	ffi_abi cc;
 
 	nArgs = PySequence_Size(converters);
 	p = (ffi_info *)PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
@@ -528,7 +529,12 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 	PrepareResult(restype, &cResult);
 
-	result = ffi_prep_cif(&p->cif, FFI_DEFAULT_ABI, nArgs,
+	cc = FFI_DEFAULT_ABI;
+#ifdef MS_WIN32
+	if (is_cdecl == 0)
+		cc = FFI_STDCALL;
+#endif
+	result = ffi_prep_cif(&p->cif, cc, nArgs,
 			      cResult.pffi_type,
 			      &p->atypes[0]);
 	if (result != FFI_OK) {
@@ -537,7 +543,6 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyMem_Free(p);
 		return NULL;
 	}
-
 	result = ffi_prep_closure(&p->cl, &p->cif, closure_fcn, p);
 	if (result != FFI_OK) {
 		PyErr_Format(PyExc_RuntimeError,
