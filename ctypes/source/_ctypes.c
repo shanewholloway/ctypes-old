@@ -1613,6 +1613,16 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 
 }
 
+static int
+CFuncPtr_asparam(CDataObject *self, struct argument *pa)
+{
+	pa->ffi_type = &ffi_type_pointer;
+	pa->value.p = *(void **)self->b_ptr;
+	Py_INCREF(self);
+	pa->keep = self;
+	return 0;
+}
+
 static PyObject *
 CFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -1645,7 +1655,7 @@ CFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		Py_DECREF(result);
 		return NULL;
 	}
-
+	stgdict->asparam = CFuncPtr_asparam;
 	return (PyObject *)result;
 }
 
@@ -2189,23 +2199,6 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
   CFuncPtr_Type
 */
 
-static PyObject *
-CFuncPtr_as_parameter(CDataObject *self)
-{
-	PyCArgObject *parg;
-	
-	parg = new_CArgObject();
-	if (parg == NULL)
-		return NULL;
-	
-	parg->tag = 'P';
-	parg->pffi_type = &ffi_type_pointer;
-	Py_INCREF(self);
-	parg->obj = (PyObject *)self;
-	parg->value.p = *(void **)self->b_ptr;
-	return (PyObject *)parg;	
-}
-
 static int
 CFuncPtr_set_restype(CFuncPtrObject *self, PyObject *ob)
 {
@@ -2301,9 +2294,6 @@ static PyGetSetDef CFuncPtr_getsets[] = {
 	{ "argtypes", (getter)CFuncPtr_get_argtypes,
 	  (setter)CFuncPtr_set_argtypes,
 	  "specify the argument types", NULL },
-	{ "_as_parameter_", (getter)CFuncPtr_as_parameter, NULL,
-	  "return a magic value so that this can be converted to a C parameter (readonly)",
-	  NULL },
 	{ NULL, NULL }
 };
 
