@@ -48,30 +48,9 @@ class IExternalConnection(IUnknown):
 
 ################################################################
 
-# Hm. We cannot redirect sys.stderr/sys.stdout in the inproc case,
-# If the process is Python, the user would be pissed off if we did.
-class _Logger(object):
-    # Redirect standard output and standard error to
-    # win32 Debug Messages. Output can be viewed for example
-    # in DebugView from www.sysinternals.com
-    _installed = 0
-    _text = ""
-    def write(self, text):
-        self._text += str(text)
-        if "\n" in self._text:
-            kernel32.OutputDebugStringA(self._text)
-            self._text = ""
-
-    def install(cls):
-        if cls._installed:
-            return
-        import sys
-        sys.stdout = sys.stderr = cls()
-        cls._installed = 1
-    install = classmethod(install)
-
-    def isatty(self):
-        return 0
+def dprint(*args):
+    parts = [str(arg) for arg in args] + ["\n"]
+    kernel32.OutputDebugStringA(" ".join(parts))
 
 def inproc_find_class(clsid):
     import _winreg, sys
@@ -83,15 +62,15 @@ def inproc_find_class(clsid):
     else:
         if not pathdir in sys.path:
             sys.path.insert(0, str(pathdir))
-            print "appended %s to sys.path" % pathdir
-            print "SYS.PATH", sys.path
+            dprint("appended %s to sys.path" % pathdir)
+            dprint("SYS.PATH", sys.path)
     pythonclass = _winreg.QueryValueEx(key, "PythonClass")[0]
     parts = pythonclass.split(".")
     modname = ".".join(parts[:-1])
     classname = parts[-1]
     __import__(modname)
     mod = sys.modules[modname]
-    print "imported", mod
+    dprint("imported", mod)
 
     # It was a nice idea to 'reload' the module, so that during
     # debugging we would always run uptodate versions of the code.
@@ -103,7 +82,7 @@ def inproc_find_class(clsid):
 ##    if __debug__:
 ##        reload(mod)
 
-    print "returning", getattr(mod, classname)
+    dprint("returning", getattr(mod, classname))
     return getattr(mod, classname)
 
 # Fake implementation, with hardcoded names
@@ -123,15 +102,13 @@ def DllGetClassObject(rclsid, riid, ppv):
     # parameters. rcslid is a pointer to the CLSID for the coclass we
     # want to be created, riid is a pointer to the requested
     # interface.
-    _Logger.install()
-
     iid = GUID.from_address(riid)
     clsid = GUID.from_address(rclsid)
     p = PIUnknown.from_address(ppv)
 
     # Use the clsid to find additional info in the registry.
     cls = inproc_find_class(clsid)
-    print "DllGetClassObject", clsid, cls
+    dprint("DllGetClassObject", clsid, cls)
 
     # XXX Hm, does inproc_findclass return None, or raise an Exception?
     if not cls:
@@ -156,12 +133,11 @@ g_locks = 0
 
 def DllCanUnloadNow():
     # XXX TODO: Read about inproc server refcounting in Don Box
-    _Logger.install()
     if g_locks:
-        print "* DllCanUnloadNow -> S_FALSE", _active_objects
+        dprint("* DllCanUnloadNow -> S_FALSE", _active_objects)
         return S_FALSE
     else:
-        print "* DllCanUnloadNow -> S_OK"
+        dprint("* DllCanUnloadNow -> S_OK")
         return S_OK
     # Hm Call ole32.CoUnitialize here?
 
@@ -179,31 +155,26 @@ class _ClassFactory(COMObject):
     # IClassFactory methods
 
     def CreateInstance(self, this, pUnkOuter, riid, ppvObject):
-##        print "BEGIN CreateInstance"
         if pUnkOuter:
             return CLASS_E_NOAGGREGATION
         obj = self.objclass()
         obj._factory = self
         _active_objects.append(obj)
-##        print ".....  QueryInterface"
-        result = obj.QueryInterface(None, riid, ppvObject)
-##        print "END   CreateInstance"
-        return result
-        
+        return obj.QueryInterface(None, riid, ppvObject)
 
 ################################################################
 class InprocClassFactory(_ClassFactory):
 
     def AddRef(self, this):
         self._refcnt += 1
-##        print "AddRef", self, self._refcnt
-##        self._factory.LockServer(None, 1)
+        dprint("AddRef", self, self._refcnt)
+        self._factory.LockServer(None, 1)
         return self._refcnt
 
     def Release(self, this):
         self._refcnt -= 1
-##        print "Release", self, self._refcnt
-##        self._factory.LockServer(None, 0)
+        dprint("Release", self, self._refcnt)
+        self._factory.LockServer(None, 0)
         return self._refcnt
 
     def LockServer(self, this, fLock):
@@ -212,7 +183,7 @@ class InprocClassFactory(_ClassFactory):
             g_locks += 1
         else:
             g_locks -= 1
-##        print "LockServer", fLock, g_locks
+        dprint("LockServer", fLock, g_locks)
             
 ################################################################
 #
@@ -246,11 +217,9 @@ class LocalServerClassFactory(_ClassFactory):
     # IUnknown methods
 
     def AddRef(self, this):
-##        print "AddRef", self
         return 2
 
     def Release(self, this):
-##        print "Release", self
         return 1
 
     def LockServer(self, this, fLock):
