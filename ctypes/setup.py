@@ -10,7 +10,7 @@ dlls. It allows wrapping these libraries in pure Python.
 """
 
 # XXX explain LIBFFI_SOURCES
-##LIBFFI_SOURCES='libffi-src'
+##LIBFFI_SOURCES='../libffi-src'
 LIBFFI_SOURCES='source/gcc/libffi'
 
 ################################################################
@@ -236,6 +236,7 @@ class test(Command):
                     self.errors += 1
                 else: #?
                     self.errors += 1
+                    self.tracebacks.append([line, "Crashed"])
             elif line == "=" * 70:
                 # failure or error
                 name = o.readline().rstrip()
@@ -271,7 +272,6 @@ if (hasattr(distutils.core, 'setup_keywords') and
                   'Development Status :: 4 - Beta',
                   ]
 
-
 class my_build_py(build_py.build_py):
     def find_package_modules (self, package, package_dir):
         """We extend distutils' build_py.find_package_modules() method
@@ -285,10 +285,26 @@ class my_build_py(build_py.build_py):
                 result.append(('ctypes', modname, pathname))
         return result
 
+def find_file_in_subdir(dirname, filename):
+    # if <filename> is in <dirname> or any subdirectory thereof,
+    # return the directory name, else None
+    for d, _, names in os.walk(dirname):
+        if filename in names:
+            return d
+    return None
+
 class my_build_ext(build_ext.build_ext):
     def run(self):
         self.build_libffi_static()
         build_ext.build_ext.run(self)
+
+    def fix_extension(self, libdir, incdir):
+        for ext in self.extensions:
+            if ext.name == "_ctypes":
+                ext.include_dirs.append(incdir)
+                ext.library_dirs.append(libdir)
+                # Newer libffi is broken: it doesn't install ffitarget.h in the right directory (IMO)
+                ext.include_dirs.append(os.path.join(libdir, "gcc/include/libffi"))
 
     def build_libffi_static(self):
         if LIBFFI_SOURCES == None:
@@ -300,18 +316,13 @@ class my_build_ext(build_ext.build_ext):
 
         build_dir = os.path.join(self.build_temp, 'libffi')
         inst_dir = os.path.abspath(self.build_temp)
-        lib_dir = os.path.abspath(os.path.join(inst_dir, 'lib'))
-        inc_dir = os.path.abspath(os.path.join(inst_dir, 'include'))
 
-        for ext in self.extensions:
-            ext.include_dirs.append(inc_dir)
-            ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
-            ext.library_dirs.append(lib_dir)
-            # guesswork, for 64-bit platforms
-            ext.library_dirs.append(lib_dir + '64')
-
-        if not self.force and os.path.isfile(os.path.join(lib_dir, "libffi.a")):
-            return
+        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
+        incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
+        if libffi_dir and incffi_dir:
+            self.fix_extension(libffi_dir, incffi_dir)
+            if not self.force:
+                return
 
         mkpath(build_dir)
 
@@ -324,6 +335,12 @@ class my_build_ext(build_ext.build_ext):
         if res:
             print "Failed"
             sys.exit(res)
+
+        libffi_dir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a")
+        incffi_dir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
+        # if not libffi_dir or not incffi_dir: raise some error
+
+        self.fix_extension(libffi_dir, incffi_dir)
 
 # Since we mangle the build_temp dir, we must also do this in the clean command.
 class my_clean(clean.clean):
