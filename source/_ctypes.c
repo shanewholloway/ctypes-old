@@ -7,11 +7,11 @@
 Name			methods, members, getsets
 ==============================================================================
 
-StructType_Type		__new__(), from_address(), __mul__(), from_param(), from_bytes()
-UnionType_Type		__new__(), from_address(), __mul__(), from_param(), from_bytes()
-PointerType_Type	__new__(), from_address(), __mul__(), from_param(), from_bytes(), set_type()
-ArrayType_Type		__new__(), from_address(), __mul__(), from_param(), from_bytes()
-SimpleType_Type		__new__(), from_address(), __mul__(), from_param(), from_bytes()
+StructType_Type		__new__(), from_address(), __mul__(), from_param()
+UnionType_Type		__new__(), from_address(), __mul__(), from_param()
+PointerType_Type	__new__(), from_address(), __mul__(), from_param(), set_type()
+ArrayType_Type		__new__(), from_address(), __mul__(), from_param()
+SimpleType_Type		__new__(), from_address(), __mul__(), from_param()
 
 CFunctionType_Type	__new__(), from_param()
 
@@ -41,10 +41,6 @@ It's not really needed any more, since we can use _types_ = (POINTER(c_int),) fo
 It has some similarity to the byref() construct compared to pointer()
 from_address(addr)
 	- construct an instance from a given memory block (sharing this memory block)
-
-For serializing/deserializing:
-from_bytes(string)
-        - construct an instance from given data (copying this data)
 
 from_param(obj)
 	- typecheck and convert a Python object into a C function call parameter
@@ -206,17 +202,6 @@ CDataType_from_address(PyObject *type, PyObject *value)
 	return CData_AtAddress(type, buf);
 }
 
-static PyObject *
-CDataType_from_bytes(PyObject *type, PyObject *bytes)
-{
-	int length;
-	char *data;
-
-	if (-1 == PyString_AsStringAndSize(bytes, &data, &length))
-		return NULL;
-	return CData_FromBytes(type, data, length);
-}
-
 static char from_param_doc[] =
 "Convert a Python object into a function call parameter.";
 
@@ -270,8 +255,6 @@ static PyMethodDef CDataType_methods[] = {
 	  from_param_doc },
 	{ "from_address", CDataType_from_address, METH_O,
 	  "create an instance from an address"},
-	{ "from_bytes", CDataType_from_bytes, METH_O,
-	  "create an instance from some bytes"},
 	{ NULL, NULL },
 };
 
@@ -518,8 +501,6 @@ PointerType_from_param(PyObject *type, PyObject *value)
 static PyMethodDef PointerType_methods[] = {
 	{ "from_address", CDataType_from_address, METH_O,
 	  "create an instance from an address"},
-	{ "from_bytes", CDataType_from_bytes, METH_O,
-	  "create an instance from some bytes"},
 	{ "from_param", (PyCFunction)PointerType_from_param, METH_O,
 	  from_param_doc},
 	{ "set_type", (PyCFunction)PointerType_set_type, METH_O },
@@ -852,8 +833,6 @@ static PyMethodDef SimpleType_methods[] = {
 	  from_param_doc },
 	{ "from_address", CDataType_from_address, METH_O,
 	  "create an instance from an address"},
-	{ "from_bytes", CDataType_from_bytes, METH_O,
-	  "create an instance from some bytes"},
 	{ NULL, NULL },
 };
 
