@@ -206,6 +206,7 @@ PyObject *_CallProc(PPROC pProc,
 #define FUNCFLAG_STDCALL 0x0
 #define FUNCFLAG_CDECL   0x1
 #define FUNCFLAG_HRESULT 0x2
+#define FUNCFLAG_PYTHONAPI 0x4
 
 typedef struct {
 	PyObject_HEAD
