@@ -63,33 +63,30 @@ if __name__ == "__main__":
          "point.y")
     timeit("-s", "from test_perf import RECT; rect = RECT()",
          "rect.lr")
-    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
-         "fd.lprgelemdescParam")
-    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
-         "fd.lprgelemdescParam[0]")
-    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
-         "fd.lprgelemdescParam[1]")
-    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
-         "fd.lprgelemdescParam[1].tdesc")
-    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
-         "fd.lprgelemdescParam[1].tdesc.vt")
-    timeit("-s", "from test_perf import get_fd; fd = get_fd()",
-         "fd.lprgelemdescParam[1].tdesc._.lptdesc[0].vt")
+    if sys.platform == "win32":
+        timeit("-s", "from test_perf import get_fd; fd = get_fd()",
+             "fd.lprgelemdescParam")
+        timeit("-s", "from test_perf import get_fd; fd = get_fd()",
+             "fd.lprgelemdescParam[0]")
+        timeit("-s", "from test_perf import get_fd; fd = get_fd()",
+             "fd.lprgelemdescParam[1]")
+        timeit("-s", "from test_perf import get_fd; fd = get_fd()",
+             "fd.lprgelemdescParam[1].tdesc")
+        timeit("-s", "from test_perf import get_fd; fd = get_fd()",
+             "fd.lprgelemdescParam[1].tdesc.vt")
+        timeit("-s", "from test_perf import get_fd; fd = get_fd()",
+             "fd.lprgelemdescParam[1].tdesc._.lptdesc[0].vt")
     timeit('-s', "from ctypes import c_int",
            "c_int()")
     timeit('-s', "from ctypes import c_int",
            "c_int(42)")
-    timeit('-s', "from ctypes.com.automation import VARIANT",
-           "VARIANT()                                   # ctypes.com")
-    timeit('-s', "from ctypes.com.automation import VARIANT; variant = VARIANT(3)",
-           "variant.value                               # ctypes.com")
-    timeit('-s', "from ctypes.com.automation import VARIANT; variant = VARIANT()",
-           "variant.value = 3.14                        # ctypes.com")
-    try:
-        import comtypes
-    except ImportError:
-        pass
-    else:
+    if sys.platform == "win32":
+        timeit('-s', "from ctypes.com.automation import VARIANT",
+               "VARIANT()                                   # ctypes.com")
+        timeit('-s', "from ctypes.com.automation import VARIANT; variant = VARIANT(3)",
+               "variant.value                               # ctypes.com")
+        timeit('-s', "from ctypes.com.automation import VARIANT; variant = VARIANT()",
+               "variant.value = 3.14                        # ctypes.com")
 
         timeit('-s', "from comtypes.automation import VARIANT",
                "VARIANT()                                   # comtypes")
