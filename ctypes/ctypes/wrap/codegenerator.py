@@ -2,6 +2,9 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.8  2005/04/01 19:34:10  theller
+# Small fixes.
+#
 # Revision 1.7  2005/03/22 12:08:09  theller
 # Some general cleanup, and make generate_code (which does all the
 # filtering) a method.
@@ -291,11 +294,11 @@ class Generator(object):
         for struct in head.struct.bases:
             self.generate(struct.get_head())
             self.more.add(struct)
-        if head.struct.location:
-            print >> self.stream, "# %s %s" % head.struct.location
         basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
             self.need_GUID()
+            if head.struct.location:
+                print >> self.stream, "# %s %s" % head.struct.location
             method_names = [m.name for m in head.struct.members if type(m) is typedesc.Method]
             print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
             print >> self.stream, "    _iid_ = GUID('{}') # please look up iid and fill in!"
