@@ -800,6 +800,12 @@ z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		Py_INCREF(value);
 		return value;
 	}
+	/* Do we want to allow c_wchar_p also, with conversion? */
+	if (PyObject_IsInstance(value, CTYPE_c_char_p)) {
+		*(char **)ptr = *(char **)(((CDataObject *)value)->b_ptr);
+		Py_INCREF(value);
+		return value;
+	}
 	if (PyString_Check(value)) {
 		*(char **)ptr = PyString_AS_STRING(value);
 		Py_INCREF(value);
@@ -838,6 +844,12 @@ Z_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 {
 	if (value == Py_None) {
 		*(wchar_t **)ptr = NULL;
+		Py_INCREF(value);
+		return value;
+	}
+	/* Do we want to allow c_char_p also, with conversion? */
+	if (PyObject_IsInstance(value, CTYPE_c_wchar_p)) {
+		*(wchar_t **)ptr = *(wchar_t **)(((CDataObject *)value)->b_ptr);
 		Py_INCREF(value);
 		return value;
 	}
