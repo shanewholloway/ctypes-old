@@ -254,7 +254,7 @@ class my_build_ext(build_ext.build_ext):
                 ext.include_dirs.append(incdir)
                 ext.include_dirs.append(incdir_2)
                 ext.library_dirs.append(libdir)
-	return 1
+        return 1
 
     def build_libffi_static(self):
         if sys.platform == "win32":
@@ -273,10 +273,10 @@ class my_build_ext(build_ext.build_ext):
             return
 
         mkpath(build_dir)
-	config_args = ["--disable-shared",
-		       "--enable-static",
-		       "--enable-multilib=no",
-		       "--prefix='%s'" % inst_dir,
+        config_args = ["--disable-shared",
+                       "--enable-static",
+                       "--enable-multilib=no",
+                       "--prefix='%s'" % inst_dir,
         ]
 
         cmd = "cd %s && '%s/configure' %s && make install" \
@@ -284,7 +284,11 @@ class my_build_ext(build_ext.build_ext):
 
         print 'Building static FFI library:'
         print cmd
+        if sys.platform == "openbsd3":
+            os.environ["CFLAGS"] = "-fno-stack-protector"
         res = os.system(cmd)
+        if sys.platform == "openbsd3":
+            del os.environ["CFLAGS"]
         if res:
             print "Failed"
             sys.exit(res)
