@@ -5,8 +5,8 @@ ctypes tutorial
 
   ( Work in progress: "COM":com.html :: "COM sample":sum_sample.html )
 
-  This tutorial describes version 0.6.1 of 'ctypes'. There have been
-  quite some changes to previous versions, the most important are
+  This tutorial describes version 0.6.2 of 'ctypes'. There have been
+  quite some changes to version 0.4.x, the most important are
   listed "here":changes.html.
 
   Loading dynamic link libraries
@@ -658,15 +658,15 @@ ctypes tutorial
       struct cell;
 
       struct {
-          int value;
+          char *name;
           struct cell *next;
       } cell;
 
-    The straightforward translation into Python would be this, but it
-    does not work::
+    The straightforward translation into ctypes code would be this,
+    but it does not work::
 
        >>> class cell(Structure):
-       ...     _fields_ = [("value", c_int),
+       ...     _fields_ = [("name", c_char_p),
        ...                 ("next", POINTER(cell))]
        ...
        Traceback (most recent call last):
@@ -680,19 +680,34 @@ ctypes tutorial
 
     We can do it by creating an *incomplete pointer type* by
     calling POINTER with the class _name_, and later setting the
-    complete type of the result::
+    complete type after it is defined::
 
        >>> from ctypes import *
        >>> lpcell = POINTER("cell")
        >>> class cell(Structure):
-       ...     _fields_ = [("value", c_int),
+       ...     _fields_ = [("name", c_char_p),
        ...                 ("next", lpcell)]
        ...
        >>> SetPointerType(lpcell, cell)
-       >>> c1 = cell()
-       >>> c2 = cell()
-       >>> c.next = pointer(c2)
        >>>
+
+     Lets try it. We create two instances of 'cell', and let them
+     point to each other, and finally follow the pointer chain a few
+     times::
+
+       >>> c1 = cell()
+       >>> c1.name = "foo"
+       >>> c2 = cell()
+       >>> c2.name = "bar"
+       >>> c1.next = pointer(c2)
+       >>> c2.next = pointer(c2)
+       >>> p = c1
+       >>> for i in range(8):
+       ...     print p.name,
+       ...     p = p.next[0]
+       ...
+       foo bar foo bar foo bar foo bar
+       >>>    
 
 
   Callback functions
