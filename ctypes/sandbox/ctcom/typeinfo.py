@@ -50,6 +50,11 @@ TKIND_COCLASS = 5
 TKIND_ALIAS = 6
 TKIND_UNION = 7
 
+DISPATCH_METHOD = 0x1
+DISPATCH_PROPERTYGET = 0x2
+DISPATCH_PROPERTYPUT = 0x4
+DISPATCH_PROPERTYPUTREF = 0x8
+
 ################################################################
 # typeinfo, typelib and automation data types
 #
