@@ -914,7 +914,7 @@ void PrepareResult(PyObject *restype, PyCArgObject *result)
 		/* XXX This should probably be checked when assigning the restype
 		   attribute
 		*/
-		if (strchr("bBhHiIlLqQdfP", fmt[0])) {
+		if (strchr("zcbBhHiIlLqQdfP", fmt[0])) {
 			result->tag = fmt[0];
 			return;
 		}
