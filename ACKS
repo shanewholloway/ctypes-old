@@ -3,6 +3,9 @@ Acknowledgements
 
 This list is probably incomplete, but I would like to thank everybody
 who contributed code, patches, bug reports, encouragement, ...
+
+Apologies if I have forgotten anyone.
+
 -- Thomas Heller
 
 ----------------
@@ -13,6 +16,7 @@ Dave Brueck
 Greg Chapman
 David Creemer
 Chuck Esterbrook
+Mike Fletcher
 David Foster
 Richie Hindle
 Shane Holloway
@@ -23,4 +27,5 @@ Henk Punt
 Jimmy Retzlaff
 Just van Rossum
 Alexander Semenov
+Wolfgang Strobl
 Niki Spahiev
