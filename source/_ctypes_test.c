@@ -69,7 +69,11 @@ EXPORT(char *) my_strdup(char *src)
 #ifdef HAVE_WCHAR_H
 EXPORT(wchar_t *) my_wcsdup(wchar_t *src)
 {
+#ifdef MS_WIN32
 	return _wcsdup(src);
+#else
+	return wcsdup(src);
+#endif
 }
 #endif
 
