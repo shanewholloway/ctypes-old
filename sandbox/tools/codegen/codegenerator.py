@@ -408,7 +408,7 @@ class Generator(object):
                 print >> self.stream, "@ %s(%s, %s, [%s])" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             else:
-                print >> self.stream, "[call_as( %s(%s, %s, [%s]) )]" % \
+                print >> self.stream, "[ call_as(%s(%s, %s, [%s])) ]" % \
                       (cc, type_name(func.returns), dllname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
