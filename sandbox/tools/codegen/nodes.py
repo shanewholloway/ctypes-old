@@ -1,3 +1,4 @@
+# nodes.py - classes representing C type descriptions
 try:
     set
 except NameError:
@@ -46,34 +47,22 @@ class FundamentalType(object):
             self.size = int(size)
             self.align = int(align)
         
-    def __repr__(self):
-        return "<FundamentalType(%s)>" % self.name
-
 class PointerType(object):
     def __init__(self, typ, size, align):
         self.typ = typ
         self.size = int(size)
         self.align = int(align)
 
-    def __repr__(self):
-        return "<POINTER(%s)>" % self.typ
-
 class Typedef(object):
     def __init__(self, name, typ):
         self.name = name
         self.typ = typ
-
-    def __repr__(self):
-        return "<Typedef(%s) at %x>" % (self.name, id(self))
 
 class ArrayType(object):
     def __init__(self, typ, min, max):
         self.typ = typ
         self.min = min
         self.max = max
-
-    def __repr__(self):
-        return "<Array(%s[%s]) at %x>" % (self.typ, self.max, id(self))
 
 class StructureHead(object):
     def __init__(self, struct):
@@ -83,21 +72,12 @@ class StructureBody(object):
     def __init__(self, struct):
         self.struct = struct
 
-    def __repr__(self):
-        return "<StructureBody(%s) at %x>" % (self.struct.name, id(self))
-
 class _Struct_Union_Base(object):
-    def depends(self):
-        return [self.struct_head, self.struct_body]
-        
     def get_body(self):
         return self.struct_body
 
     def get_head(self):
         return self.struct_head
-
-    def __repr__(self):
-        return "<%s(%s) at %x>" % (self.__class__.__name__, self.name, id(self))
 
 class Structure(_Struct_Union_Base):
     def __init__(self, name, align, members, bases, size, artificial=None):
