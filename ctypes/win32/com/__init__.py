@@ -51,13 +51,6 @@ class GUID(Structure):
                IsEqualGUID(byref(self), byref(other))               
 assert(sizeof(GUID) == 16), sizeof(GUID)
 
-##guid = GUID()
-
-##if guid:
-##    print "True", guid
-##else:
-##    print "False", guid
-
 REFCLSID = REFGUID = REFIID = POINTER(GUID)
 
 ################################################################
@@ -65,7 +58,15 @@ REFCLSID = REFGUID = REFIID = POINTER(GUID)
 #
 
 def STDMETHOD(restype, name, *argtypes):
-    return name, STDAPI(restype, PIUnknown, *argtypes)
+    # First argument (this) for COM method implementation is really an
+    # IUnknown pointer, but we don't want this to be built all the time,
+    # since we probably don't use it, so use c_voidp
+    return name, STDAPI(restype, c_voidp, *argtypes)
+
+def COMPointer__del__(self):
+    if self.contents.lpVtbl:
+        print "Release", self, self.Release()
+
 
 class _interface_meta(type(Structure)):
     """Metaclass for COM interface classes.
@@ -99,11 +100,11 @@ class _interface_meta(type(Structure)):
         result = type(Structure).__new__(cls, name, bases, kwds)
         result.VTable_ptr = VTable_ptr
         if kwds.has_key("_methods_"):
-            result.__make_vtable()
-            result.__make_methods()
+            self._init_class()
         return result
 
     def __make_vtable(self):
+        # Now that self._methods_ is available, create the VTable
         _VTable = type(Structure)("%s_VTable" % self.__name__,
                                   (Structure,),
                                   {"_fields_": self._methods_})
@@ -112,14 +113,14 @@ class _interface_meta(type(Structure)):
     def _init_class(self):
         self.__make_vtable()
         self.__make_methods()
+        POINTER(self).__del__ = COMPointer__del__
 
     def __setattr__(self, name, value):
         if name == "_methods_" and self.__dict__.has_key("_methods_"):
             raise TypeError, "Cannot change _methods_"
         type(Structure).__setattr__(self, name, value)
         if name == "_methods_":
-            self.__make_vtable()
-            self.__make_methods()
+            self._init_class()
 
     def __make_methods(self):
         """This method attaches methods to the interface POINTER class"""
@@ -128,15 +129,17 @@ class _interface_meta(type(Structure)):
         index = 0
         ptrclass = POINTER(self)
         for name, PROTO in self._fields_[0][1]._type_._fields_: # VTable._fields_
-##            print "#\t%d %s" % (index, name)
+            # PROTO is already a subclass of CFuncPtr. It is the type of a
+            # function which can be used as the COM method implementation.
+            # We read the restype and the argtypes from it, and construct
+            # another function type, which can be used as the COM method *client*.
+            # For this we don't want the first argument - the 'this' pointer.
             restype = PROTO.__dict__["_restype_"]
-            # the first item in argtypes is the this pointer, but we don't need it
             argtypes = PROTO.__dict__["_argtypes_"][1:]
             clientPROTO = STDAPI(restype, *argtypes)
             mth = new.instancemethod(clientPROTO(index), None, ptrclass)
             setattr(ptrclass, name, mth)
             index += 1
-##        print "#"
 
 ################################################################
 # IUnknown, the root of all evil...
@@ -173,28 +176,17 @@ IUnknown._methods_ = [STDMETHOD(HRESULT, "QueryInterface", REFIID, POINTER(PIUnk
 
 ################################################################
 
+S_OK = 0
 E_NOTIMPL = 0x80004001
+E_NOINTERFACE = 0x80004002
 
 class COMObject:
     _refcnt = 1
 
-    def _notimpl(self, *args):
-        print "notimpl", args
-        return E_NOTIMPL
-
-##    def QueryInterface(self, this, refiid, ppiunk):
-##        print "QI", refiid[0] #, ppiunk
-##        return E_NOTIMPL
-
-    def AddRef(self, this):
-        self._refcnt += 1
-        print "ADDREF", self, self._refcnt
-        return self._refcnt
-
-    def Release(self, this):
-        self._refcnt -= 1
-        print "RELEASE", self, self._refcnt
-        return self._refcnt
+    def __init__(self):
+        # actually this contains (iid, interface) pairs, where iid is
+        # a GUID instance, and interface is an IUnknown or subclass instance.
+        self._com_pointers_ = []
 
     def _make_interface_pointer(self, itfclass):
         # Take an interface class like 'IUnknown' and create
@@ -205,11 +197,35 @@ class COMObject:
         for name, proto in vtbltype._fields_:
             callable = getattr(self, name, self._notimpl)
             if callable == self._notimpl:
-                print "# method %s unimplemented" % name
+                print "# unimplemented", name
             methods.append(proto(callable))
         vtbl = vtbltype(*methods)
         itf.lpVtbl = pointer(vtbl)
-        return pointer(itf)
+        for iid in [cls._iid_ for cls in itfclass.mro()[:-3]]:
+            self._com_pointers_.append((iid, itf))
+        return byref(itf)
 
+    def _notimpl(self, *args):
+        print "notimpl", args
+        return E_NOTIMPL
 
-__all__ = "IUnknown PIUnknown STDMETHOD GUID REFIID HRESULT ole32 COMObject".split()
+    def QueryInterface(self, this, refiid, ppiunk):
+        iid = refiid[0]
+        for i, itf in self._com_pointers_:
+            if i == iid:
+                # *ppiunk = &itf
+                from ctypes import addressof, c_voidp
+                addr = c_voidp.from_address(addressof(ppiunk)).value
+                comptr = addressof(itf)
+                c_voidp.from_address(addr).value = comptr
+                self.AddRef(this)
+                return S_OK
+        return E_NOINTERFACE
+
+    def AddRef(self, this):
+        self._refcnt += 1
+        return self._refcnt
+
+    def Release(self, this):
+        self._refcnt -= 1
+        return self._refcnt
