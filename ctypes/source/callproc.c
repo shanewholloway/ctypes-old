@@ -538,28 +538,6 @@ static PyCArgObject *ConvParam(PyObject *obj, int index)
 
 
 #ifndef MS_WIN32
-/*
-  There's a problem with current CVS versions of libffi (2003-01-21).
-  It redefines ffi_type_slong and ffi_type_ulong to
-  ffi_type_sint64 and ffi_type_uint64.
-
-  Fortunately, ctypes' unittests catch this.
-
-	printf("SIZEOF_LONG %d\n", SIZEOF_LONG);
-
-	printf("ffi_type_slong %p\n", &ffi_type_slong);
-	printf("ffi_type_sint64 %p\n", &ffi_type_sint64);
-	printf("ffi_type_sint %p\n", &ffi_type_sint);
-	printf("ffi_type_sint32 %p\n", &ffi_type_sint32);
-*/
-#if (SIZEOF_LONG_LONG == 8 && SIZEOF_LONG == 4)
-#undef ffi_type_ulong
-#define ffi_type_ulong ffi_type_uint32
-#undef ffi_type_slong
-#define ffi_type_slong ffi_type_sint32
-#endif
-#define ffi_type_ulonglong ffi_type_uint64
-#define ffi_type_slonglong ffi_type_sint64
 
 ffi_type *tag2ffitype(char tag)
 {
@@ -571,29 +549,29 @@ ffi_type *tag2ffitype(char tag)
 	case 'B':
 		return &ffi_type_uint8;
 	case 'h':
-		return &ffi_type_sshort;
+		return &ffi_type_sint16;
 	case 'H':
-		return &ffi_type_ushort;
+		return &ffi_type_uint16;
 	case 'i':
-		return &ffi_type_sint;
+		return &ffi_type_sint32;
 	case 'I':
-		return &ffi_type_uint;
+		return &ffi_type_uint32;
 	case 'l':
-		return &ffi_type_slong;
+		return &ffi_type_sint32;
 	case 'L':
-		return &ffi_type_ulong;
+		return &ffi_type_uint32;
 	case 'q':
-		return &ffi_type_slonglong;
+		return &ffi_type_sint64;
 	case 'Q':
-		return &ffi_type_ulonglong;
+		return &ffi_type_uint64;
 	case 'z':
 	case 'Z':
 	case 'P':
-		return&ffi_type_pointer;
+		return &ffi_type_pointer;
 	case 'd':
-		return&ffi_type_double;
+		return &ffi_type_double;
 	case 'f':
-		return&ffi_type_float;
+		return &ffi_type_float;
 	case 'v':
 		return &ffi_type_void;
 /* Ahh.
