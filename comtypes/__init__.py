@@ -1,5 +1,11 @@
 # requires ctypes 0.9.3 or later
 import new
+
+try:
+    set
+except NameError:
+    from sets import Set as set
+
 from ctypes import *
 from comtypes.GUID import GUID
 _GUID = GUID
@@ -63,29 +69,6 @@ import atexit
 atexit.register(_clean_exc_info)
 
 ################################################################
-
-from _ctypes import CFuncPtr as _CFuncPtr, FUNCFLAG_STDCALL as _FUNCFLAG_STDCALL
-from ctypes import _win_functype_cache
-
-# For backward compatibility, the signature of WINFUNCTYPE cannot be
-# changed, so we have to add this - which is basically the same, but
-# allows to specify parameter flags from the win32 PARAMFLAGS
-# enumeration.  Maybe later we have to add optional default parameter
-# values and parameter names as well.
-def COMMETHODTYPE(restype, argtypes, paramflags):
-    flags = paramflags
-    try:
-        return _win_functype_cache[(restype, argtypes, flags)]
-    except KeyError:
-        class WinFunctionType(_CFuncPtr):
-            _argtypes_ = argtypes
-            _restype_ = restype
-            _flags_ = _FUNCFLAG_STDCALL
-            parmflags = flags
-        _win_functype_cache[(restype, argtypes, flags)] = WinFunctionType
-        return WinFunctionType
-
-################################################################
 # The metaclasses...
 
 class _cominterface_meta(type):
@@ -96,7 +79,7 @@ class _cominterface_meta(type):
         cls = type.__new__(self, name, bases, namespace)
         # XXX ??? First assign the _methods_, or first create the POINTER class?
         # or does it not matter?
-        if methods:
+        if methods is not None:
             setattr(cls, "_methods_", methods)
 
         # If we sublass a COM interface, for example:
@@ -129,25 +112,66 @@ class _cominterface_meta(type):
                     for itf in self.__mro__[1:]])
 
     def _make_methods(self, methods):
-        # we insist on an _iid_ in THIS class"
+        # we insist on an _iid_ in THIS class!
         try:
             self.__dict__["_iid_"]
         except KeyError:
             raise AttributeError, "must define _iid_"
         vtbl_offset = self.__get_baseinterface_methodcount()
-        for i, (restype, name, argtypes) in enumerate(methods):
+
+        getters = {}
+        setters = {}
+
+        # create low level, and maybe high level, COM method implementations.
+        for i, item in enumerate(methods):
+            restype, name, argtypes, paramflags, idlflags, doc = item
             # the function prototype
             prototype = WINFUNCTYPE(restype, *argtypes)
-            mth = prototype(i + vtbl_offset, name)
-            mth = new.instancemethod(mth, None, self)
-            impl = getattr(self, name, None)
-            if impl is None:
-                # don't overwrite a custom implementation
+            # function calling the COM method slot
+            func = prototype(i + vtbl_offset, name, paramflags)
+            func.__doc__ = doc
+            # and an unbound method, so we don't have to pass 'self'
+            mth = new.instancemethod(func, None, self)
+
+            # is it a property set or property get?
+            is_prop = False
+            # The following code assumes that the docstrings for
+            # propget and propput are identical.
+            if "propget" in idlflags:
+                assert name.startswith("_get_")
+                propname = name[len("_get_"):]
+                getters[propname, doc, len(argtypes)] = func
+                is_prop = True
+            elif "propput" in idlflags:
+                assert name.startswith("_set_")
+                propname = name[len("_set_"):]
+                setters[propname, doc, len(argtypes)] = func
+                is_prop = True
+
+            # We install the method in the class, except when it's a
+            # property accessor.  And we make sure we don't overwrite
+            # a property that's already present in the class.
+            if not is_prop and not hasattr(self, name):
                 setattr(self, name, mth)
-            # attach it with a private name (__com_AddRef, for example)
+
+            # attach it with a private name (__com_AddRef, for example),
+            # so that custom method implementations can call it.
             mthname = "_%s__com_%s" % (self.__name__, name)
             setattr(self, mthname, mth)
 
+        # create properties
+        for item in set(getters.keys()) | set(getters.keys()):
+            name, doc, nargs = item
+            if nargs == 1:
+                prop = property(getters.get(item), setters.get(item), doc=doc)
+            else:
+                # Hm, must be a descriptor where the __get__ method
+                # returns a bound object having __getitem__ and
+                # __setitem__ methods.
+##                prop = named_property(getters.get(item), setters.get(item), doc=doc)
+                raise "Not Yet Implemented"
+            setattr(self, name, prop)
+            
 # metaclass for COM interface pointer classes
 class _compointer_meta(type(c_void_p), _cominterface_meta):
     pass
@@ -162,13 +186,17 @@ class _compointer_base(c_void_p):
 
     # Hm, shouldn't this be in c_void_p ?
     def __nonzero__(self):
-        # get the value property of the baseclass, this is the pointer value
+        # get the .value property of the baseclass, this is the pointer value
         # both variants below do the same, and both are equally unreadable ;-)
         return bool(super(_compointer_base, self).value)
 ##        return bool(c_void_p.value.__get__(self))
 
     def __eq__(self, other):
         # COM identity rule
+        #
+        # XXX To compare COM interface pointers, should we
+        # automatically QueryInterface for IUnknown on both items, and
+        # compare the pointer values?
         if not isinstance(other, _compointer_base):
             return False
         # get the value property of the c_void_p baseclass, this is the pointer value
@@ -178,6 +206,7 @@ class _compointer_base(c_void_p):
     #
     # for symmetry with other ctypes types
     # XXX explain
+    # XXX check if really needed
     def __get_value(self):
         return self
     value = property(__get_value)
@@ -204,7 +233,46 @@ class BSTR(_SimpleCData):
 
 def STDMETHOD(restype, name, argtypes=()):
     "Specifies a COM method slot"
-    return restype, name, argtypes
+    # restype, name, argtypes, paramflags, idlflags, docstring
+    return restype, name, argtypes, None, (), None
+
+PARAMFLAGS = {
+    "in": 1,
+    "out": 2,
+    "retval": 8,
+    }
+
+
+class helpstring(object):
+    def __init__(self, text):
+        self.text = text
+
+def encode_idl(names):
+    # sum up all values found in PARAMFLAGS, ignoring all others.
+    result = sum([PARAMFLAGS.get(n, 0) for n in names])
+    return result & 3 # that's what _ctypes accept
+
+def COMMETHOD2(idlflags, restype, methodname, *argspec):
+    paramflags = []
+    argtypes = []
+
+    def unpack(idl, typ, name=None):
+        return idl, typ, name
+
+    # collect all helpstring instances
+    helptext = [t.text for t in idlflags if isinstance(t, helpstring)]
+    # join them together(does this make sense?) and replace by None if empty.
+    helptext = "".join(helptext) or None
+
+    for item in argspec:
+        idl, typ, argname = unpack(*item)
+        paramflags.append((encode_idl(idl), argname))
+        argtypes.append(typ)
+    if "propget" in idlflags:
+        methodname = "_get_%s" % methodname
+    elif "propput" in idlflags:
+        methodname = "_put_%s" % methodname
+    return restype, methodname, tuple(argtypes), tuple(paramflags), tuple(idlflags), helptext
 
 ################################################################
 
@@ -227,6 +295,8 @@ class IUnknown(object):
         self.__com_QueryInterface(byref(iid), byref(p))
         return p
 
+    # these are only so that they get a docstring.
+    # XXX There should be other ways to install a docstring.
     def AddRef(self):
         "Increase the internal refcount by one"
         return self.__com_AddRef()
