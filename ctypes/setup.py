@@ -270,7 +270,7 @@ class my_build_ext(build_ext.build_ext):
 
         for ext in self.extensions:
             ext.include_dirs.append(inc_dir)
-            ext.include_dirs.append(os.path.join(lib_dir, "gcc/3.5.0/include/libffi"))
+            ext.include_dirs.append(os.path.join(lib_dir, "gcc/include/libffi"))
             ext.library_dirs.append(lib_dir)
 
 
