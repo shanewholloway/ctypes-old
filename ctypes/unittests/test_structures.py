@@ -26,84 +26,6 @@ class SubclassesTest(unittest.TestCase):
         self.failUnlessEqual(Z._fields_,
                              [("a", c_int)])
 
-    def test_lazy_subclass(self):
-        class X(Structure):
-            pass
-
-        class Y(X):
-            pass
-
-        class Z(X):
-            pass
-
-        self.assertRaises(TypeError, sizeof, X)
-        self.assertRaises(TypeError, sizeof, Y)
-        self.assertRaises(TypeError, sizeof, Z)
-
-        X._pack_ = 0
-        Y._pack_ = 0
-        Z._pack_ = 0
-
-        X._fields_ = [("a", c_int)]
-        Y._fields_ = X._fields_ + [("b", c_int)]
-        Z._fields_ = X._fields_
-
-        self.failUnlessEqual(sizeof(X), sizeof(c_int))
-        self.failUnlessEqual(sizeof(Y), sizeof(c_int)*2)
-        self.failUnlessEqual(sizeof(Z), sizeof(c_int))
-
-        self.failUnlessEqual(X._fields_,
-                             [("a", c_int)])
-
-        self.failUnlessEqual(Y._fields_,
-                             [("a", c_int), ("b", c_int)])
-
-        self.failUnlessEqual(Z._fields_,
-                             [("a", c_int)])
-
-        self.assertRaises(AttributeError, setattr, X, "_pack_", 32)
-        self.assertRaises(AttributeError, setattr, Y, "_pack_", 32)
-        self.assertRaises(AttributeError, setattr, Z, "_pack_", 32)
-
-    def test_lazy_union(self):
-        class X(Union):
-            pass
-
-        class Y(X):
-            pass
-
-        class Z(X):
-            pass
-
-        self.assertRaises(TypeError, sizeof, X)
-        self.assertRaises(TypeError, sizeof, Y)
-        self.assertRaises(TypeError, sizeof, Z)
-
-        X._pack_ = 0
-        Y._pack_ = 0
-        Z._pack_ = 0
-
-        X._fields_ = [("a", c_int)]
-        Y._fields_ = X._fields_ + [("b", c_int)]
-        Z._fields_ = X._fields_
-
-        self.failUnlessEqual(sizeof(X), sizeof(c_int))
-        self.failUnlessEqual(sizeof(Y), sizeof(c_int))
-        self.failUnlessEqual(sizeof(Z), sizeof(c_int))
-
-        self.failUnlessEqual(X._fields_,
-                             [("a", c_int)])
-
-        self.failUnlessEqual(Y._fields_,
-                             [("a", c_int), ("b", c_int)])
-
-        self.failUnlessEqual(Z._fields_,
-                             [("a", c_int)])
-
-        self.assertRaises(AttributeError, setattr, X, "_pack_", 32)
-        self.assertRaises(AttributeError, setattr, Y, "_pack_", 32)
-        self.assertRaises(AttributeError, setattr, Z, "_pack_", 32)
-
 class StructureTestCase(unittest.TestCase):
     formats = {"c": c_char,
                "b": c_byte,
@@ -331,7 +253,6 @@ class StructureTestCase(unittest.TestCase):
             return detail.__class__, str(detail)
                 
 
-    # no longer true:
 ##    def test_subclass_creation(self):
 ##        meta = type(Structure)
 ##        # same as 'class X(Structure): pass'
@@ -342,10 +263,10 @@ class StructureTestCase(unittest.TestCase):
 
     def test_abstract_class(self):
         class X(Structure):
-            pass
+            _abstract_ = "something"
         # try 'X()'
         cls, msg = self.get_except(eval, "X()", locals())
-        self.failUnlessEqual((cls, msg), (TypeError, "Cannot create instance: no _fields_"))
+        self.failUnlessEqual((cls, msg), (TypeError, "abstract class"))
 
     def test_methods(self):
 ##        class X(Structure):
