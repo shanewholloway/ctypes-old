@@ -166,7 +166,10 @@ class TypeInfoReader:
             ti.GetDocumentation(-1, byref(name), None, None, None)
             return name.value
 
-        return TYPES[tdesc.vt]
+        if tdesc.vt == VT_VOID:
+            return None
+        else:
+            return TYPES[tdesc.vt]
 
 class EnumReader(TypeInfoReader):
     def declaration(self):
@@ -262,7 +265,11 @@ class DispatchMethod(Method):
     # restype is always HRESULT
     def declaration(self):
         argtypes = ", ".join(self.argtypes)
-        return 'STDMETHOD(HRESULT, "%s", %s)' % (self.name, argtypes)
+        if self.restype is None:
+            return 'STDMETHOD(HRESULT, "%s", %s)' % (self.name, argtypes)
+        else:
+            return 'STDMETHOD(HRESULT, "%s", %s, POINTER(%s))' % \
+                   (self.name, argtypes, self.restype)
 
 class DispMethod(Method):
     def declaration(self):
@@ -289,7 +296,7 @@ class InterfaceReader(TypeInfoReader):
             ti.GetDocumentation(-1, byref(name), None, None, None)
             # XXX Sometimes this fails, because baseinterface is IDispatch
             # in an InterfaceReader 
-            if 0:
+            if 1:
                 self.baseinterface = name.value
             else:
                 assert name.value == self.baseinterface, (self, self.baseinterface, name.value)
@@ -310,8 +317,8 @@ class InterfaceReader(TypeInfoReader):
             pfd = LPFUNCDESC()
             self.ti.GetFuncDesc(i, byref(pfd))
             fd = pfd.contents
-            if i < self.nummethods:
-##            if fd.oVft/4 < self.nummethods:
+##            if i < self.nummethods:
+            if fd.oVft/4 < self.nummethods:
                 # method belongs to base class
                 continue
             
@@ -621,7 +628,8 @@ def main():
     if len(sys.argv) > 1:
         path = sys.argv[1]
     else:
-        path = r"c:\windows\system32\shdocvw.dll"
+        path = r"..\samples\server\sum.tlb"
+##        path = r"c:\windows\system32\shdocvw.dll"
 ##        path = r"c:\Programme\Microsoft Office\Office\MSO97.DLL"
 
         # Microsoft PictureClip Control 6.0 (Ver 1.1)
