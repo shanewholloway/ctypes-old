@@ -62,6 +62,28 @@ def _clean_exc_info():
 import atexit
 atexit.register(_clean_exc_info)
 
+################################################################
+
+from _ctypes import CFuncPtr as _CFuncPtr, FUNCFLAG_STDCALL as _FUNCFLAG_STDCALL
+from ctypes import _win_functype_cache
+
+# For backward compatibility, the signature of WINFUNCTYPE cannot be
+# changed, so we have to add this - which is basically the same, but
+# allows to specify parameter flags from the win32 PARAMFLAGS
+# enumeration.  Maybe later we have to add optional default parameter
+# values and parameter names as well.
+def COMMETHODTYPE(restype, argtypes, paramflags):
+    flags = paramflags
+    try:
+        return _win_functype_cache[(restype, argtypes, flags)]
+    except KeyError:
+        class WinFunctionType(_CFuncPtr):
+            _argtypes_ = argtypes
+            _restype_ = restype
+            _flags_ = _FUNCFLAG_STDCALL
+            parmflags = flags
+        _win_functype_cache[(restype, argtypes, flags)] = WinFunctionType
+        return WinFunctionType
 
 ################################################################
 # The metaclasses...
