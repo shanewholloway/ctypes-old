@@ -2709,6 +2709,8 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 				"args not a tuple?");
 		return -1;
 	}
+	if (PyTuple_GET_SIZE(args) == 0)
+		return 0; /* no initializers: nothing to do */
 	fields = PyObject_GetAttrString(self, "_fields_");
 	if (!fields) {
 		PyErr_Clear();
