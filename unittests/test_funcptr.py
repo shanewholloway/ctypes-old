@@ -16,6 +16,8 @@ elif os.name == "posix":
         libc = cdll.LoadLibrary("/usr/lib/libc.dylib")
     elif sys.platform == "cygwin":
         libc = cdll.LoadLibrary("/bin/cygwin1.dll")
+    elif sys.platform == "sunos5":
+        libc = cdll.LoadLibrary("/lib/libc.so")
     else:
         libc = cdll.LoadLibrary("/lib/libc.so.6")
 
