@@ -1,3 +1,8 @@
+2003-02-18  Thomas Heller  <theller@python.net>
+
+	* (Repository): Added a packages directory, and created a ctcom
+	package.  See separate changelog.
+
 2003-02-11  Thomas Heller  <theller@python.net>
 
 	* source/_ctypes.c: The .from_parameter method of POINTER classes now
