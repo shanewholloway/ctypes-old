@@ -2006,14 +2006,11 @@ CData_AtAddress(PyObject *type, void *buf)
   Helper function for CData_set below.
 */
 static PyObject *
-_CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
+_CData_set(CDataObject *dst, PyObject *type, PyObject *value,
 	   int size, char *ptr)
 {
 	CDataObject *src;
 
-	if (setfunc)
-		return setfunc(ptr, value, size, type);
-	
 	if (!CDataObject_Check(value)) {
 		StgDictObject *dict = PyType_stgdict(type);
 		if (dict && dict->setfunc)
@@ -2032,7 +2029,7 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 						  ((PyTypeObject *)type)->tp_name);
 				return NULL;
 			}
-			result = _CData_set(dst, type, setfunc, ob,
+			result = _CData_set(dst, type, ob,
 					    size, ptr);
 			Py_DECREF(ob);
 			return result;
@@ -2107,8 +2104,8 @@ _CData_set(CDataObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
  * Set a slice in object 'dst', which has the type 'type',
  * to the value 'value'.
  */
-int
-CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
+static int
+CData_set(PyObject *dst, PyObject *type, PyObject *value,
 	  int index, int size, char *ptr)
 {
 	CDataObject *mem = (CDataObject *)dst;
@@ -2120,7 +2117,7 @@ CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
 		return -1;
 	}
 
-	result = _CData_set(mem, type, setfunc, value,
+	result = _CData_set(mem, type, value,
 			    size, ptr);
 	if (result == NULL)
 		return -1;
@@ -3426,6 +3423,7 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 {
 	int size, offset;
 	StgDictObject *stgdict;
+	PyObject *itemtype;
 	char *ptr;
 
 	if (value == NULL) {
@@ -3443,8 +3441,9 @@ Array_ass_item(CDataObject *self, int index, PyObject *value)
 	size = stgdict->size / stgdict->length;
 	offset = index * size;
 	ptr = self->b_ptr + offset;
+	itemtype = stgdict->proto;
 
-	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
+	return CData_set((PyObject *)self, itemtype, value,
 			 index, size, ptr);
 }
 
@@ -3804,7 +3803,7 @@ Pointer_ass_item(CDataObject *self, int index, PyObject *value)
 	size = stgdict->size / stgdict->length;
 
 	/* XXXXX Make sure proto is NOT NULL! */
-	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
+	return CData_set((PyObject *)self, stgdict->proto, value,
 			 index, size, *(void **)self->b_ptr);
 }
 
