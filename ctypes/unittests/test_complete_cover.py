@@ -6,37 +6,51 @@ class CompleteCoverage(unittest.TestCase):
     def test_cfield(self):
         # tests to make coverage of source/cfield.c more complete
 
-        class X(Structure):
-            _fields_ = [("a", c_long),
-                        ("b", c_long, 3),
-                        ("u", c_wchar),
-                        ("U", c_wchar * 3),
-                        ("z", c_char_p),
-                        ("Z", c_wchar_p),
-                        ("P", c_void_p),
-                        ("p", POINTER(c_long))]
+        has_wchar = False
+        try:
+            c_wchar
+            has_wchar = True
+        except NameError:
+            class X(Structure):
+                _fields_ = [("a", c_long),
+                            ("b", c_long, 3),
+                            ("z", c_char_p),
+                            ("P", c_void_p),
+                            ("p", POINTER(c_long))]
+        else:
+            class X(Structure):
+                _fields_ = [("a", c_long),
+                            ("b", c_long, 3),
+                            ("u", c_wchar),
+                            ("U", c_wchar * 3),
+                            ("z", c_char_p),
+                            ("Z", c_wchar_p),
+                            ("P", c_void_p),
+                            ("p", POINTER(c_long))]
         self.failUnlessEqual(repr(X.a),
                              "<Field type=c_long, ofs=0, size=4>")
         self.failUnlessEqual(repr(X.b),
                              "<Field type=c_long, ofs=4, bits=3>")
         X().p = None
 
-        # single unicode character
-        self.failUnlessRaises(TypeError, lambda: setattr(X(), "u", 42))
-        self.failUnlessRaises(TypeError, lambda: setattr(X(), "u", "abc"))
-##        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "u", "ä"))
+        if has_wchar:
+            # single unicode character
+            self.failUnlessRaises(TypeError, lambda: setattr(X(), "u", 42))
+            self.failUnlessRaises(TypeError, lambda: setattr(X(), "u", "abc"))
+##            self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "u", "ä"))
 
-        # unicode array
-        self.failUnlessRaises(TypeError, lambda: setattr(X(), "U", 42))
-        X().U = "abc"
-##        self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "U", "ä"))
+            # unicode array
+            self.failUnlessRaises(TypeError, lambda: setattr(X(), "U", 42))
+            X().U = "abc"
+##            self.failUnlessRaises(UnicodeDecodeError, lambda: setattr(X(), "U", "ä"))
+
+            self.failUnlessRaises(TypeError, lambda: setattr(X(), "Z", 42))
+            X().Z = cast(42, c_wchar_p)
+
+            self.failUnlessRaises(TypeError, lambda: setattr(X(), "Z", 3.14))
 
         self.failUnlessRaises(TypeError, lambda: setattr(X(), "z", 42))
         X().z = cast(42, c_char_p)
-
-        self.failUnlessRaises(TypeError, lambda: setattr(X(), "Z", 42))
-        self.failUnlessRaises(TypeError, lambda: setattr(X(), "Z", 3.14))
-        X().Z = cast(42, c_wchar_p)
 
         x = X()
         x.P = None
