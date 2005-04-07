@@ -394,35 +394,31 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 	/* ctypes instances know themselves how to pass as argument */
 	if (stgdict)
 		return stgdict->asparam((CDataObject *)obj, pa);
-
-	/* probably a byref(obj) parameter */
-	if (PyCArg_CheckExact(obj)) {
-		PyCArgObject *carg = (PyCArgObject *)obj;
-		pa->ffi_type = carg->pffi_type;
+	if (obj == Py_None) {
+		pa->ffi_type = &ffi_type_pointer;
+		pa->value.p = NULL;
+		return 0;
+	}
+	if (PyInt_Check(obj)) {
+		pa->ffi_type = &ffi_type_sint;
+		pa->value.i = PyInt_AS_LONG(obj);
+		return 0;
+	}
+	if (PyLong_Check(obj)) {
+		pa->ffi_type = &ffi_type_sint;
+		pa->value.i = (int)PyLong_AsUnsignedLongMask(obj);
+		return 0;
+	}
+	if (PyString_Check(obj)) {
+		pa->ffi_type = &ffi_type_pointer;
+		pa->value.p = PyString_AS_STRING(obj);
 		Py_INCREF(obj);
 		pa->keep = obj;
-		memcpy(&pa->value, &carg->value, sizeof(pa->value));
-		return 0;
-	}
-
-	/* Pass as integer by calling i_set() */
-	if (PyInt_Check(obj) || PyLong_Check(obj)) {
-		pa->ffi_type = &ffi_type_sint;
-		pa->keep = getentry("i")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_int? */
-		if (pa->keep == NULL)
-			return -1;
-		return 0;
-	}
-
-	/* Pass as pointer by calling z_set() */
-	if (obj == Py_None || PyString_Check(obj)) {
-		pa->ffi_type = &ffi_type_pointer;
-		pa->keep = getentry("z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_char_p? */
-		if (pa->keep == NULL)
-			return -1;
 		return 0;
 	}
 #ifdef CTYPES_UNICODE
+	/* XXX See Z_set. */
+	/* XXX PyUnicode_AsWideChar(), */
 	/* Pass as pointer by calling Z_set() */
 	if (PyUnicode_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
@@ -432,6 +428,14 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 		return 0;
 	}
 #endif
+	if (PyCArg_CheckExact(obj)) {
+		PyCArgObject *carg = (PyCArgObject *)obj;
+		pa->ffi_type = carg->pffi_type;
+		Py_INCREF(obj);
+		pa->keep = obj;
+		memcpy(&pa->value, &carg->value, sizeof(pa->value));
+		return 0;
+	}
 
 	arg = PyObject_GetAttrString(obj, "_as_parameter_");
 	/* Which types should we exactly allow here?
