@@ -710,21 +710,30 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *checker)
 {
 	int i, n, argcount, argtype_count;
-	void *resbuf;
-	struct argument *args, *pa;
-	ffi_type **atypes;
-	ffi_type *rtype;
-	void **avalues;
+	struct argument *pa;
+
+	struct argument *args;		/* array of temp storage for arguments */
+
+	ffi_type **atypes;		/* array of argument ffi_types */
+	void **avalues;			/* array of pointers to libffi argument values */
+	ffi_type *rtype;		/* return value ffi_type */
+	void *rvalue;			/* pointer to libffi return value */
+
 	PyObject *retval = NULL;
 
 	n = argcount = PyTuple_GET_SIZE(argtuple);
 	/* an optional COM object this pointer */
 	if (pIunk)
 		++argcount;
+	argtype_count = argtypes ? PyTuple_GET_SIZE(argtypes) : 0;
+	rtype = GetType(restype);
 
 	args = (struct argument *)alloca(sizeof(struct argument) * argcount);
 	memset(args, 0, sizeof(struct argument) * argcount);
-	argtype_count = argtypes ? PyTuple_GET_SIZE(argtypes) : 0;
+	rvalue = alloca(max(rtype->size, sizeof(ffi_arg)));
+	avalues = (void **)alloca(sizeof(void *) * argcount);
+	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
+
 	if (pIunk) {
 		args[0].ffi_type = &ffi_type_pointer;
 		args[0].value.p = pIunk;
@@ -770,11 +779,6 @@ PyObject *_CallProc(PPROC pProc,
 		}
 	}
 
-	rtype = GetType(restype);
-	resbuf = alloca(max(rtype->size, sizeof(ffi_arg)));
-
-	avalues = (void **)alloca(sizeof(void *) * argcount);
-	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
 	for (i = 0; i < argcount; ++i) {
 		atypes[i] = args[i].ffi_type;
 		if (atypes[i]->type == FFI_TYPE_STRUCT)
@@ -784,20 +788,20 @@ PyObject *_CallProc(PPROC pProc,
 	}
 
 	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes,
-					 rtype, resbuf, argcount))
+					 rtype, rvalue, argcount))
 		goto cleanup;
 
 #ifdef MS_WIN32
 	if (flags & FUNCFLAG_HRESULT) {
-		if (*(int *)resbuf & 0x80000000)
-			retval = PyErr_SetFromWindowsErr(*(int *)resbuf);
+		if (*(int *)rvalue & 0x80000000)
+			retval = PyErr_SetFromWindowsErr(*(int *)rvalue);
 		else
-			retval = PyInt_FromLong(*(int *)resbuf);
+			retval = PyInt_FromLong(*(int *)rvalue);
 	} else
 #endif
-		retval = GetResult(restype, resbuf, checker);
+		retval = GetResult(restype, rvalue, checker);
 	/* Overwrite result memory, to catch bugs. */
-	memset(resbuf, 0x55, max(rtype->size, sizeof(ffi_arg)));
+	memset(rvalue, 0x55, max(rtype->size, sizeof(ffi_arg)));
   cleanup:
 	for (i = 0; i < argcount; ++i)
 		Py_XDECREF(args[i].keep);
