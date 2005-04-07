@@ -2,12 +2,16 @@ import unittest
 from ctypes import *
 import _ctypes_test
 
+# This behaves strange on OS X.  Commenting out the tearDown makes the tests crash
+# with illegal instruction, however that occurs only when more than one test is run.
+# A single test does work.
+
 class Callbacks(unittest.TestCase):
     functype = CFUNCTYPE    
 
-##    def tearDown(self):
-##        import gc
-##        gc.collect()
+    def tearDown(self):
+        import gc
+        print gc.collect()
 
     def callback(self, *args):
         self.got_args = args
