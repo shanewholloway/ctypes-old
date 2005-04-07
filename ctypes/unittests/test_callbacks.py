@@ -11,7 +11,7 @@ class Callbacks(unittest.TestCase):
 
     def tearDown(self):
         import gc
-        print gc.collect()
+        gc.collect()
 
     def callback(self, *args):
         self.got_args = args
