@@ -233,42 +233,16 @@ if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
 	result = PyObject_CallObject(pinfo->callable, arglist);
 	CHECK("'calling callback function'", result);
 	if (result && result != Py_None) { /* XXX What is returned for Py_None ? */
-		/* another big endian hack */
-		union {
-			char c;
-			short s;
-			int i;
-			long l;
-		} r;
 		PyObject *keep;
-		switch (pinfo->ffi_restype->size) {
-		case 1:
-			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
-			CHECK("'converting callback result'", keep);
-			*(ffi_arg *)mem = r.c;
-			break;
-		case SIZEOF_SHORT:
-			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
-			CHECK("'converting callback result'", keep);
-			*(ffi_arg *)mem = r.s;
-			break;
-		case SIZEOF_INT:
-			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
-			CHECK("'converting callback result'", keep);
-			*(ffi_arg *)mem = r.i;
-			break;
-#if (SIZEOF_LONG != SIZEOF_INT)
-		case SIZEOF_LONG:
-			keep = pinfo->setfunc(&r, result, 0, pinfo->restype);
-			CHECK("'converting callback result'", keep);
-			*(ffi_arg *)mem = r.l;
-			break;
-#endif
-		default:
-			keep = pinfo->setfunc(mem, result, 0, pinfo->restype);
-			CHECK("'converting callback result'", keep);
-			break;
+#if IS_BIG_ENDIAN
+		if (pinfo->ffi_restype->size < sizeof(ffi_arg)) {
+			char *ptr = mem;
+			ptr += sizeof(ffi_arg) - pinfo->ffi_restype->size;
+			mem = ptr;
 		}
+#endif
+		keep = pinfo->setfunc(mem, result, 0, pinfo->restype);
+		CHECK("'converting callback result'", keep);
 		/* assert (keep == Py_None); */
 		/* XXX We have no way to keep the needed reference XXX */
 		/* Should we emit a warning? */
