@@ -1617,7 +1617,9 @@ make_funcptrtype_dict(StgDictObject *stgdict)
 		converters = converters_from_argtypes(ob);
 		if (!converters)
 			goto error;
-		Py_INCREF(ob);
+		ob = PySequence_Tuple(ob);
+		if (ob == NULL)
+			goto error;
 		stgdict->argtypes = ob;
 		stgdict->converters = converters;
 	}
@@ -2134,14 +2136,18 @@ CFuncPtr_set_argtypes(CFuncPtrObject *self, PyObject *ob)
 		Py_XDECREF(self->argtypes);
 		self->argtypes = NULL;
 	} else {
-		converters = converters_from_argtypes(ob);
-		if (!converters)
+		PyObject *argtypes = PySequence_Tuple(ob);
+		if (argtypes == NULL)
 			return -1;
+		converters = converters_from_argtypes(ob);
+		if (!converters) {
+			Py_DECREF(argtypes);
+			return -1;
+		}
 		Py_XDECREF(self->converters);
 		self->converters = converters;
 		Py_XDECREF(self->argtypes);
-		Py_INCREF(ob);
-		self->argtypes = ob;
+		self->argtypes = argtypes;
 	}
 	return 0;
 }
@@ -2787,7 +2793,6 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 	converters = self->converters ? self->converters : dict->converters;
 	checker = self->checker ? self->checker : dict->checker;
 	argtypes = self->argtypes ? self->argtypes : dict->argtypes;
-
 
 	pProc = *(void **)self->b_ptr;
 #ifdef MS_WIN32
