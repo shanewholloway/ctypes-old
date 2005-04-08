@@ -166,20 +166,14 @@ extern void FreeCallback(THUNK);
 
 extern PyMethodDef module_methods[];
 
+/* Hold one argument for a libffi function call. */
 struct argument {
-	ffi_type *ffi_type;
-	PyObject *keep;
-	union result {
-		char c;
-		char b;
-		short h;
+	ffi_type *ffi_type;	/* type of argument */
+	void *pdata;		/* pointer to arguments data */
+
+	PyObject *keep;		/* a Python object to keep alive during the function call */
+	union result {		/* temporary storage area */
 		int i;
-		long l;
-#ifdef HAVE_LONG_LONG
-		PY_LONG_LONG q;
-#endif
-		double d;
-		float f;
 		void *p;
 	} value;
 };
