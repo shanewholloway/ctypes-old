@@ -396,21 +396,25 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 		return stgdict->asparam((CDataObject *)obj, pa);
 	if (obj == Py_None) {
 		pa->ffi_type = &ffi_type_pointer;
+		pa->pdata = &pa->value.p;
 		pa->value.p = NULL;
 		return 0;
 	}
 	if (PyInt_Check(obj)) {
 		pa->ffi_type = &ffi_type_sint;
+		pa->pdata = &pa->value.i;
 		pa->value.i = PyInt_AS_LONG(obj);
 		return 0;
 	}
 	if (PyLong_Check(obj)) {
 		pa->ffi_type = &ffi_type_sint;
+		pa->pdata = &pa->value.i;
 		pa->value.i = (int)PyLong_AsUnsignedLongMask(obj);
 		return 0;
 	}
 	if (PyString_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
+		pa->pdata = &pa->value.p;
 		pa->value.p = PyString_AS_STRING(obj);
 		Py_INCREF(obj);
 		pa->keep = obj;
@@ -422,7 +426,8 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 	/* Pass as pointer by calling Z_set() */
 	if (PyUnicode_Check(obj)) {
 		pa->ffi_type = &ffi_type_pointer;
-		pa->keep = getentry("Z")->setfunc(&pa->value, obj, 0, NULL); /* CTYPE_c_wchar_p? */
+		pa->pdata = &pa->value.p;
+		pa->keep = getentry("Z")->setfunc(&pa->value.p, obj, 0, NULL); /* CTYPE_c_wchar_p? */
 		if (pa->keep == NULL)
 			return -1;
 		return 0;
@@ -433,7 +438,7 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 		pa->ffi_type = carg->pffi_type;
 		Py_INCREF(obj);
 		pa->keep = obj;
-		memcpy(&pa->value, &carg->value, sizeof(pa->value));
+		pa->pdata = &carg->value;
 		return 0;
 	}
 
@@ -451,14 +456,15 @@ static int PyObject_asparam(PyObject *obj, struct argument *pa, int index)
 	if (PyCArg_CheckExact(arg)) {
 		PyCArgObject *carg = (PyCArgObject *)arg;
 		pa->ffi_type = carg->pffi_type;
-		memcpy(&pa->value, &carg->value, sizeof(pa->value));
+		pa->pdata = &carg->value;
 		/* consumes the refcount: */
 		pa->keep = arg;
 		return 0;
 	}
 	if (PyInt_Check(arg)) {
 		pa->ffi_type = &ffi_type_sint;
-		pa->value.l = PyInt_AS_LONG(arg);
+		pa->pdata = &pa->value.i;
+		pa->value.i = PyInt_AS_LONG(arg);
 		/* consumes the refcount: */
 		pa->keep = arg;
 		return 0;
@@ -735,11 +741,10 @@ PyObject *_CallProc(PPROC pProc,
 	args = (struct argument *)alloca(sizeof(struct argument) * argcount);
 	memset(args, 0, sizeof(struct argument) * argcount);
 	rvalue = alloca(max(rtype->size, sizeof(ffi_arg)));
-	avalues = (void **)alloca(sizeof(void *) * argcount);
-	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
 
 	if (pIunk) {
 		args[0].ffi_type = &ffi_type_pointer;
+		args[0].pdata = &args[0].value.p;
 		args[0].value.p = pIunk;
 		pa = &args[1];
 	} else {
@@ -783,12 +788,17 @@ PyObject *_CallProc(PPROC pProc,
 		}
 	}
 
+	avalues = (void **)alloca(sizeof(void *) * argcount);
+	atypes = (ffi_type **)alloca(sizeof(ffi_type *) * argcount);
 	for (i = 0; i < argcount; ++i) {
 		atypes[i] = args[i].ffi_type;
+		avalues[i] = args[i].pdata;
+/*
 		if (atypes[i]->type == FFI_TYPE_STRUCT)
 			avalues[i] = (void *)args[i].value.p;
 		else
 			avalues[i] = (void *)&args[i].value;
+*/
 	}
 
 	if (-1 == _call_function_pointer(flags, pProc, avalues, atypes,
@@ -938,8 +948,10 @@ copy_com_pointer(PyObject *self, PyObject *args)
 
 	if (-1 == PyObject_asparam(p1, &a, 0) || -1 == PyObject_asparam(p2, &b, 1))
 		goto done;
-	src = (IUnknown *)a.value.p;
-	pdst = (IUnknown **)b.value.p;
+	assert(a.pdata != NULL);
+	assert(b.pdata != NULL);
+	src = (IUnknown *)*(void **)a.pdata;
+	pdst = (IUnknown **)*(void **)b.pdata;
 
 	if (pdst == NULL)
 		r = PyInt_FromLong(E_POINTER);
@@ -1235,6 +1247,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	memset(&a, 0, sizeof(struct argument));
 	if (-1 == PyObject_asparam(obj, &a, 1))
 		return NULL;
+	assert(a.pdata != NULL);
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
 	if (result == NULL) {
 		Py_XDECREF(a.keep);
@@ -1242,7 +1255,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	}
 	// result->b_size
 	// a.ffi_type->size
-	memcpy(result->b_ptr, &a.value,
+	memcpy(result->b_ptr, a.pdata,
 	       min(result->b_size, a.ffi_type->size));
 	Py_XDECREF(a.keep);
 	return (PyObject *)result;
@@ -1270,7 +1283,7 @@ c_memmove(PyObject *self, PyObject *args)
 		goto done;
 	if (-1 == PyObject_asparam(src, &a_src, 2))
 		goto done;
-	c_result = memmove(a_dst.value.p, a_src.value.p, size);
+	c_result = memmove(*(void **)a_dst.pdata, *(void **)a_src.pdata, size);
 	result = PyLong_FromVoidPtr(c_result);
   done:
 	Py_XDECREF(a_dst.keep);
@@ -1295,7 +1308,7 @@ c_memset(PyObject *self, PyObject *args)
 	memset(&a_dst, 0, sizeof(struct argument));
 	if (-1 == PyObject_asparam(dst, &a_dst, 1))
 		return NULL;
-	c_result = memset(a_dst.value.p, c, count);
+	c_result = memset(*(void **)a_dst.pdata, c, count);
 	result = PyLong_FromVoidPtr(c_result);
 	Py_XDECREF(a_dst.keep);
 	return result;
@@ -1320,9 +1333,9 @@ string_at(PyObject *self, PyObject *args)
 	if (-1 == PyObject_asparam(src, &a_arg, 1))
 		return NULL;
 	if (PyTuple_GET_SIZE(args) == 1)
-		result = PyString_FromString(a_arg.value.p);
+		result = PyString_FromString(*(void **)a_arg.pdata);
 	else
-		result = PyString_FromStringAndSize(a_arg.value.p, size);
+		result = PyString_FromStringAndSize(*(void **)a_arg.pdata, size);
 	Py_XDECREF(a_arg.keep);
 	return result;
 }
@@ -1347,9 +1360,9 @@ wstring_at(PyObject *self, PyObject *args)
 	if (-1 == PyObject_asparam(src, &a_arg, 1))
 		return NULL;
 	if (PyTuple_GET_SIZE(args) == 1)
-		result = PyUnicode_FromWideChar(a_arg.value.p, wcslen(a_arg.value.p));
+		result = PyUnicode_FromWideChar(*(void **)a_arg.pdata, wcslen(*(void **)a_arg.pdata));
 	else
-		result = PyUnicode_FromWideChar(a_arg.value.p, size);
+		result = PyUnicode_FromWideChar(*(void **)a_arg.pdata, size);
 	Py_XDECREF(a_arg.keep);
 	return result;
 }
