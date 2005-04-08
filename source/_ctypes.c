@@ -1822,17 +1822,6 @@ static int
 CData_clear(CDataObject *self)
 {
 	Py_CLEAR(self->b_objects);
-#ifdef MS_WIN32
-	if (self->b_base == NULL) {
-		/* If a BSTR instance owns the memory (b_base is NULL), we
-		   have to call SysFreeString.
-		*/
-		if (PyObject_IsInstance((PyObject *)self, CTYPE_BSTR)) {
-			if (*(BSTR *)self->b_ptr)
-				SysFreeString(*(BSTR *)self->b_ptr);
-		}
-	}
-#endif
 	if (self->b_needsfree)
 		PyMem_Free(self->b_ptr);
 	self->b_ptr = NULL;
