@@ -1261,6 +1261,10 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	return (PyObject *)result;
 }
 
+/*
+  Hm, can't we use ctypes itself to implement/access memmove and memset?
+  The implementations below still lack SEH on windows...
+*/
 static char memmove_doc[] =
 "memmove(dst, src, count) -> adress\n\
 \n\
