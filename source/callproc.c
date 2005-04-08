@@ -713,13 +713,11 @@ PyObject *_CallProc(PPROC pProc,
 		    PyObject *argtuple,
 		    void *pIunk,
 		    int flags,
-		    PyObject *argtypes, /* misleading name: This is a method,
-					   not a type (the .from_param class
-					   nethod) */
+		    PyObject *argcnv, /* tuple a converter objects */
 		    PyObject *restype,
 		    PyObject *checker)
 {
-	int i, n, argcount, argtype_count;
+	int i, n, argcount, argcnv_count;
 	struct argument *pa;
 
 	struct argument *args;		/* array of temp storage for arguments */
@@ -735,7 +733,7 @@ PyObject *_CallProc(PPROC pProc,
 	/* an optional COM object this pointer */
 	if (pIunk)
 		++argcount;
-	argtype_count = argtypes ? PyTuple_GET_SIZE(argtypes) : 0;
+	argcnv_count = argcnv ? PyTuple_GET_SIZE(argcnv) : 0;
 	rtype = GetType(restype);
 
 	args = (struct argument *)alloca(sizeof(struct argument) * argcount);
@@ -759,12 +757,12 @@ PyObject *_CallProc(PPROC pProc,
 
 		arg = PyTuple_GET_ITEM(argtuple, i);	/* borrowed ref */
 		/* For cdecl functions, we allow more actual arguments
-		   than the length of the argtypes tuple.
+		   than the length of the argcnv tuple.
 		   This is checked in _ctypes::CFuncPtr_Call
 		*/
-		if (argtypes && argtype_count > i) {
+		if (argcnv && argcnv_count > i) {
 			PyObject *v;
-			converter = PyTuple_GET_ITEM(argtypes, i);
+			converter = PyTuple_GET_ITEM(argcnv, i);
 			v = PyObject_CallFunctionObjArgs(converter,
 							   arg,
 							   NULL);
