@@ -220,13 +220,6 @@ class c_void_p(_SimpleCData):
         return "%s(%r)" % (self.__class__.__name__, self.value)
 c_voidp = c_void_p # backwards compatibility (to a bug)
 
-if _os.name == "nt":
-    class BSTR(_SimpleCData):
-        _type_ = "X"
-        def __repr__(self):
-            return "%s(%r)" % (self.__class__.__name__, self.value)
-
-
 # This cache maps types to pointers to them.
 _pointer_type_cache = {}
 
@@ -435,6 +428,14 @@ else:
 if _os.name == "nt":
     windll = _DLLS(WinDLL)
     oledll = _DLLS(OleDLL)
+
+    class BSTR(_SimpleCData):
+        _type_ = "X"
+        def __repr__(self):
+            return "%s(%r)" % (self.__class__.__name__, self.value)
+        def __del__(self, _free=windll.oleaut32.SysFreeString):
+            if not self._b_base_:
+                _free(self)
 
     GetLastError = windll.kernel32.GetLastError
 
