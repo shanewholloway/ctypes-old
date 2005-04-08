@@ -36,7 +36,7 @@ class CompleteCoverage(unittest.TestCase):
                                  "<Field type=c_char, ofs=4, size=1>")
             self.failUnlessEqual(repr(X.b),
                                  "<Field type=c_long, ofs=8, bits=3>")
-        elif sizeof(clong) == 8:
+        elif sizeof(c_long) == 8:
             self.failUnlessEqual(repr(X.a),
                                  "<Field type=c_long, ofs=0, size=8>")
             self.failUnlessEqual(repr(X.c),
