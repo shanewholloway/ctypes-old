@@ -332,7 +332,7 @@ get_long(PyObject *v, long *p)
 	x = PyInt_AsUnsignedLongMask(v);
 	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
-		return -1;
+		return -1; /*COV*/
 	*p = x;
 	return 0;
 }
@@ -347,7 +347,7 @@ get_ulong(PyObject *v, unsigned long *p)
 	x = PyInt_AsUnsignedLongMask(v);
 	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
-		return -1;
+		return -1; /*COV*/
 	*p = x;
 	return 0;
 }
@@ -363,7 +363,7 @@ get_longlong(PyObject *v, PY_LONG_LONG *p)
 	x = PyInt_AsUnsignedLongLongMask(v);
 	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
-		return -1;
+		return -1; /*COV*/
 	*p = x;
 	return 0;
 }
@@ -378,7 +378,7 @@ get_ulonglong(PyObject *v, unsigned PY_LONG_LONG *p)
 	x = PyInt_AsUnsignedLongLongMask(v);
 	Py_DECREF(v);
 	if (x == -1 && PyErr_Occurred())
-		return -1;
+		return -1; /*COV*/
 	*p = x;
 	return 0;
 }
@@ -760,7 +760,7 @@ u_set(void *ptr, PyObject *value, unsigned size, PyObject *type)
 						    conversion_mode_encoding,
 						    conversion_mode_errors);
 		if (!value)
-			return NULL;
+			return NULL; /*COV*/
 	} else if (!PyUnicode_Check(value)) {
 		PyErr_Format(PyExc_TypeError,
 				"unicode string expected instead of %s instance",
