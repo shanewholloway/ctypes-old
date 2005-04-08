@@ -13,6 +13,7 @@ class CompleteCoverage(unittest.TestCase):
         except NameError:
             class X(Structure):
                 _fields_ = [("a", c_long),
+                            ("c", c_char),
                             ("b", c_long, 3),
                             ("z", c_char_p),
                             ("P", c_void_p),
@@ -20,6 +21,7 @@ class CompleteCoverage(unittest.TestCase):
         else:
             class X(Structure):
                 _fields_ = [("a", c_long),
+                            ("c", c_char),
                             ("b", c_long, 3),
                             ("u", c_wchar),
                             ("U", c_wchar * 3),
@@ -27,10 +29,20 @@ class CompleteCoverage(unittest.TestCase):
                             ("Z", c_wchar_p),
                             ("P", c_void_p),
                             ("p", POINTER(c_long))]
-        self.failUnlessEqual(repr(X.a),
-                             "<Field type=c_long, ofs=0, size=4>")
-        self.failUnlessEqual(repr(X.b),
-                             "<Field type=c_long, ofs=4, bits=3>")
+        if sizeof(c_long) == 4:
+            self.failUnlessEqual(repr(X.a),
+                                 "<Field type=c_long, ofs=0, size=4>")
+            self.failUnlessEqual(repr(X.c),
+                                 "<Field type=c_char, ofs=4, size=1>")
+            self.failUnlessEqual(repr(X.b),
+                                 "<Field type=c_long, ofs=8, bits=3>")
+        elif sizeof(clong) == 8:
+            self.failUnlessEqual(repr(X.a),
+                                 "<Field type=c_long, ofs=0, size=8>")
+            self.failUnlessEqual(repr(X.c),
+                                 "<Field type=c_char, ofs=8, size=1>")
+            self.failUnlessEqual(repr(X.b),
+                                 "<Field type=c_long, ofs=16, bits=3>")
         X().p = None
 
         if has_wchar:
