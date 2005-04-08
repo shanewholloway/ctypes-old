@@ -288,6 +288,7 @@ extern PyObject *_CallProc(PPROC pProc,
 			   void *pIUnk,
 			   int flags,
 			   PyObject *argcnv,
+			   PyObject *argtypes,
 			   PyObject *restype,
 			   PyObject *checker);
  

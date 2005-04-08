@@ -714,6 +714,7 @@ PyObject *_CallProc(PPROC pProc,
 		    void *pIunk,
 		    int flags,
 		    PyObject *argcnv, /* tuple a converter objects */
+		    PyObject *argtypes,
 		    PyObject *restype,
 		    PyObject *checker)
 {
@@ -989,9 +990,10 @@ call_function(PyObject *self, PyObject *args)
 			    arguments,
 			    NULL,
 			    0, /* flags */
-			    NULL, /* self->argtypes */
-			    NULL, /* self->restype */
-			    NULL); /* checker */
+			    NULL,
+			    NULL,
+			    NULL,
+			    NULL);
 	return result;
 }
 
@@ -1016,10 +1018,11 @@ call_cdeclfunction(PyObject *self, PyObject *args)
 	result =  _CallProc(func,
 			    arguments,
 			    NULL,
-			    FUNCFLAG_CDECL, /* flags */
-			    NULL, /* self->argtypes */
-			    NULL, /* self->restype */
-			    NULL); /* checker */
+			    FUNCFLAG_CDECL,
+			    NULL,
+			    NULL,
+			    NULL,
+			    NULL);
 	return result;
 }
 
