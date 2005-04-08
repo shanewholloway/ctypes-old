@@ -206,9 +206,9 @@ generic_getfunc(void *ptr, unsigned size,
 		PyObject *type, CDataObject *src, int index)
 {
 	if (type == NULL) {
-		PyErr_SetString(PyExc_SystemError,
+		PyErr_SetString(PyExc_SystemError, /*COV*/
 				"ctypes bug: generic_getfunc called with NULL type");
-		return NULL;
+		return NULL; /*COV*/
 	}
 	return CData_FromBaseObj(type, (PyObject *)src, 0, ptr);
 }
@@ -239,7 +239,7 @@ basic_setfunc(void *ptr, PyObject *value, unsigned size, PyObject *type)
 		     "Incompatible types %s instance instead of %s instance",
 		     value->ob_type->tp_name,
 		     ((PyTypeObject *)type)->tp_name);
-	return NULL;
+	return NULL; /*COV*/
 }
 
 /* derived from cfield.c::_generic_field_setfunc */
@@ -270,7 +270,7 @@ StructUnion_asparam(CDataObject *self, struct argument *pa)
 {
 	StgDictObject *dict = PyObject_stgdict((PyObject *)self);
 	pa->ffi_type = &dict->ffi_type;
-	pa->value.p = self->b_ptr;
+	pa->pdata = self->b_ptr;
 	Py_INCREF(self);
 	pa->keep = (PyObject *)self;
 	return 0;
@@ -440,7 +440,7 @@ CDataType_from_param(PyObject *type, PyObject *value)
 			     "expected %s instance instead of pointer to %s",
 			     ((PyTypeObject *)type)->tp_name,
 			     p->obj->ob_type->tp_name);
-		return NULL;
+		return NULL; /*COV*/
 	}
 	PyErr_Format(PyExc_TypeError,
 		     "expected %s instance instead of %s",
@@ -672,6 +672,7 @@ Pointer_asparam(CDataObject *self, struct argument *pa)
 {
 	pa->ffi_type = &ffi_type_pointer;
 	pa->value.p = *(void **)self->b_ptr;
+	pa->pdata = &pa->value.p;
 	Py_INCREF(self);
 	pa->keep = (PyObject *)self;
 	return 0;
@@ -1085,6 +1086,7 @@ Array_asparam(CDataObject *self, struct argument *pa)
 {
 	pa->ffi_type = &ffi_type_pointer;
 	pa->value.p = self->b_ptr;
+	pa->pdata = &pa->value.p;
 	Py_INCREF(self);
 	pa->keep = (PyObject *)self;
 	return 0;
@@ -1343,6 +1345,7 @@ Simple_asparam(CDataObject *self, struct argument *pa)
 	/* Hm, Aren't here any little/big endian issues? */
 	assert(sizeof(pa->value) >= self->b_size);
 	memcpy(&pa->value, self->b_ptr, self->b_size);
+	pa->pdata = &pa->value;
 	Py_INCREF(self);
 	pa->keep = (PyObject *)self;
 	return 0;
@@ -1645,6 +1648,7 @@ CFuncPtr_asparam(CDataObject *self, struct argument *pa)
 {
 	pa->ffi_type = &ffi_type_pointer;
 	pa->value.p = *(void **)self->b_ptr;
+	pa->pdata = &pa->value.p;
 	Py_INCREF(self);
 	pa->keep = (PyObject *)self;
 	return 0;
