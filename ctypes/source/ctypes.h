@@ -181,6 +181,7 @@ struct argument {
 typedef PyObject *(* GETFUNC)(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index);
 typedef PyObject *(* SETFUNC)(void *ptr, PyObject* value, unsigned size, PyObject *type);
 typedef int (* ASPARAM)(CDataObject *self, struct argument *pa);
+typedef int (* FROMPARAM)(PyObject *self, PyObject *value, struct argument *pa);
 
 /* a table entry describing a predefined ctypes type */
 struct fielddesc {
@@ -220,6 +221,7 @@ typedef struct {
 	SETFUNC setfunc;
 	GETFUNC getfunc;
 	ASPARAM asparam;
+//	FROMPARAM fromparam;
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
@@ -285,7 +287,7 @@ extern PyObject *_CallProc(PPROC pProc,
 			   PyObject *arguments,
 			   void *pIUnk,
 			   int flags,
-			   PyObject *argtypes,
+			   PyObject *argcnv,
 			   PyObject *restype,
 			   PyObject *checker);
  
