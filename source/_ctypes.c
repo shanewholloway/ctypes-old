@@ -2862,6 +2862,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 #endif
 			   dict->flags,
 			   converters,
+			   argtypes,
 			   restype,
 			   checker);
 	Py_DECREF(callargs);
