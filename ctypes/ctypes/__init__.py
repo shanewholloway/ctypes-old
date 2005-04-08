@@ -450,7 +450,13 @@ _pointer_type_cache[None] = c_void_p
 
 # functions
 
-from _ctypes import memmove, memset, string_at, cast
+from _ctypes import string_at, cast
+
+# _ctypes exports the addresses of the 'memmove' and 'memset' functions.
+from _ctypes import _memmove_adr, _memset_adr
+# we could get fancy here with the argtypes
+memmove = CDLL._CdeclFuncPtr(_memmove_adr)
+memset = CDLL._CdeclFuncPtr(_memset_adr)
 
 from decorators import cdecl
 if _os.name == "nt":

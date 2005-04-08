@@ -878,59 +878,6 @@ static PyObject *free_library(PyObject *self, PyObject *args)
 	return Py_None;
 }
 
-/* obsolete, should be removed */
-/* Only used by sample code (in samples\Windows\COM.py) */
-static PyObject *
-call_commethod(PyObject *self, PyObject *args)
-{
-	IUnknown *pIunk;
-	int index;
-	PyObject *arguments;
-	PPROC *lpVtbl;
-	PyObject *result;
-	CDataObject *pcom;
-	PyObject *argtypes = NULL;
-
-	if (!PyArg_ParseTuple(args,
-			      "OiO!|O!",
-			      &pcom, &index,
-			      &PyTuple_Type, &arguments,
-			      &PyTuple_Type, &argtypes))
-		return NULL;
-
-	if (argtypes && (PyTuple_GET_SIZE(arguments) != PyTuple_GET_SIZE(argtypes))) {
-		PyErr_Format(PyExc_TypeError,
-			     "Method takes %d arguments (%d given)",
-			     PyTuple_GET_SIZE(argtypes), PyTuple_GET_SIZE(arguments));
-		return NULL;
-	}
-
-	if (!CDataObject_Check(pcom) || (pcom->b_size != sizeof(void *))) {
-		PyErr_Format(PyExc_TypeError,
-			     "COM Pointer expected instead of %s instance",
-			     pcom->ob_type->tp_name);
-		return NULL;
-	}
-
-	if ((*(void **)(pcom->b_ptr)) == NULL) {
-		PyErr_SetString(PyExc_ValueError,
-				"The COM 'this' pointer is NULL");
-		return NULL;
-	}
-
-	pIunk = (IUnknown *)(*(void **)(pcom->b_ptr));
-	lpVtbl = (PPROC *)(pIunk->lpVtbl);
-
-	result =  _CallProc(lpVtbl[index],
-			    arguments,
-			    pIunk,
-			    FUNCFLAG_HRESULT, /* flags */
-			    argtypes, /* self->argtypes */
-			    NULL, /* self->restype */
-			    NULL); /* checker */
-	return result;
-}
-
 static char copy_com_pointer_doc[] =
 "CopyComPointer(a, b) -> integer\n";
 
@@ -1259,63 +1206,6 @@ static PyObject *cast(PyObject *self, PyObject *args)
 	return (PyObject *)result;
 }
 
-/*
-  Hm, can't we use ctypes itself to implement/access memmove and memset?
-  The implementations below still lack SEH on windows...
-*/
-static char memmove_doc[] =
-"memmove(dst, src, count) -> adress\n\
-\n\
-Copy count bytes from src to dst, return the dst address as integer.\n";
-
-static PyObject *
-c_memmove(PyObject *self, PyObject *args)
-{
-	struct argument a_dst, a_src;
-	int size;
-	void *c_result;
-	PyObject *result = NULL;
-	PyObject *dst, *src;
-
-	memset(&a_dst, 0, sizeof(struct argument));
-	memset(&a_src, 0, sizeof(struct argument));
-	if (!PyArg_ParseTuple(args, "OOi", &dst, &src, &size))
-		return NULL;
-	if (-1 == PyObject_asparam(dst, &a_dst, 1))
-		goto done;
-	if (-1 == PyObject_asparam(src, &a_src, 2))
-		goto done;
-	c_result = memmove(*(void **)a_dst.pdata, *(void **)a_src.pdata, size);
-	result = PyLong_FromVoidPtr(c_result);
-  done:
-	Py_XDECREF(a_dst.keep);
-	Py_XDECREF(a_src.keep);
-	return result;
-}
-
-static char memset_doc[] =
-"memset(dst, c, count) -> adress\n\
-\n\
-Set count bytes starting at dst to c, return the dst address as integer.\n";
-static PyObject *
-c_memset(PyObject *self, PyObject *args)
-{
-	PyObject *dst, *result;
-	struct argument a_dst;
-	void *c_result;
-	int c, count;
-
-	if (!PyArg_ParseTuple(args, "Oii", &dst, &c, &count))
-		return NULL;
-	memset(&a_dst, 0, sizeof(struct argument));
-	if (-1 == PyObject_asparam(dst, &a_dst, 1))
-		return NULL;
-	c_result = memset(*(void **)a_dst.pdata, c, count);
-	result = PyLong_FromVoidPtr(c_result);
-	Py_XDECREF(a_dst.keep);
-	return result;
-}
-
 static char string_at_doc[] =
 "string_at(addr[, size]) -> string\n\
 \n\
@@ -1373,8 +1263,6 @@ wstring_at(PyObject *self, PyObject *args)
 
 PyMethodDef module_methods[] = {
 	{"string_at", string_at, METH_VARARGS, string_at_doc},
-	{"memmove", c_memmove, METH_VARARGS, memmove_doc},
-	{"memset", c_memset, METH_VARARGS, memset_doc},
 	{"cast", cast, METH_VARARGS, cast_doc},
 #ifdef CTYPES_UNICODE
 	{"wstring_at", wstring_at, METH_VARARGS, wstring_at_doc},
@@ -1385,7 +1273,6 @@ PyMethodDef module_methods[] = {
 	{"FormatError", format_error, METH_VARARGS, format_error_doc},
 	{"LoadLibrary", load_library, METH_VARARGS, load_library_doc},
 	{"FreeLibrary", free_library, METH_VARARGS, free_library_doc},
-	{"call_commethod", call_commethod, METH_VARARGS },
 	{"_check_HRESULT", check_hresult, METH_VARARGS},
 #else
 	{"dlopen", py_dl_open, METH_VARARGS, "dlopen a library"},

@@ -3875,6 +3875,9 @@ init_ctypes(void)
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
 	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
 	PyModule_AddStringConstant(m, "__version__", "2.0.0.0cvs");
+
+	PyModule_AddObject(m, "_memmove_adr", PyLong_FromVoidPtr(&memmove));
+	PyModule_AddObject(m, "_memset_adr", PyLong_FromVoidPtr(&memset));
 	
 	PyExc_ArgError = PyErr_NewException("ctypes.ArgumentError", NULL, NULL);
 	if (PyExc_ArgError) {
