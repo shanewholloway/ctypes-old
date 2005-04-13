@@ -139,22 +139,22 @@ class py_object(_SimpleCData):
 class c_short(_SimpleCData):
     _type_ = "h"
     def __repr__(self):
-        return "c_short(%d)" % self.value
+        return "%s(%d)" % (self.__class__.__name__, self.value)
 
 class c_ushort(_SimpleCData):
     _type_ = "H"
     def __repr__(self):
-        return "c_ushort(%d)" % self.value
+        return "%s(%d)" % (self.__class__.__name__, self.value)
 
 class c_long(_SimpleCData):
     _type_ = "l"
     def __repr__(self):
-        return "c_long(%d)" % self.value
+        return "%s(%d)" % (self.__class__.__name__, self.value)
 
 class c_ulong(_SimpleCData):
     _type_ = "L"
     def __repr__(self):
-        return "c_ulong(%d)" % self.value
+        return "%s(%d)" % (self.__class__.__name__, self.value)
     
 if _calcsize("i") == _calcsize("l"):
     # if int and long have the same size, make c_int an alias for c_long
@@ -164,12 +164,12 @@ else:
     class c_int(_SimpleCData):
         _type_ = "i"
         def __repr__(self):
-            return "c_int(%d)" % self.value
+            return "%s(%d)" % (self.__class__.__name__, self.value)
 
     class c_uint(_SimpleCData):
         _type_ = "I"
         def __repr__(self):
-            return "c_uint(%d)" % self.value
+            return "%s(%d)" % (self.__class__.__name__, self.value)
 
 class c_float(_SimpleCData):
     _type_ = "f"
@@ -189,12 +189,12 @@ else:
     class c_longlong(_SimpleCData):
         _type_ = "q"
         def __repr__(self):
-            return "c_longlong(%s)" % self.value
+            return "%s(%s)" % (self.__class__.__name__, self.value)
 
     class c_ulonglong(_SimpleCData):
         _type_ = "Q"
         def __repr__(self):
-            return "c_ulonglong(%s)" % self.value
+            return "%s(%s)" % (self.__class__.__name__, self.value)
     ##    def from_param(cls, val):
     ##        return ('d', float(val), val)
     ##    from_param = classmethod(from_param)
@@ -202,19 +202,19 @@ else:
 class c_ubyte(_SimpleCData):
     _type_ = "B"
     def __repr__(self):
-        return "c_ubyte(%s)" % self.value
+            return "%s(%s)" % (self.__class__.__name__, self.value)
 # backward compatibility:
 ##c_uchar = c_ubyte
 
 class c_byte(_SimpleCData):
     _type_ = "b"
     def __repr__(self):
-        return "c_byte(%s)" % self.value
+            return "%s(%s)" % (self.__class__.__name__, self.value)
 
 class c_char(_SimpleCData):
     _type_ = "c"
     def __repr__(self):
-        return "c_char(%r)" % self.value
+            return "%s(%r)" % (self.__class__.__name__, self.value)
 
 class c_char_p(_SimpleCData):
     _type_ = "z"
@@ -262,12 +262,12 @@ else:
     class c_wchar(_SimpleCData):
         _type_ = "u"
         def __repr__(self):
-            return "c_wchar(%r)" % self.value
+            return "%s(%r)" % (self.__class__.__name__, self.value)
 
     class c_wchar_p(_SimpleCData):
         _type_ = "Z"
         def __repr__(self):
-            return "%s(%r)" % (self.__class__.__name__, self.value)
+            return "%s(%s)" % (self.__class__.__name__, self.value)
 
     POINTER(c_wchar).from_param = c_wchar_p.from_param #_SimpleCData.c_wchar_p_from_param
 
