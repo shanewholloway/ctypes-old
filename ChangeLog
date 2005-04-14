@@ -1,3 +1,9 @@
+2005-04-14  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: Fix a crash when a POINTER type has no _type_.
+	Reported by Georg Thalhammer, patch provided by Andreas Degert,
+	somewhat modified.
+
 2005-04-06  Thomas Heller  <theller@python.net>
 
 	* c_char_p and c_wchar_p no longer accept integers or longs in the
