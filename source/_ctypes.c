@@ -1395,6 +1395,7 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	stgdict->setfunc = fmt->setfunc;
 	stgdict->getfunc = fmt->getfunc;
 	stgdict->asparam = Simple_asparam;
+//later	stgdict->fromparam = fmt->fromparam;
 
 	/* replace the class dict by the storage dict */
 	if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
@@ -1441,6 +1442,7 @@ SimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 			assert(CTYPE_c_void_p == NULL);
 			Py_INCREF(result);
 			CTYPE_c_void_p = (PyObject *)result;
+//later			stgdict->fromparam = NULL;
 			break;
 		case 'c': /* c_char */
 			assert(CTYPE_c_char == NULL);
@@ -3587,6 +3589,8 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 		return -1;
 	}
 	stgdict = PyObject_stgdict((PyObject *)self);
+	/* should have been catched in Pointer_new() */
+	assert(stgdict->proto);
 	if (!CDataObject_Check(value) 
 	    || 0 == PyObject_IsInstance(value, stgdict->itemtype)) {
 		/* XXX PyObject_IsInstance could return -1! */
@@ -3636,9 +3640,10 @@ Pointer_init(CDataObject *self, PyObject *args, PyObject *kw)
 static PyObject *
 Pointer_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 {
-	if (!PyType_stgdict((PyObject *)type)) {
-		PyErr_SetString(PyExc_RuntimeError,
-				"Cannot create instances: has no _type_");
+	StgDictObject *dict = PyType_stgdict(type);
+	if (!dict || !dict->itemtype)
+		PyErr_SetString(PyExc_TypeError,
+				"Cannot create instance: has no _type_");
 		return NULL;
 	}
 	return GenericCData_new(type, args, kw);
