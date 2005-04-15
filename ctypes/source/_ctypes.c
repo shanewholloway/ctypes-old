@@ -3590,7 +3590,7 @@ Pointer_set_contents(CDataObject *self, PyObject *value, void *closure)
 	}
 	stgdict = PyObject_stgdict((PyObject *)self);
 	/* should have been catched in Pointer_new() */
-	assert(stgdict->proto);
+	assert(stgdict->itemtype);
 	if (!CDataObject_Check(value) 
 	    || 0 == PyObject_IsInstance(value, stgdict->itemtype)) {
 		/* XXX PyObject_IsInstance could return -1! */
