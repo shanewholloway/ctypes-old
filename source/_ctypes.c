@@ -3640,8 +3640,8 @@ Pointer_init(CDataObject *self, PyObject *args, PyObject *kw)
 static PyObject *
 Pointer_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 {
-	StgDictObject *dict = PyType_stgdict(type);
-	if (!dict || !dict->itemtype)
+	StgDictObject *dict = PyType_stgdict((PyObject *)type);
+	if (!dict || !dict->itemtype) {
 		PyErr_SetString(PyExc_TypeError,
 				"Cannot create instance: has no _type_");
 		return NULL;
