@@ -222,9 +222,9 @@ class test_local(test):
                     modname = os.path.splitext(pathname)[0].split(os.sep)[-1]
                     try:
                         mod = __import__(modname)
-                    except ImportError:
-                        import traceback
-                        traceback.print_exc()
+                    except Exception, e:
+                        print >> sys.stderr, \
+                              "Could not import %s:\n  %s" % (pathname, e)
                         continue
                     try:
                         suite = doctest.DocTestSuite(mod)
