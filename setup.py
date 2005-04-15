@@ -220,7 +220,12 @@ class test_local(test):
             try:
                 for pathname in test_files:
                     modname = os.path.splitext(pathname)[0].split(os.sep)[-1]
-                    mod = __import__(modname)
+                    try:
+                        mod = __import__(modname)
+                    except ImportError:
+                        import traceback
+                        traceback.print_exc()
+                        continue
                     try:
                         suite = doctest.DocTestSuite(mod)
                     except ValueError:
