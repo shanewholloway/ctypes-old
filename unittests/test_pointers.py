@@ -11,6 +11,15 @@ python_types = [int, int, int, int, int, long,
                 int, long, long, long, float, float]
 
 class PointersTestCase(unittest.TestCase):
+    def test_pointer_crash(self):
+        
+        class A(POINTER(c_ulong)):
+            pass
+
+        print POINTER(c_ulong)(c_ulong(22))
+        # Pointer can't set contents: has no _type_
+        self.failUnlessRaises(TypeError, A, c_ulong(33))
+
     def test_pass_pointers(self):
         dll = CDLL(find_test_dll())
         func = dll._testfunc_p_p
