@@ -120,15 +120,8 @@ if _os.name == "nt":
             return WinFunctionType
 
 elif _os.name == "posix":
-    from _ctypes import dlopen as _dlopen
+    from _ctypes import dlopen as _LoadLibrary
     _FreeLibrary = None
-    def _LoadLibrary(name):
-        try:
-            return _dlopen(name)
-        except OSError:
-            if not name.endswith(".so"):
-                return _dlopen(name + ".so")
-            raise
 
 from _ctypes import sizeof, byref, addressof, alignment
 from _ctypes import _SimpleCData
@@ -408,12 +401,27 @@ class _DLLS(object):
     def __init__(self, dlltype):
         self._dlltype = dlltype
         
-    def __getattr__(self, name):
-        if name[0] == '_':
-            raise AttributeError, name
-        dll = self._dlltype(name)
-        setattr(self, name, dll)
-        return dll
+    if _os.name == "posix" and sys.platform == "darwin":
+        def __getattr__(self, name):
+            if name[0] == '_':
+                raise AttributeError, name
+            dll = self._dlltype("lib%s.dylib" % name)
+            setattr(self, name, dll)
+            return dll
+    elif _os.name == "posix":
+        def __getattr__(self, name):
+            if name[0] == '_':
+                raise AttributeError, name
+            dll = self._dlltype("lib%s.so" % name)
+            setattr(self, name, dll)
+            return dll
+    else:
+        def __getattr__(self, name):
+            if name[0] == '_':
+                raise AttributeError, name
+            dll = self._dlltype(name)
+            setattr(self, name, dll)
+            return dll
 
     def __getitem__(self, name):
         return getattr(self, name)
