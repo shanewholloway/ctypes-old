@@ -8,10 +8,10 @@ def get_libc():
     try:
         return CDLL("libc.so.6")
     except OSError:
-        return cdll.libc
+        return cdll.c
 
 libc = get_libc()
-libm = cdll.libm
+libm = cdll.m
 
 class LibTest(unittest.TestCase):
     def test_sqrt(self):
