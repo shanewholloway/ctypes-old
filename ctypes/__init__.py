@@ -314,7 +314,7 @@ def ARRAY(typ, len):
 ################################################################
 
 
-class CDLL:
+class CDLL(object):
     class _CdeclFuncPtr(_CFuncPtr):
         _flags_ = _FUNCFLAG_CDECL
         _restype_ = c_int # default, can be overridden in instances
@@ -404,7 +404,7 @@ if _os.name ==  "nt":
             setattr(self, name, func)
             return func
 
-class _DLLS:
+class _DLLS(object):
     def __init__(self, dlltype):
         self._dlltype = dlltype
         
