@@ -1,120 +1,41 @@
 """
 This module implements decorators for native api function calls.
 
-stdcall(restype, dllname, argtypes[, logging=False])
-cdecl(restype, dllname, argtypes[, logging=False])
-
-The decorator functions are used like this:
-
->>> from ctypes import *
->>> # wrap the GetModuleFileNameA function
->>> @ stdcall(c_ulong, 'kernel32', [c_ulong, POINTER(c_char), c_ulong])
-... def GetModuleFileNameA(handle=0):
-...     buf = create_string_buffer(256)
-...     if 0 == GetModuleFileNameA._api_(handle, buf, sizeof(buf)):
-...         raise WinError()
-...     return buf.value
->>>
->>> sys.executable == GetModuleFileNameA()
-True
->>>
->>> @ cdecl(c_char_p, 'msvcrt', [c_char_p, c_int])
-... def strchr(string, c):
-...     'find a character in a string'
-...     return strchr._api_(string, c)
->>> print strchr('abcdef', ord('x'))
-None
->>> print strchr('abcdef', ord('c'))
-cdef
->>>
+name_library(name, so_name)
+cdecl(restype, dllname, argtypes)
+stdcall(restype, dllname, argtypes) - windows only
 """
-
-# This doesn't work, see below.
-##>>> @ cdecl(c_char_p, 'msvcrt', [c_char_p, c_int])
-##... def strchr(string, c):
-##...     'find a character in a string'
-##...
-##>>> print strchr('abcdef', ord('x'))
-##None
-##>>> print strchr('abcdef', ord('c'))
-##cdef
-##>>>
-
-import sys
-import ctypes
 
 LOGGING = False
 
-##def _create_func_codestring(func, doc=None):
-##    # given a function object <func>, build the source code for
-##    # another function, having the same argument list, and a function
-##    # body which contains a call to an _api_ function.
-##    #
-##    # Assuming the <func> has this definition:
-##    #   def func(first, second="spam", third=42):
-##    #       ....
-##    # a string containing the following code is returned:
-##    #   def func(first, second="spam", third=42):
-##    #       return _api_(first, second, third)
-##    import inspect
-##    args, varargs, varkw, defaults = inspect.getargspec(func)
-##    if varkw:
-##        raise TypeError, "function argument list cannot contain ** argument"
-##    if doc:
-##        return "def %s%s:\n    %r\n    return %s._api_%s" % \
-##               (func.func_name,
-##                inspect.formatargspec(args, varargs, varkw, defaults),
-##                doc,
-##                func.func_name,
-##                inspect.formatargspec(args, varargs, varkw))
-##    return "def %s%s:\n    return %s._api_%s" % \
-##           (func.func_name,
-##            inspect.formatargspec(args, varargs, varkw, defaults),
-##            func.func_name,
-##            inspect.formatargspec(args, varargs, varkw))
+import os
+import ctypes
 
-################################################################
+_library_map = {} # map short name to so-name
+_loaded_libs = {} # map so-names to DLL instance
 
-def stdcall(restype, dll, argtypes, logging=False):
-    """stdcall(restype, dll, argtypes, logging=False) -> decorator.
 
-    The decorator, when applied to a function, attaches an '_api_'
-    attribute to the function.  Calling this attribute calls the
-    function exported from the dll, using the MS '__stdcall' calling
-    convention.
-
-    restype - result type
-    dll - name or instance of a dll
-    argtypes - list of argument types
-    logging - if this is True, the result of each function call
-        is printed to stderr.
+def name_library(name, so_name):
     """
-    def decorate(func):
-        if isinstance(dll, basestring):
-            # this call should cache the result
-            this_dll = ctypes.CDLL(dll)
-        else:
-            this_dll = dll
-        api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, this_dll)
-        # This simple way to find out an empty function body doesn't work.
-##        if len(func.func_code.co_code) == 4:
-##            codestring = _create_func_codestring(func, func.__doc__)
-##            d = {}
-##            exec codestring in d
-##            func = d[func.func_name]
-        func._api_ = api
-        if logging or LOGGING:
-            def f(*args):
-                result = func(*args)
-                print >> sys.stderr, "# function call: %s%s -> %s" % (func.func_name, args, result)
-                return result
-            return f
-        else:
-            return func
-    return decorate
+    name_library(name, so_name)
 
-def cdecl(restype, dll, argtypes, logging=False):
-    """cdecl(restype, dll, argtypes, logging=False) -> decorator.
+    Register the <so_name> for a library.  The library will be loaded
+    if <name> is referenced in a decorator.
+    """
+    _library_map[name] = so_name
+    _library_map[so_name] = so_name
+
+
+def _get_library(name):    
+    # load and return a library.  The library is cached.
+    soname = _library_map.get(name, name)
+    try:
+        return _loaded_libs[soname]
+    except KeyError:
+        return _loaded_libs.setdefault(soname, ctypes.CDLL(soname))
+
+def cdecl(restype, dllname, argtypes, logging=False):
+    """cdecl(restype, dllname, argtypes, logging=False) -> decorator.
 
     The decorator, when applied to a function, attaches an '_api_'
     attribute to the function.  Calling this attribute calls the
@@ -128,32 +49,82 @@ def cdecl(restype, dll, argtypes, logging=False):
         is printed to stderr.
     """
     def decorate(func):
-        if isinstance(dll, basestring):
-            # this call should cache the result
-            this_dll = ctypes.CDLL(dll)
-        else:
-            this_dll = dll
-        api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, this_dll)
-        # This simple way to find out an empty function body doesn't work.
-##        if len(func.func_code.co_code) == 4:
-##            codestring = _create_func_codestring(func, func.__doc__)
-##            d = {}
-##            exec codestring in d
-##            func = d[func.func_name]
+        library = _get_library(dllname)
+        api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, library)
         func._api_ = api
+        # The following few lines trigger a pychecker bug, see
+        # https://sourceforge.net/tracker/index.php?func=detail&aid=1114902&group_id=24686&atid=382217
         if logging or LOGGING:
             def f(*args):
                 result = func(*args)
-                print >> sys.stderr, func.func_name, args, "->", result
+                print >> sys.stderr, "# function call: %s%s -> %s" % (func.func_name, args, result)
                 return result
             return f
-        else:
-            return func
+        return func
     return decorate
+
+if os.name == "nt":
+    def stdcall(restype, dllname, argtypes, logging=False):
+        """stdcall(restype, dllname, argtypes, logging=False) -> decorator.
+
+        The decorator, when applied to a function, attaches an '_api_'
+        attribute to the function.  Calling this attribute calls the
+        function exported from the dll, using the MS '__stdcall' calling
+        convention.
+
+        restype - result type
+        dll - name or instance of a dll
+        argtypes - list of argument types
+        logging - if this is True, the result of each function call
+            is printed to stderr.
+        """
+        def decorate(func):
+            library = _get_library(dllname)
+            api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, library)
+            func._api_ = api
+            # The following few lines trigger a pychecker bug, see
+            # https://sourceforge.net/tracker/index.php?func=detail&aid=1114902&group_id=24686&atid=382217
+            if logging or LOGGING:
+                def f(*args):
+                    result = func(*args)
+                    print >> sys.stderr, "# function call: %s%s -> %s" % (func.func_name, args, result)
+                    return result
+                return f
+            return func
+        return decorate
 
 ################################################################
 
-##if __name__ == "__main__":
-if 0:
-    import doctest
-    doctest.testmod()
+def _test():
+    import os, sys
+    from ctypes import c_char, c_int, c_ulong, c_double, \
+         POINTER, create_string_buffer, sizeof
+
+    if os.name == "nt":
+        from ctypes import WinError
+
+        #@ stdcall(ctypes.c_ulong, "kernel32", [c_ulong, POINTER(c_char), c_ulong])
+        def GetModuleFileNameA(handle=0):
+            buf = create_string_buffer(256)
+            if 0 == GetModuleFileNameA._api_(handle, buf, sizeof(buf)):
+                raise WinError()
+            return buf.value
+        GetModuleFileNameA = stdcall(ctypes.c_ulong, "kernel32",
+                                     [c_ulong, POINTER(c_char), c_ulong])(GetModuleFileNameA)
+
+        assert(sys.executable == GetModuleFileNameA())
+
+    if os.name == "nt":
+        name_library("libm", "msvcrt")
+    else:
+        name_library("libm", "libm")
+
+    #@ cdecl(c_double, 'libm', [c_double])
+    def sqrt(value):
+        return sqrt._api_(value)
+    sqrt = cdecl(c_double, 'libm', [c_double])(sqrt)
+
+    assert sqrt(4.0) == 2.0
+
+if __name__ == "__main__":
+    _test()
