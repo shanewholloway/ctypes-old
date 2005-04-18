@@ -932,7 +932,7 @@ static PyObject *py_dl_open(PyObject *self, PyObject *args)
 				       dlerror());
 		return NULL;
 	}
-	return Py_BuildValue("i", handle);
+	return PyLong_FromVoidPtr(handle);
 }
 
 static PyObject *py_dl_close(PyObject *self, PyObject *args)
@@ -1117,14 +1117,19 @@ addressof(PyObject *self, PyObject *obj)
 	return NULL;
 }
 
+static int
+converter(PyObject *obj, void **address)
+{
+	*address = PyLong_AsVoidPtr(obj);
+	return address != NULL;
+}
+
 static PyObject *
 My_PyObj_FromPtr(PyObject *self, PyObject *args)
 {
-	int i;
 	PyObject *ob;
-	if (!PyArg_ParseTuple(args, "i", &i))
+	if (!PyArg_ParseTuple(args, "O&", converter, &ob))
 		return NULL;
-	ob = (PyObject *)i;
 	Py_INCREF(ob);
 	return ob;
 }
