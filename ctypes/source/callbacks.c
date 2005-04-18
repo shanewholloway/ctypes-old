@@ -322,7 +322,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyMem_Free(p);
 		return NULL;
 	}
-	result = ffi_prep_closure(p->pcl, &p->cif, _CallPythonObject, p);
+	result = ffi_prep_closure(p->pcl, &p->cif, (void *)_CallPythonObject, p);
 	if (result != FFI_OK) {
 		PyErr_Format(PyExc_RuntimeError,
 			     "ffi_prep_closure failed with %d", result);
