@@ -162,7 +162,7 @@ EXPORT(int) _testfunc_ppp(char ***p)
 	static char message[] = "Hello, World";
 	if (p) {
 		*p = malloc(sizeof(char *));
-		printf("malloc returned %d\n", (int)*p);
+		printf("malloc returned %p\n", *p);
 		**p = message;
 		return 1;
 	}
@@ -171,7 +171,7 @@ EXPORT(int) _testfunc_ppp(char ***p)
 
 EXPORT(void) my_free(void *p)
 {
-	printf("my_free got %d\n", (int)p);
+	printf("my_free got %p\n", p);
 }
 
 typedef struct {
@@ -238,11 +238,11 @@ static void _xxx_init(void *(*Xalloc)(int), void (*Xfree)(void *))
 {
 	void *ptr;
 	
-	printf("_xxx_init got %x %x\n", (int)Xalloc, (int)Xfree);
+	printf("_xxx_init got %p %p\n", Xalloc, Xfree);
 	printf("calling\n");
 	ptr = Xalloc(32);
 	Xfree(ptr);
-	printf("calls done, ptr was %x\n", (int)ptr);
+	printf("calls done, ptr was %p\n", ptr);
 }
 
 xxx_library _xxx_lib = {
