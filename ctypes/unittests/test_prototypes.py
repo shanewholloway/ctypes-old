@@ -32,12 +32,12 @@ class CharPointersTestCase(unittest.TestCase):
 
     def setUp(self):
         func = testdll._testfunc_p_p
-        func.restype = c_int
+        func.restype = c_void_p
         func.argtypes = None
 
     def test_int_pointer_arg(self):
         func = testdll._testfunc_p_p
-        self.failUnlessEqual(0, func(0))
+        self.failUnlessEqual(None, func(0))
 
         ci = c_int(0)
 

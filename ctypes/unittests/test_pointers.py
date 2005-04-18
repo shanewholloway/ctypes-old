@@ -23,7 +23,9 @@ class PointersTestCase(unittest.TestCase):
     def test_pass_pointers(self):
         dll = CDLL(find_test_dll())
         func = dll._testfunc_p_p
-
+        # pointer is long on AMD64
+        func.restype = c_void_p
+        
         i = c_int(12345678)
 ##        func.argtypes = (POINTER(c_int),)
         address = func(byref(i))
