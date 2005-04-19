@@ -1,3 +1,8 @@
+2005-04-19  Thomas Heller  <theller@python.net>
+
+	* Fixed quite a few problems on 64-bit platforms.  Reported and
+	partly patched by Mike Fletcher.
+
 2005-04-14  Thomas Heller  <theller@python.net>
 
 	* source/_ctypes.c: Fix a crash when a POINTER type has no _type_.
