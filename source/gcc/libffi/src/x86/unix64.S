@@ -87,6 +87,13 @@ ffi_call_UNIX64:
 .LCFI5:
 	addq	$176, %rsp
 .LCFI6:
+	/* Set %rax to max. number of used SSE registers for vararg calls.
+	   See also:
+	    http://article.gmane.org/gmane.comp.python.ctypes/1702
+	    http://article.gmane.org/gmane.comp.python.ctypes/1703
+	 */
+	movq    $8, %rax
+
 	/* Call the user function.  */
 	call	*-48(%rbp)
 
