@@ -288,44 +288,44 @@ PyCArg_repr(PyCArgObject *self)
 	char buffer[256];
 
 	if (self->pffi_type == &ffi_type_pointer) {
-		sprintf(buffer, "<cparam 'P' (%08lx)>", (long)self->value.p);
+		sprintf(buffer, "<cparam 'P' (%p)>", (long)self->value.p);
 	} else
 
 		switch(self->pffi_type->type) {
 		case FFI_TYPE_SINT8:
-			sprintf(buffer, "<cparam 'b' (%d)>", self->value.b);
+			sprintf(buffer, "<cparam 'i1' (%d)>", self->value.b);
 			break;
 		case FFI_TYPE_UINT8:
-			sprintf(buffer, "<cparam 'B' (%d)>", self->value.b);
+			sprintf(buffer, "<cparam 'u1' (%d)>", self->value.b);
 			break;
 		case FFI_TYPE_SINT16:
-			sprintf(buffer, "<cparam 'h' (%d)>", self->value.h);
+			sprintf(buffer, "<cparam 'i2' (%d)>", self->value.h);
 			break;
 		case FFI_TYPE_UINT16:
-			sprintf(buffer, "<cparam 'H' (%d)>", self->value.h);
+			sprintf(buffer, "<cparam 'u2' (%d)>", self->value.h);
 			break;
 		case FFI_TYPE_SINT32:
-			sprintf(buffer, "<cparam 'l' (%d)>", self->value.i);
+			sprintf(buffer, "<cparam 'i4' (%d)>", self->value.i);
 			break;
 		case FFI_TYPE_UINT32:
-			sprintf(buffer, "<cparam 'L' (%d)>", self->value.i);
+			sprintf(buffer, "<cparam 'u4' (%d)>", self->value.i);
 			break;
 #ifdef HAVE_LONG_LONG
 		case FFI_TYPE_SINT64:
 			sprintf(buffer,
 #ifdef MS_WIN32
-				"<cparam 'q' (%I64d)>",
+				"<cparam 'i8' (%I64d)>",
 #else
-				"<cparam 'q' (%qd)>",
+				"<cparam 'i8' (%qd)>",
 #endif
 				self->value.q);
 			break;
 		case FFI_TYPE_UINT64:
 			sprintf(buffer,
 #ifdef MS_WIN32
-				"<cparam 'Q' (%I64d)>",
+				"<cparam 'u8' (%I64d)>",
 #else
-				"<cparam 'Q' (%qd)>",
+				"<cparam 'u8' (%qd)>",
 #endif
 				self->value.q);
 			break;
