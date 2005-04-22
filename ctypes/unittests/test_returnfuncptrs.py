@@ -22,6 +22,7 @@ class ReturnFuncPtrTestCase(unittest.TestCase):
     def test_without_prototype(self):
         dll = CDLL(find_test_dll())
         get_strchr = dll.get_strchr
+        # the default 'c_int' would not work on systems where sizeof(int) != sizeof(void *)
         get_strchr.restype = c_void_p
         addr = get_strchr()
         # _CFuncPtr instances are now callable with an integer argument
