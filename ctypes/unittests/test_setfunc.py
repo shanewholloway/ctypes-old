@@ -21,19 +21,29 @@ class TestIntegers(unittest.TestCase):
                 self.assertRaises(TypeError, lambda: cls(obj))
 
     def test_fromparam(self):
-        for cls in s_types + u_types:
+        # This test checks the repr of what from_param returns. Which is in flux.
+        for cls in s_types:
             for obj in [typ(42) for typ in s_types + u_types] + [42, 42L]:
                 # from_param currently either returns the object itself,
                 # or a PyCArgObject.
                 param = cls.from_param(obj)
                 if obj == param:
                     continue
-                self.failUnlessEqual(repr(param), "<cparam '%s' (42)>" % cls._type_,
+                self.failUnlessEqual(repr(param), "<cparam 'i%d' (42)>" % sizeof(cls),
                                      (repr(param), obj, cls, cls._type_))
 
             for obj in (c_char("x"), c_char_p("x"), "x", c_float(42), c_double(42), 42.0):
                 self.assertRaises(TypeError, lambda: cls.from_para,(obj))
 
+        for cls in u_types:
+            for obj in [typ(42) for typ in s_types + u_types] + [42, 42L]:
+                # from_param currently either returns the object itself,
+                # or a PyCArgObject.
+                param = cls.from_param(obj)
+                if obj == param:
+                    continue
+                self.failUnlessEqual(repr(param), "<cparam 'u%d' (42)>" % sizeof(cls),
+                                     (repr(param), obj, cls, cls._type_))
     def test_setfield(self):
         for cls in s_types + u_types:
             class X(Structure):
