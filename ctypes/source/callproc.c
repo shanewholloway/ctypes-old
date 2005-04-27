@@ -61,6 +61,7 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#include <link.h>
 #endif
 
 #ifdef MS_WIN32
@@ -914,6 +915,33 @@ copy_com_pointer(PyObject *self, PyObject *args)
 }
 #else
 
+static PyObject *py_dl_name(PyObject *self, PyObject *args)
+{
+	void *handle;
+	struct link_map *l;
+	if (!PyArg_ParseTuple(args, "l:dlname", &handle))
+		return NULL;
+	if (dlinfo(handle, RTLD_DI_LINKMAP, &l) < 0) {
+		PyErr_SetString(PyExc_OSError, dlerror());
+		return NULL;
+	}
+	return PyString_FromString(l->l_name);
+}
+
+static PyObject *py_dl_addr(PyObject *self, PyObject *args)
+{
+	void *address;
+	Dl_info info;
+	if (!PyArg_ParseTuple(args, "l:dladdr", &address))
+		return NULL;
+	if (dladdr(address, &info) == 0) {
+		PyErr_SetString(PyExc_OSError,
+				"address not contained in any shared object's segments");
+		return NULL;
+	}
+	return PyString_FromString(info.dli_fname);
+}
+
 static PyObject *py_dl_open(PyObject *self, PyObject *args)
 {
 	char *name;
@@ -1284,6 +1312,8 @@ PyMethodDef module_methods[] = {
 	{"_check_HRESULT", check_hresult, METH_VARARGS},
 #else
 	{"dlopen", py_dl_open, METH_VARARGS, "dlopen a library"},
+	{"dlname", py_dl_name, METH_VARARGS, "file name from a handle"},
+	{"dladdr", py_dl_addr, METH_VARARGS, "file name from an address"},
 	{"dlclose", py_dl_close, METH_VARARGS, "dlclose a library"},
 	{"dlsym", py_dl_sym, METH_VARARGS, "find symbol in shared library"},
 #endif
@@ -1302,5 +1332,6 @@ PyMethodDef module_methods[] = {
 /*
  Local Variables:
  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
+ c-file-style: "python"
  End:
 */

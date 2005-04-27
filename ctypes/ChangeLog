@@ -1,3 +1,17 @@
+2005-04-27  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* ctypes/decorators.py: changed the decorators to optionally
+	accept a dll object instead of a dll name.
+
+	* ctypes/__init__.py: added methods find() and
+	LoadLibraryVersion() to _CDLL.
+
+	* ctypes/__init__.py: added helper functions to find a library
+	based on the name as given to the linker -l option (on Posix
+	systems).
+
+	* source/callproc.c: added dlname and dladdr (on Posix systems).
+
 2005-04-19  Thomas Heller  <theller@python.net>
 
 	* Fixed quite a few problems on 64-bit platforms.  Reported and
