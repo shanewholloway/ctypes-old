@@ -1,5 +1,8 @@
 2005-04-27  Andreas Degert  <ad@papyrus-gmbh.de>
 
+	* ctypes/decorators.py: changed both decorators now, not only
+	one..
+
 	* ctypes/wrap/codegenerator.py: sort the generated definitions
 	according to location in the source code.
 

@@ -495,7 +495,7 @@ class _DLLS(object):
             dll = self._dlltype(self._findLibrary(name))
             setattr(self, name, dll)
             return dll
-        
+
 
 cdll = _DLLS(CDLL)
 pydll = _DLLS(PyDLL)

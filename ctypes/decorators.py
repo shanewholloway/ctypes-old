@@ -76,13 +76,16 @@ if os.name == "nt":
         convention.
 
         restype - result type
-        dll - name or instance of a dll
+        dll - name or instance of a dll/shared library
         argtypes - list of argument types
         logging - if this is True, the result of each function call
             is printed to stderr.
         """
         def decorate(func):
-            library = _get_library(dllname)
+            if isinstance(dllname, basestring):
+                library = _get_library(dllname)
+            else:
+                library = dllname
             api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, library)
             func._api_ = api
             # The following few lines trigger a pychecker bug, see
