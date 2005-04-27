@@ -2,7 +2,7 @@
 
 # special developer support to use ctypes from the CVS sandbox,
 # without installing it
-import os as _os, sys
+import os as _os, sys, re, tempfile
 _magicfile = _os.path.join(_os.path.dirname(__file__), ".CTYPES_DEVEL")
 if _os.path.isfile(_magicfile):
     execfile(_magicfile)
@@ -397,37 +397,105 @@ if _os.name ==  "nt":
             setattr(self, name, func)
             return func
 
+
+if _os.name == "posix":
+
+    def findLib_gcc(name):
+        expr = '[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
+        cmd = 'if type gcc &>/dev/null; then CC=gcc; else CC=cc; fi;' \
+              '$CC -Wl,-t -o /dev/null 2>&1 -l' + name
+        try:
+            fdout, outfile =  tempfile.mkstemp()
+            fd = _os.popen(cmd)
+            trace = fd.read()
+            err = fd.close()
+        finally:
+            try:
+                _os.unlink(outfile)
+            except OSError, e:
+                if e.errno != errno.ENOENT:
+                    raise
+        res = re.search(expr, trace)
+        if not res:
+            return None
+        return res.group(0)
+
+    def findLib_ld(name):
+        expr = '/[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
+        res = re.search(expr, _os.popen('/sbin/ldconfig -p').read())
+        if not res:
+            return None
+        return res.group(0)
+
+    def get_soname(f):
+        cmd = "objdump -p -j .dynamic " + f
+        res = re.search(r'\sSONAME\s+([^\s]+)', _os.popen(cmd).read())
+        if not res:
+            return '??'
+        return res.group(1)
+
+    def findLib(name):
+        lib = findLib_ld(name)
+        if not lib:
+            lib = findLib_gcc(name)
+            if not lib:
+                return name
+        return get_soname(lib)
+
+
 class _DLLS(object):
     def __init__(self, dlltype):
         self._dlltype = dlltype
-        
-    if _os.name == "posix" and sys.platform == "darwin":
-        def __getattr__(self, name):
-            if name[0] == '_':
-                raise AttributeError, name
-            dll = self._dlltype("lib%s.dylib" % name)
-            setattr(self, name, dll)
-            return dll
-    elif _os.name == "posix":
-        def __getattr__(self, name):
-            if name[0] == '_':
-                raise AttributeError, name
-            dll = self._dlltype("lib%s.so" % name)
-            setattr(self, name, dll)
-            return dll
-    else:
-        def __getattr__(self, name):
-            if name[0] == '_':
-                raise AttributeError, name
-            dll = self._dlltype(name)
-            setattr(self, name, dll)
-            return dll
+
+    def __getattr__(self, name):
+        if name[0] == '_':
+            raise AttributeError, name
+        dll = self._dlltype(name)
+        setattr(self, name, dll)
+        return dll
 
     def __getitem__(self, name):
         return getattr(self, name)
 
     def LoadLibrary(self, name):
         return self._dlltype(name)
+
+    def find(self, name):
+        name = self._findLibrary(name)
+        dll = self._dlltype(name)
+        print "ctypes.find: %s" % name
+
+    if _os.name == "posix" and sys.platform == "darwin":
+        def _findLibrary(self, name):
+            return findLib(name)
+
+        def LoadLibraryVersion(self, name, version=''):
+            if version:
+                version = '.' + version
+            dll = self._dlltype("lib%s%s.dylib" % (name, version))
+            setattr(self, name, dll)
+            return dll
+
+    elif _os.name == "posix":
+        def _findLibrary(self, name):
+            return findLib(name)
+
+        def LoadLibraryVersion(self, name, version=''):
+            if version:
+                version = '.' + version
+            dll = self._dlltype("lib%s.so%s" % (name, version))
+            setattr(self, name, dll)
+            return dll
+
+    else:
+        def _findLibrary(self, name):
+            return "%s.dll" % name
+
+        def LoadLibraryVersion(self, name, version=''):
+            dll = self._dlltype(self._findLibrary(name))
+            setattr(self, name, dll)
+            return dll
+        
 
 cdll = _DLLS(CDLL)
 pydll = _DLLS(PyDLL)

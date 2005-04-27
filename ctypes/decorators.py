@@ -26,7 +26,7 @@ def name_library(name, so_name):
     _library_map[so_name] = so_name
 
 
-def _get_library(name):    
+def _get_library(name):
     # load and return a library.  The library is cached.
     soname = _library_map.get(name, name)
     try:
@@ -49,7 +49,10 @@ def cdecl(restype, dllname, argtypes, logging=False):
         is printed to stderr.
     """
     def decorate(func):
-        library = _get_library(dllname)
+        if isinstance(dllname, basestring):
+            library = _get_library(dllname)
+        else:
+            library = dllname
         api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, library)
         func._api_ = api
         # The following few lines trigger a pychecker bug, see
