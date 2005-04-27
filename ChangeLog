@@ -1,5 +1,18 @@
 2005-04-27  Andreas Degert  <ad@papyrus-gmbh.de>
 
+	* ctypes/wrap/codegenerator.py: sort the generated definitions
+	according to location in the source code.
+
+	* ctypes/wrap/codegenerator.py: find_dllname() and get_sharedlib()
+	is not needed anymore (replaced by the changes in xml2py.py). In
+	the generated code load dll's explicitly based on name and
+	version of the dll.
+
+	* ctypes/wrap/xml2py.py: added classes to load a list of libraries
+	(given by the option -l), to find the library in which a function
+	is defined and to supply the information needed to load that
+	library in the generated code.
+
 	* ctypes/decorators.py: changed the decorators to optionally
 	accept a dll object instead of a dll name.
 

@@ -2,6 +2,20 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.9  2005/04/27 17:04:53  adegert
+# * ctypes/wrap/codegenerator.py: sort the generated definitions
+# according to location in the source code.
+#
+# * ctypes/wrap/codegenerator.py: find_dllname() and get_sharedlib()
+# is not needed anymore (replaced by the changes in xml2py.py). In
+# the generated code load dll's explicitly based on name and
+# version of the dll.
+#
+# * ctypes/wrap/xml2py.py: added classes to load a list of libraries
+# (given by the option -l), to find the library in which a function
+# is defined and to supply the information needed to load that
+# library in the generated code.
+#
 # Revision 1.8  2005/04/01 19:34:10  theller
 # Small fixes.
 #
@@ -162,6 +176,7 @@ dont_assert_size = set(
     [
     "__si_class_type_info_pseudo",
     "__class_type_info_pseudo",
+    "__va_list_tag", # internal, no members but size == 192
     ]
     )
 
@@ -178,8 +193,9 @@ class Generator(object):
         self.stream = self.imports = self.output
         self.use_decorators = use_decorators
         self.known_symbols = known_symbols or {}
-        self.searched_dlls = searched_dlls or []
+        self.searched_dlls = searched_dlls
 
+        self.loaded_dlls = set() # dll loads that have been generated
         self.done = set() # type descriptions that have been generated
         self.names = set() # names that have been generated
 
@@ -523,38 +539,6 @@ class Generator(object):
                         ", ".join(args))
             print >> self.stream, "]"
 
-    def find_dllname(self, func):
-        if hasattr(func, "dllname"):
-            return func.dllname
-        name = func.name
-        for dll in self.searched_dlls:
-            try:
-                getattr(dll, name)
-            except AttributeError:
-                pass
-            else:
-                return dll._name
-##        if self.verbose:
-        # warnings.warn, maybe?
-##        print >> sys.stderr, "function %s not found in any dll" % name
-        return None
-
-    _loadedlibs = None
-    def get_sharedlib(self, dllname):
-        if self._loadedlibs is None:
-            self._loadedlibs = {}
-        try:
-            return self._loadedlibs[dllname]
-        except KeyError:
-            pass
-        import os
-        basename = os.path.basename(dllname)
-        name, ext = os.path.splitext(basename)
-        self._loadedlibs[dllname] = name
-        # This should be handled in another way!
-##        print >> self.stream, "%s = CDLL(%r)" % (name, dllname)
-        return name
-
     _STDMETHOD_defined = False
     def need_STDMETHOD(self):
         if self._STDMETHOD_defined:
@@ -581,8 +565,16 @@ class Generator(object):
     _functiontypes = 0
     _notfound_functiontypes = 0
     def Function(self, func):
-        dllname = self.find_dllname(func)
-        if dllname:
+        if self.searched_dlls:
+            dll = self.searched_dlls.which(func)
+        else:
+            dll = None
+        if dll:
+            if dll not in self.loaded_dlls:
+                print >> self.stream, \
+                      '\n%s = cdll.LoadLibraryVersion("%s","%s")\n' \
+                      % (dll.key, dll.name, dll.version)
+                self.loaded_dlls.add(dll)
             self.generate(func.returns)
             self.generate_all(func.arguments)
             args = [self.type_name(a) for a in func.arguments]
@@ -590,10 +582,10 @@ class Generator(object):
                 cc = "stdcall"
             else:
                 cc = "cdecl"
-            libname = self.get_sharedlib(dllname)
+            libname = dll.key
             print >> self.stream
             if self.use_decorators:
-                print >> self.stream, "@ %s(%s, '%s', [%s])" % \
+                print >> self.stream, "@ %s(%s, %s, [%s])" % \
                       (cc, self.type_name(func.returns), libname, ", ".join(args))
             argnames = ["p%d" % i for i in range(1, 1+len(args))]
             # function definition
@@ -602,7 +594,7 @@ class Generator(object):
                 print >> self.stream, "    # %s %s" % func.location
             print >> self.stream, "    return %s._api_(%s)" % (func.name, ", ".join(argnames))
             if not self.use_decorators:
-                print >> self.stream, "%s = %s(%s, '%s', [%s]) (%s)" % \
+                print >> self.stream, "%s = %s(%s, %s, [%s]) (%s)" % \
                       (func.name, cc, self.type_name(func.returns), libname, ", ".join(args), func.name)
             print >> self.stream
             self.names.add(func.name)
@@ -640,7 +632,18 @@ class Generator(object):
         self.done.add(item)
         mth(item)
 
+    def cmpitems(a, b):
+	a = a.location
+	b = b.location
+	if a is None: return -1
+	if b is None: return 1
+	return cmp(a[0],b[0]) or cmp(int(a[1]),int(b[1]))
+    cmpitems = staticmethod(cmpitems)
+
     def generate_all(self, items):
+	if not isinstance(items, list):
+	    items = list(items)
+	    items.sort(self.cmpitems)
         for item in items:
             self.generate(item)
 
