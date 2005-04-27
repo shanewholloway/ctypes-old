@@ -1,6 +1,13 @@
-import sys, re
+import sys, re, os, tempfile, errno
 from optparse import OptionParser
 import typedesc
+from ctypes import CDLL, cast, c_void_p
+from _ctypes import dlname, dladdr
+
+try:
+    set
+except NameError:
+    from sets import Set as set
 
 ################################################################
 windows_dll_names = """\
@@ -34,6 +41,219 @@ rpcrt4""".split()
 ##rpcndr
 ##ntdll
 
+def fatalerror(msg):
+    "Print an error message and exit the program"
+    print >>sys.stderr, 'Error:', msg
+    sys.exit(1)
+
+
+class LibraryDescBase(object):
+    """Provides symbol lookup and attributes of a shared library.
+
+    The shared library is loaded from the supplied path.
+
+    Public instance variables:
+
+     name:    name of the shared library (e.g. for the linker option -l)
+     version: major version of the shared library (e.g. the 2 in libA.so.2)
+     key:     a unique key, created from name, which is a legal python identifier
+     path:    file path as recorded by the runtime loader (this is only used
+              by LibraryList for Posix systems)
+
+    public methods:
+
+     lookup()
+
+    """
+
+    def __init__(self, path):
+        self.lib = CDLL(path)
+
+    def lookup(self, symbol):
+        "return a ctypes function or None"
+        try:
+            return getattr(self.lib, symbol)
+        except AttributeError:
+            return None
+
+    def make_legal_identifier(self, name):
+        name = re.sub('[^a-zA-Z0-9_]','_', name)
+        if re.match('[0-9]', name):
+            name = 'lib' + name
+        return name
+
+
+class LibraryListBase(object):
+    """List of shared libraries (instances of LibraryDescBase)
+
+    Public methods:
+
+    which()
+    """
+    
+    def __init__(self, names, searchpaths, verbose=False):
+        """Loads the libraries
+
+        names:       list of shared library names (as in the linker option -l)
+        searchpaths: list of library search paths (linker option -L)
+        verbose:     give a verbose message in case of error
+        """
+        pass
+
+    def which(self, func):
+        """return the dll (instance of LibraryDescBase) in which func is defined
+        If func is not defined in any dll, return None.
+        """
+        raise NotImplementedError
+
+
+if os.name == "posix":
+
+    class LibraryDescPosix(LibraryDescBase):
+
+        def __init__(self, path):
+            LibraryDescBase.__init__(self, path)
+            self.name, self.version = self.get_name_version(path)
+            self.key = self.make_legal_identifier(self.name)
+            self.path = self.normalize_path(path)
+
+        def get_soname(self, path):
+            import re, os
+            cmd = "objdump -p -j .dynamic " + path
+            res = re.search(r'\sSONAME\s+([^\s]+)', os.popen(cmd).read())
+            if not res:
+                raise ValueError("no soname found for shared lib '%s'" % path)
+            return res.group(1)
+
+        def get_name_version(self, path):
+            soname = self.get_soname(path)
+            m = re.match(r'lib(?P<name>[^.]+)\.so(\.(?P<version>.*))?', soname)
+            if not m:
+                raise ValueError(
+                    "soname of form lib<name>.so.<version> expected, got '%s'" % soname)
+            return m.group('name'), m.group('version')
+
+        def normalize_path(self, path):
+            "return the file path of the shared library as recorded by the runtime loader"
+            return dlname(self.lib._handle)
+
+
+    class LibraryListPosix(LibraryListBase):
+
+        def __init__(self, names, searchpaths, verbose=False):
+            if not names:
+                self.dlls = []
+            else:
+                paths = self.findLibraryPaths(names, searchpaths, verbose)
+                self.dlls = [LibraryDescPosix(path) for path in paths]
+            self.lookup_dlls = dict([(d.path, d) for d in self.dlls])
+
+        def which(self, func):
+            name = func.name
+            for dll in self.dlls:
+                f = dll.lookup(name)
+                if f is None:
+                    continue
+                address = cast(f, c_void_p).value
+                path = dladdr(address)
+                return self.lookup_dlls.get(path)
+            return None
+
+        def findLibraryPaths(self, names, searchpaths, verbose):
+            stubneeded = True # sometimes needed on platforms like IRIX to
+                              # find all libraries; not needed on Linux
+            exprlist = [(name, re.compile('[^\(\)\s]*lib%s\.[^\(\)\s]*' % name))
+                        for name in names]
+            cc=('cc','gcc')[os.system('gcc --version > /dev/null 2> /dev/null')==0]
+            if stubneeded:
+                stubfile = tempfile.NamedTemporaryFile(suffix='.c')
+                stubfile.write('int main(void) { return 0L; }\n')
+                stubfile.flush()
+                stub = stubfile.name
+            else:
+                stub = ''
+            try:
+                # outfile = /dev/null works, but if someone is stupid
+                # enough to start this as root he might be missing
+                # /dev/null later...
+                fdout, outfile =  tempfile.mkstemp()
+                cmd = '%s %s -o %s -Wl,-t %s %s 2>&1' % (
+                    cc, stub, outfile,
+                    ' '.join(['-L%s' % path for path in searchpaths]),
+                    ' '.join(['-l%s' % name for name in names]))
+                fd = os.popen(cmd)
+                trace = fd.read()
+                err = fd.close()
+            finally:
+                try:
+                    os.unlink(outfile)
+                except OSError, e:
+                    if e.errno != errno.ENOENT:
+                        raise
+            paths = []
+            for name, expr in exprlist:
+                m = expr.search(trace)
+                if m:
+                    names.remove(name)
+                    paths.append(m.group(0))
+            if err and verbose:
+                if err >= 256:
+                    err /= 256
+                s = 'error in command (exitcode %d):\n%s' % (res, cmd)
+                if trace:
+                    s += '\noutput:\n' + trace
+                fatalerror(s)
+            if names:
+                fatalerror('shared library not found: %s' % names[0])
+            return paths
+
+    LibraryList = LibraryListPosix
+
+if os.name == "nt":
+
+    class LibraryDescNT(LibraryDescBase):
+
+        def __init__(self, path):
+            LibraryDescBase.__init__(self, path)
+            self.name, self.version = self.get_name_version(path)
+            self.key = self.make_legal_identifier(self.name)
+
+        def get_name_version(self, path):
+            dllname = self.get_soname(path)
+            m = re.match(r'(?P<name>[^.]+)\.dll(?P<version>)', dllname)
+            if not m:
+                raise ValueError(
+                    "dll of form <name>.dll expected, got '%s'" % dllname)
+            return m.group('name'), m.group('version')
+
+
+    class LibraryListNT(LibraryListBase):
+
+        def __init__(self, names, searchpaths, verbose=False):
+            self.dlls = [LibraryDescNT(name) for name in names]
+
+        def which(self, func):
+            name = func.name
+            for dll in self.dlls:
+                if dll.lookup(name) is not None:
+                    return dll
+            return None
+
+    LibraryList = LibraryListNT
+
+
+def remove_dups(seq):
+    "remove duplicate entries from a sequence and return a list"
+    s = set()
+    l = []
+    for i in seq:
+        if i in s:
+            continue
+        s.add(i)
+        l.append(i)
+    return l
+    
+
 def main(args=None):
     if args is None:
         args = sys.argv
@@ -63,6 +283,14 @@ def main(args=None):
     parser.add_option("-l",
                       dest="dlls",
                       help="libraries to search for exported functions",
+                      action="append",
+                      default=[])
+
+    parser.add_option("-L",
+                      dest="searchpaths",
+                      metavar="DIR",
+                      help="Add directory dir to the list of"
+                      " directories to be searched for -l",
                       action="append",
                       default=[])
 
@@ -123,8 +351,7 @@ def main(args=None):
 
     ################################################################
 
-    from ctypes import CDLL
-    dlls = [CDLL(name) for name in options.dlls]
+    dlls = LibraryList(remove_dups(options.dlls), options.searchpaths)
 
     known_symbols = {}
     for name in options.modules:
