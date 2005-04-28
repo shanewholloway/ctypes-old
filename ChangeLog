@@ -28,6 +28,12 @@
 
 	* source/callproc.c: added dlname and dladdr (on Posix systems).
 
+2005-04-22  Thomas Heller  <theller@python.net>
+
+	* Committed a patch from Andreas Degert which allows to call
+	vararg functions on x86_64b platforms (although not officially
+	supported by libffi).
+
 2005-04-19  Thomas Heller  <theller@python.net>
 
 	* Fixed quite a few problems on 64-bit platforms.  Reported and
