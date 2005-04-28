@@ -2,6 +2,9 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.11  2005/04/28 17:10:16  theller
+# There are items which don't have a location attribute.
+#
 # Revision 1.10  2005/04/28 14:58:17  adegert
 # created class Argument and changed the
 # argument list from a list of types to a list of Argument
@@ -651,8 +654,8 @@ class Generator(object):
             self.generate(item)
 
     def cmpitems(a, b):
-	a = a.location
-	b = b.location
+	a = getattr(a, "location", None)
+	b = getattr(b, "location", None)
 	if a is None: return -1
 	if b is None: return 1
 	return cmp(a[0],b[0]) or cmp(int(a[1]),int(b[1]))
