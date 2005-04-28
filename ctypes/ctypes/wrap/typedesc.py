@@ -4,9 +4,33 @@ try:
 except NameError:
     from sets import Set as set
 
+class Argument(object):
+    "a Parameter in the argument list of a callable (Function, Method, ...)"
+    def __init__(self, atype, name):
+        self.atype = atype
+        self.name = name
+
 class _HasArgs(object):
+
+    def __init__(self):
+        self.arguments = []
+
     def add_argument(self, arg):
+        assert isinstance(arg, Argument)
         self.arguments.append(arg)
+
+    def iterArgTypes(self):
+        for a in self.arguments:
+            yield a.atype
+
+    def iterArgNames(self):
+        for a in self.arguments:
+            yield a.name
+
+    def fixup_argtypes(self, typemap):
+        for a in self.arguments:
+            a.atype = typemap[a.atype]
+
 
 ################
 
@@ -34,38 +58,38 @@ class File(object):
 class Function(_HasArgs):
     location = None
     def __init__(self, name, returns, attributes, extern):
+        _HasArgs.__init__(self)
         self.name = name
         self.returns = returns
         self.attributes = attributes # dllimport, __stdcall__, __cdecl__
-        self.arguments = []
         self.extern = extern
 
 class Constructor(_HasArgs):
     location = None
     def __init__(self, name):
+        _HasArgs.__init__(self)
         self.name = name
-        self.arguments = []
 
 class OperatorFunction(_HasArgs):
     location = None
     def __init__(self, name, returns):
+        _HasArgs.__init__(self)
         self.name = name
         self.returns = returns
-        self.arguments = []
 
 class FunctionType(_HasArgs):
     location = None
     def __init__(self, returns, attributes):
+        _HasArgs.__init__(self)
         self.returns = returns
         self.attributes = attributes
-        self.arguments = []
 
 class Method(_HasArgs):
     location = None
     def __init__(self, name, returns):
+        _HasArgs.__init__(self)
         self.name = name
         self.returns = returns
-        self.arguments = []
 
 class FundamentalType(object):
     location = None
