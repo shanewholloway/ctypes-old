@@ -2,6 +2,12 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.10  2005/04/28 14:58:17  adegert
+# created class Argument and changed the
+# argument list from a list of types to a list of Argument
+# instances. Use it to transport parameter names if supplied.
+# (plus cleanup of item sorting.)
+#
 # Revision 1.9  2005/04/27 17:04:53  adegert
 # * ctypes/wrap/codegenerator.py: sort the generated definitions
 # according to location in the source code.
@@ -48,12 +54,20 @@
 # Moved the code generation stuff from the sandbox to it's final location.
 #
 
-import typedesc, sys
+import typedesc, sys, types
 
 try:
     set
 except NameError:
     from sets import Set as set
+
+try:
+    sorted
+except NameError:
+    def sorted(seq, cmp):
+        seq = list(seq)
+        seq.sort(cmp)
+        return seq
 
 try:
     import cStringIO as StringIO
@@ -258,7 +272,7 @@ class Generator(object):
         elif isinstance(t, typedesc.ArrayType):
             return "%s * %s" % (self.type_name(t.typ, generate), int(t.max)+1)
         elif isinstance(t, typedesc.FunctionType):
-            args = [self.type_name(x, generate) for x in [t.returns] + t.arguments]
+            args = [self.type_name(x, generate) for x in [t.returns] + list(t.iterArgTypes())]
             if "__stdcall__" in t.attributes:
                 return "WINFUNCTYPE(%s)" % ", ".join(args)
             else:
@@ -378,7 +392,7 @@ class Generator(object):
     def FunctionType(self, tp):
         self._functiontypes += 1
         self.generate(tp.returns)
-        self.generate_all(tp.arguments)
+        self.generate_all(tp.iterArgTypes())
         
     _pointertypes = 0
     def PointerType(self, tp):
@@ -442,7 +456,7 @@ class Generator(object):
             elif type(m) is typedesc.Method:
                 methods.append(m)
                 self.generate(m.returns)
-                self.generate_all(m.arguments)
+                self.generate_all(m.iterArgTypes())
             elif type(m) is typedesc.Constructor:
                 pass
 
@@ -505,7 +519,7 @@ class Generator(object):
             # So, call type_name for each field once,
             for m in methods:
                 self.type_name(m.returns)
-                for a in m.arguments:
+                for a in m.iterArgTypes():
                     self.type_name(a)
             if "COMMETHOD" in self.known_symbols:
                 print >> self.stream, "%s._methods_ = [" % body.struct.name
@@ -526,13 +540,13 @@ class Generator(object):
                     print >> self.stream, "    COMMETHOD([], %s, '%s'," % (
                         self.type_name(m.returns),
                         m.name)
-                    for a in m.arguments:
+                    for a in m.iterArgTypes():
                         print >> self.stream, \
                               "               ( [], %s, )," % self.type_name(a)
                     print >> self.stream, "             ),"
             else:
                 for m in methods:
-                    args = [self.type_name(a) for a in m.arguments]
+                    args = [self.type_name(a) for a in m.iterArgTypes()]
                     print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
                         self.type_name(m.returns),
                         m.name,
@@ -576,8 +590,8 @@ class Generator(object):
                       % (dll.key, dll.name, dll.version)
                 self.loaded_dlls.add(dll)
             self.generate(func.returns)
-            self.generate_all(func.arguments)
-            args = [self.type_name(a) for a in func.arguments]
+            self.generate_all(func.iterArgTypes())
+            args = [self.type_name(a) for a in func.iterArgTypes()]
             if "__stdcall__" in func.attributes:
                 cc = "stdcall"
             else:
@@ -587,7 +601,7 @@ class Generator(object):
             if self.use_decorators:
                 print >> self.stream, "@ %s(%s, %s, [%s])" % \
                       (cc, self.type_name(func.returns), libname, ", ".join(args))
-            argnames = ["p%d" % i for i in range(1, 1+len(args))]
+            argnames = [a or "p%d" % (i+1) for i, a in enumerate(func.iterArgNames())]
             # function definition
             print >> self.stream, "def %s(%s):" % (func.name, ", ".join(argnames))
             if func.location:
@@ -632,6 +646,10 @@ class Generator(object):
         self.done.add(item)
         mth(item)
 
+    def generate_all(self, items):
+        for item in items:
+            self.generate(item)
+
     def cmpitems(a, b):
 	a = a.location
 	b = b.location
@@ -640,13 +658,6 @@ class Generator(object):
 	return cmp(a[0],b[0]) or cmp(int(a[1]),int(b[1]))
     cmpitems = staticmethod(cmpitems)
 
-    def generate_all(self, items):
-	if not isinstance(items, list):
-	    items = list(items)
-	    items.sort(self.cmpitems)
-        for item in items:
-            self.generate(item)
-
     def generate_module(self, items):
         print >> self.imports, "from ctypes import *"
         items = set(items)
@@ -654,7 +665,7 @@ class Generator(object):
         while items:
             loops += 1
             self.more = set()
-            self.generate_all(items)
+            self.generate_all(sorted(items, self.cmpitems))
 
             items |= self.more
             items -= self.done

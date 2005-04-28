@@ -184,7 +184,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def _fixup_Function(self, func):
         func.returns = self.all[func.returns]
-        func.arguments = [self.all[a] for a in func.arguments]
+        func.fixup_argtypes(self.all)
 
     def FunctionType(self, attrs):
         # id, returns, attributes
@@ -194,7 +194,7 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     
     def _fixup_FunctionType(self, func):
         func.returns = self.all[func.returns]
-        func.arguments = [self.all[a] for a in func.arguments]
+        func.fixup_argtypes(self.all)
 
     def OperatorFunction(self, attrs):
         # name, returns, extern, attributes
@@ -219,13 +219,12 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
 
     def _fixup_Method(self, m):
         m.returns = self.all[m.returns]
-        m.arguments = [self.all[a] for a in m.arguments]
+        m.fixup_argtypes(self.all)
 
     def Argument(self, attrs):
-        typ = attrs["type"]
         parent = self.context[-1]
         if parent is not None:
-            parent.add_argument(typ) # name?
+            parent.add_argument(typedesc.Argument(attrs["type"], attrs.get("name")))
 
     # enumerations
 

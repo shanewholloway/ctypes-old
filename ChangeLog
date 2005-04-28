@@ -1,3 +1,11 @@
+2005-04-28  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* ctypes/wrap/codegenerator.py, ctypes/wrap/gccxmlparser.py,
+	ctypes/wrap/typedesc.py: created class Argument and changed the
+	argument list from a list of types to a list of Argument
+	instances. Use it to transport parameter names if supplied.
+	(plus cleanup of item sorting.)
+
 2005-04-27  Andreas Degert  <ad@papyrus-gmbh.de>
 
 	* ctypes/decorators.py: changed both decorators now, not only
