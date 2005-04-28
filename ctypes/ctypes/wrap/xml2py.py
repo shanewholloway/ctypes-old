@@ -2,7 +2,14 @@ import sys, re, os, tempfile, errno
 from optparse import OptionParser
 import typedesc
 from ctypes import CDLL, cast, c_void_p
-from _ctypes import dlname, dladdr
+
+# Hm, is it better to catch ImportError here, or should we protect this by
+# if os.name == *posix" ?
+try:
+    from _ctypes import dlname, dladdr
+except ImportError:
+    # dlname and dladdr not available, hopefully also unneeded.
+    pass
 
 try:
     set
@@ -33,11 +40,11 @@ ws2_32
 opengl32
 glu32
 mswsock
-msvcrt
 msimg32
 netapi32
 rpcrt4""".split()
 
+##msvcrt
 ##rpcndr
 ##ntdll
 
@@ -219,13 +226,38 @@ if os.name == "nt":
             self.key = self.make_legal_identifier(self.name)
 
         def get_name_version(self, path):
+            # There are no consistent naming conventions for dll
+            # versions on windows.  Which is the reason for dllhell.
+            #
+            # Some patterns are:
+            #
+            # Append a D for the debug version (MSVCR71.DLL - MSVR71D.DLL)
+            # Version number part of the filename: MFC42.DLL - MFC71.DLL
+            # But: MSVCRT.DLL MSVCR71.DLL
+            # U suffix for unicode? MFC42.DLL MFC42U.DLL
+            # locale suffix: MFC71DEU.DLL
+            #
+            # Here are some more MFC71 versions from my system:
+            # MFC71.DLL
+            # MFC71CHS.DLL
+            # MFC71CHT.DLL
+            # MFC71D.DLL
+            # MFC71DEU.DLL
+            # MFC71ENU.DLL
+            # MFC71ESP.DLL
+            # MFC71FRA.DLL
+            # MFC71ITA.DLL
+            # MFC71JPN.DLL
+            # MFC71KOR.DLL
+            # MFC71U.DLL
+            # MFC71UD.DLL
             dllname = self.get_soname(path)
-            m = re.match(r'(?P<name>[^.]+)\.dll(?P<version>)', dllname)
-            if not m:
-                raise ValueError(
-                    "dll of form <name>.dll expected, got '%s'" % dllname)
-            return m.group('name'), m.group('version')
+            return dllname, ""
 
+        def get_soname(self, path):
+            # Should it strip the extension, if '.dll'?
+            # Should it strip the directory part? Probably...
+            return os.path.basename(path)
 
     class LibraryListNT(LibraryListBase):
 
