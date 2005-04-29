@@ -403,6 +403,7 @@ else:
         kw["sources"].append("source/darwin/dlfcn_simple.c")
         extra_link_args.extend(['-read_only_relocs', 'warning'])
         include_dirs.append("source/darwin")
+	kw["define_macros"].append(("DLFCN_SIMPLE","1"))
 
     extensions = [Extension("_ctypes",
                             libraries=["ffi"],
