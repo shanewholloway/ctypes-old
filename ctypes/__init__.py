@@ -422,16 +422,16 @@ if _os.name == "posix":
 
     def findLib_ld(name):
         expr = '/[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
-        res = re.search(expr, _os.popen('/sbin/ldconfig -p').read())
+        res = re.search(expr, _os.popen('/sbin/ldconfig -p 2>/dev/null').read())
         if not res:
             return None
         return res.group(0)
 
     def get_soname(f):
-        cmd = "objdump -p -j .dynamic " + f
+        cmd = "objdump -p -j .dynamic 2>/dev/null " + f
         res = re.search(r'\sSONAME\s+([^\s]+)', _os.popen(cmd).read())
         if not res:
-            return '??'
+            return f
         return res.group(1)
 
     def findLib(name):
@@ -461,18 +461,22 @@ class _DLLS(object):
         return self._dlltype(name)
 
     def find(self, name):
+        # should loop over different known naming styles
         name = self._findLibrary(name)
         dll = self._dlltype(name)
         print "ctypes.find: %s" % name
+	return dll
 
     if _os.name == "posix" and sys.platform == "darwin":
         def _findLibrary(self, name):
             return findLib(name)
 
         def LoadLibraryVersion(self, name, version=''):
-            if version:
-                version = '.' + version
-            dll = self._dlltype("lib%s%s.dylib" % (name, version))
+            path = "lib%s.dylib" % name
+            try:
+                dll = self._dlltype(path)
+            except OSError:
+                dll = self._dlltype("/usr/lib/"+path)
             setattr(self, name, dll)
             return dll
 
@@ -489,7 +493,7 @@ class _DLLS(object):
 
     else:
         def _findLibrary(self, name):
-            return "%s.dll" % name
+            return name
 
         def LoadLibraryVersion(self, name, version=''):
             dll = self._dlltype(self._findLibrary(name))
