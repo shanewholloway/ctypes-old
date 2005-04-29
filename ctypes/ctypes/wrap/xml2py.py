@@ -3,56 +3,26 @@ from optparse import OptionParser
 import typedesc
 from ctypes import CDLL, cast, c_void_p
 
-# Hm, is it better to catch ImportError here, or should we protect this by
-# if os.name == *posix" ?
-try:
-    from _ctypes import dlname, dladdr
-except ImportError:
-    # dlname and dladdr not available, hopefully also unneeded.
-    pass
-
 try:
     set
 except NameError:
     from sets import Set as set
 
-################################################################
-windows_dll_names = """\
-imagehlp
-user32
-kernel32
-gdi32
-advapi32
-oleaut32
-ole32
-imm32
-comdlg32
-shell32
-version
-winmm
-mpr
-winscard
-winspool.drv
-urlmon
-crypt32
-cryptnet
-ws2_32
-opengl32
-glu32
-mswsock
-msimg32
-netapi32
-rpcrt4""".split()
-
-##msvcrt
-##rpcndr
-##ntdll
-
+def remove_dups(seq):
+    "remove duplicate entries from a sequence and return a list"
+    s = set()
+    l = []
+    for i in seq:
+        if i in s:
+            continue
+        s.add(i)
+        l.append(i)
+    return l
+    
 def fatalerror(msg):
     "Print an error message and exit the program"
     print >>sys.stderr, 'Error:', msg
     sys.exit(1)
-
 
 class LibraryDescBase(object):
     """Provides symbol lookup and attributes of a shared library.
@@ -96,8 +66,11 @@ class LibraryListBase(object):
     Public methods:
 
     which()
+    
     """
     
+    dllclass = LibraryDescBase
+
     def __init__(self, names, searchpaths, verbose=False):
         """Loads the libraries
 
@@ -105,7 +78,12 @@ class LibraryListBase(object):
         searchpaths: list of library search paths (linker option -L)
         verbose:     give a verbose message in case of error
         """
-        pass
+        if not names:
+            self.dlls = []
+        else:
+	    names = remove_dups(names)
+            paths = self.findLibraryPaths(names, searchpaths, verbose)
+            self.dlls = [self.dllclass(path) for path in paths]
 
     def which(self, func):
         """return the dll (instance of LibraryDescBase) in which func is defined
@@ -113,8 +91,14 @@ class LibraryListBase(object):
         """
         raise NotImplementedError
 
+    def findLibraryPaths(self, names, searchpaths, verbose):
+	return names
+
 
 if os.name == "posix":
+
+    if not sys.platform == "darwin":
+	from _ctypes import dlname, dladdr
 
     class LibraryDescPosix(LibraryDescBase):
 
@@ -125,8 +109,7 @@ if os.name == "posix":
             self.path = self.normalize_path(path)
 
         def get_soname(self, path):
-            import re, os
-            cmd = "objdump -p -j .dynamic " + path
+            cmd = "objdump -p -j .dynamic 2>/dev/null " + path
             res = re.search(r'\sSONAME\s+([^\s]+)', os.popen(cmd).read())
             if not res:
                 raise ValueError("no soname found for shared lib '%s'" % path)
@@ -134,7 +117,7 @@ if os.name == "posix":
 
         def get_name_version(self, path):
             soname = self.get_soname(path)
-            m = re.match(r'lib(?P<name>[^.]+)\.so(\.(?P<version>.*))?', soname)
+            m = re.match(r'lib(?P<name>.+)\.so(\.(?P<version>.*))?', soname)
             if not m:
                 raise ValueError(
                     "soname of form lib<name>.so.<version> expected, got '%s'" % soname)
@@ -147,12 +130,10 @@ if os.name == "posix":
 
     class LibraryListPosix(LibraryListBase):
 
+	dllclass = LibraryDescPosix
+
         def __init__(self, names, searchpaths, verbose=False):
-            if not names:
-                self.dlls = []
-            else:
-                paths = self.findLibraryPaths(names, searchpaths, verbose)
-                self.dlls = [LibraryDescPosix(path) for path in paths]
+	    LibraryListBase.__init__(self, names, searchpaths, verbose)
             self.lookup_dlls = dict([(d.path, d) for d in self.dlls])
 
         def which(self, func):
@@ -216,6 +197,49 @@ if os.name == "posix":
 
     LibraryList = LibraryListPosix
 
+if os.name == "posix" and sys.platform == "darwin":
+
+    class LibraryDescDarwin(LibraryDescPosix):
+
+	def __init__(self, path):
+            LibraryDescPosix.__init__(self, path)
+
+        def get_soname(self, path):
+            cmd = "otool -D 2>/dev/null " + path
+            res = re.match(r'.*:\n(.*)', os.popen(cmd).read())
+            if not res:
+                raise ValueError("no soname found for shared lib '%s'" % path)
+            return res.group(1)
+
+	def get_name_version(self, path):
+            soname = self.get_soname(path)
+            m = re.match(r'.*/lib(?P<name>.+)\.dylib', soname)
+            if not m:
+                raise ValueError(
+                    "soname of form .../lib<name>.dylib expected, got '%s'" % soname)
+            return m.group('name'), ''
+
+        def normalize_path(self, path):
+            return path
+
+
+    class LibraryListDarwin(LibraryListPosix):
+
+	dllclass = LibraryDescDarwin
+
+        def __init__(self, names, searchpaths, verbose=False):
+	    LibraryListPosix.__init__(self, names, searchpaths, verbose)
+
+        def which(self, func):
+            name = func.name
+            for dll in self.dlls:
+                f = dll.lookup(name)
+                if f is not None:
+                    return dll
+            return None
+
+    LibraryList = LibraryListDarwin
+
 if os.name == "nt":
 
     class LibraryDescNT(LibraryDescBase):
@@ -261,8 +285,10 @@ if os.name == "nt":
 
     class LibraryListNT(LibraryListBase):
 
-        def __init__(self, names, searchpaths, verbose=False):
-            self.dlls = [LibraryDescNT(name) for name in names]
+	dllclass = LibraryDescNT
+
+	def __init__(self, names, searchpaths, verbose=False):
+	    LibraryListNT.__init__(self, names, searchpaths, verbose)
 
         def which(self, func):
             name = func.name
@@ -273,25 +299,44 @@ if os.name == "nt":
 
     LibraryList = LibraryListNT
 
+    windows_dll_names = """\
+    imagehlp
+    user32
+    kernel32
+    gdi32
+    advapi32
+    oleaut32
+    ole32
+    imm32
+    comdlg32
+    shell32
+    version
+    winmm
+    mpr
+    winscard
+    winspool.drv
+    urlmon
+    crypt32
+    cryptnet
+    ws2_32
+    opengl32
+    glu32
+    mswsock
+    msimg32
+    netapi32
+    rpcrt4""".split()
 
-def remove_dups(seq):
-    "remove duplicate entries from a sequence and return a list"
-    s = set()
-    l = []
-    for i in seq:
-        if i in s:
-            continue
-        s.add(i)
-        l.append(i)
-    return l
-    
+    ##msvcrt
+    ##rpcndr
+    ##ntdll
+
+    def windows_dlls(option, opt, value, parser):
+        parser.values.dlls.extend(windows_dll_names)
+
 
 def main(args=None):
     if args is None:
         args = sys.argv
-
-    def windows_dlls(option, opt, value, parser):
-        parser.values.dlls.extend(windows_dll_names)
 
     parser = OptionParser("usage: %prog xmlfile [options]")
     parser.add_option("-d",
@@ -355,10 +400,11 @@ def main(args=None):
                       help="verbose output",
                       default=False)
 
-    parser.add_option("-w",
-                      action="callback",
-                      callback=windows_dlls,
-                      help="add all standard windows dlls to the searched dlls list")
+    if os.name == "nt":
+    	parser.add_option("-w",
+                      	  action="callback",
+                      	  callback=windows_dlls,
+                      	  help="add all standard windows dlls to the searched dlls list")
 
     parser.add_option("-m",
                       dest="modules",
@@ -383,7 +429,7 @@ def main(args=None):
 
     ################################################################
 
-    dlls = LibraryList(remove_dups(options.dlls), options.searchpaths)
+    dlls = LibraryList(options.dlls, options.searchpaths)
 
     known_symbols = {}
     for name in options.modules:
