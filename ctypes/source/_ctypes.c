@@ -3415,16 +3415,12 @@ Simple_set_value(CDataObject *self, PyObject *value)
 static int
 Simple_init(CDataObject *self, PyObject *args, PyObject *kw)
 {
-	switch (PyTuple_Size(args)) {
-	case 0:
-		return 0;
-	case 1:
-		return Simple_set_value(self, PyTuple_GET_ITEM(args, 0));
-	default:
-		PyErr_SetString(PyExc_TypeError,
-				"function takes at most 1 argument");
+	PyObject *value = NULL;
+	if (!PyArg_UnpackTuple(args, "__init__", 0, 1, &value))
 		return -1;
-	}
+	if (value)
+		return Simple_set_value(self, value);
+	return 0;
 }
 
 static PyObject *
