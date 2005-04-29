@@ -2,6 +2,10 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.12  2005/04/29 09:45:48  adegert
+# removed unused import types
+# (slipped on with one of the previous changes).
+#
 # Revision 1.11  2005/04/28 17:10:16  theller
 # There are items which don't have a location attribute.
 #
@@ -57,7 +61,7 @@
 # Moved the code generation stuff from the sandbox to it's final location.
 #
 
-import typedesc, sys, types
+import typedesc, sys
 
 try:
     set
