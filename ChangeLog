@@ -1,3 +1,16 @@
+2005-04-29  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* ctypes/__init__.py: no .dll added to the name for Windows, fixes
+	for OS X, find() was meant to return a value.
+
+	* ctypes/wrap/xml2py.py: added OS X specifics, move some code
+	around, fixed some bugs.
+
+	* setup.py, source/callproc.c: made sources compile on OS X
+
+	* ctypes/wrap/codegenerator.py: removed unused import types
+	(slipped on with one of the previous changes).
+
 2005-04-28  Andreas Degert  <ad@papyrus-gmbh.de>
 
 	* ctypes/wrap/codegenerator.py, ctypes/wrap/gccxmlparser.py,
