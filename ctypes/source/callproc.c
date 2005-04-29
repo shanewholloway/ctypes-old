@@ -61,7 +61,9 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#ifndef DLFCN_SIMPLE
 #include <link.h>
+#endif
 #endif
 
 #ifdef MS_WIN32
@@ -289,7 +291,7 @@ PyCArg_repr(PyCArgObject *self)
 	char buffer[256];
 
 	if (self->pffi_type == &ffi_type_pointer) {
-		sprintf(buffer, "<cparam 'P' (%p)>", (long)self->value.p);
+		sprintf(buffer, "<cparam 'P' (%p)>", self->value.p);
 	} else
 
 		switch(self->pffi_type->type) {
@@ -915,6 +917,7 @@ copy_com_pointer(PyObject *self, PyObject *args)
 }
 #else
 
+#ifndef DLFCN_SIMPLE
 static PyObject *py_dl_name(PyObject *self, PyObject *args)
 {
 	void *handle;
@@ -941,6 +944,7 @@ static PyObject *py_dl_addr(PyObject *self, PyObject *args)
 	}
 	return PyString_FromString(info.dli_fname);
 }
+#endif
 
 static PyObject *py_dl_open(PyObject *self, PyObject *args)
 {
@@ -1311,9 +1315,11 @@ PyMethodDef module_methods[] = {
 	{"FreeLibrary", free_library, METH_VARARGS, free_library_doc},
 	{"_check_HRESULT", check_hresult, METH_VARARGS},
 #else
-	{"dlopen", py_dl_open, METH_VARARGS, "dlopen a library"},
+#ifndef DLFCN_SIMPLE
 	{"dlname", py_dl_name, METH_VARARGS, "file name from a handle"},
 	{"dladdr", py_dl_addr, METH_VARARGS, "file name from an address"},
+#endif
+	{"dlopen", py_dl_open, METH_VARARGS, "dlopen a library"},
 	{"dlclose", py_dl_close, METH_VARARGS, "dlclose a library"},
 	{"dlsym", py_dl_sym, METH_VARARGS, "find symbol in shared library"},
 #endif
