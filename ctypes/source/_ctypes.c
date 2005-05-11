@@ -1945,10 +1945,31 @@ static void CData_MallocBuffer(CDataObject *obj, StgDictObject *dict)
 	obj->b_size = dict->size;
 }
 
+static PyObject *
+_type_new(PyObject *type, PyObject *args, PyObject *kwds)
+{
+	static PyObject* empty_tuple;
+	if (!empty_tuple)
+		empty_tuple = PyTuple_New(0);
+	if (!PyType_Check(type)) {
+		PyErr_SetString(PyExc_TypeError, "BUG: expected a type object");
+		return NULL;
+	}
+	return ((PyTypeObject *)type)->tp_new((PyTypeObject *)type,
+					      args ? args : empty_tuple, kwds);
+}
+
 PyObject *
 CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 {
 	CDataObject *cmem;
+	static PyObject *empty_tuple;
+
+	if (empty_tuple == NULL) {
+		empty_tuple = PyTuple_New(0);
+		if (empty_tuple == NULL)
+			return NULL;
+	}
 
 	if (base && !CDataObject_Check(base)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -1956,7 +1977,7 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 		return NULL;
 	}
 
-	cmem = (CDataObject *)PyObject_CallFunctionObjArgs(type, NULL);
+	cmem = (CDataObject *)((PyTypeObject *)type)->tp_new(type, empty_tuple, NULL);
 	if (cmem == NULL)
 		return NULL;
 
@@ -1990,7 +2011,7 @@ CData_AtAddress(PyObject *type, void *buf)
 {
 	CDataObject *pd;
 
-	pd = (CDataObject *)PyObject_CallFunctionObjArgs(type, NULL);
+	pd = (CDataObject *)_type_new(type, NULL, NULL);
 	if (!pd)
 		return NULL;
 	if (!CDataObject_Check(pd)) {
@@ -2049,7 +2070,7 @@ static PyObject *
 GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	CDataObject *obj;
-	int size, align, length;
+	int length;
 	StgDictObject *dict;
 
 	dict = PyType_stgdict((PyObject *)type);
@@ -2059,8 +2080,6 @@ GenericCData_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 	dict->flags |= DICTFLAG_FINAL;
-	size = dict->size;
-	align = dict->align;
 	length = dict->length;
 
 	obj = (CDataObject *)type->tp_alloc(type, 0);
