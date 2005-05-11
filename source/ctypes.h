@@ -17,6 +17,7 @@
 #endif
 
 typedef int (*THUNK)(void);
+typedef struct tagCDataObject CDataObject;
 
 /* A default buffer in CDataObject, which can be used for small C types.  If
 this buffer is too small, PyMem_Malloc will be called to create a larger one,
@@ -43,18 +44,18 @@ union value {
   b_objects is not present/unused b_length is unneeded as well.
 */
 
-typedef struct tagCDataObject {
+struct tagCDataObject {
 	PyObject_HEAD
 	char *b_ptr;		/* pointer to memory block */
 	int  b_needsfree;	/* need _we_ free the memory? */
-	struct tagCDataObject *b_base;	/* pointer to base object or NULL */
+	CDataObject *b_base;	/* pointer to base object or NULL */
 	int b_size;		/* size of memory block in bytes */
 	int b_length;		/* number of references we need */
 	int b_index;		/* index of this object into base's
 				   b_object list */
 	PyObject *b_objects;	/* list of references we need to keep */
 	union value b_value;
-} CDataObject;
+};
 
 typedef struct {
 	/* First part identical to tagCDataObject */
