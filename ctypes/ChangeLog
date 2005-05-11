@@ -1,3 +1,10 @@
+2005-05-11  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c (CData_FromBaseObj): Don't call __init__, only
+	__new__, when a ctypes instance is retrieved from a base object.
+	This avoids confusion when structure fields containing structures
+	(for example) are accessed.
+
 2005-04-29  Andreas Degert  <ad@papyrus-gmbh.de>
 
 	* ctypes/__init__.py: no .dll added to the name for Windows, fixes
