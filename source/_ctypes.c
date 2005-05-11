@@ -1977,9 +1977,15 @@ CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr)
 		return NULL;
 	}
 
-	cmem = (CDataObject *)((PyTypeObject *)type)->tp_new(type, empty_tuple, NULL);
+	cmem = (CDataObject *)_type_new(type, NULL, NULL);
 	if (cmem == NULL)
 		return NULL;
+	if (!CDataObject_Check(cmem)) {
+		Py_DECREF(cmem);
+		PyErr_SetString(PyExc_TypeError,
+				"BUG: type call did not return a CDataObject");
+		return NULL;
+	}
 
 	if (cmem->b_needsfree)
 		PyMem_Free(cmem->b_ptr);
