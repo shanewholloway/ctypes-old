@@ -2,6 +2,11 @@
 # Type descriptions are collections of typedesc instances.
 
 # $Log$
+# Revision 1.13  2005/05/13 13:44:35  adegert
+# moved the generation of the load command into the class which loads
+# the libraries; fall back on simple LoadLibrary if name and version
+# can't be found.
+#
 # Revision 1.12  2005/04/29 09:45:48  adegert
 # removed unused import types
 # (slipped on with one of the previous changes).
@@ -593,8 +598,7 @@ class Generator(object):
         if dll:
             if dll not in self.loaded_dlls:
                 print >> self.stream, \
-                      '\n%s = cdll.LoadLibraryVersion("%s","%s")\n' \
-                      % (dll.key, dll.name, dll.version)
+                      '\n%s = %s\n' % (dll.key, dll.make_load_command())
                 self.loaded_dlls.add(dll)
             self.generate(func.returns)
             self.generate_all(func.iterArgTypes())
