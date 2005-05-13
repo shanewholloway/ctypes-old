@@ -1,3 +1,19 @@
+2005-05-13  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* ctypes/wrap/codegenerator.py, ctypes/wrap/xml2py.py: moved the
+	generation of the load command into the class which loads the
+	libraries; fall back on simple LoadLibrary if name and version
+	can't be found.
+
+	* ctypes/__init__.py: prependet '_' to private loadLib-Functions;
+	removed adding of library name as attribute in LoadLibraryVersion
+	functions.
+
+	* docs/reference.stx: documented loading of shared libraries
+
+	* unittests/test_loading.py: added, tests loading of shared
+	libraries
+
 2005-05-11  Thomas Heller  <theller@python.net>
 
 	* source\_ctypes.c (CData_FromBaseObj): Don't call __init__, only
