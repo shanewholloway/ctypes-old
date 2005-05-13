@@ -400,7 +400,7 @@ if _os.name ==  "nt":
 
 if _os.name == "posix":
 
-    def findLib_gcc(name):
+    def _findLib_gcc(name):
         expr = '[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
         cmd = 'if type gcc &>/dev/null; then CC=gcc; else CC=cc; fi;' \
               '$CC -Wl,-t -o /dev/null 2>&1 -l' + name
@@ -420,27 +420,27 @@ if _os.name == "posix":
             return None
         return res.group(0)
 
-    def findLib_ld(name):
+    def _findLib_ld(name):
         expr = '/[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
         res = re.search(expr, _os.popen('/sbin/ldconfig -p 2>/dev/null').read())
         if not res:
             return None
         return res.group(0)
 
-    def get_soname(f):
+    def _get_soname(f):
         cmd = "objdump -p -j .dynamic 2>/dev/null " + f
         res = re.search(r'\sSONAME\s+([^\s]+)', _os.popen(cmd).read())
         if not res:
             return f
         return res.group(1)
 
-    def findLib(name):
-        lib = findLib_ld(name)
+    def _findLib(name):
+        lib = _findLib_ld(name)
         if not lib:
-            lib = findLib_gcc(name)
+            lib = _findLib_gcc(name)
             if not lib:
                 return name
-        return get_soname(lib)
+        return _get_soname(lib)
 
 
 class _DLLS(object):
@@ -469,7 +469,7 @@ class _DLLS(object):
 
     if _os.name == "posix" and sys.platform == "darwin":
         def _findLibrary(self, name):
-            return findLib(name)
+            return _findLib(name)
 
         def LoadLibraryVersion(self, name, version=''):
             path = "lib%s.dylib" % name
@@ -477,18 +477,16 @@ class _DLLS(object):
                 dll = self._dlltype(path)
             except OSError:
                 dll = self._dlltype("/usr/lib/"+path)
-            setattr(self, name, dll)
             return dll
 
     elif _os.name == "posix":
         def _findLibrary(self, name):
-            return findLib(name)
+            return _findLib(name)
 
         def LoadLibraryVersion(self, name, version=''):
             if version:
                 version = '.' + version
             dll = self._dlltype("lib%s.so%s" % (name, version))
-            setattr(self, name, dll)
             return dll
 
     else:
@@ -497,7 +495,6 @@ class _DLLS(object):
 
         def LoadLibraryVersion(self, name, version=''):
             dll = self._dlltype(self._findLibrary(name))
-            setattr(self, name, dll)
             return dll
 
 
