@@ -1,4 +1,4 @@
-import sys, re, os, tempfile, errno
+import sys, re, os, tempfile, errno, warnings
 from optparse import OptionParser
 import typedesc
 from ctypes import CDLL, cast, c_void_p
@@ -29,7 +29,7 @@ class LibraryDescBase(object):
 
     The shared library is loaded from the supplied path.
 
-    Public instance variables:
+    Public instance variables (to be set by derived classes):
 
      name:    name of the shared library (e.g. for the linker option -l)
      version: major version of the shared library (e.g. the 2 in libA.so.2)
@@ -45,6 +45,8 @@ class LibraryDescBase(object):
 
     def __init__(self, path):
         self.lib = CDLL(path)
+        self.path = path
+        self.name = self.version = None
 
     def lookup(self, symbol):
         "return a ctypes function or None"
@@ -52,6 +54,13 @@ class LibraryDescBase(object):
             return getattr(self.lib, symbol)
         except AttributeError:
             return None
+
+    def make_load_command(self):
+        if self.name is not None:
+            return 'cdll.LoadLibraryVersion("%s","%s")' \
+                   % (self.name, self.version)
+        else:
+            return 'cdll.LoadLibrary("%s")' % self.path
 
     def make_legal_identifier(self, name):
         name = re.sub('[^a-zA-Z0-9_]','_', name)
@@ -110,17 +119,25 @@ if os.name == "posix":
 
         def get_soname(self, path):
             cmd = "objdump -p -j .dynamic 2>/dev/null " + path
-            res = re.search(r'\sSONAME\s+([^\s]+)', os.popen(cmd).read())
+            fd = os.popen(cmd)
+            res = re.search(r'\sSONAME\s+([^\s]+)', fd.read())
+            if fd.close() != 0:
+                warnings.warn("error running objdump")
+                return None
             if not res:
                 raise ValueError("no soname found for shared lib '%s'" % path)
             return res.group(1)
 
         def get_name_version(self, path):
             soname = self.get_soname(path)
+            if soname is None:
+                return None, None
             m = re.match(r'lib(?P<name>.+)\.so(\.(?P<version>.*))?', soname)
             if not m:
-                raise ValueError(
-                    "soname of form lib<name>.so.<version> expected, got '%s'" % soname)
+                warnings.warn(
+                    "soname of form lib<name>.so.<version> expected, got '%s'"
+                    % soname)
+                return None, None
             return m.group('name'), m.group('version')
 
         def normalize_path(self, path):
@@ -206,7 +223,10 @@ if os.name == "posix" and sys.platform == "darwin":
 
         def get_soname(self, path):
             cmd = "otool -D 2>/dev/null " + path
-            res = re.match(r'.*:\n(.*)', os.popen(cmd).read())
+            fd = os.popen(cmd)
+            res = re.match(r'.*:\n(.*)', fd.read())
+            if fd.close() != 0:
+                raise EnvironmentError("error running otool")
             if not res:
                 raise ValueError("no soname found for shared lib '%s'" % path)
             return res.group(1)
@@ -215,8 +235,10 @@ if os.name == "posix" and sys.platform == "darwin":
             soname = self.get_soname(path)
             m = re.match(r'.*/lib(?P<name>.+)\.dylib', soname)
             if not m:
-                raise ValueError(
-                    "soname of form .../lib<name>.dylib expected, got '%s'" % soname)
+                warnings.warn(
+                    "soname of form .../lib<name>.dylib expected, got '%s'" \
+                    % soname)
+                return None, None
             return m.group('name'), ''
 
         def normalize_path(self, path):
@@ -279,9 +301,12 @@ if os.name == "nt":
             return dllname, ""
 
         def get_soname(self, path):
-            # Should it strip the extension, if '.dll'?
-            # Should it strip the directory part? Probably...
-            return os.path.basename(path)
+            path = os.path.basename(path)
+            name, ext = os.path.splitext(path)
+            if ext.lower() == '.dll':
+                return name
+            else:
+                return path
 
     class LibraryListNT(LibraryListBase):
 
