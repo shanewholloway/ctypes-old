@@ -14,4 +14,6 @@
 /fficonfig.h.in/1.10/Tue Jun 15 14:47:54 2004/-ko/
 /libtool-version/1.2/Sat Jun 26 20:37:03 2004//
 /stamp-h.in/1.1.1.1/Sun Aug  8 13:27:19 1999/-ko/
-D
+D/include////
+D/src////
+D/testsuite////
