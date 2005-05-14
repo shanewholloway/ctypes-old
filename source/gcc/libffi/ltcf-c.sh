@@ -213,6 +213,10 @@ EOF
     hardcode_shlibpath_var=no
     ;;
 
+  tpf*)
+    ld_shlibs=yes
+    ;;
+
   *)
     if $LD --help 2>&1 | egrep ': supported targets:.* elf' > /dev/null; then
       archive_cmds='$CC -shared $libobjs $deplibs $compiler_flags ${wl}-soname $wl$soname -o $lib'
@@ -263,6 +267,7 @@ else
     hardcode_direct=yes
     hardcode_libdir_separator=':'
     link_all_deplibs=yes
+    file_list_spec='${wl}-f,'
     # When large executables or shared objects are built, AIX ld can
     # have problems creating the table of contents.  If linking a library
     # or program results in "error TOC overflow" add -mminimal-toc to

@@ -10,6 +10,8 @@ AM_ENABLE_MULTILIB(, ..)
 AC_CANONICAL_SYSTEM
 target_alias=${target_alias-$host_alias}
 
+. ${srcdir}/configure.host
+
 AM_INIT_AUTOMAKE
 
 # The same as in boehm-gc and libstdc++. Have to borrow it from there.
@@ -42,17 +44,21 @@ case "$host" in
 i*86-*-linux*) TARGET=X86; TARGETDIR=x86;;
 i*86-*-solaris*) TARGET=X86; TARGETDIR=x86;;
 i*86-*-beos*) TARGET=X86; TARGETDIR=x86;;
-i*86-*-freebsd*) TARGET=X86; TARGETDIR=x86;;
-i*86-*-netbsdelf*) TARGET=X86; TARGETDIR=x86;;
+i*86-*-freebsd* | i*86-*-kfreebsd*-gnu) TARGET=X86; TARGETDIR=x86;;
+i*86-*-netbsdelf* | i*86-*-knetbsd*-gnu) TARGET=X86; TARGETDIR=x86;;
+i*86-*-rtems*) TARGET=X86; TARGETDIR=x86;;
 i*86-*-win32*) TARGET=X86_WIN32; TARGETDIR=x86;;
 i*86-*-cygwin*) TARGET=X86_WIN32; TARGETDIR=x86;;
 i*86-*-mingw*) TARGET=X86_WIN32; TARGETDIR=x86;;
+frv-*-*) TARGET=FRV; TARGETDIR=frv;;
 sparc-sun-4*) TARGET=SPARC; TARGETDIR=sparc;;
 sparc*-sun-*) TARGET=SPARC; TARGETDIR=sparc;;
-sparc-*-linux* | sparc-*-netbsdelf*) TARGET=SPARC; TARGETDIR=sparc;;
-sparc64-*-linux* | sparc64-*-netbsd*) TARGET=SPARC; TARGETDIR=sparc;;
-alpha*-*-linux* | alpha*-*-osf* | alpha*-*-freebsd* | alpha*-*-netbsd*) TARGET=ALPHA; TARGETDIR=alpha;;
+sparc-*-linux* | sparc-*-netbsdelf* | sparc-*-knetbsd*-gnu) TARGET=SPARC; TARGETDIR=sparc;;
+sparc*-*-rtems*) TARGET=SPARC; TARGETDIR=sparc;;
+sparc64-*-linux* | sparc64-*-netbsd* | sparc64-*-knetbsd*-gnu) TARGET=SPARC; TARGETDIR=sparc;;
+alpha*-*-linux* | alpha*-*-osf* | alpha*-*-freebsd* | alpha*-*-kfreebsd*-gnu | alpha*-*-netbsd* | alpha*-*-knetbsd*-gnu) TARGET=ALPHA; TARGETDIR=alpha;;
 ia64*-*-*) TARGET=IA64; TARGETDIR=ia64;;
+m32r*-*-linux* ) TARGET=M32R; TARGETDIR=m32r;;
 m68k-*-linux*) TARGET=M68K; TARGETDIR=m68k;;
 mips64*-*);;
 mips-sgi-irix5.* | mips-sgi-irix6.*) TARGET=MIPS_IRIX; TARGETDIR=mips;;
@@ -61,13 +67,17 @@ powerpc*-*-linux* | powerpc-*-sysv*) TARGET=POWERPC; TARGETDIR=powerpc;;
 powerpc-*-beos*) TARGET=POWERPC; TARGETDIR=powerpc;;
 powerpc-*-darwin*) TARGET=POWERPC_DARWIN; TARGETDIR=powerpc;;
 powerpc-*-aix*) TARGET=POWERPC_AIX; TARGETDIR=powerpc;;
+powerpc*-*-rtems*) TARGET=POWERPC; TARGETDIR=powerpc;;
 rs6000-*-aix*) TARGET=POWERPC_AIX; TARGETDIR=powerpc;;
 arm*-*-linux-*) TARGET=ARM; TARGETDIR=arm;;
-arm*-*-netbsdelf*) TARGET=ARM; TARGETDIR=arm;;
+arm*-*-netbsdelf* | arm*-*-knetbsd*-gnu) TARGET=ARM; TARGETDIR=arm;;
+arm*-*-rtems*) TARGET=ARM; TARGETDIR=arm;;
+cris-*-*) TARGET=LIBFFI_CRIS; TARGETDIR=cris;;
 s390-*-linux-*) TARGET=S390; TARGETDIR=s390;;
 s390x-*-linux-*) TARGET=S390; TARGETDIR=s390;;
-x86_64-*-linux* | x86_64-*-freebsd*) TARGET=X86_64; TARGETDIR=x86;;
+x86_64-*-linux* | x86_64-*-freebsd* | x86_64-*-kfreebsd*-gnu) TARGET=X86_64; TARGETDIR=x86;;
 sh-*-linux* | sh[[34]]*-*-linux*) TARGET=SH; TARGETDIR=sh;;
+sh-*-rtems*) TARGET=SH; TARGETDIR=sh;;
 sh64-*-linux* | sh5*-*-linux*) TARGET=SH64; TARGETDIR=sh64;;
 hppa-*-linux* | parisc-*-linux*) TARGET=PA; TARGETDIR=pa;;
 esac
@@ -85,11 +95,14 @@ AM_CONDITIONAL(X86, test x$TARGET = xX86)
 AM_CONDITIONAL(X86_WIN32, test x$TARGET = xX86_WIN32)
 AM_CONDITIONAL(ALPHA, test x$TARGET = xALPHA)
 AM_CONDITIONAL(IA64, test x$TARGET = xIA64)
+AM_CONDITIONAL(M32R, test x$TARGET = xM32R)
 AM_CONDITIONAL(M68K, test x$TARGET = xM68K)
 AM_CONDITIONAL(POWERPC, test x$TARGET = xPOWERPC)
 AM_CONDITIONAL(POWERPC_AIX, test x$TARGET = xPOWERPC_AIX)
 AM_CONDITIONAL(POWERPC_DARWIN, test x$TARGET = xPOWERPC_DARWIN)
 AM_CONDITIONAL(ARM, test x$TARGET = xARM)
+AM_CONDITIONAL(LIBFFI_CRIS, test x$TARGET = xLIBFFI_CRIS)
+AM_CONDITIONAL(FRV, test x$TARGET = xFRV)
 AM_CONDITIONAL(S390, test x$TARGET = xS390)
 AM_CONDITIONAL(X86_64, test x$TARGET = xX86_64)
 AM_CONDITIONAL(SH, test x$TARGET = xSH)
@@ -219,17 +232,6 @@ case $multi_os_directory in
 esac
 AC_SUBST(toolexecdir)
 AC_SUBST(toolexeclibdir)
-
-#Figure out where generated headers like ffitarget.h get installed.
-changequote(,)dnl
-gcc_version_trigger=${srcdir}/../gcc/version.c
-gcc_version_full=`grep version_string ${gcc_version_trigger} | sed -e 's/.*\"\([^\"]*\)\".*/\1/'`
-gcc_version=`echo ${gcc_version_full} | sed -e 's/\([^ ]*\) .*/\1/'`
-tool_include_dir='$(libdir)/gcc/$(target_alias)/'${gcc_version}/include
-changequote([,])dnl
-AC_SUBST(tool_include_dir)
-AC_SUBST(gcc_version)
-
 
 if test "${multilib}" = "yes"; then
   multilib_arg="--enable-multilib"
