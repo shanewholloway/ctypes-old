@@ -1,3 +1,13 @@
+2005-05-14  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* scripts/fetch_libffi, scripts/cvs-switch, scripts/README: tools
+	to extract and update libffi from the gcc repository.
+
+	* source/gcc: updated libffi to the current cvs version. Makes the
+	unittest test_callbacks work correctly with powerpc (the gc hack
+	can be removed), x86_64 is optimised and works with vararg calls
+	(without additional patches).
+
 2005-05-13  Andreas Degert  <ad@papyrus-gmbh.de>
 
 	* ctypes/wrap/codegenerator.py, ctypes/wrap/xml2py.py: moved the
