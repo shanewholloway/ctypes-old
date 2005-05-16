@@ -2,7 +2,7 @@
 
 # special developer support to use ctypes from the CVS sandbox,
 # without installing it
-import os as _os, sys, re, tempfile
+import os as _os, sys, itertools
 _magicfile = _os.path.join(_os.path.dirname(__file__), ".CTYPES_DEVEL")
 if _os.path.isfile(_magicfile):
     execfile(_magicfile)
@@ -120,7 +120,15 @@ if _os.name == "nt":
             return WinFunctionType
 
 elif _os.name == "posix":
-    from _ctypes import dlopen as _LoadLibrary
+    if sys.platform == "darwin":
+        from macholib.dyld import dyld_find as _dyld_find
+        from _ctypes import dlopen as _dlopen
+        def _LoadLibrary(name):
+            if name:
+                name = _dyld_find(name)
+            return _dlopen(name)
+    else:
+        from _ctypes import dlopen as _LoadLibrary
     _FreeLibrary = None
 
 from _ctypes import sizeof, byref, addressof, alignment
@@ -398,50 +406,17 @@ if _os.name ==  "nt":
             return func
 
 
-if _os.name == "posix":
+def register_library_alias(alias, libname, osname, platform=None):
+    global _library_map
+    if osname is not None and osname != _os.name:
+        return
+    if platform is not None and platform != sys.platform:
+        return
+    _library_map[alias] = libname
 
-    def _findLib_gcc(name):
-        expr = '[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
-        cmd = 'if type gcc &>/dev/null; then CC=gcc; else CC=cc; fi;' \
-              '$CC -Wl,-t -o /dev/null 2>&1 -l' + name
-        try:
-            fdout, outfile =  tempfile.mkstemp()
-            fd = _os.popen(cmd)
-            trace = fd.read()
-            err = fd.close()
-        finally:
-            try:
-                _os.unlink(outfile)
-            except OSError, e:
-                if e.errno != errno.ENOENT:
-                    raise
-        res = re.search(expr, trace)
-        if not res:
-            return None
-        return res.group(0)
+_library_map = {}
 
-    def _findLib_ld(name):
-        expr = '/[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
-        res = re.search(expr, _os.popen('/sbin/ldconfig -p 2>/dev/null').read())
-        if not res:
-            return None
-        return res.group(0)
-
-    def _get_soname(f):
-        cmd = "objdump -p -j .dynamic 2>/dev/null " + f
-        res = re.search(r'\sSONAME\s+([^\s]+)', _os.popen(cmd).read())
-        if not res:
-            return f
-        return res.group(1)
-
-    def _findLib(name):
-        lib = _findLib_ld(name)
-        if not lib:
-            lib = _findLib_gcc(name)
-            if not lib:
-                return name
-        return _get_soname(lib)
-
+register_library_alias("c", "msvcrt", "nt")
 
 class _DLLS(object):
     def __init__(self, dlltype):
@@ -450,7 +425,7 @@ class _DLLS(object):
     def __getattr__(self, name):
         if name[0] == '_':
             raise AttributeError, name
-        dll = self._dlltype(name)
+        dll = self.LoadLibrary(name)
         setattr(self, name, dll)
         return dll
 
@@ -460,30 +435,60 @@ class _DLLS(object):
     def LoadLibrary(self, name):
         return self._dlltype(name)
 
-    def find(self, name):
-        # should loop over different known naming styles
-        name = self._findLibrary(name)
-        dll = self._dlltype(name)
-        print "ctypes.find: %s" % name
+    def find(self, name, showname=True):
+        global _library_map
+        if name in _library_map:
+            names = itertools.chain(
+                self._findLibrary(name),
+                self._findLibrary(_library_map[name]))
+        else:
+            names = self._findLibrary(name)
+        for libname in names:
+            try:
+                dll = self._dlltype(libname)
+            except OSError:
+                continue
+            break
+        else:
+            raise OSError, "not found: %s" % name
+        if showname:
+            print "ctypes.find: %s" % libname
 	return dll
+
+    def LoadLibraryVersion(self, name, version=''):
+        global _library_map
+        try:
+            return self._LoadLibraryVersion(name, version)
+        except OSError, e:
+            pass
+        if name not in _library_map:
+            raise
+        name = _library_map[name]
+        try:
+            return self._LoadLibraryVersion(name, version)
+        except OSError:
+            raise e
 
     if _os.name == "posix" and sys.platform == "darwin":
         def _findLibrary(self, name):
-            return _findLib(name)
+            return ['lib%s.dylib' % name,
+                    '%s.dylib' % name,
+                    '%s.framework/%s' % (name, name)]
 
-        def LoadLibraryVersion(self, name, version=''):
-            path = "lib%s.dylib" % name
-            try:
-                dll = self._dlltype(path)
-            except OSError:
-                dll = self._dlltype("/usr/lib/"+path)
-            return dll
+        def _LoadLibraryVersion(self, name, version=''):
+            for libname in self._findLibrary(name):
+                try:
+                    return self._dlltype(libname)
+                except OSError:
+                    continue
+            raise OSError, "not found: %s" % name
 
     elif _os.name == "posix":
         def _findLibrary(self, name):
-            return _findLib(name)
+            from util import findLib
+            return findLib(name)
 
-        def LoadLibraryVersion(self, name, version=''):
+        def _LoadLibraryVersion(self, name, version=''):
             if version:
                 version = '.' + version
             dll = self._dlltype("lib%s.so%s" % (name, version))
@@ -491,11 +496,10 @@ class _DLLS(object):
 
     else:
         def _findLibrary(self, name):
-            return name
+            return [name]
 
-        def LoadLibraryVersion(self, name, version=''):
-            dll = self._dlltype(self._findLibrary(name))
-            return dll
+        def _LoadLibraryVersion(self, name, version=''):
+            return self._dlltype(name)
 
 
 cdll = _DLLS(CDLL)
