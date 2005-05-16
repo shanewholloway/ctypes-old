@@ -132,7 +132,7 @@ def dyld_find(name, executable_path=None, env=None):
             ), env):
         if os.path.isfile(path):
             return path
-    raise ValueError, "dylib %s could not be found" % (name,)
+    raise OSError, "dylib %s could not be found" % (name,)
 
 def framework_find(fn, executable_path=None, env=None):
     """
@@ -145,7 +145,7 @@ def framework_find(fn, executable_path=None, env=None):
     """
     try:
         return dyld_find(fn, executable_path=executable_path, env=env)
-    except ValueError, e:
+    except OSError, e:
         pass
     fmwk_index = fn.rfind('.framework')
     if fmwk_index == -1:
@@ -154,7 +154,7 @@ def framework_find(fn, executable_path=None, env=None):
     fn = os.path.join(fn, os.path.basename(fn[:fmwk_index]))
     try:
         return dyld_find(fn, executable_path=executable_path, env=env)
-    except ValueError:
+    except OSError:
         raise e
 
 def test_dyld_find():
