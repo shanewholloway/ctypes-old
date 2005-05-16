@@ -67,7 +67,7 @@ class TestStrings(unittest.TestCase):
         c_char_p.from_param(c_char_p("abc"))
         c_char_p.from_param(byref(c_char("x")))
 #fails        print c_char_p.from_param(c_wchar_p(u"abc"))
-        print c_char_p.from_param(cast(42, c_char_p))
+        c_char_p.from_param(cast(42, c_char_p))
 
 if __name__ == "__main__":
     unittest.main()
