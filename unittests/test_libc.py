@@ -1,17 +1,8 @@
 from ctypes import *
 import unittest
 
-def get_libc():
-    import os, sys
-    if os.name == "nt":
-        return cdll.msvcrt
-    try:
-        return CDLL("libc.so.6")
-    except OSError:
-        return cdll.c
-
-libc = get_libc()
-libm = cdll.m
+libc = cdll.find('c', False)
+libm = cdll.find('m', False)
 
 class LibTest(unittest.TestCase):
     def test_sqrt(self):

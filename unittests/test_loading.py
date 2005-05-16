@@ -10,7 +10,7 @@ class LoaderTest(unittest.TestCase):
 	if os.name == "nt":
 	    name = "msvcrt"
 	elif sys.platform == "darwin":
-	    name = "libc.so"
+	    name = "libc.dylib"
 	else:
 	    name = "libc.so.6"
 	cdll.LoadLibrary(name)
@@ -18,10 +18,7 @@ class LoaderTest(unittest.TestCase):
 
     def test_LoadLibraryVersion(self):
 	version = "6"
-	if os.name == "nt":
-	    name = "msvcrt"
-	else:
-	    name = "c"
+        name = "c"
 	cdll.LoadLibraryVersion(name, version)
 	if sys.platform == "linux2":
 	    # linux uses version, libc 9 should not exist
@@ -29,18 +26,9 @@ class LoaderTest(unittest.TestCase):
 	self.assertRaises(OSError, cdll.LoadLibraryVersion, self.unknowndll, "")
 
     def test_find(self):
-	if os.name == "nt":
-	    name = "msvcrt"
-	else:
-	    name = "c"
-	#suppress output of cdll.find
-	stdout = sys.stdout
-	sys.stdout = StringIO.StringIO()
-	try:
-	    cdll.find(name)
-	finally:
-	    sys.stdout = stdout
+        name = "c"
+        cdll.find(name, False)
 	self.assertRaises(OSError, cdll.find, self.unknowndll)
-	
+
 if __name__ == "__main__":
     unittest.main()
