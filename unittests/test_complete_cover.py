@@ -106,7 +106,8 @@ class CompleteCoverage(unittest.TestCase):
         self.failUnlessRaises(TypeError, lambda: setattr(Y, "__dict__", {})) # unwriteable
 
         # from_param
-        print c_int.from_param(c_int(42))
+        self.failUnlessEqual(repr(c_int.from_param(c_int(42))),
+                             "<cparam 'i4' (42)>")
 ##        print c_int.from_param(c_longlong(42L))
 ##        c = c_char("x")
 ##        print c_int.from_param(c)

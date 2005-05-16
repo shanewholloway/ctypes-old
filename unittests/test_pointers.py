@@ -16,7 +16,7 @@ class PointersTestCase(unittest.TestCase):
         class A(POINTER(c_ulong)):
             pass
 
-        print POINTER(c_ulong)(c_ulong(22))
+        POINTER(c_ulong)(c_ulong(22))
         # Pointer can't set contents: has no _type_
         self.failUnlessRaises(TypeError, A, c_ulong(33))
 
