@@ -1,4 +1,32 @@
+2005-05-17  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* ctypes/macholib/dyld.py: ValueError changed into OSError (make
+	it compatible with other loader functions)
+
+	* unittests/test_libc.py, unittests/test_loading.py: library
+	loading changed.
+
+	* unittests/test_complete_cover.py, unittests/test_pointers.py,
+	unittests/test_setfunc.py: output to stdout removed.
+
+	* unittests/test_callbacks.py: comment on OS X crash and
+	tearDown() method containing hack removed.
+
+	* docs/reference.stx: explanation for use of different loader
+	functions added.
+
+	* ctypes/__init__.py: use dyld_find from macholib for OS X, some
+	definitions moved to util.py, added register_library_alias().
+
+	* ctypes/util.py: added (platform dependent helpers)
+
+	* MANIFEST.other.in: ctypes/macholib included (its not declared as
+	a module in setup.py because its not needed for windows
+	distribution).
+
 2005-05-14  Andreas Degert  <ad@papyrus-gmbh.de>
+
+	* ctypes/macholib: added, copied from branch_1_0
 
 	* scripts/fetch_libffi, scripts/cvs-switch, scripts/README: tools
 	to extract and update libffi from the gcc repository.
