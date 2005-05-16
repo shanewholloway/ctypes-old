@@ -3,6 +3,7 @@ include run_remote_test.py
 include source/*.c source/*.h
 include source/darwin/*.c source/darwin/*.h
 include ctypes/.CTYPES_DEVEL
+include ctypes/macholib/*.py ctypes/macholib/README.ctypes
 recursive-include source/gcc *
 
 include unittests/*.py
