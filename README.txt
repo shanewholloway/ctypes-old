@@ -53,7 +53,9 @@ Installation
             python setup.py build
 
 	This will build the Python extension modules.  A C compiler is
-	required.
+	required. On OS X, the segment attribute live_support must be
+	defined. If your compiler doesn't know about it, upgrade or
+	set the environment variable CCASFLAGS="-Dno_live_support".
 
 	To run the builtin unittests, enter
 

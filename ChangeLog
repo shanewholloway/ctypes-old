@@ -1,5 +1,7 @@
 2005-05-17  Andreas Degert  <ad@papyrus-gmbh.de>
 
+	* README.txt: comment about compiling with older versions of OS X.
+
 	* ctypes/macholib/dyld.py: ValueError changed into OSError (make
 	it compatible with other loader functions)
 
