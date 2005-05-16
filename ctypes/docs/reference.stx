@@ -32,7 +32,7 @@ ctypes reference
     Methods of loader objects:
 
         'LoadLibrary(libname)' -- Loads the library given by
-        libname. On most systems libname ist the filename of the
+        libname. On most systems libname is the filename of the
         shared library; when it's not a path name it will be searched
         in a system dependent list of locations (on many systems
         additional search paths can be specified by an environment
@@ -65,6 +65,15 @@ ctypes reference
         underscore (_) can't be accessed as attributes of a loader
         object (use LoadLibrary).
 
+    Shared libraries are accessed when compiling/linking a program,
+    and when the program is run. The purpose of the find method is to
+    locate a library similar to what the compiler does (on platforms
+    with several versions of a shared library the most recent should
+    be loaded), while LoadLibrary acts like when a program is run, and
+    uses the runtime loader directly. LoadLibraryVersion works like
+    LoadLibrary but tries to be platform independent (for cases where
+    this makes sense). Loading via attribute access is a shorthand
+    notation especially usefull for interactive use.
 
   Common operations on ctypes instances
 
