@@ -63,13 +63,16 @@ Installation
 
         There may still be some problems on certain platforms, and the
         tests may crash Python with a segfault - for this reason the
-        unittests are run in separate processes.
+        unittests are run in separate processes.  To run all tests in
+        the same process, which will at least be faster, use
+
+            python setup.py testlocal
 
 	To install ctypes, enter
 
             python setup.py install --help
 
-        to see the avaibable options, and finally
+        to see the available options, and finally
 
 	    python setup.py install [options]
 
