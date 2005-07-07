@@ -79,7 +79,7 @@ TYPES = {
     VT_BSTR: "BSTR",
     VT_DISPATCH: "POINTER(IDispatch)",
 
-    VT_BOOL: "c_int", # we don't have a c_bool (or com_bool?) type yet
+    VT_BOOL: "VARIANT_BOOL",
     VT_VARIANT: "VARIANT",
     VT_UNKNOWN: "POINTER(IUnknown)",
 
@@ -601,7 +601,7 @@ HEADER = r"""
 from ctypes import *
 from ctypes.com import IUnknown, GUID, STDMETHOD, HRESULT
 from ctypes.com.automation import IDispatch, BSTR, VARIANT, dispinterface, \
-                                  DISPMETHOD, DISPPARAMS, EXCEPINFO
+                                  DISPMETHOD, DISPPARAMS, EXCEPINFO, VARIANT_BOOL
 
 """
 

@@ -1,3 +1,8 @@
+2005-07-07  Thomas Heller  <theller@python.net>
+
+	* tools\readtlb.py: Code for VARIANT_BOOL must be generated as
+	c_short, not c_int.
+
 2005-03-22  Thomas Heller  <theller@python.net>
 
 	* (Message): Remove the wrong definition of OLESTR.  This fixes
