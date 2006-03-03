@@ -61,10 +61,10 @@ def dyld_fallback_library_path(env=None):
 
 def dyld_image_suffix_search(iterator, env=None):
     """For a potential path iterator, add DYLD_IMAGE_SUFFIX semantics"""
-    suffix = dyld_image_suffix()
+    suffix = dyld_image_suffix(env)
     if suffix is None:
         return iterator
-    def _inject(iterator=iterator,suffix=suffix):
+    def _inject(iterator=iterator, suffix=suffix):
         for path in iterator:
             if path.endswith('.dylib'):
                 yield path[:-len('.dylib')] + suffix + '.dylib'
@@ -80,16 +80,16 @@ def dyld_override_search(name, env=None):
     # if any.
 
     framework = framework_info(name)
-    
+
     if framework is not None:
-        for path in dyld_framework_path():
+        for path in dyld_framework_path(env):
             yield os.path.join(path, framework['name'])
 
     # If DYLD_LIBRARY_PATH is set then use the first file that exists
-    # in the path.  If none use the original name.    
-    for path in dyld_library_path():
-        yield os.path.join(path, os.path.dirname(name))
-        
+    # in the path.  If none use the original name.
+    for path in dyld_library_path(env):
+        yield os.path.join(path, os.path.basename(name))
+
 def dyld_executable_path_search(name, executable_path=None):
     # If we haven't done any searching and found a library and the
     # dylib_name starts with "@executable_path/" then construct the
@@ -103,11 +103,11 @@ def dyld_default_search(name, env=None):
     framework = framework_info(name)
 
     if framework is not None:
-        fallback_framework_path = dyld_fallback_framework_path()
+        fallback_framework_path = dyld_fallback_framework_path(env)
         for path in fallback_framework_path:
             yield os.path.join(path, framework['name'])
 
-    fallback_library_path = dyld_fallback_library_path()
+    fallback_library_path = dyld_fallback_library_path(env)
     for path in fallback_library_path:
         yield os.path.join(path, os.path.basename(name))
 
@@ -132,7 +132,7 @@ def dyld_find(name, executable_path=None, env=None):
             ), env):
         if os.path.isfile(path):
             return path
-    raise OSError, "dylib %s could not be found" % (name,)
+    raise ValueError, "dylib %s could not be found" % (name,)
 
 def framework_find(fn, executable_path=None, env=None):
     """
@@ -145,7 +145,7 @@ def framework_find(fn, executable_path=None, env=None):
     """
     try:
         return dyld_find(fn, executable_path=executable_path, env=env)
-    except OSError, e:
+    except ValueError, e:
         pass
     fmwk_index = fn.rfind('.framework')
     if fmwk_index == -1:
@@ -154,13 +154,13 @@ def framework_find(fn, executable_path=None, env=None):
     fn = os.path.join(fn, os.path.basename(fn[:fmwk_index]))
     try:
         return dyld_find(fn, executable_path=executable_path, env=env)
-    except OSError:
+    except ValueError:
         raise e
 
 def test_dyld_find():
     env = {}
-    print dyld_find('libSystem')
-    print dyld_find('System.framework/System')
+    assert dyld_find('libSystem.dylib') == '/usr/lib/libSystem.dylib'
+    assert dyld_find('System.framework/System') == '/System/Library/Frameworks/System.framework/System'
 
 if __name__ == '__main__':
     test_dyld_find()

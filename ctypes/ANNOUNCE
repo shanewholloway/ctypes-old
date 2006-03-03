@@ -1,5 +1,5 @@
-ctypes 0.9.6 released - Mar 18, 2005
-====================================
+ctypes 0.9.9.3 released - Feb 15, 2006
+======================================
 
 Overview
 
@@ -12,16 +12,13 @@ Overview
     wrap libraries in pure Python.  It is even possible to implement C
     callback functions in pure Python.
 
-    ctypes now includes a code generator toolchain which allows
+    ctypes includes a code generator toolchain which allows
     automatic creation of library wrappers from C header files.
     This feature is still experimental and beta quality.
 
-    ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD, OpenBSD.
-    It may also run on other systems, provided that libffi supports
-    this platform.
-
-    For windows, ctypes contains a ctypes.com package which allows to
-    call and implement custom COM interfaces.
+    ctypes runs on Windows, Windows CE, MacOS X, Linux, Solaris,
+    FreeBSD, OpenBSD. It may also run on other systems, provided that
+    libffi supports this platform.
 
 Important
 
@@ -32,6 +29,54 @@ Important
     There have been lots of changes - if you are the author or user of
     a package that uses ctypes, please test it with this release
     and report problems on the ctypes-users mailing list.
+
+Changes in 0.9.9.3
+
+    (These are the most important changes, see the ChangeLog for
+    complete details)
+
+    Windows
+
+        The ctypes.com package is no longer included and supported.
+        It is replaced by the comtypes package which will be released
+        separately.
+
+	ctypes has been ported to Windows CE by Luke Dunstan.
+
+    Other platforms
+
+        Hye-Shik Chang has written a new build system for libffi
+        which should remove possible licensing issues.
+
+    All platforms
+
+        The library loading code has been rewritten by Andreas Degert,
+        there are now sophisticated methods to find shared libraries.
+	On OS X, this uses files from Bob Ippolito's macholib.
+        See the manual for details.
+
+        Finally I started to write the manual, it is available online:
+
+            http://tinyurl.com/7bpg4
+
+	New 'errcheck' protocol to check the return values of foreign
+	functions, suggested by Mike Fletcher.
+
+	Lots of bug fixes, especially for 64-bit platforms. Improved
+	performance when creating ctypes instances.
+
+	Subclasses of simple types (c_int, c_void_p, and so on) now
+	behave as expected - they are not automatically converted into
+	native Python types any longer.
+
+	Support for explicit byte ordering in structures has been
+	added (BigEndianStructure, LittleEndianStructure base
+	classes).
+
+	call byref() automatically, if needed, for POINTER types in
+	argtypes.
+
+	Lots of improvements to the code generator.
 
 Changes in 0.9.6
 
@@ -57,8 +102,6 @@ Changes in 0.9.6
     - Several changes have been made to the h2xml script from the
     codegenerator toolchain. See the documentation (linked below) for
     details.
-
------------------------
 
 Additions in 0.9.5
 
@@ -102,11 +145,9 @@ Changes in 0.9.5
     An important bug has been fixed with pointers.
 
 
-    Detailed changelogs are in CVS:
-    
-    <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=HEAD>
+    Detailed changelog is in CVS:
 
-    <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/win32/com/ChangeLog?rev=HEAD>
+    <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=1.86.2.39>
 
 
 Download
@@ -115,9 +156,9 @@ Download
     <http://sourceforge.net/project/showfiles.php?group_id=71702>
 
     Separate source distributions are available for windows and non-windows systems.
-    Please use the .zip file for Windows (it contains the ctypes.com framework),
-    and use the .tar.gz file for non-Windows systems (it contains the
-    complete cross-platform libffi sources).
+    Please use the .zip file for Windows and Windows CE, and use the
+    .tar.gz file for non-Windows systems (it contains the complete
+    cross-platform libffi sources).
 
     Binary windows installers, which contain compiled extension
     modules, are also available, be sure to download the correct one

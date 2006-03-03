@@ -9,11 +9,14 @@ Python, and to call functions in dynamic link libraries/shared
 dlls. It allows wrapping these libraries in pure Python.
 """
 
-LIBFFI_SOURCES='source/gcc/libffi'
+LIBFFI_SOURCES='source/libffi'
 
-__version__ = "2.0.0.0cvs"
+__version__ = "0.9.9.4"
 
 ################################################################
+
+##from ez_setup import use_setuptools
+##use_setuptools()
 
 import os, sys
 
@@ -40,210 +43,56 @@ if get_platform() in ["solaris-2.9-sun4u", "linux-x86_64"]:
 class test(Command):
     # Original version of this class posted
     # by Berthold Hoellmann to distutils-sig@python.org
-    description = "run unittests each in a separate process"
+    description = "run tests"
 
     user_options = [
-        ('test-dirs=', None,
-         "comma-separated list of directories that contain the test definitions"),
-        ('test-prefix=', None,
-         "prefix to the testcase filename"),
-        ('verbosity=', 'V', "verbosity"),
+        ('tests=', 't',
+         "comma-separated list of packages that contain test modules"),
+        ('use-resources=', 'u',
+         "resources to use - resource names are defined by tests"),
+        ('refcounts', 'r',
+         "repeat tests to search for refcount leaks (requires 'sys.gettotalrefcount')"),
         ]
+
+    boolean_options = ["refcounts"]
 
     def initialize_options(self):
         self.build_base = 'build'
-        # these are decided only after 'build_base' has its final value
-        # (unless overridden by the user or client)
-        self.test_prefix = 'test_'
-        self.verbosity = 1
+        self.use_resources = ""
+        self.refcounts = False
         if sys.platform == "win32":
-            if os.path.isdir(r"comtypes\unittests"):
-                self.test_dirs = r"unittests,unittests\com,comtypes\unittests"
-            else:
-                self.test_dirs = r"unittests,unittests\com"
+            self.tests = "ctypes.test,comtypes.test"
         else:
-            self.test_dirs = "unittests"
+            self.tests = "ctypes.test"
 
     # initialize_options()
 
     def finalize_options(self):
-        try:
-            self.verbosity = int(self.verbosity)
-        except ValueError:
-            raise DistutilsOptionError, \
-                  "verbosity must be an integer"
-
-        build = self.get_finalized_command('build')
-        self.build_purelib = build.build_purelib
-        self.build_platlib = build.build_platlib
-
-        self.test_dirs = self.test_dirs.split(",")
+        if self.refcounts and not hasattr(sys, "gettotalrefcount"):
+            raise DistutilsOptionError("refcount option requires Python debug build")
+        self.tests = self.tests.split(",")
+        self.use_resources = self.use_resources.split(",")
 
     # finalize_options()
 
-    def extend_path(self):
-        # We must add the current directory to $PYTHONPATH for the unittests
-        # running as separate processes
-        pypath = os.environ.get("PYTHONPATH")
-        if pypath:
-            pypath = pypath.split(os.pathsep) + []
-        else:
-            pypath = []
-        if os.getcwd() in pypath:
-            return
-        os.environ["PYTHONPATH"] = os.pathsep.join(pypath)
-
     def run(self):
-        import glob, unittest, time
         self.run_command('build')
 
-        for direct in self.test_dirs:
-            mask = os.path.join(direct, self.test_prefix + "*.py")
-            test_files = glob.glob(mask)
+        import ctypes.test
+        ctypes.test.use_resources.extend(self.use_resources)
 
-            print "=== Testing in '%s' ===" % direct
-            self.extend_path()
-
-            self.testcases = []
-            self.ok = self.fail = self.errors = 0
-            self.tracebacks = []
-
-            start_time = time.time()
-            for t in test_files:
-                testcases = self.run_test(t)
-                for case in testcases:
-                    if self.verbosity > 1:
-                        print >> sys.stderr, case
-                    elif self.verbosity == 1:
-                        if case.endswith("ok"):
-                            sys.stderr.write(".")
-                        elif case.endswith("FAIL"):
-                            sys.stderr.write("F")
-                        elif case.endswith("ERROR"):
-                            sys.stderr.write("E")
-                        else:
-                            sys.stderr.write("?")
-            stop_time = time.time()
-
-            print >> sys.stderr
-            for f in self.tracebacks:
-                print >> sys.stderr, "=" * 42
-                print >> sys.stderr, f[0]
-                print >> sys.stderr, "-" * 42
-                print >> sys.stderr, "\n".join(f[1:])
-                print >> sys.stderr
-
-            print >> sys.stderr, "-" * 70
-            print >> sys.stderr, "Ran %d tests in %.3fs" % (len(self.testcases),
-                                                            stop_time - start_time)
-            print >> sys.stderr
-            if self.fail + self.errors == 0:
-                print >> sys.stderr, "OK"
-            else:
-                if self.errors:
-                    print >> sys.stderr, "FAILED (failures=%d, errors=%d)" % (self.fail,
-                                                                              self.errors)
-                else:
-                    print >> sys.stderr, "FAILED (failures=%d)" % self.fail
+        for name in self.tests:
+            package = __import__(name, globals(), locals(), ['*']) 
+            print "Testing package", name
+            ctypes.test.run_tests(package,
+                                  "test_*.py",
+                                  self.verbose,
+                                  self.refcounts)
 
     # run()
 
-    def run_test(self, path):
-        # Run a test file in a separate process, and parse the output.
-        # Collect the results in the ok, fail, error, testcases and
-        # tracebacks instance vars.
-        # A sequence of testcase names together with their outcome is returned.
-        if self.verbosity > 1:
-            print "Running '%s run_remote_test.py %s'" % (sys.executable, path)
-        ret = os.system("%s run_remote_test.py %s" % (sys.executable, path))
-        if ret:
-            print "CRASHED (%d)" % ret, path
-        cases = []
-        o = open("test.output")
-        while 1:
-            line = o.readline()
-            if not line:
-                break
-            line = line.rstrip()
-            if line.startswith('test'):
-                cases.append(line)
-                if line.endswith("ok"):
-                    self.ok += 1
-                elif line.endswith("FAIL"):
-                    self.fail += 1
-                elif line.endswith("ERROR"):
-                    self.errors += 1
-                else: #?
-                    self.errors += 1
-                    self.tracebacks.append([line, "Crashed"])
-            elif line == "=" * 70:
-                # failure or error
-                name = o.readline().rstrip()
-                assert o.readline().rstrip() == "-" * 70
-                tb = [name]
-                while 1:
-                    data = o.readline()
-                    if not data.rstrip():
-                        break
-                    tb.append(data.rstrip())
-                self.tracebacks.append(tb)
-            elif line.rstrip() == '-' * 70:
-                pass
-            elif line.startswith("Ran "):
-                pass
-    ##        else:
-    ##            print line
-        self.testcases.extend(cases)
-        return cases
-
 # class test
 
-class test_local(test):
-    description = "run the unittests (includes doctests)"
-
-    # This also runs doctest testcases contained in the test modules
-    def run(self):
-        import glob, unittest, doctest, new
-        self.run_command('build')
-
-        test_suites = []
-
-        for direct in self.test_dirs:
-            mask = os.path.join(direct, self.test_prefix + "*.py")
-            test_files = glob.glob(mask)
-
-            print "=== Testing in '%s' ===" % direct
-            test_suites = []
-            old_path = sys.path[:]
-            sys.path.insert(0, direct)
-
-            try:
-                for pathname in test_files:
-                    modname = os.path.splitext(pathname)[0].split(os.sep)[-1]
-                    try:
-                        mod = __import__(modname)
-                    except Exception, e:
-                        print >> sys.stderr, \
-                              "Could not import %s:\n  %s" % (pathname, e)
-                        continue
-                    try:
-                        suite = doctest.DocTestSuite(mod)
-                    except ValueError:
-                        pass
-                    else:
-                        test_suites.append(suite)
-                    for name, obj in mod.__dict__.items():
-                        if name.startswith("_"):
-                            continue
-                        if type(obj) is type(unittest.TestCase) \
-                               and issubclass(obj, unittest.TestCase):
-                            test_suites.append(unittest.makeSuite(obj))
-            finally:
-                sys.path = old_path
-                suite = unittest.TestSuite(test_suites)
-                unittest.TextTestRunner(verbosity=self.verbosity).run(suite)
-# class test_local
-                        
 
 class my_build_py(build_py.build_py):
     def find_package_modules (self, package, package_dir):
@@ -273,30 +122,43 @@ class my_build_ext(build_ext.build_ext):
             self.debug = ('_d.pyd', 'rb', imp.C_EXTENSION) in imp.get_suffixes()
         build_ext.build_ext.finalize_options(self)
 
-    # First build a static libffi library, then build the _ctypes extension.
-    def run(self):
-        self.build_libffi_static()
-        build_ext.build_ext.run(self)
+    # First configure a libffi library, then build the _ctypes extension.
+    def build_extensions(self):
+        self.configure_libffi()
 
-    def fix_extension(self, inst_dir):
-        incdir = find_file_in_subdir(os.path.join(inst_dir, "include"), "ffi.h")
+        # Add .S (preprocessed assembly) to C compiler source extensions.
+        self.compiler.src_extensions.append('.S')
+
+        build_ext.build_ext.build_extensions(self)
+
+    def fix_extension(self, ffi_dir):
+        fficonfigfile = os.path.join(ffi_dir, 'fficonfig.py')
+        if not os.path.exists(fficonfigfile):
+            return 0
+
+        incdir = find_file_in_subdir(os.path.join(ffi_dir, "include"), "ffi.h")
         if not incdir:
             return 0
-        libdir = find_file_in_subdir(os.path.join(inst_dir, "lib"), "libffi.a") or \
-                 find_file_in_subdir(os.path.join(inst_dir, "lib64"), "libffi.a")
-        if not libdir:
-            return 0
-        incdir_2 = find_file_in_subdir(os.path.join(inst_dir, "lib"), "ffitarget.h")
+        incdir_2 = find_file_in_subdir(ffi_dir, "fficonfig.h")
         if not incdir_2:
             return 0
+
+        fficonfig = {}
+        execfile(fficonfigfile, globals(), fficonfig)
+        srcdir = os.path.join(fficonfig['ffi_srcdir'], 'src')
+
         for ext in self.extensions:
             if ext.name == "_ctypes":
                 ext.include_dirs.append(incdir)
                 ext.include_dirs.append(incdir_2)
-                ext.library_dirs.append(libdir)
+                ext.include_dirs.append(srcdir)
+                ext.sources.extend(fficonfig['ffi_sources'])
+                if fficonfig['ffi_cflags'].strip():
+                    ext.extra_compile_args.extend(
+                        fficonfig['ffi_cflags'].split())
         return 1
 
-    def build_libffi_static(self):
+    def configure_libffi(self):
         if sys.platform == "win32":
             return
         if LIBFFI_SOURCES == None:
@@ -307,33 +169,26 @@ class my_build_ext(build_ext.build_ext):
         self.build_temp = self.build_temp.replace(" ", "")
 
         build_dir = os.path.join(self.build_temp, 'libffi')
-        inst_dir = os.path.abspath(self.build_temp)
 
-        if not self.force and self.fix_extension(inst_dir):
+        if not self.force and self.fix_extension(build_dir):
             return
 
         mkpath(build_dir)
-        config_args = ["--disable-shared",
-                       "--enable-static",
-                       "--enable-multilib=no",
-                       "--prefix='%s'" % inst_dir,
-        ]
+        config_args = []
 
-        cmd = "cd %s && '%s/configure' %s && make install" \
+        # Pass empty CFLAGS because we'll just append the resulting CFLAGS
+        # to Python's; -g or -O2 is to be avoided.
+        cmd = "cd %s && env CFLAGS='' '%s/configure' %s" \
               % (build_dir, src_dir, " ".join(config_args))
 
-        print 'Building static FFI library:'
+        print 'Configuring static FFI library:'
         print cmd
-        if sys.platform == "openbsd3":
-            os.environ["CFLAGS"] = "-fno-stack-protector"
         res = os.system(cmd)
-        if sys.platform == "openbsd3":
-            del os.environ["CFLAGS"]
         if res:
             print "Failed"
             sys.exit(res)
 
-        assert self.fix_extension(inst_dir), "Could not find libffi after building it"
+        assert self.fix_extension(build_dir), "Could not find libffi after building it"
 
 # Since we mangle the build_temp dir, we must also do this in the clean command.
 class my_clean(clean.clean):
@@ -363,10 +218,6 @@ kw["sources"] = ["source/_ctypes.c",
                  "source/stgdict.c",
                  "source/cfield.c",
                  "source/malloc_closure.c"]
-
-import struct, binascii
-if "12345678" ==  binascii.hexlify(struct.pack("i", 0x12345678)):
-    kw["define_macros"] = [("IS_BIG_ENDIAN", "1")]
 
 # common header file
 kw["depends"] = ["source/ctypes.h"]
@@ -403,10 +254,10 @@ else:
         kw["sources"].append("source/darwin/dlfcn_simple.c")
         extra_link_args.extend(['-read_only_relocs', 'warning'])
         include_dirs.append("source/darwin")
-	kw["define_macros"].append(("DLFCN_SIMPLE","1"))
+    elif sys.platform == "sunos5":
+        extra_link_args.extend(['-mimpure-text'])
 
     extensions = [Extension("_ctypes",
-                            libraries=["ffi"],
                             include_dirs=include_dirs,
                             library_dirs=library_dirs,
                             extra_link_args=extra_link_args,
@@ -417,55 +268,9 @@ else:
 ################################################################
 # the ctypes package
 #
-packages = ["ctypes", "ctypes.wrap"]
-package_dir = {}
-
-################################################################
-# the ctypes.com package
-#
-if sys.platform == "win32":
-    packages.append("ctypes.com")
-    package_dir["ctypes.com"] = "win32/com"
-
-    packages.append("ctypes.com.tools")
-    package_dir["ctypes.com.tools"] = "win32/com/tools"
-
-################################################################
-# options for distutils, and ctypes.com samples
-#
-setup_options = {}
-
-if sys.platform == 'win32':
-    # Use different MANIFEST templates, to minimize the distribution
-    # size.  Also, the MANIFEST templates behave differently on
-    # Windows and Linux (distutils bug?).
-    # Finally, force rebuilding the MANIFEST file
-
-    setup_options["sdist"] = {"template": "MANIFEST.windows.in", "force_manifest": 1}
-
-    import glob
-    data_files = [("ctypes/com/samples",
-                   glob.glob("win32/com/samples/*.py") +
-                   glob.glob("win32/com/samples/*.txt")),
-
-                  ("ctypes/com/samples/server",
-                   glob.glob("win32/com/samples/server/*.py") +
-                   glob.glob("win32/com/samples/server/*.txt")),
-
-                  ("ctypes/com/samples/server/control",
-                   glob.glob("win32/com/samples/server/control/*.py") +
-                   glob.glob("win32/com/samples/server/control/*.txt") +
-                   glob.glob("win32/com/samples/server/control/*.html")),
-
-                  ("ctypes/com/samples/server/IExplorer",
-                   glob.glob("win32/com/samples/server/IExplorer/*.py") +
-                   glob.glob("win32/com/samples/server/IExplorer/*.txt") +
-                   glob.glob("win32/com/samples/server/IExplorer/*.html")),
-                  ]
-
-else:
-    setup_options["sdist"] = {"template": "MANIFEST.other.in", "force_manifest": 1}
-    data_files = []
+packages = ["ctypes",
+            "ctypes.macholib",
+            "ctypes.test"]
 
 ################################################################
 # pypi classifiers
@@ -486,12 +291,14 @@ classifiers = [
 ################################################################
 # main section
 #
+##from ce import ce_install_lib
+
 if __name__ == '__main__':
     setup(name="ctypes",
+##          entry_points = {"console_scripts" : ["xml2py = ctypes.wrap.xml2py:main",
+##                                               "h2xml = ctypes.wrap.h2xml:main"]},
           ext_modules = extensions,
-          package_dir = package_dir,
           packages = packages,
-          data_files = data_files,
 
           classifiers = classifiers,
 
@@ -506,8 +313,9 @@ if __name__ == '__main__':
           
           cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext,
                       'clean': my_clean, 'install_data': my_install_data,
-                      'testlocal': test_local},
-          options = setup_options
+##                      'ce_install_lib': ce_install_lib
+                      },
+
           )
 
 ## Local Variables:

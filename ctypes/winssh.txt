@@ -1,0 +1,129 @@
+This file was originally here:
+
+http://www.python.org/dev/winssh.txt
+
+I grabbed it before it was removed (Python core development
+doesn't use CVS anymore, but other projects do!).
+
+Thomas Heller, 11/2005
+
+
+Setting up a cmdline CVS to work with SourceForge under Windows
+---------------------------------------------------------------
+28-Jun-2000 Original by Andy Robinson (andy@reportlab.com)
+03-Jul-2000 Modified by Tim Peters (tim_one@msn.com)
+16-Aug-2000 Modified by Riaan Booysen (riaan@e.co.za)
+25-Aug-2000 Modified by Tim Peters (tim_one@msn.com)
+
+1. Get
+        ftp.reportlab.com/tools/cvs-1.10-win.zip
+        ftp.reportlab.com/tools/ssh-1.2.14-win32bin.zip
+(copied from somewhere obscure for safety, I forget where)
+
+2. Unzip these to a location on your path.  Type 'cvs' and 'ssh' from
+somewhere else to verify.
+
+3. Choose where to keep your CVS projects; let's assume
+        C:\Code
+
+4. Create a subdirectory C:\Code\.ssh  (yes, dot-ssh)
+
+5. (see #8 for an alternative) Create two environment variables:
+        HOME=C:\Code
+        CVS_RSH=ssh
+HOME must point to the directory above your .ssh directory.
+On Win9x, this can be done in a batch file or autoexec.bat; e.g.,
+        set HOME=c:\Code
+        set CVS_RSH=ssh
+Run the batch file, or reboot if you're using autoexec.bat.  On NT or 2000,
+go to Control Panel | System | Environment and set them at either user or
+machine level.
+
+6. If not done so, get a Sourceforge account and a project you can log in
+to.
+
+7. OPTIONAL (& if you skip this now, you can do it later if you change your
+mind).
+
+If you want to avoid typing in your SourceForge password before every CVS
+operation, generate the ssh public and private identity keys like this:
+
+        ssh-keygen -C $KEY -f C:\Code\.ssh\identity
+
+where $KEY is just some identifier (like your name or email address; this
+is not used for authentication, it's just stored in the public identity
+file as a reminder to you why you created this key).  Note that you must
+use -f!  ssh-keygen fails to work without it on Windows.
+
+When asked for a passphrase, security experts will tell you to choose a
+long and hard-to-guess string.  But then you have to type *that* all the
+time instead of your SourceForge password.  If you just hit ENTER (leave
+the passphrase empty), you won't be bothered with SourceForge passwords or
+ssh passphrases again.  This is a security tradeoff only you can make.  If
+in doubt, ChOOzAl0Ng&HaRDtoGUessSTr1Ng.
+
+ssh-keygen creates two files under .ssh\:
+    identity
+        This is your private key, and is a binary file.
+        NEVER reveal it to anyone.  Do NOT share your .ssh directory across
+        a network either.  The scheme is only as secure as this file.
+    identity.pub
+        This is your public key, a text file, full of lots of digits and
+        the mnemonic $KEY you gave to ssh-keygen.  This file can be shared
+        freely, and indeed must be shared for the scheme to be of any use.
+
+On your SourceForge account page, in the 'Shell Account Information'
+section click the [Edit Keys] link.
+Copy/paste the contents of the generated identity.pub file as one line into
+the Authorized Keys text box.
+After the next cron job (max 6 hours) your information should be updated.
+
+8. Teach SSH about your project's home, by doing
+        ssh -l $USERNAME $MYPROJECT.sourceforge.net
+where $USERNAME is your SourceForge login name and $MYPROJECT your
+SourceForge project name.  You'll see
+        Host "$MYPROJECT.sourceforge.net" added to the list of known hosts.
+and then
+        Creating random seed file ~/.ssh/random_seed
+This may take a while.  After a while it will prompt for a password.  Type
+your SourceForge password and hit ENTER.  After some SourceForge msgs
+scroll by, you'll be left at a SourceForge shell prompt.  Type
+        exit
+and hit ENTER.  Now you're back at the DOS prompt.
+
+9. You will need either a lengthy command line or a batch file for each
+sourceforge project.  I set cvsroot in a batch file in my 'c:\code'
+directory, and have one such file for each CVS project I use (about ten of
+them!):
+
+set CVSROOT=:ext:$USERNAME@cvs.$MYPROJECT.sourceforge.net:/cvsroot/$DIRNAME
+
+where $USERNAME and $MYPROJECT are again your SourceForge login and project
+names, and $DIRNAME is the top-level directory in the SourceForge CVS tree;
+a project can have several, but usually there is just one.  Note:  you can
+keep HOME and CVS_RSH out of your permanent environment (see #5) by adding
+those definitions to this batch file instead.
+
+10. Execute this batch file.  You can now go to C:\Code and do
+        cvs -z7 checkout $MYPROJECT
+(z7 means 'compress network traffic', handy over dialup lines)
+
+11. From now on, just use CVS normally, running this batch file first each
+time you bring up a DOS box you're going to use for CVS work.  Note:  If
+you did not follow step 7, you'll be asked for your password each time you
+enter a CVS command.
+
+I wouldn't survive without Karl Fogel's book "Open Source Development with
+CVS", Coriolis Press.  The CVS reference material (about 225 printed
+pages!) from this book is available for free download from
+    http://cvsbook.red-bean.com/
+
+Footnote: for anonymous checkout, I think you just omit the 'my_user_name@'
+part from the CVSROOT variable.
+
+I hope this helps; let me know if people have any problems with the
+instructions.
+
+-
+Andy Robinson
+ReportLab

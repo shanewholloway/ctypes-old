@@ -8,16 +8,16 @@
 
 (provide 'ctypes-dev)
 
-(setenv "PYTHONPATH" "c:\\sf\\ctypes")
-
 (defgroup ctypes-dev nil
   "Various ctypes development utilities"
   :group 'development)
 
-(defcustom ctypes-dev-directory "c:\\sf\\ctypes"
+(defcustom ctypes-dev-directory "c:\\sf\\ctypes_dist"
   "ctypes root directory"
   :group 'ctypes-dev
   :type 'string)
+
+(setenv "PYTHONPATH" ctypes-dev-directory)
 
 (defmacro with-cd (dirname &rest code)
   `(let ((old-dirname default-directory)
@@ -47,22 +47,22 @@
 
 (defun ctypes-dev-test ()
   (interactive)
-  (with-cd "c:\\sf\\ctypes\\unittests"
+  (with-cd (concat ctypes-dev-directory "\\unittests")
 	   (compile "python runtests.py")))
 
 (defun ctypes-dev-test-debug ()
   (interactive)
-  (with-cd "c:\\sf\\ctypes\\unittests"
+  (with-cd (concat ctypes-dev-directory "\\unittests")
 	   (compile "py_d runtests.py")))
 
 (defun comtypes-test ()
   (interactive)
-  (with-cd "c:\\sf\\ctypes\\comtypes\\unittests"
+  (with-cd (concat ctypes-dev-directory "\\comtypes\\unittests")
 	   (compile "python runtests.py")))
 
 (defun comtypes-test-debug ()
   (interactive)
-  (with-cd "c:\\sf\\ctypes\\comtypes\\unittests"
+  (with-cd (concat ctypes-dev-directory "\\comtypes\\unittests")
 	   (compile "py_d runtests.py")))
 
 (define-minor-mode ctypes-dev-mode

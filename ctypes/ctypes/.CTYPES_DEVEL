@@ -2,13 +2,6 @@
 def install():
     import sys, os
 
-    p = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", sys.platform))
-    try:
-        __path__.insert(0, p)
-    except NameError:
-        pass # when ctypes/__init__.py is imported *not* as package
-
     from distutils.util import get_platform
     plat_specifier = ".%s-%s" % (get_platform(), sys.version[0:3])
     build_dir = os.path.join("..", 'build', 'lib' + plat_specifier)

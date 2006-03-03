@@ -48,7 +48,7 @@ Installation
         cross-platform libffi sources).
 
         To install ctypes from source, unpack the distribution, enter
-        the ctypes-0.9.0 directory, and enter
+        the ctypes-0.9.x source directory, and enter
 
             python setup.py build
 
@@ -57,44 +57,34 @@ Installation
 	defined. If your compiler doesn't know about it, upgrade or
 	set the environment variable CCASFLAGS="-Dno_live_support".
 
-	To run the builtin unittests, enter
+	To run the supplied tests, enter
 
 	    python setup.py test
-
-        There may still be some problems on certain platforms, and the
-        tests may crash Python with a segfault - for this reason the
-        unittests are run in separate processes.  To run all tests in
-        the same process, which will at least be faster, use
-
-            python setup.py testlocal
 
 	To install ctypes, enter
 
             python setup.py install --help
 
-        to see the available options, and finally
+        to see the avaibable options, and finally
 
 	    python setup.py install [options]
 
 
+        For Windows CE, a project file is provided in
+        wince\_ctypes.vcw.  MS embedded Visual C 4.0 is required to
+        build the extension modules.
+
+
 Additional notes
 
-    On Windows, ctypes uses win32 structured exception handling, to
-    make it as safe as possible, although it should be pretty clear
-    that it's easy to crash the Python interpreter with it.
-
-    The source distribution contains an extensive, although
-    inclomplete, tutorial (which you can also read online), as well as
-    example scripts demonstrating the use.
-
-    Current version: 0.9.0
+    Current version: 0.9.9.3
 
     Homepage: http://starship.python.net/crew/theller/ctypes.html
 
 
 ctypes license
 
-  Copyright (c) 2000, 2001, 2002, 2003, 2004 Thomas Heller
+  Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Thomas Heller
 
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation files
