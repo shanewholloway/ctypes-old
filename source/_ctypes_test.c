@@ -20,6 +20,32 @@
 
 /* some functions handy for testing */
 
+EXPORT(char *)my_strtok(char *token, const char *delim)
+{
+	return strtok(token, delim);
+}
+
+EXPORT(char *)my_strchr(const char *s, int c)
+{
+	return strchr(s, c);
+}
+
+
+EXPORT(double) my_sqrt(double a)
+{
+	return sqrt(a);
+}
+
+EXPORT(void) my_qsort(void *base, size_t num, size_t width, int(*compare)(const void*, const void*))
+{
+	qsort(base, num, width, compare);
+}
+
+EXPORT(int *) _testfunc_ai8(int a[8])
+{
+	return a;
+}
+
 EXPORT(void) _testfunc_v(int a, int b, int *presult)
 {
 	*presult = a + b;
@@ -51,6 +77,10 @@ EXPORT(char *) _testfunc_p_p(void *s)
 	return s;
 }
 
+EXPORT(void *) _testfunc_c_p_p(int *argcp, char **argv)
+{
+	return argv[(*argcp)-1];
+}
 
 EXPORT(void *) get_strchr(void)
 {
@@ -430,8 +460,6 @@ typedef struct {
 	long bottom;
 } RECT;
 
-typedef int HWND;
-	
 #endif
 
 EXPORT(int) PointInRect(RECT *prc, POINT pt)
@@ -476,22 +504,15 @@ EXPORT(S8I) ret_8i_func(S8I inp)
 	return inp;
 }
 
-EXPORT(HWND) my_GetDesktopWindow(void)
+EXPORT(int) GetRectangle(int flag, RECT *prect)
 {
-#ifdef MS_WIN32
-	return GetDesktopWindow();
-#else
-	return 42;
-#endif
-}
-
-EXPORT(int) my_GetWindowRect(HWND hwnd, RECT *prect)
-{
-#ifdef MS_WIN32
-	return GetWindowRect(hwnd, prect);
-#else
-	return hwnd != 0;
-#endif
+	if (flag == 0)
+		return 0;
+	prect->left = (int)flag;
+	prect->top = (int)flag + 1;
+	prect->right = (int)flag + 2;
+	prect->bottom = (int)flag + 3;
+	return 1;
 }
 
 EXPORT(void) TwoOutArgs(int a, int *pi, int b, int *pj)
@@ -503,6 +524,24 @@ EXPORT(void) TwoOutArgs(int a, int *pi, int b, int *pj)
 #ifdef MS_WIN32
 EXPORT(S2H) __stdcall s_ret_2h_func(S2H inp) { return ret_2h_func(inp); }
 EXPORT(S8I) __stdcall s_ret_8i_func(S8I inp) { return ret_8i_func(inp); }
+#endif
+
+#ifdef MS_WIN32
+/* Should port this */
+#include <stdlib.h>
+#include <search.h>
+
+EXPORT (HRESULT) KeepObject(IUnknown *punk)
+{
+	static IUnknown *pobj;
+	if (punk)
+		punk->lpVtbl->AddRef(punk);
+	if (pobj)
+		pobj->lpVtbl->Release(pobj);
+	pobj = punk;
+	return S_OK;
+}
+
 #endif
 
 DL_EXPORT(void)

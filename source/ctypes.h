@@ -4,8 +4,9 @@
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-#define PARAMFLAG_FIN 1
-#define PARAMFLAG_FOUT 2
+#define PARAMFLAG_FIN 0x1
+#define PARAMFLAG_FOUT 0x2
+#define PARAMFLAG_FLCID 0x4
 #endif
 
 /*
@@ -80,36 +81,13 @@ typedef struct {
 	PyObject *argtypes;
 	PyObject *restype;
 	PyObject *checker;
+	PyObject *errcheck;
 #ifdef MS_WIN32
 	int index;
+	GUID *iid;
 #endif
 	PyObject *paramflags;
 } CFuncPtrObject;
-
-typedef struct {
-	PyObject_HEAD
-	ffi_type *pffi_type;
-	union {
-		char c;
-		char b;
-		short h;
-		int i;
-		long l;
-#ifdef HAVE_LONG_LONG
-		PY_LONG_LONG q;
-#endif
-		double d;
-		float f;
-		void *p;
-	} value;
-	PyObject *obj;
-	int size; /* for the 'V' tag */
-} PyCArgObject;
-
-extern PyTypeObject PyCArg_Type;
-extern PyCArgObject *new_CArgObject(void);
-#define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
-extern PyCArgObject *new_CArgObject(void);
 
 extern PyTypeObject StgDict_Type;
 #define StgDict_CheckExact(v)	    ((v)->ob_type == &StgDict_Type)
@@ -136,7 +114,11 @@ extern struct fielddesc *getentry(char *fmt);
 extern PyObject *
 CField_FromDesc(PyObject *desc, int index,
 		int *pfield_size, int bitsize, int *pbitofs,
-		int *psize, int *poffset, int *palign, int pack);
+		int *psize, int *poffset, int *palign,
+		int pack, int is_big_endian);
+
+extern PyObject *CData_AtAddress(PyObject *type, void *buf);
+extern PyObject *CData_FromBytes(PyObject *type, char *data, int length);
 
 extern PyTypeObject ArrayType_Type;
 extern PyTypeObject Array_Type;
@@ -167,22 +149,8 @@ extern void FreeCallback(THUNK);
 
 extern PyMethodDef module_methods[];
 
-/* Hold one argument for a libffi function call. */
-struct argument {
-	ffi_type *ffi_type;	/* type of argument */
-	void *pdata;		/* pointer to arguments data */
-
-	PyObject *keep;		/* a Python object to keep alive during the function call */
-	union result {		/* temporary storage area */
-		int i;
-		void *p;
-	} value;
-};
-
-typedef PyObject *(* GETFUNC)(void *ptr, unsigned size, PyObject *type, CDataObject *src, int index);
-typedef PyObject *(* SETFUNC)(void *ptr, PyObject* value, unsigned size, PyObject *type);
-typedef int (* ASPARAM)(CDataObject *self, struct argument *pa);
-typedef int (* FROMPARAM)(PyObject *self, PyObject *value, struct argument *pa);
+typedef PyObject *(* GETFUNC)(void *, unsigned size);
+typedef PyObject *(* SETFUNC)(void *, PyObject *value, unsigned size);
 
 /* a table entry describing a predefined ctypes type */
 struct fielddesc {
@@ -190,16 +158,19 @@ struct fielddesc {
 	SETFUNC setfunc;
 	GETFUNC getfunc;
 	ffi_type *pffi_type; /* always statically allocated */
+	SETFUNC setfunc_swapped;
+	GETFUNC getfunc_swapped;
 };
 
 typedef struct {
 	PyObject_HEAD
 	int offset;
-	int size;			/* for bitfields, contains bitoffset and bitcount */
-					
+	int size;
 	int index;			/* Index into CDataObject's
 					   object array */
-	PyObject *fieldtype;		/* ctypes type of field */
+	PyObject *proto;		/* a type or NULL */
+	GETFUNC getfunc;		/* getter function if proto is NULL */
+	SETFUNC setfunc;		/* setter function if proto is NULL */
 } CFieldObject;
 
 /* A subclass of PyDictObject, used as the instance dictionary of ctypes
@@ -218,11 +189,9 @@ typedef struct {
 	int align;		/* alignment requirements */
 	int length;		/* number of fields */
 	ffi_type ffi_type;
-	PyObject *itemtype;	/* for pointer and array classes */
-	SETFUNC setfunc;
-	GETFUNC getfunc;
-	ASPARAM asparam;
-//	FROMPARAM fromparam;
+	PyObject *proto;	/* Only for Pointer/ArrayObject */
+	SETFUNC setfunc;	/* Only for simple objects */
+	GETFUNC getfunc;	/* Only for simple objects */
 
 	/* Following fields only used by CFuncPtrType_Type instances */
 	PyObject *argtypes;	/* tuple of CDataObjects */
@@ -233,8 +202,6 @@ typedef struct {
 } StgDictObject;
 
 /****************************************************************
- XXX No longer correct - update this when finished.
-
  StgDictObject fields
 
  setfunc and getfunc is only set for simple data types, it is copied from the
@@ -284,22 +251,17 @@ extern int StgDict_clone(StgDictObject *src, StgDictObject *dst);
 
 typedef int(* PPROC)(void);
 
-extern PyObject *_CallProc(PPROC pProc,
-			   PyObject *arguments,
-			   void *pIUnk,
-			   int flags,
-			   PyObject *argcnv,
-			   PyObject *argtypes,
-			   PyObject *restype,
-			   PyObject *checker);
+PyObject *_CallProc(PPROC pProc,
+		    PyObject *arguments,
+#ifdef MS_WIN32
+		    IUnknown *pIUnk,
+		    GUID *iid,
+#endif
+		    int flags,
+		    PyObject *argtypes,
+		    PyObject *restype,
+		    PyObject *checker);
  
-extern PyObject *CData_FromBaseObj(PyObject *type, PyObject *base,
-				   int index, char *adr);
-
-extern int KeepRef(CDataObject *target, int index, PyObject *keep);
-
-extern PyObject *GetKeepedObjects(CDataObject *target);
-
 
 #define FUNCFLAG_STDCALL 0x0
 #define FUNCFLAG_CDECL   0x1
@@ -307,6 +269,40 @@ extern PyObject *GetKeepedObjects(CDataObject *target);
 #define FUNCFLAG_PYTHONAPI 0x4
 
 #define DICTFLAG_FINAL 0x1000
+
+typedef struct {
+	PyObject_HEAD
+	ffi_type *pffi_type;
+	char tag;
+	union {
+		char c;
+		char b;
+		short h;
+		int i;
+		long l;
+#ifdef HAVE_LONG_LONG
+		PY_LONG_LONG q;
+#endif
+		double d;
+		float f;
+		void *p;
+	} value;
+	PyObject *obj;
+	int size; /* for the 'V' tag */
+} PyCArgObject;
+
+extern PyTypeObject PyCArg_Type;
+extern PyCArgObject *new_CArgObject(void);
+#define PyCArg_CheckExact(v)	    ((v)->ob_type == &PyCArg_Type)
+extern PyCArgObject *new_CArgObject(void);
+
+extern PyObject *
+CData_get(PyObject *type, GETFUNC getfunc, PyObject *src,
+	  int index, int size, char *ptr);
+
+extern int
+CData_set(PyObject *dst, PyObject *type, SETFUNC setfunc, PyObject *value,
+	  int index, int size, char *ptr);
 
 extern void Extend_Error_Info(PyObject *exc_class, char *fmt, ...);
 
@@ -378,8 +374,15 @@ extern void *MallocClosure(void);
 
 extern void _AddTraceback(char *, char *, int);
 
-extern PyObject *CTYPE_c_char_p, *CTYPE_c_char, *CTYPE_c_wchar_p,
-	*CTYPE_c_wchar, *CTYPE_c_void_p, *CTYPE_BSTR;
+extern PyObject *CData_FromBaseObj(PyObject *type, PyObject *base, int index, char *adr);
+
+/* XXX better name needed! */
+extern int IsSimpleSubType(PyObject *obj);
+
+
+#ifdef MS_WIN32
+extern PyObject *ComError;
+#endif
 
 /*
  Local Variables:

@@ -1,5 +1,8 @@
 #include "Python.h"
 #include <ffi.h>
+#ifdef MS_WIN32
+#include <windows.h>
+#endif
 #include "ctypes.h"
 
 /******************************************************************/
@@ -15,13 +18,15 @@
 static int
 StgDict_init(StgDictObject *self, PyObject *args, PyObject *kwds)
 {
-	return PyDict_Type.tp_init((PyObject *)self, args, kwds);
+	if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0)
+		return -1;
+	return 0;
 }
 
 static int
 StgDict_clear(StgDictObject *self)
 {
-	Py_CLEAR(self->itemtype);
+	Py_CLEAR(self->proto);
 	Py_CLEAR(self->argtypes);
 	Py_CLEAR(self->converters);
 	Py_CLEAR(self->restype);
@@ -34,7 +39,7 @@ StgDict_dealloc(StgDictObject *self)
 {
 	StgDict_clear(self);
 	PyMem_Free(self->ffi_type.elements);
-	((PyObject *)self)->ob_type->tp_free((PyObject *)self);
+	PyDict_Type.tp_dealloc((PyObject *)self);
 }
 
 int
@@ -53,7 +58,7 @@ StgDict_clone(StgDictObject *dst, StgDictObject *src)
 	       s + sizeof(PyDictObject),
 	       sizeof(StgDictObject) - sizeof(PyDictObject));
 
-	Py_XINCREF(dst->itemtype);
+	Py_XINCREF(dst->proto);
 	Py_XINCREF(dst->argtypes);
 	Py_XINCREF(dst->converters);
 	Py_XINCREF(dst->restype);
@@ -175,6 +180,8 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 	PyObject *isPacked;
 	int pack = 0;
 	int ffi_ofs;
+	int big_endian;
+
 	/* HACK Alert: I cannot be bothered to fix ctypes.com, so there has to
 	   be a way to use the old, broken sematics: _fields_ are not extended
 	   but replaced in subclasses.
@@ -185,6 +192,12 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 
 	if (fields == NULL)
 		return 0;
+
+#ifdef WORDS_BIGENDIAN
+	big_endian = PyObject_HasAttrString(type, "_swappedbytes_") ? 0 : 1;
+#else
+	big_endian = PyObject_HasAttrString(type, "_swappedbytes_") ? 1 : 0;
+#endif
 
 	use_broken_old_ctypes_semantics = \
 		PyObject_HasAttrString(type, "_use_broken_old_ctypes_structure_semantics_");
@@ -204,7 +217,7 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 
 	len = PySequence_Length(fields);
 	if (len == -1) {
-		PyErr_SetString(PyExc_AttributeError,
+		PyErr_SetString(PyExc_TypeError,
 				"'_fields_' must be a sequence of pairs");
 		return -1;
 	}
@@ -217,6 +230,8 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 				"_fields_ is final");
 		return -1;
 	}
+	/* XXX This should probably be moved to a point when all this
+	   stuff is sucessfully finished. */
 	stgdict->flags |= DICTFLAG_FINAL;	/* set final */
 
 	if (stgdict->ffi_type.elements)
@@ -262,6 +277,7 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 		}
 		dict = PyType_stgdict(desc);
 		if (dict == NULL) {
+			Py_DECREF(pair);
 			PyErr_Format(PyExc_TypeError,
 				     "second item in _fields_ tuple (index %d) must be a C type",
 				     i);
@@ -281,7 +297,6 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 			case FFI_TYPE_SINT8:
 			case FFI_TYPE_SINT16:
 			case FFI_TYPE_SINT32:
-				/* These can be ints, char, or wchar_t */
 				if (dict->getfunc != getentry("c")->getfunc
 #ifdef CTYPES_UNICODE
 				    && dict->getfunc != getentry("u")->getfunc
@@ -307,14 +322,16 @@ StructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct)
 		if (isStruct) {
 			prop = CField_FromDesc(desc, i,
 					       &field_size, bitsize, &bitofs,
-					       &size, &offset, &align, pack);
+					       &size, &offset, &align,
+					       pack, big_endian);
 		} else /* union */ {
 			size = 0;
 			offset = 0;
 			align = 0;
 			prop = CField_FromDesc(desc, i,
 					       &field_size, bitsize, &bitofs,
-					       &size, &offset, &align, pack);
+					       &size, &offset, &align,
+					       pack, big_endian);
 			union_size = max(size, union_size);
 		}
 		total_align = max(align, total_align);
