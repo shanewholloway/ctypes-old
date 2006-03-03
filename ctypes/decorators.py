@@ -11,29 +11,6 @@ LOGGING = False
 import os
 import ctypes
 
-_library_map = {} # map short name to so-name
-_loaded_libs = {} # map so-names to DLL instance
-
-
-def name_library(name, so_name):
-    """
-    name_library(name, so_name)
-
-    Register the <so_name> for a library.  The library will be loaded
-    if <name> is referenced in a decorator.
-    """
-    _library_map[name] = so_name
-    _library_map[so_name] = so_name
-
-
-def _get_library(name):
-    # load and return a library.  The library is cached.
-    soname = _library_map.get(name, name)
-    try:
-        return _loaded_libs[soname]
-    except KeyError:
-        return _loaded_libs.setdefault(soname, ctypes.CDLL(soname))
-
 def cdecl(restype, dllname, argtypes, logging=False):
     """cdecl(restype, dllname, argtypes, logging=False) -> decorator.
 
@@ -49,10 +26,7 @@ def cdecl(restype, dllname, argtypes, logging=False):
         is printed to stderr.
     """
     def decorate(func):
-        if isinstance(dllname, basestring):
-            library = _get_library(dllname)
-        else:
-            library = dllname
+        library = ctypes.cdll.find(dllname, False)
         api = ctypes.CFUNCTYPE(restype, *argtypes)(func.func_name, library)
         func._api_ = api
         # The following few lines trigger a pychecker bug, see
@@ -76,16 +50,13 @@ if os.name == "nt":
         convention.
 
         restype - result type
-        dll - name or instance of a dll/shared library
+        dll - name or instance of a dll
         argtypes - list of argument types
         logging - if this is True, the result of each function call
             is printed to stderr.
         """
         def decorate(func):
-            if isinstance(dllname, basestring):
-                library = _get_library(dllname)
-            else:
-                library = dllname
+            library = ctypes.windll.find(dllname, False)
             api = ctypes.WINFUNCTYPE(restype, *argtypes)(func.func_name, library)
             func._api_ = api
             # The following few lines trigger a pychecker bug, see
@@ -120,15 +91,10 @@ def _test():
 
         assert(sys.executable == GetModuleFileNameA())
 
-    if os.name == "nt":
-        name_library("libm", "msvcrt")
-    else:
-        name_library("libm", "libm")
-
     #@ cdecl(c_double, 'libm', [c_double])
     def sqrt(value):
         return sqrt._api_(value)
-    sqrt = cdecl(c_double, 'libm', [c_double])(sqrt)
+    sqrt = cdecl(c_double, 'm', [c_double])(sqrt)
 
     assert sqrt(4.0) == 2.0
 

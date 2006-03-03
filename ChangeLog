@@ -1,58 +1,335 @@
+2006-03-03  Thomas Heller  <theller@python.net>
+
+	* ctypes/__init__.py, ctypes/test/test_sizes.py: Added c_int8,
+	c_int16, c_int32, c_int64, c_uint8, c_uint16, c_uint32, c_uint64
+	types.  Patch and unittest provided by Joe Wreschnig.
+
+	* (Repository): Removed the codegenerator in ctypes/wrap
+	completely.  The last state has been tagged in CVS as
+	'BEFORE_REMOVAL'. It will be revived later - not yet sure where.
+
+	* Changed the version number to 0.9.9.4.
+
+2006-03-01  Thomas Heller  <theller@python.net>
+
+	* (Repository): Removed the samples subdirectory completely,
+	because it has become out of sync.
+	
+	* (Repository): Moved the ctypes.wintypes module into the ctypes/
+	directory, got rid of the platform specific modules magic in setup.py
+	and the .CTYPES_DEVEL file.
+
+	* source\callbacks.c:  Checked the return value of PyErr_Warn().
+
+2006-02-28  Thomas Heller  <theller@python.net>
+
+	* ctypes\__init__.py (OleDLL._FuncPtr._restype_): oledll now uses
+	the HRESULT restype, no longer the ctypes builtin FUNCFLAG_HRESULT
+	magic flag.  This allows easier overriding.
+
+
+2006-02-22  Thomas Heller  <theller@python.net>
+
+	* source/callbacks.c: Discovered and hacked around a problem with
+	callback functions.
+
+	If the callback function has a return type other than void,
+	py_object, or an integral C type, it is impossible to either avoid
+	a memory leak or return a possibly invalid result.  Previously,
+	the possibly invalid result has been returned, now the memory leak
+	will appear but a "RuntimeWarning: memory leak in callback
+	function" will be emitted.
+
+
+2006-02-21  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: The _b_needsfree_ member is now always 1 if
+	the object 'owns' it's memory buffer (even if it uses it's small
+	builtin buffer, instead of mallocing a new one).  This is useful
+	to determine whether resources in the buffer need to be freed when
+	the object is destroyed.
+	
+	* source/_ctypes.c: Finally fix this nasty 'set array through
+	pointer' bug.  See ctypes.test.test_array_in_pointer
+
+	* source/malloc_closure.c:  Fix compilation on Windows.
+
+2006-02-15  Bob Ippolito  <bob@redivi.com>
+
+	* New ctypes_dlfcn.h created to allow for potential indirection
+	of dl functions.  Changed code to use "ctypes_" prefix on all
+	dl functions.
+
+	* Darwin's dlfcn compatibility wrapper no longer used for 10.3
+	and later, as it has a native implementation in libSystem.
+	Compiler macros and weak linking are used to make sure
+	the right thing happens even if compiled on OS X 10.3+ with a
+	deployment target of 10.2.  Tested with gcc-3.3 and gcc-4.0.
+
+2006-02-15  Thomas Heller  <theller@python.net>
+
+	* ctypes 0.9.9.3 released.
+
+2006-02-10  Thomas Heller  <theller@python.net>
+
+	* string_at and wstring_at are now implemented in the same way as
+	memmove and memset.
+
+	* Fixed the wrong return type of memmove.
+	
+2006-02-09  Thomas Heller  <theller@python.net>
+
+	* memmove and memset are now implemented as foreign functions,
+	using the standard ctypes mechanism.  The addresses are exported
+	by the _ctypes extension, restype and argtypes are set in
+	ctypes/__init__.py.
+
+	This Required to extend c_void_p.from_param to accept int/long
+	arguments as well.
+
+	memmove and memset now work on 64-bit platforms.
+	
+2006-02-02  Hye-Shik Chang  <perky@FreeBSD.org>
+
+	* source/callproc.c: ConvParam() is fixed to convert Python
+	int and long types via libffi signed long.  This fixes a
+	compatibility problem on alpha and ia64.
+
+2006-02-01  Thomas Heller  <theller@python.net>
+
+	* Hye-Shik Chang <perky@users.sourceforge.net> made these changes:
+	Update libffi to gcc head as of 2006/02/01.  This fixes several
+	unittest failures on 64bit platforms.
+
+2006-02-01  Thomas Heller  <theller@python.net>
+
+	* Committed a patch from Hye-Shik Chang (perky).
+
+        See http://mail.python.org/pipermail/python-dev/2006-January/060199.html,
+	where he wrote:
+
+        I did some work to make ctypes+libffi compacter and liberal.  I
+	removed sources/gcc and put sources/libffi copied from gcc 4.0.2.
+	And removed all automake-related build processes and integrated
+	them info setup.py. There's still aclocal.m4 in
+	sources/libffi. But it is just identical to libffi's acinclude.m4
+	which looks liberal.
+
+	
+2006-01-26  Thomas Heller  <theller@python.net>
+
+	* ctypes._loader implements the new LibraryLoader class.  The
+	class itself is exposed from the ctypes module itself.
+
+	LibraryLoader objects expose load(), find(), and load_version()
+	methods - see the docstrings.
+
+	The register_library_alias() function is gone, it does belong
+	somewhere else (if at all).
+
+2006-01-02  Thomas Heller  <theller@python.net>
+
+	* Subtypes of simple types (the c_int and c_char variations,
+	c_void_p, c_char_p and c_wchar_p) behave different now.  XXX More
+	explanations needed.
+
+	* Removed the complete ctypes.com package, which lived
+	(in CVS) in the ctypes\win32\com directory.
+
+2005-12-30  Thomas Heller  <theller@python.net>
+
+	* Changes for Windows CE, contributed by Luke Dunstan.
+
+2005-12-14  Thomas Heller  <theller@python.net>
+
+	* Implemented different endians for c_float and c_double.
+	Added testcases for them.
+
+2005-11-30  Thomas Heller  <theller@python.net>
+
+	* Implemented BigEndianStructure and LittleEndianStructure base
+	classes which support different endians.  The fields of structures
+	with non-native byte ordering are limited to c_char and all the
+	integer variantions of different sizes, plus arrays of these.
+	Integer bit fields do work.  c_double, c_float, and structures are
+	not yet supported as field types.
+	
+	* Changed version number to 0.9.9.1.
+
+2005-11-04  Thomas Heller  <theller@python.net>
+
+	* Moved tests from the 'unittests' directories to packages
+	'ctypes.test' and 'ctypes.com.test'.  The ctypes.test package's
+	__init__.py file contains test support functions, and a test
+	runner.  The test runner is also called by starting the script
+	ctypes/test/runtests.py.
+
+	The test runner can search for refcount leaks by running the tests
+	in a loop, this requires a debug build of Python and takes quite
+	some time.  Start runtests.py with a '-r' command line option.
+
+	Tests can now 'require' additional resources (which are strings),
+	by default these tests are disabled.  To provide resources, these
+	can be specified by the '-u' command line flag.
+
+	The 'out-of-process' test command has been removed.
+	Tests can also be run by setup in this way:
+
+	    python setup.py test [-u<resources>] [-r]
+
+2005-11-03  Thomas Heller  <theller@python.net>
+
+	* source\callbacks.c: For callback functions with result type None
+	('void'), actually ignore the return value. Add some assert
+	statements for easier debugging.
+
+	* source\_ctypes.c: Enable cycle GC on CFuncPtrType objects (does
+	not seem to have a visible effect). Fix quite some refcount leaks,
+	and a crash when outargs is NULL. Add some asserts for easier
+	debugging.
+
+	* source\stgdict.c: Fixed a very nasty bug: The dict portion of
+	StgDict objects were never freed.  Assigning a non-sequence to a
+	Structure _fields_ raises TypeError, not AttributeError. Fix
+	another refcount leak.
+
+2005-10-28  Thomas Heller  <theller@python.net>
+
+	* setup.py: ctypes.macholib was missing in the packages list.
+	Remove the comtypes package from the tests.
+
+	* source\cfield.c: Fix a refcount leak when unicode is converted
+	to ascii.
+
+	* source\_ctypes.c: Fix a refcount leak.  And finally correct the
+	wrong static declaration of Pointer_Type, preventing compilation
+	with gcc4 (which I don't have).
+
+	* source\callproc.c: Fix a refcount leak when COMError is raised.
+
+2005-10-21  Thomas Heller  <theller@python.net>
+
+	* ctypes\wrap\codegenerator.py: The codegenerator now by default
+	assumes 'char *' and 'wchar_t *' types are pointers to
+	zero-terminated strings.  It generates
+
+	   STRING = c_char_p
+	   WSTRING = c_wchar_p
+
+	 and STRING / WSTRING is used instead of POINTER(c_char) and
+	 POINTER(c_wchar).  This behaviour can be changed by setting the
+	 global variable ASSUME_STRINGS to False.
+
+2005-10-18  Thomas Heller  <theller@python.net>
+
+	* source\callproc.c: Remove all the too fancy traceback printing
+	stuff.
+
+	The DllGetClassObject() and DllCanUnloadNow() functions are now
+	exposed by the ctypes module itself, which forwards their requests
+	to ctypes.com.server.  Later, there should also be a way to
+	forward to comtypes.server (when that exists).
+
+	* source\_ctypes.c: Implemented __nonzero__ for simple types.
+
+2005-10-14  Thomas Heller  <theller@python.net>
+
+	* source\callbacks.c:  Fixed a refcount leak in callbacks.
+
+2005-09-06  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c (CData_FromBaseObj): The b_size member is now
+	set.  Before, the effect was that sizeof(obj) would return always
+	zero for objects retrieved from structure fields, for example.
+
+2005-09-02  Thomas Heller  <theller@python.net>
+
+	* source: Implemented Mike Fletcher's errcheck protocol.  A new
+	'errcheck' field has been added to CFuncPtrObject.  If the
+	function has an 'errcheck' attribute, this is called with
+	(function_return_value, function, arguments, ...) and the result
+	of this call is returned.  The 'errcheck' function must accept
+	more than three parameters for future compatibility.
+	
+	* source/callproc.c: Call checker (which is the _check_retval_
+	attribute of the restype) also when restype is *not* a simple
+	ctypes type.
+
+2005-08-30  Thomas Heller  <theller@python.net>
+
+	* source/callproc.c: Don't call __new__ and __init__ when a ctypes
+	instance is created from a function return value.
+
+	* ctypes/wrap/cparser.py: Added a function to find gccxml on
+	$PATH.
+
+2005-08-24  Thomas Heller  <theller@python.net>
+
+	* ctypes/wrap: Merged some of Andreas Degert's changes from CVS
+	HEAD:
+
+	The code generator now sorts the generated definitions according
+	to the location in the source code.
+
+	If function argument names are found in the xml-file (newer gccxml
+	create these), the code generator uses them in the generated
+	wrappers.
+
+2005-08-22  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c (CDataType_from_address): Fixed another
+	potential problem for systems where sizeof(int) != sizeof(void *).
+
+	* Fix a problem which showed up as array.value != array[:].
+
+2005-08-19  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Add a CFuncPtr_repr which gives more useful
+	output when the instance is a COM method.
+
+	Fix two problems that will show up on platforms where sizeof(int)
+	!= sizeof(void *).  Get pointer values by PyLong_AsVoidPtr.
+
+	Fix a bug when paramflags are specified as [], and so the
+	numerical flag value is 0.
+
+	Per suggestion from Mike Fletcher: call byref() automatically, if
+	needed, for POINTER types in argtypes.  Fix crash with ARRAY types
+	in argtypes.  Fix a small refcount leak.  Cleanup and clarify some
+	code.
+
+2005-08-18  Thomas Heller  <theller@python.net>
+
+	* Finally committed a patch from Mike Fletcher which allows to use
+	the RTLD_GLOBAL flag to load libraries.
+
+2005-08-17  Thomas Heller  <theller@python.net>
+
+	* source\*.[ch]: Implement rich error reporting for COM method
+	calls (on Windows).
+
+	CFuncPtrObject gets a new 'iid' slot which stores a pointer to the
+	guid of the interface this method belongs to.  When iid is !=
+	NULL, use IErrorInfo to get rich error information from the com
+	object.
+
+	Add a COMError class, and implement custom __init__ and __str__
+	methods.
+
+2005-08-12  Thomas Heller  <theller@python.net>
+
+	* source\callbacks.c: A buffer allocated for callbacks was too
+	small.  This could lead to crashed when callbacks were garbage
+	collected.  Problem reported by Mike Fletcher.
+
+2005-05-20  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Also don't call __new__ when a ctypes instance
+	is created from a base object.
+
 2005-05-17  Andreas Degert  <ad@papyrus-gmbh.de>
 
-	* README.txt: comment about compiling with older versions of OS X.
-
-	* ctypes/macholib/dyld.py: ValueError changed into OSError (make
-	it compatible with other loader functions)
-
-	* unittests/test_libc.py, unittests/test_loading.py: library
-	loading changed.
-
-	* unittests/test_complete_cover.py, unittests/test_pointers.py,
-	unittests/test_setfunc.py: output to stdout removed.
-
-	* unittests/test_callbacks.py: comment on OS X crash and
-	tearDown() method containing hack removed.
-
-	* docs/reference.stx: explanation for use of different loader
-	functions added.
-
-	* ctypes/__init__.py: use dyld_find from macholib for OS X, some
-	definitions moved to util.py, added register_library_alias().
-
-	* ctypes/util.py: added (platform dependent helpers)
-
-	* MANIFEST.other.in: ctypes/macholib included (its not declared as
-	a module in setup.py because its not needed for windows
-	distribution).
-
-2005-05-14  Andreas Degert  <ad@papyrus-gmbh.de>
-
-	* ctypes/macholib: added, copied from branch_1_0
-
-	* scripts/fetch_libffi, scripts/cvs-switch, scripts/README: tools
-	to extract and update libffi from the gcc repository.
-
-	* source/gcc: updated libffi to the current cvs version. Makes the
-	unittest test_callbacks work correctly with powerpc (the gc hack
-	can be removed), x86_64 is optimised and works with vararg calls
-	(without additional patches).
-
-2005-05-13  Andreas Degert  <ad@papyrus-gmbh.de>
-
-	* ctypes/wrap/codegenerator.py, ctypes/wrap/xml2py.py: moved the
-	generation of the load command into the class which loads the
-	libraries; fall back on simple LoadLibrary if name and version
-	can't be found.
-
-	* ctypes/__init__.py: prependet '_' to private loadLib-Functions;
-	removed adding of library name as attribute in LoadLibraryVersion
-	functions.
-
-	* docs/reference.stx: documented loading of shared libraries
-
-	* unittests/test_loading.py: added, tests loading of shared
-	libraries
+	* source/gcc, README.txt: merged with HEAD
 
 2005-05-11  Thomas Heller  <theller@python.net>
 
@@ -61,56 +338,15 @@
 	This avoids confusion when structure fields containing structures
 	(for example) are accessed.
 
-2005-04-29  Andreas Degert  <ad@papyrus-gmbh.de>
+2005-05-06  Thomas Heller  <theller@python.net>
 
-	* ctypes/__init__.py: no .dll added to the name for Windows, fixes
-	for OS X, find() was meant to return a value.
+	* source/_ctypes.c: Clearer code, less code, and greater
+	performance by reworking CData_FromBaseObj.
 
-	* ctypes/wrap/xml2py.py: added OS X specifics, move some code
-	around, fixed some bugs.
-
-	* setup.py, source/callproc.c: made sources compile on OS X
-
-	* ctypes/wrap/codegenerator.py: removed unused import types
-	(slipped on with one of the previous changes).
-
-2005-04-28  Andreas Degert  <ad@papyrus-gmbh.de>
-
-	* ctypes/wrap/codegenerator.py, ctypes/wrap/gccxmlparser.py,
-	ctypes/wrap/typedesc.py: created class Argument and changed the
-	argument list from a list of types to a list of Argument
-	instances. Use it to transport parameter names if supplied.
-	(plus cleanup of item sorting.)
-
-2005-04-27  Andreas Degert  <ad@papyrus-gmbh.de>
-
-	* ctypes/decorators.py: changed both decorators now, not only
-	one..
-
-	* ctypes/wrap/codegenerator.py: sort the generated definitions
-	according to location in the source code.
-
-	* ctypes/wrap/codegenerator.py: find_dllname() and get_sharedlib()
-	is not needed anymore (replaced by the changes in xml2py.py). In
-	the generated code load dll's explicitly based on name and
-	version of the dll.
-
-	* ctypes/wrap/xml2py.py: added classes to load a list of libraries
-	(given by the option -l), to find the library in which a function
-	is defined and to supply the information needed to load that
-	library in the generated code.
-
-	* ctypes/decorators.py: changed the decorators to optionally
-	accept a dll object instead of a dll name.
-
-	* ctypes/__init__.py: added methods find() and
-	LoadLibraryVersion() to _CDLL.
-
-	* ctypes/__init__.py: added helper functions to find a library
-	based on the name as given to the linker -l option (on Posix
-	systems).
-
-	* source/callproc.c: added dlname and dladdr (on Posix systems).
+	* source/_ctypes.c, source/ctypes.h: CDataObject and
+	CFuncPtrObject now have a small buffer. If the C type fits into
+	that it is used, otherwise PyMem_Malloc() is called to create a
+	bigger one. This speeds up instance creation a lot.
 
 2005-04-22  Thomas Heller  <theller@python.net>
 
@@ -120,8 +356,13 @@
 
 2005-04-19  Thomas Heller  <theller@python.net>
 
-	* Fixed quite a few problems on 64-bit platforms.  Reported and
-	partly patched by Mike Fletcher.
+	* Fixed quite a few problems on 64-bit platforms. Reported and
+	partly patched by Mike Flechter.
+
+2005-04-15  Thomas Heller  <theller@python.net>
+
+	* Added some files from Bob Ippolito's macholib, to help finding
+	shared libraries on OS X.
 
 2005-04-14  Thomas Heller  <theller@python.net>
 
@@ -129,58 +370,21 @@
 	Reported by Georg Thalhammer, patch provided by Andreas Degert,
 	somewhat modified.
 
-2005-04-06  Thomas Heller  <theller@python.net>
+2005-04-07  Thomas Heller  <theller@python.net>
 
-	* c_char_p and c_wchar_p no longer accept integers or longs in the
-	constructor or in their from_param method.  Use cast instead.
+	* Changed version number to 0.9.8.
 
-	* c_char_p/c_wchar_p instances, c_char/c_wchar arrays, and
-	byref(c_char/c_wchar) can now be assigned to c_char_p/c_wchar_p
-	structure fields.
+2005-04-04  Thomas Heller  <theller@python.net>
 
-2005-04-05  Thomas Heller  <theller@python.net>
-
-	* source/cfield.c: get_long, get_ulong, get_longlong and
-	get_ulonglong now accept all ctypes int/uint instances in addition
-	to Python int and long.
-
-2005-04-01  Thomas Heller  <theller@python.net>
-
-	* Changed version number to 0.9.7beta
-
-	* Changed the way CData_FromBaseObj() works.  Instead of calling
-	the type with a _basespec_ keyword argument, the instance is
-	created in the normal way, and the base object and buffer attached
-	afterwards.  Again, this gave a large speedup - see
-	unittests/com/test_perf.py.
+	* Fix a refcount leak.
 	
-	* Added a small buffer (16 bytes) to the CDataObject structure.
-	This allows to skip the call to PyMem_Malloc() in the
-	GenericCData_new constructor for small C types.  Together with a
-	small optimization in Simple_init() it speeds up instance creation
-	a lot: c_int() now takes 0.5 us instead of 1.2 us.
+	* Fix a possible segfault in the 'cast' function (the code
+	possibly tried to Py_DECREF an uninitialized pointer).
 
-2005-03-31  Thomas Heller  <theller@python.net>
+2005-04-04  Thomas Heller  <theller@python.net>
 
-	* Lots and lots of refactoring.  All types now have a setfunc and
-	getfunc in their stgdict.  This allowed to remove a lot of
-	typechecks spread all around the code.
-
-	CFieldObjects no longer have the getfunc and setfunc fields, they
-	are now using the functions from their fieldtype's stgdict.
-
-	Hopefully no change in behaviour - at least the testsuite runs as
-	before.
-
-2005-03-24  Thomas Heller  <theller@python.net>
-
-	* source\cfield.c: Refactored the code to always use the
-	CFieldObject's getfunc to get field contents.  This makes it easy
-	to enhance the code so that this function can be overridden from
-	Python.
-
-	These enhancements are currently marked #ifdef EXPERIMENTAL.
-
+	* CVS: Created a branch_1_0 branch.
+	
 2005-03-18  Thomas Heller  <theller@python.net>
 
 	* ctypes-0.9.6 released.
@@ -202,11 +406,11 @@
 	server in double quotes in case the path contains spaces.  Fix by
 	Juan Carlos Coruna.
 
-	* ctypes.wrap.h2xml script: Added two command line options to
-	include preprocessor symbols into the xml file (the was the
-	default before), and to not delete temporary files which may help
-	locating problems in the compilation.  The latter was suggested by
-	'Bryan' on the ctypes-users list.
+	* ctypes.wrap.h2xml script: Added command line options to include
+	preprocessor symbols into the xml file (that was the default
+	before), and to not delete temporary files which may help locating
+	problems in the compilation.  The latter was suggested by 'Bryan'
+	on the ctypes-users list.
 
 	Expanded the default excluded symbols list on Windows, so that
 	'limits.h' can be processed.
@@ -216,7 +420,7 @@
 
 2005-03-16  Thomas Heller  <theller@python.net>
 
-	* ctypes\source\_ctyopes.c: Subclasses of c_char_p, c_wchar_p, and
+	* ctypes\source\_ctypes.c: Subclasses of c_char_p, c_wchar_p, and
 	c_void_p were not able to override the from_param class method in
 	their class definitions because SimpleType_new overwrote them.
 	Reported by Andreas Degert.
