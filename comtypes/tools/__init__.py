@@ -1,1 +1,0 @@
-# comtypes.tools package
