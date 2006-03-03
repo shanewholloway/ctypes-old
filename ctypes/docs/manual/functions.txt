@@ -1,0 +1,135 @@
+
+Foreign functions
+-----------------
+
+Functions exported from loaded shared libraries (foreign functions)
+can be accessed in two ways. The easiest way is to retrieve them as
+attributes of library objects by name::
+
+    libc = cdll.find("c") # posix
+    libc = cdll.msvcrt # windows
+    # attribute access
+    atoi = libc.atoi
+    # alternative indexing notation
+    atoi = libc["atoi"]
+
+This creates an instance of a foreign function object, using the
+calling convention specified by the library object ``cdll``, bound to
+the C library ``atoi`` function.  The C function is assumed to return
+an integer (which is correct for ``atoi``), and the argument types are
+not specified (``atoi`` expects a single ``char *`` argument).
+
+If the library function returns a type different from ``int``, the
+``restype`` attribute can be set to a ctypes type that describes the
+return type, or to ``None`` meaning no return value (``void``).
+
+The optional ``argtypes`` attribute can be set to a sequence of ctypes
+types that the function expects.
+
+If needed, the function can (as in C) be called with more arguments
+than the length of the argtypes sequence.
+
+The optional ``errcheck`` attribute can be set to a Python callable,
+which can be used to validate and/or process the library function's return
+value.  ``errcheck`` will be called with three arguments, after the
+library function has returned::
+
+    errcheck(retval, function, arguments)
+
+``retval`` is the value that the library function returned, converted
+according to ``restype``.  ``function`` is the ctypes function object
+(libc.atoi in this case), and ``arguments`` is a tuple containing the
+arguments that have been used to call ``function``.  ``errcheck``
+should validate the library function result, raise an error if it
+detects a failure, or return the needed return value otherwise.
+
+Function prototypes
+~~~~~~~~~~~~~~~~~~~
+
+Another way to access a function exported from shared libraries is to
+first create a prototype by calling a factory function, specifying the
+return type and the argument types.  The factory function itself
+specifies the calling convention: ``CFUNCTYPE`` uses the standard C
+calling convention, ``WINFUNCTYPE`` (Windows only) uses the stdcall
+calling convention.  The factory function must be called with the
+return type plus the argument types.  For the C ``atoi`` function one
+would use ``CFUNCTYPE(c_int, c_char_p)``.
+
+This returns a function prototype, which is a ctypes type representing
+all functions that are compatible with the calling convention, return
+type, and argument types.
+
+The ``CFUNCTYPE`` and ``WINFUNCTYPE`` factory functions cache and
+reuse the types they create in internal caches, so is is cheap to call
+them over and over with the same or different arguments.
+
+An instance of this function prototype, bound to a foreign library
+function, can be created by calling the prototype with the name of the
+function as string, and a loaded library::
+
+    proto = CFUNCTYPE(c_int, c_char_p)
+    atoi = proto("atoi", libc)
+
+Parameter flags
+~~~~~~~~~~~~~~~
+
+It is possible to specify a third argument ``paramflags`` when calling
+the prototype.  This is used to specify additional information for
+each argument: direction of data transfer, the name, and a default
+value.
+
+A tuple with the same length as ``argtypes`` (the second argument in
+the prototype call) must be used.  Each item in this tuple must be a
+tuple, having either one, two, or three items.
+
+The first item is the direction flag, an integer specifying if this is
+an input (use ``1``) or an output (use ``2``) parameter.  The optional
+second item is a string containing the parameter name, the optional
+third item is a default value for the parameter.
+
+If parameter names are specified, the function object created can be
+called with named arguments in the usual way.  Arguments with default
+values do not need to be specified when the function is called.
+
+``out`` parameter types must be pointer types.  When the function
+object is called, ctypes will automatically create empty instances of
+them, pass them to the library function, retrieve the value from them,
+and return the value, if there is exactly one ``out`` parameter, or a
+tuple of values, if there is more than one ``out`` parameter.  The
+original foreign function return value is lost in this case (but see
+below for how it can be retrieved).
+
+If ``paramflags`` have been used in the prototype call, and an
+``errcheck`` attribute is also present, the ``errcheck`` callable will
+be called with a fourth parameter ``outargs``::
+
+    errcheck(retval, function, arguments, outargs)
+
+``outargs`` is a tuple containing all the ``out`` parameters that
+ctypes has created.  Without the ``errcheck`` function ctypes would
+retrieve the values contained in these pointer objects, and return
+them.  The ``errcheck`` function can let ctypes continue this
+processing by returning the ``outargs`` tuple.  It could also return
+something else, or raise an error if it detects that the library
+function has failed.
+
+COM methods (Windows only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+XXX Should this be left undocumented?  Mentioned for completeness.
+
+The prototypes created by ``WINFUNCTYPE`` can be called with a
+positive small integer ``index``, a string ``name``, an optional
+``paramflags`` tuple, and a optional ``iid`` parameter.
+
+This creates a function object wrapping a COM method.  ``index`` is
+the index into the COM object's virtual function table, ``name`` is
+the name of the COM method (only useful for debugging), ``paramflags``
+has the same meaning as for normal function objects, and ``iid`` is a
+string or buffer containing the interface id of the COM interface
+this method belongs to.  ``iid`` is used to get extended COM error
+information in case the method returns a FAILED ''HRESULT`` value.
+
+Note that COM methods expect an additional first argument that is NOT
+listed in the prototypes ``argtypes`` when they are called: this must
+be the integer address of a COM interface pointer.

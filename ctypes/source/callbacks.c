@@ -3,44 +3,10 @@
 #include "frameobject.h"
 
 #include <ffi.h>
-#include "ctypes.h"
-
 #ifdef MS_WIN32
 #include <windows.h>
 #endif
-
-/* For 2.3, use the PyGILState_ calls, see PEP 311 */
-#if (PY_VERSION_HEX >= 0x02030000)
-#define CTYPES_USE_GILSTATE
-#endif
-
-#ifndef CTYPES_USE_GILSTATE
-static PyInterpreterState *g_interp;	/* need this to create new thread states */
-
-static void EnterPython(void)
-{
-	PyThreadState *pts;
-	if (!g_interp)
-		Py_FatalError("_ctypes: no interpreter state");
-	PyEval_AcquireLock();
-	pts = PyThreadState_New(g_interp);
-	if (!pts)
-		Py_FatalError("_ctypes: Could not allocate ThreadState");
-	if (NULL != PyThreadState_Swap(pts))
-		Py_FatalError("_ctypes (EnterPython): thread state not == NULL?");
-}
-
-static void LeavePython(void)
-{
-	PyThreadState *pts = PyThreadState_Get();
-	if (!pts)
-		Py_FatalError("_ctypes (LeavePython): ThreadState is NULL?");
-	PyThreadState_Clear(pts);
-	pts = PyThreadState_Swap(NULL);
-	PyThreadState_Delete(pts);
-	PyEval_ReleaseLock();
-}
-#endif
+#include "ctypes.h"
 
 static void
 PrintError(char *msg, ...)
@@ -127,16 +93,14 @@ void _AddTraceback(char *funcname, char *filename, int lineno)
  * slower.
  */
 static void
-TryAddRef(StgDictObject *dict, PyObject *obj)
+TryAddRef(StgDictObject *dict, CDataObject *obj)
 {
 	IUnknown *punk;
 
-	if (!CDataObject_Check(obj))
-		return;
-
 	if (NULL == PyDict_GetItemString((PyObject *)dict, "_needs_com_addref_"))
 		return;
-	punk = *(IUnknown **)((CDataObject *)obj)->b_ptr;
+
+	punk = *(IUnknown **)obj->b_ptr;
 	if (punk)
 		punk->lpVtbl->AddRef(punk);
 	return;
@@ -148,34 +112,20 @@ TryAddRef(StgDictObject *dict, PyObject *obj)
  * Call the python object with all arguments
  *
  */
-typedef struct {
-	ffi_closure *pcl; /* the C callable */
-	ffi_cif cif;
-	PyObject *converters;
-	PyObject *callable;
-	PyObject *restype;
-	SETFUNC setfunc;
-	ffi_type *ffi_restype;
-	ffi_type *atypes[0];
-} ffi_info;
-
-static void _CallPythonObject(ffi_cif *cif,
-			      void *mem,
-			      void **pArgs,
-			      ffi_info *pinfo)
+static void _CallPythonObject(void *mem,
+			      ffi_type *restype,
+			      SETFUNC setfunc,
+			      PyObject *callable,
+			      PyObject *converters,
+			      void **pArgs)
 {
 	int i;
 	PyObject *result;
 	PyObject *arglist = NULL;
 	int nArgs;
-
-#ifdef CTYPES_USE_GILSTATE
 	PyGILState_STATE state = PyGILState_Ensure();
-#else
-	EnterPython();
-#endif
 
-	nArgs = PySequence_Length(pinfo->converters);
+	nArgs = PySequence_Length(converters);
 	/* Hm. What to return in case of error?
 	   For COM, 0xFFFFFFFF seems better than 0.
 	*/
@@ -191,7 +141,7 @@ static void _CallPythonObject(ffi_cif *cif,
 	}
 	for (i = 0; i < nArgs; ++i) {
 		/* Note: new reference! */
-		PyObject *cnv = PySequence_GetItem(pinfo->converters, i);
+		PyObject *cnv = PySequence_GetItem(converters, i);
 		StgDictObject *dict;
 		if (cnv)
 			dict = PyType_stgdict(cnv);
@@ -200,29 +150,46 @@ static void _CallPythonObject(ffi_cif *cif,
 			goto Done;
 		}
 
-		if (dict && dict->getfunc) {
-			PyObject *v = dict->getfunc(*pArgs, dict->size,
-						    cnv, NULL, 0);
+		if (dict && dict->getfunc && !IsSimpleSubType(cnv)) {
+			PyObject *v = dict->getfunc(*pArgs, dict->size);
 			if (!v) {
 				PrintError("create argument %d:\n", i);
+				Py_DECREF(cnv);
 				goto Done;
 			}
-#ifdef MS_WIN32
-			/* HA! That should be done by the getfunc, of course. */
-			TryAddRef(dict, v);
-#endif
 			PyTuple_SET_ITEM(arglist, i, v);
 			/* XXX XXX XX
 			   We have the problem that c_byte or c_short have dict->size of
 			   1 resp. 4, but these parameters are pushed as sizeof(int) bytes.
 			   BTW, the same problem occurrs when they are pushed as parameters
 			*/
+		} else if (dict) {
+			/* Hm, shouldn't we use CData_AtAddress() or something like that instead? */
+			CDataObject *obj = (CDataObject *)PyObject_CallFunctionObjArgs(cnv, NULL);
+			if (!obj) {
+				PrintError("create argument %d:\n", i);
+				Py_DECREF(cnv);
+				goto Done;
+			}
+			if (!CDataObject_Check(obj)) {
+				Py_DECREF(obj);
+				Py_DECREF(cnv);
+				PrintError("unexpected result of create argument %d:\n", i);
+				goto Done;
+			}
+			memcpy(obj->b_ptr, *pArgs, dict->size);
+			PyTuple_SET_ITEM(arglist, i, (PyObject *)obj);
+#ifdef MS_WIN32
+			TryAddRef(dict, obj);
+#endif
 		} else {
 			PyErr_SetString(PyExc_TypeError,
 					"cannot build parameter");
 			PrintError("Parsing argument %d\n", i);
+			Py_DECREF(cnv);
 			goto Done;
 		}
+		Py_DECREF(cnv);
 		/* XXX error handling! */
 		pArgs++;
 	}
@@ -230,38 +197,101 @@ static void _CallPythonObject(ffi_cif *cif,
 #define CHECK(what, x) \
 if (x == NULL) _AddTraceback(what, __FILE__, __LINE__ - 1), PyErr_Print()
 
-	result = PyObject_CallObject(pinfo->callable, arglist);
+	result = PyObject_CallObject(callable, arglist);
 	CHECK("'calling callback function'", result);
-	if (result && result != Py_None) { /* XXX What is returned for Py_None ? */
+	if ((restype != &ffi_type_void)
+	    && result && result != Py_None) { /* XXX What is returned for Py_None ? */
+		/* another big endian hack */
+		union {
+			char c;
+			short s;
+			int i;
+			long l;
+		} r;
 		PyObject *keep;
-#if IS_BIG_ENDIAN
-		if (pinfo->ffi_restype->size < sizeof(ffi_arg)) {
-			char *ptr = mem;
-			ptr += sizeof(ffi_arg) - pinfo->ffi_restype->size;
-			mem = ptr;
-		}
+		assert(setfunc);
+		switch (restype->size) {
+		case 1:
+			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
+			*(ffi_arg *)mem = r.c;
+			break;
+		case SIZEOF_SHORT:
+			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
+			*(ffi_arg *)mem = r.s;
+			break;
+		case SIZEOF_INT:
+			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
+			*(ffi_arg *)mem = r.i;
+			break;
+#if (SIZEOF_LONG != SIZEOF_INT)
+		case SIZEOF_LONG:
+			keep = setfunc(&r, result, 0);
+			CHECK("'converting callback result'", keep);
+			*(ffi_arg *)mem = r.l;
+			break;
 #endif
-		keep = pinfo->setfunc(mem, result, 0, pinfo->restype);
-		CHECK("'converting callback result'", keep);
-		/* assert (keep == Py_None); */
-		/* XXX We have no way to keep the needed reference XXX */
-		/* Should we emit a warning? */
-		Py_XDECREF(keep);
+		default:
+			keep = setfunc(mem, result, 0);
+			CHECK("'converting callback result'", keep);
+			break;
+		}
+		/* keep is an object we have to keep alive so that the result
+		   stays valid.  If there is no such object, the setfunc will
+		   have returned Py_None.
+
+		   If there is such an object, we have no choice than to keep
+		   it alive forever - but a refcount and/or memory leak will
+		   be the result.  EXCEPT when restype is py_object - Python
+		   itself knows how to manage the refcount of these objects.
+		*/
+		if (keep == NULL) /* Could not convert callback result. */
+			PyErr_WriteUnraisable(Py_None);
+		else if (keep == Py_None) /* Nothing to keep */
+			Py_DECREF(keep);
+		else if (setfunc != getentry("O")->setfunc) {
+			if (-1 == PyErr_Warn(PyExc_RuntimeWarning,
+					     "memory leak in callback function."))
+				PyErr_WriteUnraisable(Py_None);
+		}
 	}
 	Py_XDECREF(result);
   Done:
 	Py_XDECREF(arglist);
 	
-#ifdef CTYPES_USE_GILSTATE
 	PyGILState_Release(state);
-#else
-	LeavePython();
-#endif
+}
+
+typedef struct {
+	ffi_closure *pcl; /* the C callable */
+	ffi_cif cif;
+	PyObject *converters;
+	PyObject *callable;
+	SETFUNC setfunc;
+	ffi_type *restype;
+	ffi_type *atypes[0];
+} ffi_info;
+
+static void closure_fcn(ffi_cif *cif,
+			void *resp,
+			void **args,
+			void *userdata)
+{
+	ffi_info *p = userdata;
+
+	_CallPythonObject(resp,
+			  p->restype,
+			  p->setfunc,
+			  p->callable,
+			  p->converters,
+			  args);
 }
 
 void FreeCallback(THUNK thunk)
 {
-	FreeClosure(*(void **)thunk);
+	FreeClosure(((ffi_info *)thunk)->pcl);
 	PyMem_Free(thunk);
 }
 
@@ -275,9 +305,8 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	int nArgs, i;
 	ffi_abi cc;
 
-	assert(restype);
 	nArgs = PySequence_Size(converters);
-	p = (ffi_info *)PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * nArgs);
+	p = (ffi_info *)PyMem_Malloc(sizeof(ffi_info) + sizeof(ffi_type) * (nArgs + 1));
 	if (p == NULL) {
 		PyErr_NoMemory();
 		return NULL;
@@ -296,20 +325,21 @@ THUNK AllocFunctionCallback(PyObject *callable,
 	}
 	p->atypes[i] = NULL;
 
-	{
+	if (restype == Py_None) {
+		p->setfunc = NULL;
+		p->restype = &ffi_type_void;
+	} else {
 		StgDictObject *dict = PyType_stgdict(restype);
-		if (dict) {
-			p->setfunc = dict->setfunc;
-			p->ffi_restype = &dict->ffi_type;
-		} else {
-			p->setfunc = getentry("i")->setfunc;
-			p->ffi_restype = &ffi_type_sint;
+		if (dict == NULL) {
+			PyMem_Free(p);
+			return NULL;
 		}
-		p->restype = restype;
+		p->setfunc = dict->setfunc;
+		p->restype = &dict->ffi_type;
 	}
 
 	cc = FFI_DEFAULT_ABI;
-#ifdef MS_WIN32
+#if defined(MS_WIN32) && !defined(_WIN32_WCE)
 	if (is_cdecl == 0)
 		cc = FFI_STDCALL;
 #endif
@@ -322,7 +352,7 @@ THUNK AllocFunctionCallback(PyObject *callable,
 		PyMem_Free(p);
 		return NULL;
 	}
-	result = ffi_prep_closure(p->pcl, &p->cif, (void *)_CallPythonObject, p);
+	result = ffi_prep_closure(p->pcl, &p->cif, closure_fcn, p);
 	if (result != FFI_OK) {
 		PyErr_Format(PyExc_RuntimeError,
 			     "ffi_prep_closure failed with %d", result);
@@ -343,124 +373,17 @@ THUNK AllocFunctionCallback(PyObject *callable,
 
 void init_callbacks_in_module(PyObject *m)
 {
-#ifndef CTYPES_USE_GILSTATE
-	g_interp = PyThreadState_Get()->interp;
-#endif
+	if (PyType_Ready((PyTypeObject *)&PyType_Type) < 0)
+		return;
 }
 
 #ifdef MS_WIN32
-/*
-   Modeled after a function from Mark Hammond.
-
-   Obtains a string from a Python traceback.  This is the exact same string as
-   "traceback.print_exception" would return.
-
-   Result is a string which must be free'd using PyMem_Free()
-*/
-#define TRACEBACK_FETCH_ERROR(what) {errMsg = what; goto done;}
-
-char *PyTraceback_AsString(void)
-{
-	char *errMsg = NULL; /* holds a local error message */
-	char *result = NULL; /* a valid, allocated result. */
-	PyObject *modStringIO = NULL;
-	PyObject *modTB = NULL;
-	PyObject *obStringIO = NULL;
-	PyObject *obResult = NULL;
-
-	PyObject *type, *value, *traceback;
-
-	PyErr_Fetch(&type, &value, &traceback);
-	PyErr_NormalizeException(&type, &value, &traceback);
-	
-	modStringIO = PyImport_ImportModule("cStringIO");
-	if (modStringIO==NULL)
-		TRACEBACK_FETCH_ERROR("cant import cStringIO\n");
-
-	obStringIO = PyObject_CallMethod(modStringIO, "StringIO", NULL);
-
-	/* Construct a cStringIO object */
-	if (obStringIO==NULL)
-		TRACEBACK_FETCH_ERROR("cStringIO.StringIO() failed\n");
-
-	modTB = PyImport_ImportModule("traceback");
-	if (modTB==NULL)
-		TRACEBACK_FETCH_ERROR("cant import traceback\n");
-
-	obResult = PyObject_CallMethod(modTB, "print_exception",
-				       "OOOOO",
-				       type, value ? value : Py_None,
-				       traceback ? traceback : Py_None,
-				       Py_None,
-				       obStringIO);
-				    
-	if (obResult==NULL) 
-		TRACEBACK_FETCH_ERROR("traceback.print_exception() failed\n");
-	Py_DECREF(obResult);
-
-	obResult = PyObject_CallMethod(obStringIO, "getvalue", NULL);
-	if (obResult==NULL) 
-		TRACEBACK_FETCH_ERROR("getvalue() failed.\n");
-
-	/* And it should be a string all ready to go - duplicate it. */
-	if (!PyString_Check(obResult))
-			TRACEBACK_FETCH_ERROR("getvalue() did not return a string\n");
-
-	{ // a temp scope so I can use temp locals.
-		char *tempResult = PyString_AsString(obResult);
-		result = (char *)PyMem_Malloc(strlen(tempResult)+1);
-		if (result==NULL)
-			TRACEBACK_FETCH_ERROR("memory error duplicating the traceback string\n");
-		strcpy(result, tempResult);
-	} // end of temp scope.
-done:
-	/* All finished - first see if we encountered an error */
-	if (result==NULL && errMsg != NULL) {
-		result = (char *)PyMem_Malloc(strlen(errMsg)+1);
-		if (result != NULL)
-			/* if it does, not much we can do! */
-			strcpy(result, errMsg);
-	}
-	Py_XDECREF(modStringIO);
-	Py_XDECREF(modTB);
-	Py_XDECREF(obStringIO);
-	Py_XDECREF(obResult);
-	Py_XDECREF(value);
-	Py_XDECREF(traceback);
-	Py_XDECREF(type);
-	return result;
-}
-
-void MyPyErr_Print(char *msg)
-{
-	char *text;
-
-	text = PyTraceback_AsString();
-	MessageBox(NULL,
-		   text,
-		   msg,
-		   MB_OK | MB_ICONSTOP);
-	PyMem_Free(text);
-}
 
 static void LoadPython(void)
 {
 	if (!Py_IsInitialized()) {
 		PyEval_InitThreads();
 		Py_Initialize();
-	} else {
-#ifndef CTYPES_USE_GILSTATE
-		/* Python is already initialized.
-		   We assume we don't have the lock.
-		*/
-		if (!g_interp) {
-			g_interp = PyInterpreterState_Head();
-			if(PyInterpreterState_Next(g_interp))
-				Py_FatalError("_ctypes: more than one interpreter state");
-		}
-		EnterPython();
-#endif
-		return;
 	}
 }
 
@@ -470,16 +393,22 @@ long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	PyObject *mod, *func, *result;
 	long retval;
+	static PyObject *context;
 
-	mod = PyImport_ImportModule("ctypes.com.server");
-	if (!mod)
+	if (context == NULL)
+		context = PyString_FromString("_ctypes.DllGetClassObject");
+
+	mod = PyImport_ImportModule("ctypes");
+	if (!mod) {
+		PyErr_WriteUnraisable(context ? context : Py_None);
 		/* There has been a warning before about this already */
 		return E_FAIL;
+	}
 
 	func = PyObject_GetAttrString(mod, "DllGetClassObject");
 	Py_DECREF(mod);
 	if (!func) {
-		MyPyErr_Print("DllGetClassObject");
+		PyErr_WriteUnraisable(context ? context : Py_None);
 		return E_FAIL;
 	}
 
@@ -487,13 +416,15 @@ long Call_GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 				       "iii", rclsid, riid, ppv);
 	Py_DECREF(func);
 	if (!result) {
-		MyPyErr_Print("Called DllGetClassObject");
+		PyErr_WriteUnraisable(context ? context : Py_None);
 		return E_FAIL;
 	}
 
 	retval = PyInt_AsLong(result);
-	if (PyErr_Occurred())
-		MyPyErr_Print("Convert result of DllGetClassObject to int");
+	if (PyErr_Occurred()) {
+		PyErr_WriteUnraisable(context ? context : Py_None);
+		retval = E_FAIL;
+	}
 	Py_DECREF(result);
 	return retval;
 }
@@ -503,21 +434,12 @@ STDAPI DllGetClassObject(REFCLSID rclsid,
 			 LPVOID *ppv)
 {
 	long result;
-
-#ifdef CTYPES_USE_GILSTATE
 	PyGILState_STATE state;
+
 	LoadPython();
 	state = PyGILState_Ensure();
-#else
-	LoadPython(); /* calls EnterPython itself */
-#endif
 	result = Call_GetClassObject(rclsid, riid, ppv);
-
-#ifdef CTYPES_USE_GILSTATE
 	PyGILState_Release(state);
-#else
-	LeavePython();
-#endif
 	return result;
 }
 
@@ -525,30 +447,39 @@ long Call_CanUnloadNow(void)
 {
 	PyObject *mod, *func, *result;
 	long retval;
+	static PyObject *context;
 
-	mod = PyImport_ImportModule("ctypes.com.server");
+	if (context == NULL)
+		context = PyString_FromString("_ctypes.DllCanUnloadNow");
+
+	mod = PyImport_ImportModule("ctypes");
 	if (!mod) {
-		MyPyErr_Print("Importing ctypes.com.server in Call_CanUnloadNow");
+/*		OutputDebugString("Could not import ctypes"); */
+		/* We assume that this error can only occur when shutting
+		   down, so we silently ignore it */
+		PyErr_Clear();
 		return E_FAIL;
 	}
-
+	/* Other errors cannot be raised, but are printed to stderr */
 	func = PyObject_GetAttrString(mod, "DllCanUnloadNow");
 	Py_DECREF(mod);
 	if (!func) {
-		PyErr_Clear();
+		PyErr_WriteUnraisable(context ? context : Py_None);
 		return E_FAIL;
 	}
 
 	result = PyObject_CallFunction(func, NULL);
 	Py_DECREF(func);
 	if (!result) {
-		PyErr_Clear();
+		PyErr_WriteUnraisable(context ? context : Py_None);
 		return E_FAIL;
 	}
 
 	retval = PyInt_AsLong(result);
-	if (PyErr_Occurred())
-		PyErr_Clear();
+	if (PyErr_Occurred()) {
+		PyErr_WriteUnraisable(context ? context : Py_None);
+		retval = E_FAIL;
+	}
 	Py_DECREF(result);
 	return retval;
 }
@@ -560,21 +491,9 @@ long Call_CanUnloadNow(void)
 STDAPI DllCanUnloadNow(void)
 {
 	long result;
-#ifdef CTYPES_USE_GILSTATE
 	PyGILState_STATE state = PyGILState_Ensure();
-#else
-	if (!Py_IsInitialized()) {
-		LoadPython();
-		LeavePython();
-	}
-	EnterPython();
-#endif
 	result = Call_CanUnloadNow();
-#ifdef CTYPES_USE_GILSTATE
 	PyGILState_Release(state);
-#else
-	LeavePython();
-#endif
 	return result;
 }
 

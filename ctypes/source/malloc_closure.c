@@ -1,5 +1,14 @@
 #include <Python.h>
 #include <ffi.h>
+#ifdef MS_WIN32
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+# if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#  define MAP_ANONYMOUS MAP_ANON
+# endif
+#endif
 #include "ctypes.h"
 
 /* BLOCKSIZE can be adjusted.  Larger blocksize will take a larger memory
@@ -12,16 +21,6 @@
 /* #define MALLOC_CLOSURE_DEBUG */ /* enable for some debugging output */
 
 /******************************************************************/
-
-#ifdef MS_WIN32
-#include <windows.h>
-#else
-#include <sys/mman.h>
-#include <unistd.h>
-# if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
-#  define MAP_ANONYMOUS MAP_ANON
-# endif
-#endif
 
 typedef union _tagITEM {
 	ffi_closure closure;

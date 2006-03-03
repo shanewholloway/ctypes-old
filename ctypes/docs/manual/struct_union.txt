@@ -1,0 +1,70 @@
+Structure and union types
+-------------------------
+
+ctypes provides the abstract base classes ``Structure`` and ``Union``
+to define structure and union types.  Subclasses must at least define
+a ``_fields_`` attribute.
+
+Defining field names and types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``_fields_`` must be a sequence of tuples.  The first item of each
+tuple is a string specifying the name of the structure/union field.
+The second item must by a ctypes type.
+
+A descriptor will be created for each field, allowing you to access the
+field's contents from instances.  Accessed from the class, the fields
+expose readonly ``.offset`` and ``.size`` attributes.  ``offset`` is
+the byte-offset of the field from the beginning of the
+structure/union, ``size`` is the number of bytes the field contains.
+
+A simple example is a POINT structure containing integer fields named
+``x`` and ``y``::
+
+    class Point(Structure):
+        _fields_ = [("x", c_int),
+                    ("y", c_int)]
+
+
+
+Packing fields
+~~~~~~~~~~~~~~
+
+Normally fields are aligned in the same way as the host's C compiler.
+The native alignment can be overridden by setting a ``_pack_``
+attribute in the type.  This must be a small positive integer which is
+the maximum field alignment.
+
+Bit fields
+~~~~~~~~~~
+
+Integer fields support bit sizes.  The bit-size must be specified as
+the third item of the ``_fields_`` tuple.  Bit fields are constructed
+in the same way the host's C compiler does it.  For bit fields, the
+field descriptor's ``.size`` attribute contains the number of bits in
+the high word, and the bit offset from the beginning of the structure in
+the low word.  XXX is that correct?
+
+Recursive data types
+~~~~~~~~~~~~~~~~~~~~
+
+To support recursive type definitions, it is possible to assign the
+``_fields_`` value after the class statement.  Here is an example of a
+linked list, which contains pointers to itself::
+
+    class Node(Structure):
+        pass
+    Node._fields_ = [("next", POINTER(Node)),
+                     ("value", ...)]
+
+``_fields_`` must be set, and cannot be changed, after the type is
+used for the first time.
+
+Byte order
+~~~~~~~~~~
+
+It is possible to create Structure and Union types using non-native
+byte order by using the ``BigEndianStructure``,
+``LittleEndianStructure``, ``BigEndianUnion``, and
+``LittleEndianUnion`` base classes.  Structures and Unions with
+non-native byte order do *not* support pointer fields.
