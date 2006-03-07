@@ -426,10 +426,6 @@ else:
         return _wstring_at(ptr, size)
     
 
-from decorators import cdecl
-if _os.name == "nt":
-    from decorators import stdcall
-
 if _os.name == "nt": # COM stuff
     def DllGetClassObject(rclsid, riid, ppv):
         # First ask ctypes.com.server than comtypes.server for the
