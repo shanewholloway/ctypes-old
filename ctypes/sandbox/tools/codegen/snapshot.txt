@@ -1,5 +1,0 @@
-This is *not* an official gccxml release!
-
-It was built from CVS Mar 18, 2005, with MSVC 6.
-
-For official releases, see http://www.gccxml.org/
