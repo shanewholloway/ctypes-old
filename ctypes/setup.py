@@ -60,10 +60,7 @@ class test(Command):
         self.build_base = 'build'
         self.use_resources = ""
         self.refcounts = False
-        if sys.platform == "win32":
-            self.tests = "ctypes.test,comtypes.test"
-        else:
-            self.tests = "ctypes.test"
+        self.tests = "ctypes.test"
 
     # initialize_options()
 
