@@ -1,3 +1,5 @@
+# XXX This module needs cleanup.
+
 from ctypes import *
 
 DWORD = c_ulong
