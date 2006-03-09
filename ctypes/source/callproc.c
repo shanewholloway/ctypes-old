@@ -721,8 +721,10 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		   O_get), we have to call Py_DECREF because O_get has already
 		   called Py_INCREF.
 		*/
-		if (dict->getfunc == getentry("O")->getfunc)
+		if (dict->getfunc == getentry("O")->getfunc) {
+			/* The braces are needed, gcc warns about ambiguous 'else' */
 			Py_DECREF(retval);
+		}
 	} else
 		retval = CData_FromBaseObj(restype, NULL, 0, result);
 
