@@ -1,0 +1,2 @@
+- On platforms that require strict alignment (like sparc solaris), accessing
+  unaligned structure fields will crash Python with a core dump.
