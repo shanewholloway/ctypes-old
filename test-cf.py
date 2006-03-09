@@ -15,9 +15,11 @@ hostinfo = [
     # Host key verification failed
     ("x86-freebsd1", "/usr/local/bin/python -u"),
 
-    # ImportError: _ctypes.so: Undefined PLT symbol "PyGILState_Ensure"
-    # Python without threading module???
-    ("x86-netbsd1", "/usr/pkg/bin/python2.3 -u"),
+    ("x86-netbsd1",
+     # ImportError: _ctypes.so: Undefined PLT symbol "PyGILState_Ensure"
+     # Python without threading module???
+     # "/usr/pkg/bin/python2.3 -u"
+     "~/netbsd/bin/python2.4 -u"),
 
     ("amd64-linux1", "/usr/bin/python -u"),
 
@@ -36,7 +38,7 @@ hostinfo = [
     # Not python 2.3 or newer, so use my own build of Python 2.4.2:
     ("sparc-solaris1",
      # "/usr/local/bin/python -u"
-     "env PATH=/usr/bin:/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin ~/sparc/bin/python2.4"),
+     "env PATH=/usr/bin:/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin ~/sparc/bin/python2.4 -u"),
 ##    ("sparc-solaris2", "/usr/local/bin/python -u"),
 
     ("openpower-linux1", "python -u")]
