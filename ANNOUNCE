@@ -1,5 +1,5 @@
-ctypes 0.9.9.3 released - Feb 15, 2006
-======================================
+ctypes 0.9.9.4 released - Mar 9, 2006
+=====================================
 
 Overview
 
@@ -20,20 +20,43 @@ Overview
     FreeBSD, OpenBSD. It may also run on other systems, provided that
     libffi supports this platform.
 
-Important
+Changes in 0.9.9.4
 
-    If you download the source distribution, please choose the ZIP
-    file for Windows, and the .tar.gz file for other machines.
-    These archive have different contents!
+    (These are the most important changes, see the ChangeLog for
+    complete details)
+
+    This is an intermediate release, after large restructuring of the
+    CVS repository, and large cleanup.  The 0.9.9.4 release has also
+    been committed into the Python source distribution - ctypes will
+    be included with Python 2.5 when it comes out.
 
     There have been lots of changes - if you are the author or user of
     a package that uses ctypes, please test it with this release
     and report problems on the ctypes-users mailing list.
 
-Changes in 0.9.9.3
+    Sized integer types (c_int8, c_int16, and so on) have been added
+    by integrating a patch from Joe Wreschnig.  Also c_size_t, which
+    corresonds to the 'size_t' C type has been added.
 
-    (These are the most important changes, see the ChangeLog for
-    complete details)
+    A long standing bug 'set array members through a pointer to it'
+    has been fixed.  Thanks to Axel Seibert for pushing me to this.
+    Other bugfixes.
+
+    The ctypes.decorator module has been removed completely, so the
+    'cdecl' and 'stdcall' symbols are no longer available.
+    The code generator has been removed completely.  It will probably
+    be made available as a separate project later.
+
+    The samples directory has been removed because it was completely
+    out-of-date.
+
+    The .zip and .tar.gz source distributions no longer contain
+    different file sets.
+
+    The development in CVS now takes place in the HEAD again, the
+    'branch_1_0' branch is no longer used.
+
+Changes in 0.9.9.3
 
     Windows
 
