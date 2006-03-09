@@ -33,8 +33,10 @@ hostinfo = [
     # No route to host:
     ("ppc-osx2", "/usr/bin/python -u"),
 
-    # Not python 2.3 or newer:
-##    ("sparc-solaris1", "/usr/local/bin/python -u"),
+    # Not python 2.3 or newer, so use my own build of Python 2.4.2:
+    ("sparc-solaris1",
+     # "/usr/local/bin/python -u"
+     "env PATH=/usr/bin:/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin ~/sparc/bin/python2.4"),
 ##    ("sparc-solaris2", "/usr/local/bin/python -u"),
 
     ("openpower-linux1", "python -u")]
