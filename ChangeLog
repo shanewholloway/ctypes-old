@@ -15,7 +15,12 @@
 	* ctypes/__init__.py, ctypes/test/test_sizes.py: Added c_int8,
 	c_int16, c_int32, c_int64, c_uint8, c_uint16, c_uint32, c_uint64
 	types.  Patch and unittest provided by Joe Wreschnig.
+	Also added c_size_t which represents the C type size_t.
 
+	* ctypes/_loader.py: Added a load_library() method to library
+	loader classes.  Plus an alias LoadLibrary() for backwards
+	compatibility.
+	
 	* (Repository): Removed the codegenerator in ctypes/wrap
 	completely.  The last state has been tagged in CVS as
 	'BEFORE_REMOVAL'. It will be revived later - not yet sure where.
