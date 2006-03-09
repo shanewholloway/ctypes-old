@@ -1,4 +1,4 @@
-ctypes 0.9.9.4 released - Mar 9, 2006
+???ctypes 0.9.9.4 released - Mar 9, 2006
 =====================================
 
 Overview
@@ -33,6 +33,9 @@ Changes in 0.9.9.4
     There have been lots of changes - if you are the author or user of
     a package that uses ctypes, please test it with this release
     and report problems on the ctypes-users mailing list.
+
+    The LoadLibrary method is back again.  It is an alias for the new
+    load_library method.
 
     Sized integer types (c_int8, c_int16, and so on) have been added
     by integrating a patch from Joe Wreschnig.  Also c_size_t, which
