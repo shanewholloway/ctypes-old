@@ -150,7 +150,7 @@ class Test(unittest.TestCase):
         self.failUnless(c_char.__ctype_le__ is c_char)
         self.failUnless(c_char.__ctype_be__ is c_char)
 
-    def test_struct_fields(self):
+    def test_struct_fields_1(self):
         if sys.byteorder == "little":
             base = BigEndianStructure
         else:
@@ -199,28 +199,31 @@ class Test(unittest.TestCase):
             pass
         self.assertRaises(TypeError, setattr, S, "_fields_", [("s", T)])
 
-    # not sure if this is an alignment issue, at least it crashes with
-    # a core dump on sparc solaris.
-    if is_resource_enabled("unaligned_access"):
+    def test_struct_fields_2(self):
+        # standard packing in struct uses no alignment.
+        # So, we have to align using pad bytes.
+        #
+        # Unaligned accesses will crash Python (on those platforms that
+        # don't allow it, like sparc solaris).
+        if sys.byteorder == "little":
+            base = BigEndianStructure
+            fmt = ">bxhid"
+        else:
+            base = LittleEndianStructure
+            fmt = "<bxhid"
 
-        def test_struct_fields(self):
-            if sys.byteorder == "little":
-                base = BigEndianStructure
-                fmt = ">bhid"
-            else:
-                base = LittleEndianStructure
-                fmt = "<bhid"
+        class S(base):
+            _fields_ = [("b", c_byte),
+                        ("h", c_short),
+                        ("i", c_int),
+                        ("d", c_double)]
 
-            class S(base):
-                _pack_ = 1 # struct with '<' or '>' uses standard alignment.
-                _fields_ = [("b", c_byte),
-                            ("h", c_short),
-                            ("i", c_int),
-                            ("d", c_double)]
+        s1 = S(0x12, 0x1234, 0x12345678, 3.14)
+        s2 = struct.pack(fmt, 0x12, 0x1234, 0x12345678, 3.14)
+        self.failUnlessEqual(bin(s1), bin(s2))
 
-            s1 = S(0x12, 0x1234, 0x12345678, 3.14)
-            s2 = struct.pack(fmt, 0x12, 0x1234, 0x12345678, 3.14)
-            self.failUnlessEqual(bin(s1), bin(s2))
+    # XXX We should add a test for unaligned accesses, once
+    # ctypes can handle those.
 
 if __name__ == "__main__":
     unittest.main()
