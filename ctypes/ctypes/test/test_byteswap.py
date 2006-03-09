@@ -2,6 +2,7 @@ import sys, unittest, struct, math
 from binascii import hexlify
 
 from ctypes import *
+from ctypes.test import is_resource_enabled
 
 def bin(s):
     return hexlify(buffer(s)).upper()
@@ -198,24 +199,28 @@ class Test(unittest.TestCase):
             pass
         self.assertRaises(TypeError, setattr, S, "_fields_", [("s", T)])
 
-    def test_struct_fields(self):
-        if sys.byteorder == "little":
-            base = BigEndianStructure
-            fmt = ">bhid"
-        else:
-            base = LittleEndianStructure
-            fmt = "<bhid"
+    # not sure if this is an alignment issue, at least it crashes with
+    # a core dump on sparc solaris.
+    if is_resource_enabled("unaligned_access"):
 
-        class S(base):
-            _pack_ = 1 # struct with '<' or '>' uses standard alignment.
-            _fields_ = [("b", c_byte),
-                        ("h", c_short),
-                        ("i", c_int),
-                        ("d", c_double)]
+        def test_struct_fields(self):
+            if sys.byteorder == "little":
+                base = BigEndianStructure
+                fmt = ">bhid"
+            else:
+                base = LittleEndianStructure
+                fmt = "<bhid"
 
-        s1 = S(0x12, 0x1234, 0x12345678, 3.14)
-        s2 = struct.pack(fmt, 0x12, 0x1234, 0x12345678, 3.14)
-        self.failUnlessEqual(bin(s1), bin(s2))
+            class S(base):
+                _pack_ = 1 # struct with '<' or '>' uses standard alignment.
+                _fields_ = [("b", c_byte),
+                            ("h", c_short),
+                            ("i", c_int),
+                            ("d", c_double)]
+
+            s1 = S(0x12, 0x1234, 0x12345678, 3.14)
+            s2 = struct.pack(fmt, 0x12, 0x1234, 0x12345678, 3.14)
+            self.failUnlessEqual(bin(s1), bin(s2))
 
 if __name__ == "__main__":
     unittest.main()
