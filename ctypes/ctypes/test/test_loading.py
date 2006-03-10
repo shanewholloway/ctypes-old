@@ -19,7 +19,6 @@ class LoaderTest(unittest.TestCase):
             name = "libc.so"
         else:
             name = "libc.so.6"
-        import sys
         print (sys.platform, os.name)
         cdll.load(name)
         self.assertRaises(OSError, cdll.load, self.unknowndll)
