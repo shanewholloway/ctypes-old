@@ -22,9 +22,7 @@ hostinfo = [
      "~/netbsd/bin/python2.4 -u"),
 
     ("amd64-linux1", "/usr/bin/python -u"),
-
-    # Same platform as the previous one:
-##    ("amd64-linux2", "/usr/bin/python -u"),
+    ("amd64-linux2", "/usr/bin/python -u"),
 
     # Host key verification failed
     ("alpha-linux1", "/usr/bin/python -u"),
@@ -36,10 +34,10 @@ hostinfo = [
     ("ppc-osx2", "/usr/bin/python -u"),
 
     # Not python 2.3 or newer, so use my own build of Python 2.4.2:
-    ("sparc-solaris1",
-     # "/usr/local/bin/python -u"
+    ("sparc-solaris1", # "/usr/local/bin/python -u"
      "env PATH=/usr/bin:/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin ~/sparc/bin/python2.4 -u"),
-##    ("sparc-solaris2", "/usr/local/bin/python -u"),
+    ("sparc-solaris2", # "/usr/local/bin/python -u"
+     "env PATH=/usr/bin:/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin ~/sparc/bin/python2.4 -u"),
 
     ("openpower-linux1", "python -u")]
 
