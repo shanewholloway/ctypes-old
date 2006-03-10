@@ -312,10 +312,11 @@ class CDLL(object):
             raise AttributeError, name
         return self.__getitem__(name)
 
-    def __getitem__(self, name):
-        func = self._FuncPtr(name, self)
-        func.__name__ = name
-        setattr(self, name, func)
+    def __getitem__(self, name_or_ordinal):
+        func = self._FuncPtr((name_or_ordinal, self))
+        if not isinstance(name_or_ordinal, (int, long)):
+            func.__name__ = name_or_ordinal
+            setattr(self, name_or_ordinal, func)
         return func
 
 class PyDLL(CDLL):
