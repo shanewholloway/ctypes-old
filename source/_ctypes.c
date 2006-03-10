@@ -4325,6 +4325,42 @@ string_at(const char *ptr, int size)
 	return PyString_FromStringAndSize(ptr, size);
 }
 
+static int
+cast_check_pointertype(PyObject *arg)
+{
+	StgDictObject *dict;
+
+	if (PointerTypeObject_Check(arg))
+		return 1;
+	dict = PyType_stgdict(arg);
+	if (dict) {
+		if (PyString_Check(dict->proto)
+		    && (strchr("sPzUZXO", PyString_AS_STRING(dict->proto)[0]))) {
+			/* simple pointer types, c_void_p, c_wchar_p, BSTR, ... */
+			return 1;
+		}
+	}
+	PyErr_Format(PyExc_TypeError,
+		     "cast() argument 2 must be a pointer type, not %s",
+		     PyType_Check(arg)
+		     ? ((PyTypeObject *)arg)->tp_name
+		     : arg->ob_type->tp_name);
+	return 0;
+}
+
+static PyObject *
+cast(void *ptr, PyObject *ctype)
+{
+	CDataObject *result;
+	if (0 == cast_check_pointertype(ctype))
+		return NULL;
+	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
+	if (result == NULL)
+		return NULL;
+	/* Should we assert that result is a pointer type? */
+	memcpy(result->b_ptr, &ptr, sizeof(void *));
+	return (PyObject *)result;
+}
 
 #ifdef CTYPES_UNICODE
 static PyObject *
@@ -4460,6 +4496,7 @@ init_ctypes(void)
 	PyModule_AddObject(m, "_memmove_addr", PyLong_FromVoidPtr(memmove));
 	PyModule_AddObject(m, "_memset_addr", PyLong_FromVoidPtr(memset));
 	PyModule_AddObject(m, "_string_at_addr", PyLong_FromVoidPtr(string_at));
+	PyModule_AddObject(m, "_cast_addr", PyLong_FromVoidPtr(cast));
 #ifdef CTYPES_UNICODE
 	PyModule_AddObject(m, "_wstring_at_addr", PyLong_FromVoidPtr(wstring_at));
 #endif
