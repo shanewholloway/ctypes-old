@@ -19,6 +19,8 @@ class LoaderTest(unittest.TestCase):
             name = "libc.so"
         else:
             name = "libc.so.6"
+        import sys
+        print (sys.platform, os.name)
         cdll.load(name)
         self.assertRaises(OSError, cdll.load, self.unknowndll)
 
@@ -57,7 +59,7 @@ class LoaderTest(unittest.TestCase):
             f_name_addr = c_void_p.from_address(a_name).value
             self.failUnlessEqual(hex(f_ord_addr), hex(f_name_addr))
 
-            dll[1234]
+            self.failUnlessRaises(AttributeError, dll.__getitem__, 1234)
 
 if __name__ == "__main__":
     unittest.main()
