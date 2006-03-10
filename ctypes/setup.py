@@ -11,7 +11,7 @@ dlls. It allows wrapping these libraries in pure Python.
 
 LIBFFI_SOURCES='source/libffi'
 
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 
 ################################################################
 
@@ -226,7 +226,13 @@ if sys.platform == "win32":
         "source/libffi_msvc/prep_cif.c",
         "source/libffi_msvc/win32.c",
         ])
+    if sys.version_info >= (2, 4):
+        # enable 64-bit portability warnings
+        extra_compile_args = ["/Wp64"]
+    else:
+        extra_compile_args = []
     extensions = [Extension("_ctypes",
+                            extra_compile_args = extra_compile_args,
                             export_symbols=["DllGetClassObject,PRIVATE",
                                             "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32"],
