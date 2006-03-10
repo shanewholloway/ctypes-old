@@ -37,5 +37,15 @@ class LoaderTest(unittest.TestCase):
             cdll.find(name)
             self.assertRaises(OSError, cdll.find, self.unknowndll)
 
+    def test_load_library(self):
+        if os.name in ("nt", "ce"):
+            windll.load_library("kernel32").GetModuleHandleW
+            windll.LoadLibrary("kernel32").GetModuleHandleW
+            WinDLL("kernel32").GetModuleHandleW
+
+    def XXX_test_load_ordinal_functions(self):
+        # Not yet
+        pass
+
 if __name__ == "__main__":
     unittest.main()
