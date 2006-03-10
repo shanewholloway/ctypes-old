@@ -43,9 +43,20 @@ class LoaderTest(unittest.TestCase):
             windll.LoadLibrary("kernel32").GetModuleHandleW
             WinDLL("kernel32").GetModuleHandleW
 
-    def XXX_test_load_ordinal_functions(self):
-        # Not yet
-        pass
+    def test_load_ordinal_functions(self):
+        if os.name in ("nt", "ce"):
+            import _ctypes_test
+            dll = CDLL(_ctypes_test.__file__)
+            # We load the same function both via ordinal and name
+            func_ord = dll[42]
+            func_name = dll.GetString
+            # addressof gets the address where the function pointer is stored
+            a_ord = addressof(func_ord)
+            a_name = addressof(func_name)
+            f_ord_addr = c_void_p.from_address(a_ord).value
+            f_name_addr = c_void_p.from_address(a_name).value
+            self.failUnlessEqual(hex(f_ord_addr), hex(f_name_addr))
+
 
 if __name__ == "__main__":
     unittest.main()
