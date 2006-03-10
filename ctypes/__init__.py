@@ -5,12 +5,13 @@
 import os as _os, sys as _sys
 from itertools import chain as _chain
 
+# XXX Remove this for the python core version
 _magicfile = _os.path.join(_os.path.dirname(__file__), ".CTYPES_DEVEL")
 if _os.path.isfile(_magicfile):
     execfile(_magicfile)
 del _magicfile
 
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 
 from _ctypes import Union, Structure, Array
 from _ctypes import _Pointer
