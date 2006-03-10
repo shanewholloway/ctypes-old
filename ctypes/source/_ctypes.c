@@ -2500,7 +2500,10 @@ _get_name(PyObject *obj, char **pname)
 {
 #ifdef MS_WIN32
 	if (PyInt_Check(obj) || PyLong_Check(obj)) {
-		*pname = MAKEINTRESOURCE(PyInt_AsUnsignedLongMask(obj) & 0xFFFF);
+		/* We have to use MAKEINTRESOURCEA for Windows CE.
+		   Works on Windows as well, of course.
+		*/
+		*pname = MAKEINTRESOURCEA(PyInt_AsUnsignedLongMask(obj) & 0xFFFF);
 		return 1;
 	}
 #endif
