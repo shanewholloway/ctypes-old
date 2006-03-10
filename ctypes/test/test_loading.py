@@ -46,7 +46,7 @@ class LoaderTest(unittest.TestCase):
     def test_load_ordinal_functions(self):
         if os.name in ("nt", "ce"):
             import _ctypes_test
-            dll = CDLL(_ctypes_test.__file__)
+            dll = WinDLL(_ctypes_test.__file__)
             # We load the same function both via ordinal and name
             func_ord = dll[42]
             func_name = dll.GetString
@@ -57,6 +57,7 @@ class LoaderTest(unittest.TestCase):
             f_name_addr = c_void_p.from_address(a_name).value
             self.failUnlessEqual(hex(f_ord_addr), hex(f_name_addr))
 
+            dll[1234]
 
 if __name__ == "__main__":
     unittest.main()
