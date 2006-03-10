@@ -391,20 +391,28 @@ if _os.name in ("nt", "ce"):
 
 _pointer_type_cache[None] = c_void_p
 
-# functions
-
-from _ctypes import _memmove_addr, _memset_addr, _string_at_addr, cast
-
 if sizeof(c_uint) == sizeof(c_void_p):
     c_size_t = c_uint
 elif sizeof(c_ulong) == sizeof(c_void_p):
     c_size_t = c_ulong
+
+# functions
+
+from _ctypes import _memmove_addr, _memset_addr, _string_at_addr, _cast_addr
 
 ## void *memmove(void *, const void *, size_t);
 memmove = CFUNCTYPE(c_void_p, c_void_p, c_void_p, c_size_t)(_memmove_addr)
 
 ## void *memset(void *, int, size_t)
 memset = CFUNCTYPE(c_void_p, c_void_p, c_int, c_size_t)(_memset_addr)
+
+def PYFUNCTYPE(restype, *argtypes):
+    class CFunctionType(_CFuncPtr):
+        _argtypes_ = argtypes
+        _restype_ = restype
+        _flags_ = _FUNCFLAG_CDECL | _FUNCFLAG_PYTHONAPI
+    return CFunctionType
+cast = PYFUNCTYPE(py_object, c_void_p, py_object)(_cast_addr)
 
 _string_at = CFUNCTYPE(py_object, c_void_p, c_int)(_string_at_addr)
 def string_at(ptr, size=0):
@@ -424,7 +432,7 @@ else:
 
         Return the string at addr."""
         return _wstring_at(ptr, size)
-    
+
 
 if _os.name == "nt": # COM stuff
     def DllGetClassObject(rclsid, riid, ppv):
