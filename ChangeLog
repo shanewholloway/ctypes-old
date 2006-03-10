@@ -1,7 +1,11 @@
 2006-03-10  Thomas Heller  <theller@python.net>
 
-	*  (Repository): cast is now implemented as foreign function.
+	* (Repository): cast is now implemented as foreign function.
 	This should fix potential issues on 64-bit platforms.
+
+	Bumped version number to 0.9.9.5.
+
+	Use /Wp64 compiler flag on Windows.
 
 2006-03-08  Thomas Heller  <theller@python.net>
 
