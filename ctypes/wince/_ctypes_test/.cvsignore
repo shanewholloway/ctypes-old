@@ -1,0 +1,12 @@
+ARMV4Dbg
+ARMV4Rel
+_ctypes.dep
+_ctypes.vcb
+_ctypes.vcl
+_ctypes.vcn
+_ctypes.vco
+_ctypes_test.dep
+_ctypes_test.vcb
+_ctypes_test.vcl
+_ctypes_test.vcn
+_ctypes_test.vco

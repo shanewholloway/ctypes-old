@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "_ctypes_test"=.\_ctypes_test.vcp - Package Owner=<4>
+Project: "_ctypes_test"=.\_ctypes_test\_ctypes_test.vcp - Package Owner=<4>
 
 Package=<5>
 {{{
