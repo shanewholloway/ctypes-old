@@ -79,7 +79,7 @@ class test(Command):
         ctypes.test.use_resources.extend(self.use_resources)
 
         for name in self.tests:
-            package = __import__(name, globals(), locals(), ['*']) 
+            package = __import__(name, globals(), locals(), ['*'])
             print "Testing package", name
             ctypes.test.run_tests(package,
                                   "test_*.py",
@@ -194,15 +194,15 @@ class my_clean(clean.clean):
         clean.clean.run(self)
 
 class my_install_data(install_data.install_data):
-     """A custom install_data command, which will install it's files
-     into the standard directories (normally lib/site-packages).
-     """
-     def finalize_options(self):
-         if self.install_dir is None:
-             installobj = self.distribution.get_command_obj('install')
-             self.install_dir = installobj.install_lib
-         print 'Installing data files to %s' % self.install_dir
-         install_data.install_data.finalize_options(self)
+    """A custom install_data command, which will install it's files
+    into the standard directories (normally lib/site-packages).
+    """
+    def finalize_options(self):
+        if self.install_dir is None:
+            installobj = self.distribution.get_command_obj('install')
+            self.install_dir = installobj.install_lib
+        print 'Installing data files to %s' % self.install_dir
+        install_data.install_data.finalize_options(self)
 
 ################################################################
 # Specify the _ctypes extension
@@ -227,8 +227,9 @@ if sys.platform == "win32":
         "source/libffi_msvc/win32.c",
         ])
     if sys.version_info >= (2, 4):
+        extra_compile_args = []
         # enable 64-bit portability warnings
-        extra_compile_args = ["/Wp64"]
+##        extra_compile_args = ["/Wp64"]
     else:
         extra_compile_args = []
     extensions = [Extension("_ctypes",
@@ -313,7 +314,7 @@ if __name__ == '__main__':
           license="MIT License",
           url="http://starship.python.net/crew/theller/ctypes.html",
           platforms=["windows", "Linux", "MacOS X", "Solaris", "FreeBSD"],
-          
+
           cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext,
                       'clean': my_clean, 'install_data': my_install_data,
 ##                      'ce_install_lib': ce_install_lib
