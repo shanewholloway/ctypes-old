@@ -105,6 +105,7 @@ bytes(cdata)
 #include <ffi.h>
 #ifdef MS_WIN32
 #include <windows.h>
+#include <malloc.h>
 # ifdef _WIN32_WCE
 /* Unlike desktop Windows, WinCE has both W and A variants of
    GetProcAddress, but the default W version is not what we want */
@@ -2401,7 +2402,7 @@ static PPROC FindAddress(void *handle, char *name, PyObject *type)
 	   funcname -> _funcname@<n>
 	   where n is 0, 4, 8, 12, ..., 128
 	 */
-	mangled_name = _alloca(strlen(name) + 1 + 1 + 1 + 3); /* \0 _ @ %d */
+	mangled_name = alloca(strlen(name) + 1 + 1 + 1 + 3); /* \0 _ @ %d */
 	for (i = 0; i < 32; ++i) {
 		sprintf(mangled_name, "_%s@%d", name, i*4);
 		address = (PPROC)GetProcAddress(handle, mangled_name);
