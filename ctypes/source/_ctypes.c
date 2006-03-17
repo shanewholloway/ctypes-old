@@ -285,6 +285,7 @@ CDataType_from_param(PyObject *type, PyObject *value)
 	if (PyCArg_CheckExact(value)) {
 		PyCArgObject *p = (PyCArgObject *)value;
 		PyObject *ob = p->obj;
+		const char *ob_name;
 		StgDictObject *dict;
 		dict = PyType_stgdict(type);
 
@@ -296,10 +297,10 @@ CDataType_from_param(PyObject *type, PyObject *value)
 			Py_INCREF(value);
 			return value;
 		}
+		ob_name = (ob) ? ob->ob_type->tp_name : "???";
 		PyErr_Format(PyExc_TypeError,
 			     "expected %s instance instead of pointer to %s",
-			     ((PyTypeObject *)type)->tp_name,
-			     ob->ob_type->tp_name);
+			     ((PyTypeObject *)type)->tp_name, ob_name);
 		return NULL;
 	}
 #if 1
@@ -506,12 +507,12 @@ size property/method, and the sequence protocol.
 static int
 PointerType_SetProto(StgDictObject *stgdict, PyObject *proto)
 {
-	if (proto && !PyType_Check(proto)) {
+	if (!proto || !PyType_Check(proto)) {
 		PyErr_SetString(PyExc_TypeError,
 				"_type_ must be a type");
 		return -1;
 	}
-	if (proto && !PyType_stgdict(proto)) {
+	if (!PyType_stgdict(proto)) {
 		PyErr_SetString(PyExc_TypeError,
 				"_type_ must have storage info");
 		return -1;
@@ -1264,9 +1265,13 @@ static PyObject *CreateSwappedType(PyTypeObject *type, PyObject *args, PyObject 
 	PyTypeObject *result;
 	StgDictObject *stgdict;
 	PyObject *name = PyTuple_GET_ITEM(args, 0);
-	PyObject *swapped_args = PyTuple_New(PyTuple_GET_SIZE(args));
+	PyObject *swapped_args;
 	static PyObject *suffix;
 	int i;
+
+	swapped_args = PyTuple_New(PyTuple_GET_SIZE(args));
+	if (!swapped_args)
+		return NULL;
 
 	if (suffix == NULL)
 #ifdef WORDS_BIGENDIAN
@@ -1804,7 +1809,7 @@ unique_key(CDataObject *target, int index)
  * key int the root object's _objects dict.
  */
 static int
-KeepRef(CDataObject *target, int index, PyObject *keep)
+KeepRef(CDataObject *target, Py_ssize_t index, PyObject *keep)
 {
 	int result;
 	CDataObject *ob;
@@ -2813,7 +2818,7 @@ _get_arg(int *pindex, char *name, PyObject *defval, PyObject *inargs, PyObject *
 static PyObject *
 _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 		PyObject *inargs, PyObject *kwds,
-		int *poutmask, int *pinoutmask, int *pnumretvals)
+		int *poutmask, int *pinoutmask, unsigned int *pnumretvals)
 {
 	PyObject *paramflags = self->paramflags;
 	PyObject *callargs;
@@ -2867,8 +2872,14 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 
 		switch (flag & (PARAMFLAG_FIN | PARAMFLAG_FOUT | PARAMFLAG_FLCID)) {
 		case PARAMFLAG_FIN | PARAMFLAG_FLCID:
-			/* ['in', 'lcid'] parameter.  Always taken from defval */
-			Py_INCREF(defval);
+			/* ['in', 'lcid'] parameter.  Always taken from defval,
+			 if given, else the integer 0. */
+			if (defval == NULL) {
+				defval = PyInt_FromLong(0);
+				if (defval == NULL)
+					goto error;
+			} else
+				Py_INCREF(defval);
 			PyTuple_SET_ITEM(callargs, i, defval);
 			break;
 		case (PARAMFLAG_FIN | PARAMFLAG_FOUT):
@@ -2971,9 +2982,10 @@ _build_callargs(CFuncPtrObject *self, PyObject *argtypes,
 */
 static PyObject *
 _build_result(PyObject *result, PyObject *callargs,
-	      int outmask, int inoutmask, int numretvals)
+	      int outmask, int inoutmask, unsigned int numretvals)
 {
-	int i, index, bit;
+	unsigned int i, index;
+	int bit;
 	PyObject *tup = NULL;
 
 	if (callargs == NULL)
@@ -2984,6 +2996,7 @@ _build_result(PyObject *result, PyObject *callargs,
 	}
 	Py_DECREF(result);
 
+	/* tup will not be allocated if numretvals == 1 */
 	/* allocate tuple to hold the result */
 	if (numretvals > 1) {
 		tup = PyTuple_New(numretvals);
@@ -3041,7 +3054,7 @@ CFuncPtr_call(CFuncPtrObject *self, PyObject *inargs, PyObject *kwds)
 
 	int inoutmask;
 	int outmask;
-	int numretvals;
+	unsigned int numretvals;
 
 	assert(dict); /* if not, it's a bug */
 	restype = self->restype ? self->restype : dict->restype;
@@ -3307,6 +3320,8 @@ Struct_init(PyObject *self, PyObject *args, PyObject *kwds)
 		if (!fields) {
 			PyErr_Clear();
 			fields = PyTuple_New(0);
+			if (!fields)
+				return -1;
 		}
 
 		if (PyTuple_GET_SIZE(args) > PySequence_Length(fields)) {
@@ -3912,7 +3927,7 @@ Simple_repr(CDataObject *self)
 
 	name = PyString_FromString(self->ob_type->tp_name);
 	if (name == NULL) {
-		Py_DECREF(name);
+		Py_DECREF(val);
 		return NULL;
 	}
 
