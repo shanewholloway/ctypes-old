@@ -214,23 +214,10 @@ ffi_call(/*@dependent@*/ ffi_cif *cif,
 
 static void ffi_prep_incoming_args_SYSV (char *stack, void **ret,
 					 void** args, ffi_cif* cif);
-#ifndef _MSC_VER
-static void ffi_closure_SYSV (ffi_closure *)
-     __attribute__ ((regparm(1)));
-static void ffi_closure_raw_SYSV (ffi_raw_closure *)
-     __attribute__ ((regparm(1)));
-#endif
-
 /* This function is jumped to by the trampoline */
 
-#ifdef _MSC_VER
 static void __fastcall
 ffi_closure_SYSV (ffi_closure *closure, int *argp)
-#else
-static void
-ffi_closure_SYSV (closure)
-     ffi_closure *closure;
-#endif
 {
   // this is our return value storage
   long double    res;
@@ -240,11 +227,11 @@ ffi_closure_SYSV (closure)
   void         **arg_area;
   unsigned short rtype;
   void          *resp = (void*)&res;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
   void *args = &argp[1];
-#else
-  void *args = __builtin_dwarf_cfa ();
-#endif
+//#else
+//  void *args = __builtin_dwarf_cfa ();
+//#endif
 
   cif         = closure->cif;
   arg_area    = (void**) alloca (cif->nargs * sizeof (void*));  
@@ -368,7 +355,7 @@ ffi_prep_incoming_args_SYSV(char *stack, void **rvalue,
 
 /* MOV EDX, ESP is 0x8b 0xd4 */
 
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 
 #define FFI_INIT_TRAMPOLINE(TRAMP,FUN,CTX,BYTES) \
 { unsigned char *__tramp = (unsigned char*)(TRAMP); \
@@ -385,18 +372,18 @@ ffi_prep_incoming_args_SYSV(char *stack, void **rvalue,
    *(unsigned short*) &__tramp[13] = BYTES; \
  }
 
-#else
-#define FFI_INIT_TRAMPOLINE(TRAMP,FUN,CTX,BYTES) \
-({ unsigned char *__tramp = (unsigned char*)(TRAMP); \
-   unsigned int  __fun = (unsigned int)(FUN); \
-   unsigned int  __ctx = (unsigned int)(CTX); \
-   unsigned int  __dis = __fun - ((unsigned int) __tramp + FFI_TRAMPOLINE_SIZE); \
-   *(unsigned char*) &__tramp[0] = 0xb8; \
-   *(unsigned int*)  &__tramp[1] = __ctx; /* movl __ctx, %eax */ \
-   *(unsigned char *)  &__tramp[5] = 0xe9; \
-   *(unsigned int*)  &__tramp[6] = __dis; /* jmp __fun  */ \
- })
-#endif
+//#else
+//#define FFI_INIT_TRAMPOLINE(TRAMP,FUN,CTX,BYTES) \
+//({ unsigned char *__tramp = (unsigned char*)(TRAMP); \
+//   unsigned int  __fun = (unsigned int)(FUN); \
+//   unsigned int  __ctx = (unsigned int)(CTX); \
+//   unsigned int  __dis = __fun - ((unsigned int) __tramp + FFI_TRAMPOLINE_SIZE); \
+//   *(unsigned char*) &__tramp[0] = 0xb8; \
+//   *(unsigned int*)  &__tramp[1] = __ctx; /* movl __ctx, %eax */ \
+//   *(unsigned char *)  &__tramp[5] = 0xe9; \
+//   *(unsigned int*)  &__tramp[6] = __dis; /* jmp __fun  */ \
+// })
+//#endif
 
 /* the cif must already be prep'ed */
 
