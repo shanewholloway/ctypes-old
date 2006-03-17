@@ -1,3 +1,50 @@
+2006-03-17  Thomas Heller  <theller@python.net>
+
+	*  source\libffi_msvc:  Remove unneeded #ifdef and #if defined
+	blocks: the code in this directory is for Windows X86 ONLY.
+
+	* source: Backport some changes made in the Python SVN repository
+	that made the code more robust and did better handling of errors.
+	The only visible change should be that for [in, lcid] parameter
+	types a default value of int(0) is used if not default has been
+	supplied in paramflags.
+
+
+2006-03-15  Thomas Heller  <theller@python.net>
+
+	* source/libffi/include/ffi.h.in: Suppress most warnings when
+	files that include ffi.h are compiled by using proper function
+	prototypes.
+
+2006-03-15  Thomas Heller  <theller@python.net>
+
+	* source/cfield.c: PyString_FromFormat()b understands the C99 "z"
+	qualifier on all platforms, in Python 2.5.  Patch from Tim Peters,
+	adapted to work with older Python versions.
+
+2006-03-14  Thomas Heller  <theller@python.net>
+
+	* source\ctypes.h, source\_ctypes.c: Apply a patch (after adding
+	support for older versions of Python) supplied by Neal Norwitz.
+	This patch implements the changes needed for PEP353 (Py_ssize_t).
+	He writes:
+
+	The attached patch fixes all the ctypes tests so they pass on
+	amd64.  It also fixes several warnings.  I'm not sure what else to
+	do with the patch.  Let me know how you want to handle these in
+	the future.
+
+	I'm not sure the patch is 100% correct.  You will need to decide
+	what can be 64 bits and what can't.  I believe
+	sq_{item,slice,ass_item,ass_slice} all need to use Py_ssize_t.
+	The types in ctypes.h may not require all the changes I made.  I
+	don't know how you want to support older version, so I
+	unconditionally changed the types to Py_ssize_t.
+
+2006-03-10  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: Fix foreign functions loaded via ordinal on Windows CE.
+	
 2006-03-10  Thomas Heller  <theller@python.net>
 
 	* (Repository): cast is now implemented as foreign function.
