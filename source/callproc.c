@@ -722,7 +722,6 @@ static PyObject *GetResult(PyObject *restype, void *result, PyObject *checker)
 		   called Py_INCREF.
 		*/
 		if (dict->getfunc == getentry("O")->getfunc) {
-			/* The braces are needed, gcc warns about ambiguous 'else' */
 			Py_DECREF(retval);
 		}
 	} else
