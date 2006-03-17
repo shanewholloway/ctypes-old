@@ -1,6 +1,12 @@
 2006-03-17  Thomas Heller  <theller@python.net>
 
-	*  source\libffi_msvc:  Remove unneeded #ifdef and #if defined
+	* Several changes that will eventually allow to compile the
+	extensions with the MingW32 compiler on Windows (hopefully!).
+	Currently, calling foreign functions seems to work with some
+	exceptions: functions that return structures raise errors.
+	Callback functions crash Python.
+	
+	* source\libffi_msvc: Remove unneeded #ifdef and #if defined
 	blocks: the code in this directory is for Windows X86 ONLY.
 
 	* source: Backport some changes made in the Python SVN repository
