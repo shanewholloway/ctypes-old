@@ -126,23 +126,24 @@ class my_build_ext(build_ext.build_ext):
 
         # Add .S (preprocessed assembly) to C compiler source extensions.
         self.compiler.src_extensions.append('.S')
-        if isinstance(self.compiler, Mingw32CCompiler):
-            # Windows lowercases the extensions, it seems, before
-            # determining how to compile a file.  So, even if win32.S
-            # is in sources, we have to add '.s'.
-            self.compiler.src_extensions.append('.s')
-            # We should add the '--enable-stdcall-fixup' compiler flag
-            for ext in self.extensions:
-                if ext.name == "_ctypes":
-                    ext.sources.remove("source/libffi_msvc/win32.c")
+        if sys.platform == "win32":
+            if isinstance(self.compiler, Mingw32CCompiler):
+                # Windows lowercases the extensions, it seems, before
+                # determining how to compile a file.  So, even if win32.S
+                # is in sources, we have to add '.s'.
+                self.compiler.src_extensions.append('.s')
+                # We should add the '--enable-stdcall-fixup' compiler flag
+                for ext in self.extensions:
+                    if ext.name == "_ctypes":
+                        ext.sources.remove("source/libffi_msvc/win32.c")
 # This doesn't work - the option goes to the end of the command line,
 # but it should probably be at the beginning.  So, we have to live
 # with the warning.
-##                ext.extra_compile_args.append("--enable-stdcall-fixup")
-        else:
-            for ext in self.extensions:
-                if ext.name == "_ctypes":
-                    ext.sources.remove("source/libffi_msvc/win32.S")
+##                    ext.extra_compile_args.append("--enable-stdcall-fixup")
+            else:
+                for ext in self.extensions:
+                    if ext.name == "_ctypes":
+                        ext.sources.remove("source/libffi_msvc/win32.S")
 
         build_ext.build_ext.build_extensions(self)
 
