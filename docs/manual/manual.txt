@@ -6,9 +6,4 @@ ctypes manual
 
 .. contents::
 
-.. include:: libraries.txt
-.. include:: functions.txt
-.. include:: callbacks.txt
-.. include:: simple_types.txt
-.. include:: struct_union.txt
-.. include:: utilities.txt
+.. include:: docs.txt

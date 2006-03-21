@@ -306,9 +306,9 @@ ul.auto-toc {
 <li><a class="reference" href="#function-prototypes" id="id6" name="id6">Function prototypes</a></li>
 <li><a class="reference" href="#parameter-flags" id="id7" name="id7">Parameter flags</a></li>
 <li><a class="reference" href="#com-methods-windows-only" id="id8" name="id8">COM methods (Windows only)</a></li>
-<li><a class="reference" href="#callback-functions" id="id9" name="id9">Callback functions</a></li>
 </ul>
 </li>
+<li><a class="reference" href="#callback-functions" id="id9" name="id9">Callback functions</a></li>
 <li><a class="reference" href="#simple-types" id="id10" name="id10">Simple types</a><ul>
 <li><a class="reference" href="#class-attributes-of-simple-types" id="id11" name="id11">Class attributes of simple types</a></li>
 <li><a class="reference" href="#class-methods-of-simple-types" id="id12" name="id12">Class methods of simple types</a></li>
@@ -325,9 +325,7 @@ ul.auto-toc {
 <li><a class="reference" href="#bit-fields" id="id21" name="id21">Bit fields</a></li>
 <li><a class="reference" href="#recursive-data-types" id="id22" name="id22">Recursive data types</a></li>
 <li><a class="reference" href="#byte-order" id="id23" name="id23">Byte order</a></li>
-</ul>
-</li>
-<li><a class="reference" href="#builtin-functions" id="id24" name="id24">Builtin functions</a><ul>
+<li><a class="reference" href="#builtin-functions" id="id24" name="id24">Builtin functions</a></li>
 <li><a class="reference" href="#deprecated-functions" id="id25" name="id25">Deprecated functions</a></li>
 </ul>
 </li>
@@ -348,33 +346,9 @@ especially usefull for interactive use, it is equivalent to calling
 <div class="section">
 <h2><a class="toc-backref" href="#id2" id="class-libraryloader" name="class-libraryloader">class LibraryLoader</a></h2>
 <p>Instances of <tt class="docutils literal"><span class="pre">LibraryLoader</span></tt> are used to load shared libraries.
-They have the following methods:</p>
-<p><tt class="docutils literal"><span class="pre">load(libname,</span> <span class="pre">mode=None)</span></tt></p>
-<blockquote>
-<p>Load and return the library with the given libname.  On most
-systems <tt class="docutils literal"><span class="pre">libname</span></tt> is the filename of the shared library; when
-it's not a pathname it will be searched in a system dependent list
-of locations (on many systems additional search paths can be
-specified by an environment variable).  Sometimes the file
-extension (like <tt class="docutils literal"><span class="pre">.dll</span></tt> on Windows) can be omitted.</p>
-<p><tt class="docutils literal"><span class="pre">mode</span></tt> allows to override the default flags passed to the
-<tt class="docutils literal"><span class="pre">dlopen()</span></tt> function.  <tt class="docutils literal"><span class="pre">RTLD_LOCAL</span></tt> and <tt class="docutils literal"><span class="pre">RTLD_GLOBAL</span></tt> are
-typical values.  On Windows, <tt class="docutils literal"><span class="pre">mode</span></tt> is ignored.</p>
-</blockquote>
-<p><tt class="docutils literal"><span class="pre">load_version(name,</span> <span class="pre">version=None,</span> <span class="pre">mode=None)</span></tt></p>
-<blockquote>
-<p>Build a system dependent filename from <tt class="docutils literal"><span class="pre">name</span></tt> and optionally
-<tt class="docutils literal"><span class="pre">version</span></tt>, then load and return it.  <tt class="docutils literal"><span class="pre">name</span></tt> is the library
-name without any prefix like <tt class="docutils literal"><span class="pre">lib</span></tt> and suffix like <tt class="docutils literal"><span class="pre">.so</span></tt> or
-<tt class="docutils literal"><span class="pre">.dylib</span></tt>.  This method should be used if a library is available
-on different platforms, using the particular naming convention of
-each platform.</p>
-<p><tt class="docutils literal"><span class="pre">mode</span></tt> allows to override the default flags passed to the
-<tt class="docutils literal"><span class="pre">dlopen()</span></tt> function, ignored on Windows.</p>
-<p>Example: calling <tt class="docutils literal"><span class="pre">loader.load_version('z',</span> <span class="pre">'1.1.3')</span></tt> would
-possibly load <tt class="docutils literal"><span class="pre">/usr/lib/libz.1.1.3.dylib</span></tt> on Mac OS X, and
-<tt class="docutils literal"><span class="pre">/lib/libz.so.1.1.3</span></tt> on a Linux system.</p>
-</blockquote>
+Usually there is no need to create a libraryloader, instead one of the
+predefined loaders should be used.</p>
+<p>Libraryloaders have the following methods:</p>
 <p><tt class="docutils literal"><span class="pre">find(name,</span> <span class="pre">mode=None)</span></tt></p>
 <blockquote>
 <p>Try to find a library, load and return it.  <tt class="docutils literal"><span class="pre">name</span></tt> is the
@@ -390,6 +364,45 @@ the compiler to find the library.  When using ctypes to write a
 shared library wrapping, consider using <tt class="docutils literal"><span class="pre">load_version</span></tt> or
 <tt class="docutils literal"><span class="pre">load</span></tt> instead.</p>
 </blockquote>
+<p><tt class="docutils literal"><span class="pre">load_version(name,</span> <span class="pre">version=None,</span> <span class="pre">mode=None)</span></tt></p>
+<blockquote>
+<p>Build a system dependent filename from <tt class="docutils literal"><span class="pre">name</span></tt> and optionally
+<tt class="docutils literal"><span class="pre">version</span></tt>, then load and return it.  <tt class="docutils literal"><span class="pre">name</span></tt> is the library
+name without any prefix like <tt class="docutils literal"><span class="pre">lib</span></tt> and suffix like <tt class="docutils literal"><span class="pre">.so</span></tt> or
+<tt class="docutils literal"><span class="pre">.dylib</span></tt>.  This method should be used if a library is available
+on different platforms, using the particular naming convention of
+each platform.</p>
+<p><tt class="docutils literal"><span class="pre">mode</span></tt> allows to override the default flags passed to the
+<tt class="docutils literal"><span class="pre">dlopen()</span></tt> function, ignored on Windows.</p>
+<p>Example: calling <tt class="docutils literal"><span class="pre">loader.load_version('z',</span> <span class="pre">'1.1.3')</span></tt> would
+possibly load <tt class="docutils literal"><span class="pre">/usr/lib/libz.1.1.3.dylib</span></tt> on Mac OS X, or
+<tt class="docutils literal"><span class="pre">/lib/libz.so.1.1.3</span></tt> on a Linux system.</p>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">load(libname,</span> <span class="pre">mode=None)</span></tt></p>
+<blockquote>
+<p>Load and return the library with the given libname.  On most
+systems <tt class="docutils literal"><span class="pre">libname</span></tt> is the filename of the shared library; when
+it's not a pathname it will be searched in a system dependent list
+of locations (on many systems additional search paths can be
+specified by an environment variable).  Sometimes the file
+extension (like <tt class="docutils literal"><span class="pre">.dll</span></tt> on Windows) can be omitted.</p>
+<p><tt class="docutils literal"><span class="pre">mode</span></tt> allows to override the default flags passed to the
+<tt class="docutils literal"><span class="pre">dlopen()</span></tt> function.  <tt class="docutils literal"><span class="pre">RTLD_LOCAL</span></tt> and <tt class="docutils literal"><span class="pre">RTLD_GLOBAL</span></tt> are
+typical values.  On Windows, <tt class="docutils literal"><span class="pre">mode</span></tt> is ignored.</p>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">load_library(pathname,</span> <span class="pre">mode=None</span></tt></p>
+<blockquote>
+<p>Load and return the library with the given pathname.  This method
+passes the <tt class="docutils literal"><span class="pre">pathname</span></tt> directly to the underlying <tt class="docutils literal"><span class="pre">dlopen</span></tt> or
+<tt class="docutils literal"><span class="pre">LoadLibrary</span></tt> function.</p>
+<p><tt class="docutils literal"><span class="pre">mode</span></tt> allows to override the default flags passed to the
+<tt class="docutils literal"><span class="pre">dlopen()</span></tt> function.  <tt class="docutils literal"><span class="pre">RTLD_LOCAL</span></tt> and <tt class="docutils literal"><span class="pre">RTLD_GLOBAL</span></tt> are
+typical values.  On Windows, <tt class="docutils literal"><span class="pre">mode</span></tt> is ignored.</p>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">LoadLibrary(pathname,</span> <span class="pre">mode=None)</span></tt></p>
+<blockquote>
+This is an alias for the <tt class="docutils literal"><span class="pre">load_library</span></tt> method documented above,
+maintained for backwards comatibility only.</blockquote>
 <p>Libaries can also be loaded by accessing them as attributes of the
 loader instance, internally this calls <tt class="docutils literal"><span class="pre">load_version</span></tt> without
 specifying <tt class="docutils literal"><span class="pre">version</span></tt> or <tt class="docutils literal"><span class="pre">mode</span></tt>.  Obviously this only works for
@@ -398,9 +411,9 @@ name does not start with a <tt class="docutils literal"><span class="pre">_</spa
 </div>
 <div class="section">
 <h2><a class="toc-backref" href="#id3" id="predefined-library-loaders" name="predefined-library-loaders">Predefined library loaders</a></h2>
-<p>ctypes provides some LibraryLoader instances, the differences are the
-calling conventions the functions will use, the default return type of
-the functions, and other stuff.  All these loaders use the
+<p>ctypes provides some LibraryLoader instances, the differences between
+them are the calling conventions the functions will use and the
+default return type of the functions.  All these loaders use the
 <tt class="docutils literal"><span class="pre">RTLD_LOCAL</span></tt> mode flag.</p>
 <p>Functions can be accessed as named attributes of loaded libraries.</p>
 <p>On Windows, structured exception handling is used around the function
@@ -410,10 +423,10 @@ parameters to the function.</p>
 <blockquote>
 Functions provided by libraries loaded using the <tt class="docutils literal"><span class="pre">cdll</span></tt> loader
 will be called with the standard C calling convention, and have a
-default return type of <tt class="docutils literal"><span class="pre">int</span></tt>.  ctypes does release the Python
-global interpreter lock (GIL) just before calling the actual
-function, and reacquire it before returing, so a chance is given to
-other threads to run.</blockquote>
+default return type of <tt class="docutils literal"><span class="pre">int</span></tt>.  ctypes releases the Python global
+interpreter lock (GIL) just before calling the foreign function,
+and reacquires it before returing, so other threads are able to
+run.</blockquote>
 <p><tt class="docutils literal"><span class="pre">windll</span></tt></p>
 <blockquote>
 Windows only.  Functions provided by libraries loaded by
@@ -424,22 +437,22 @@ the stack pointer before and after the function call.  If the
 wrong parameter count was used, an exception is raised (although
 the function really <em>has</em> been called).  The return value of the
 function is lost in this case.  Again, the GIL is released during
-the call.</blockquote>
+the duration of the function call.</blockquote>
 <p><tt class="docutils literal"><span class="pre">oledll</span></tt></p>
 <blockquote>
 Windows only.  <tt class="docutils literal"><span class="pre">oledll</span></tt> behaves in the same way as <tt class="docutils literal"><span class="pre">windll</span></tt>,
 except that the called function is expected to return a
 <tt class="docutils literal"><span class="pre">HRESULT</span></tt> value.  These are long values containing error or
-success codes.  In case the function return an error <tt class="docutils literal"><span class="pre">HRESULT</span></tt>
+success codes.  In case the function returns an error <tt class="docutils literal"><span class="pre">HRESULT</span></tt>
 value, a <tt class="docutils literal"><span class="pre">WindowsError</span></tt> is raised.  The GIL is released during the
-function call.</blockquote>
+duration of function call.</blockquote>
 <p><tt class="docutils literal"><span class="pre">pydll</span></tt></p>
 <blockquote>
 <p>This loader allows to call functions in libraries using the
 <em>Python</em> calling convention, for example Python C API functions.
 The GIL is <em>not</em> released during the function call, and the state
 of the Python error flag is examined after the function returns.
-If the error flag is set, an exception is raised.</p>
+If the error flag is set, the Python exception is raised.</p>
 <p>ctypes provides a prefabricated instance of <tt class="docutils literal"><span class="pre">pydll</span></tt> exposing the
 Python C api as the <tt class="docutils literal"><span class="pre">pythonapi</span></tt> symbol, you should however make
 sure to set the correct <tt class="docutils literal"><span class="pre">restype</span></tt> for the functions you use.</p>
@@ -578,8 +591,9 @@ information in case the method returns a FAILED ''HRESULT`` value.</p>
 listed in the prototypes <tt class="docutils literal"><span class="pre">argtypes</span></tt> when they are called: this must
 be the integer address of a COM interface pointer.</p>
 </div>
+</div>
 <div class="section">
-<h2><a class="toc-backref" href="#id9" id="callback-functions" name="callback-functions">Callback functions</a></h2>
+<h1><a class="toc-backref" href="#id9" id="callback-functions" name="callback-functions">Callback functions</a></h1>
 <p>ctypes is able to create C callable functions from Python callables.
 This is useful because sometimes library functions need a callback
 function parameter; the <tt class="docutils literal"><span class="pre">qsort</span></tt> C function is such an example.</p>
@@ -604,7 +618,6 @@ cleaned up by Python's garbage collector and external code then
 tries to call it.</p>
 <p>Callback objects can also be called from Python - this may be useful
 for debugging.</p>
-</div>
 </div>
 <div class="section">
 <h1><a class="toc-backref" href="#id10" id="simple-types" name="simple-types">Simple types</a></h1>
@@ -765,10 +778,10 @@ class Point(Structure):
 </div>
 <div class="section">
 <h2><a class="toc-backref" href="#id20" id="packing-fields" name="packing-fields">Packing fields</a></h2>
-<p>Normally fields are aligned in the same way as the host's C compiler.
-The native alignment can be overridden by setting a <tt class="docutils literal"><span class="pre">_pack_</span></tt>
-attribute in the type.  This must be a small positive integer which is
-the maximum field alignment.</p>
+<p>Normally fields are aligned in the same way as the host's C compiler
+would do it.  This native alignment can be overridden by setting a
+<tt class="docutils literal"><span class="pre">_pack_</span></tt> attribute in the type.  It must be a small positive integer
+which is the maximum field alignment.</p>
 </div>
 <div class="section">
 <h2><a class="toc-backref" href="#id21" id="bit-fields" name="bit-fields">Bit fields</a></h2>
@@ -781,9 +794,9 @@ the low word.  XXX is that correct?</p>
 </div>
 <div class="section">
 <h2><a class="toc-backref" href="#id22" id="recursive-data-types" name="recursive-data-types">Recursive data types</a></h2>
-<p>To support recursive type definitions, it is possible to assign the
-<tt class="docutils literal"><span class="pre">_fields_</span></tt> value after the class statement.  Here is an example of a
-linked list, which contains pointers to itself:</p>
+<p>To define recursive types, it is possible to assign the <tt class="docutils literal"><span class="pre">_fields_</span></tt>
+value <em>after</em> the class statement.  Here is an example of a linked
+list data structure, which contains a pointer to itself:</p>
 <pre class="literal-block">
 class Node(Structure):
     pass
@@ -801,17 +814,8 @@ byte order by using the <tt class="docutils literal"><span class="pre">BigEndian
 <tt class="docutils literal"><span class="pre">LittleEndianUnion</span></tt> base classes.  Structures and Unions with
 non-native byte order do <em>not</em> support pointer fields.</p>
 </div>
-</div>
 <div class="section">
-<h1><a class="toc-backref" href="#id24" id="builtin-functions" name="builtin-functions">Builtin functions</a></h1>
-<p>XXX Change to alphabetical order!</p>
-<p><tt class="docutils literal"><span class="pre">CFUNCTYPE(restype,</span> <span class="pre">*argtypes)</span></tt></p>
-<blockquote>
-Create a function prototype using the C calling convention.</blockquote>
-<p><tt class="docutils literal"><span class="pre">WINFUNCTYPE(restype,</span> <span class="pre">*argtypes)</span></tt> (Windows only)</p>
-<blockquote>
-Create a function prototype using the __stdcall calling convention
-(on Windows), or using the C calling convention (on Windows CE).</blockquote>
+<h2><a class="toc-backref" href="#id24" id="builtin-functions" name="builtin-functions">Builtin functions</a></h2>
 <p><tt class="docutils literal"><span class="pre">addressof(object)</span></tt></p>
 <blockquote>
 Returns the address of a ctypes instance as an integer.</blockquote>
@@ -819,10 +823,6 @@ Returns the address of a ctypes instance as an integer.</blockquote>
 <blockquote>
 Returns the alignment requirements in bytes of a ctypes type or
 instance.</blockquote>
-<p><tt class="docutils literal"><span class="pre">sizeof(type_or_object)</span></tt></p>
-<blockquote>
-Returns the size in bytes of a ctypes type or instance.  Same as
-the C sizeof() function.</blockquote>
 <p><tt class="docutils literal"><span class="pre">byref(object)</span></tt></p>
 <blockquote>
 Returns a light-weight pointer to a ctypes instance.  The returned
@@ -831,67 +831,31 @@ same as calling <tt class="docutils literal"><span class="pre">pointer(object)</
 <tt class="docutils literal"><span class="pre">&amp;object</span></tt> in C.</blockquote>
 <p><tt class="docutils literal"><span class="pre">cast(object,</span> <span class="pre">typ)</span></tt></p>
 <blockquote>
-<p>Somewhat similar to the cast operator in C.  Interpret and return
-<tt class="docutils literal"><span class="pre">object</span></tt> as if it was an instance of type <tt class="docutils literal"><span class="pre">typ</span></tt>.  <tt class="docutils literal"><span class="pre">typ</span></tt> must
-be a pointer type.</p>
-<p>XXX more needed.</p>
-</blockquote>
-<p><tt class="docutils literal"><span class="pre">POINTER(cls)</span></tt></p>
+This function is similar to the cast operator in C.  Returns a new
+instance of <tt class="docutils literal"><span class="pre">type</span></tt> which shares the memory block of <tt class="docutils literal"><span class="pre">object</span></tt>.
+<tt class="docutils literal"><span class="pre">typ</span></tt> must be a pointer type.</blockquote>
+<p><tt class="docutils literal"><span class="pre">CFUNCTYPE(restype,</span> <span class="pre">*argtypes)</span></tt></p>
 <blockquote>
-<p>This factory function creates and returns a new ctypes type.
-Pointer types are cached, so calling this function is cheap.</p>
-<p>To create a <tt class="docutils literal"><span class="pre">NULL</span></tt> pointer instance, use this recipe:</p>
-<pre class="literal-block">
-null_ptr = POINTER(c_int)()
-</pre>
-</blockquote>
-<p><tt class="docutils literal"><span class="pre">pointer(object)</span></tt></p>
-<blockquote>
-This function creates a new pointer instance, pointing to the
-supplied argument.  The return pointer is of type
-<tt class="docutils literal"><span class="pre">POINTER(type(object))</span></tt>.  If you have a ctypes instance, and you
-want to pass the address of it to a function call, you should use
-<tt class="docutils literal"><span class="pre">byref(object)</span></tt> which is much faster.</blockquote>
-<p><tt class="docutils literal"><span class="pre">string_at(addr[,</span> <span class="pre">size])</span></tt></p>
-<blockquote>
-This function does the same as the Python <tt class="docutils literal"><span class="pre">PyString_FromString</span></tt> /
-<tt class="docutils literal"><span class="pre">PyString_FromStringAndSize</span></tt> C api functions.</blockquote>
-<p><tt class="docutils literal"><span class="pre">wstring_at(addr[,</span> <span class="pre">size])</span></tt></p>
-<blockquote>
-This function does the same as the Python <tt class="docutils literal"><span class="pre">PyUnicode_FromWideString</span></tt>
-C api function.  If <tt class="docutils literal"><span class="pre">size</span></tt> is not specified, <tt class="docutils literal"><span class="pre">wcslen</span></tt> is used
-to determine the string length.</blockquote>
+Create a function prototype using the C calling convention.</blockquote>
 <p><tt class="docutils literal"><span class="pre">create_string_buffer(init,</span> <span class="pre">size=None)</span></tt></p>
 <blockquote>
-Convenience function to create a mutable character buffer.</blockquote>
+<p>Convenience function to create a mutable character buffer.</p>
+<p><tt class="docutils literal"><span class="pre">init</span></tt> must be a string.  If <tt class="docutils literal"><span class="pre">size</span></tt> is supplied it must be a
+positive integer that specifies the size of the buffer, otherwise
+the length of the <tt class="docutils literal"><span class="pre">init</span></tt> string is used.
+This function returns a ctypes array of characters <tt class="docutils literal"><span class="pre">c_char</span></tt>.</p>
+</blockquote>
 <p><tt class="docutils literal"><span class="pre">create_unicode_buffer(init,</span> <span class="pre">size=None)</span></tt></p>
 <blockquote>
-Convenience function to create a mutable unicode buffer.</blockquote>
-<p><tt class="docutils literal"><span class="pre">memmove(dst,</span> <span class="pre">src,</span> <span class="pre">count)</span></tt></p>
-<blockquote>
-Same as the standard C <tt class="docutils literal"><span class="pre">memmove</span></tt> library function: copies
-<tt class="docutils literal"><span class="pre">count</span></tt> bytes from <tt class="docutils literal"><span class="pre">src</span></tt> to <tt class="docutils literal"><span class="pre">dst</span></tt>.  <tt class="docutils literal"><span class="pre">dst</span></tt> and <tt class="docutils literal"><span class="pre">src</span></tt> must
-be integers or anything that can be converted into a pointer.</blockquote>
-<p><tt class="docutils literal"><span class="pre">memset(dst,</span> <span class="pre">c,</span> <span class="pre">count)</span></tt></p>
-<blockquote>
-Same as the standard C <tt class="docutils literal"><span class="pre">memset</span></tt> function.  Fills the memory block
-at address <tt class="docutils literal"><span class="pre">dst</span></tt> with <tt class="docutils literal"><span class="pre">count</span></tt> bytes of value <tt class="docutils literal"><span class="pre">c</span></tt>.</blockquote>
-<p><tt class="docutils literal"><span class="pre">set_conversion_mode(encoding,</span> <span class="pre">errors)</span></tt></p>
-<blockquote>
-This function sets the encoding/decoding rules when ctypes has to
-convert between unicode and byte strings.  It returns the previous
-encoding, as well as a tuple of any errors.</blockquote>
+<p>Convenience function to create a mutable unicode buffer.</p>
+<p><tt class="docutils literal"><span class="pre">init</span></tt> must be a unicode string.  If <tt class="docutils literal"><span class="pre">size</span></tt> is supplied it
+must be a positive integer that specifies the number of characters
+in the buffer, otherwise the length of the <tt class="docutils literal"><span class="pre">init</span></tt> string is
+used.  This function returns a ctypes array of characters <tt class="docutils literal"><span class="pre">c_wchar</span></tt>.</p>
+</blockquote>
 <p><tt class="docutils literal"><span class="pre">DllCanUnloadNow()</span></tt>, <tt class="docutils literal"><span class="pre">DllGetClassObject(rclsid,</span> <span class="pre">riid,</span> <span class="pre">ppv)</span></tt> (Windows only)</p>
 <blockquote>
-Functions used in COM servers.</blockquote>
-<p><tt class="docutils literal"><span class="pre">WinError(code=None,</span> <span class="pre">descr=None)</span></tt></p>
-<blockquote>
-<p>XXX This is probably the worst named thing in ctypes!</p>
-<p>This function creates a WindowsError instance.  If <tt class="docutils literal"><span class="pre">code</span></tt> is not
-specified, GetLastError() is called to determine the error code.
-If <tt class="docutils literal"><span class="pre">descr</span></tt> is not specified, <tt class="docutils literal"><span class="pre">FormatError</span></tt> is called to get a
-textual description of the error.</p>
-</blockquote>
+Functions used to implement COM servers.</blockquote>
 <p><tt class="docutils literal"><span class="pre">FormatError([code])</span></tt> (Windows only)</p>
 <blockquote>
 Returns a textual description of the error code, or the last error
@@ -899,8 +863,81 @@ code set by Windows.</blockquote>
 <p><tt class="docutils literal"><span class="pre">GetLastError()</span></tt> (Windows only)</p>
 <blockquote>
 Returns the last error code set by Windows.</blockquote>
+<p><tt class="docutils literal"><span class="pre">memmove(dst,</span> <span class="pre">src,</span> <span class="pre">count)</span></tt></p>
+<blockquote>
+Same as the standard C <tt class="docutils literal"><span class="pre">memmove</span></tt> library function: copies
+<tt class="docutils literal"><span class="pre">count</span></tt> bytes from <tt class="docutils literal"><span class="pre">src</span></tt> to <tt class="docutils literal"><span class="pre">dst</span></tt>.  <tt class="docutils literal"><span class="pre">dst</span></tt> and <tt class="docutils literal"><span class="pre">src</span></tt> must
+be integers or anything else that can be converted into a pointer.</blockquote>
+<p><tt class="docutils literal"><span class="pre">memset(dst,</span> <span class="pre">c,</span> <span class="pre">count)</span></tt></p>
+<blockquote>
+Same as the standard C <tt class="docutils literal"><span class="pre">memset</span></tt> function.  Fills the memory block
+at address <tt class="docutils literal"><span class="pre">dst</span></tt> with <tt class="docutils literal"><span class="pre">count</span></tt> bytes of value <tt class="docutils literal"><span class="pre">c</span></tt>.  <tt class="docutils literal"><span class="pre">dst</span></tt> must be
+an integer specifying an address, or a ctypes instance.</blockquote>
+<p><tt class="docutils literal"><span class="pre">pointer(object)</span></tt></p>
+<blockquote>
+<p>This function creates a new pointer instance, pointing to the
+supplied argument which must be an instance of a ctypes type.  The
+return pointer is of type <tt class="docutils literal"><span class="pre">POINTER(type(object))</span></tt>.  If you have
+a ctypes instance, and you want to pass the address of it to a
+function call, you should use <tt class="docutils literal"><span class="pre">byref(object)</span></tt> instead which is
+much faster.</p>
+<p>NULL pointer instances are boolean``False``, so to check for a
+NULL pointer do this:</p>
+<pre class="literal-block">
+# assuming ptr is in ctypes pointer instance
+if ptr:
+    print &quot;Non-NULL pointer instance&quot;
+else:
+    print &quot;NULL pointer instance&quot;
+</pre>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">POINTER(cls)</span></tt></p>
+<blockquote>
+<p>This factory function creates and returns a new ctypes type.
+Pointer types are cached, so calling this function is cheap.</p>
+<p>To create a <tt class="docutils literal"><span class="pre">NULL</span></tt> pointer instance, call the created type
+without an argument:</p>
+<pre class="literal-block">
+null_ptr = POINTER(c_int)()
+</pre>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">set_conversion_mode(encoding,</span> <span class="pre">errors)</span></tt></p>
+<blockquote>
+This function sets the encoding/decoding rules which are used when
+ctypes has to convert between unicode and byte strings.  It
+returns the previous encoding, as well as a tuple of any errors.
+If not set, default conversions are used:
+On Windows, <tt class="docutils literal"><span class="pre">msbc,</span> <span class="pre">ignore</span></tt> , on other systems, <tt class="docutils literal"><span class="pre">ascii,</span> <span class="pre">strict</span></tt>.</blockquote>
+<p><tt class="docutils literal"><span class="pre">sizeof(type_or_object)</span></tt></p>
+<blockquote>
+Returns the size in bytes of a ctypes type or instance memory
+buffer.  Does the same as the C sizeof() function.</blockquote>
+<p><tt class="docutils literal"><span class="pre">string_at(addr[,</span> <span class="pre">size])</span></tt></p>
+<blockquote>
+This function does the same as the Python <tt class="docutils literal"><span class="pre">PyString_FromString</span></tt> /
+<tt class="docutils literal"><span class="pre">PyString_FromStringAndSize</span></tt> C api functions.</blockquote>
+<p><tt class="docutils literal"><span class="pre">WinError(code=None,</span> <span class="pre">descr=None)</span></tt></p>
+<blockquote>
+<p>XXX This is probably the worst named thing in ctypes!</p>
+<p>This function creates a <tt class="docutils literal"><span class="pre">WindowsError</span></tt> instance.  If <tt class="docutils literal"><span class="pre">code</span></tt> is
+not specified, GetLastError() is called to determine the error
+code.  If <tt class="docutils literal"><span class="pre">descr</span></tt> is not specified, <tt class="docutils literal"><span class="pre">FormatError</span></tt> is called to
+get a textual description of the error.</p>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">WINFUNCTYPE(restype,</span> <span class="pre">*argtypes)</span></tt> (Windows only)</p>
+<blockquote>
+Create a function prototype using the __stdcall calling convention
+(on Windows), or using the C calling convention (on Windows CE).</blockquote>
+<p><tt class="docutils literal"><span class="pre">wstring_at(addr[,</span> <span class="pre">size])</span></tt></p>
+<blockquote>
+This function does the same as the Python <tt class="docutils literal"><span class="pre">PyUnicode_FromWideString</span></tt>
+C api function.  If <tt class="docutils literal"><span class="pre">size</span></tt> is not specified, <tt class="docutils literal"><span class="pre">wcslen</span></tt> is used
+to determine the string length.</blockquote>
+</div>
 <div class="section">
 <h2><a class="toc-backref" href="#id25" id="deprecated-functions" name="deprecated-functions">Deprecated functions</a></h2>
+<p>These deprecated functions are still supported for backwards
+comatibility, they should not be used for new code:</p>
 <p><tt class="docutils literal"><span class="pre">c_buffer(init,</span> <span class="pre">size=None)</span></tt></p>
 <blockquote>
 Deprecated.  Use <tt class="docutils literal"><span class="pre">create_string_buffer()</span></tt> instead.</blockquote>

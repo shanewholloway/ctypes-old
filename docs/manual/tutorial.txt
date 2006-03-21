@@ -2,13 +2,15 @@
 ctypes tutorial
 ===============
 
+This tutorial is based on Thomas Heller's tutorial, which is included in
+ctypes distribution, and available online at
+http://starship.python.net/crew/theller/ctypes/tutorial.html
+
 .. contents::
 
-Warning: The contents of the tutorial is severly out of date!
-
-This tutorial describes version 0.6.3 of ``ctypes``. There have been
-quite some changes to version 0.4.x, the most important are
-listed `here <changes.html>`__.
+This tutorial describes version 0.9.9 of ``ctypes``. 
+Since older versions are quite common, I'll mention major differences
+when needed.
 
 1. Loading dynamic link libraries
 =================================
@@ -41,9 +43,12 @@ listed `here <changes.html>`__.
     filename::
 
        >>> from ctypes import *
-       >>> libc = cdll.LoadLibrary("/lib/libc.so.6")
+       >>> libc = cdll.load("/lib/libc.so.6")
        <CDLL '/lib/libc.so.6', handle 40018c28 at 4019978c>
        >>>
+
+    **Note:** in older versions, the ``LoadLibrary`` method should be used
+    instead.
 
     This tutorial uses windows in its examples, however, functions
     from the standard C library like ``strchr`` and ``printf`` should also
@@ -676,7 +681,10 @@ listed `here <changes.html>`__.
 13. Incomplete Types
 ====================
 
-    **Note:** This code actually works now with ctypes 0.6.3
+    **Note:** This code seems to work in older versions, but the past
+    convention was to use the now deprecated ``SetPointerType`` function.
+    If you have an older version and the following example does not work
+    for you, try looking up that function.
 
     *Incomplete Types* are structures, unions or arrays whose members
     are not yet specified. In the ``ctypes`` context, you can create
@@ -686,12 +694,12 @@ listed `here <changes.html>`__.
 
     Consider this example (C-code)::
 
-      struct cell;
+       struct cell;
 
-      struct {
-          char *name;
-          struct cell *next;
-      } cell;
+       struct {
+           char *name;
+           struct cell *next;
+       } cell;
 
     The straightforward translation into ctypes code would be this,
     but it does not work::
@@ -709,29 +717,27 @@ listed `here <changes.html>`__.
     because the new ``class cell`` is not available in the class
     statement itself.
 
-    We can do it by creating an *incomplete pointer type* by
-    calling POINTER with the class _name_, and later setting the
-    complete type after it is defined::
+    We can do it by creating an *incomplete type*. Just leave out
+    the ``_fields_`` declaration and fill it up later::
 
        >>> from ctypes import *
-       >>> lpcell = POINTER("cell")
        >>> class cell(Structure):
-       ...     _fields_ = [("name", c_char_p),
-       ...                 ("next", lpcell)]
+       ...     pass
        ...
-       >>> SetPointerType(lpcell, cell)
+       >>> cell._fields = [("name", c_char_p),
+       ...                 ("next", POINTER(cell))]
        >>>
 
-     Lets try it. We create two instances of ``cell``, and let them
-     point to each other, and finally follow the pointer chain a few
-     times::
+    Lets try it. We create two instances of ``cell``, and let them
+    point to each other, and finally follow the pointer chain a few
+    times::
 
        >>> c1 = cell()
        >>> c1.name = "foo"
        >>> c2 = cell()
        >>> c2.name = "bar"
        >>> c1.next = pointer(c2)
-       >>> c2.next = pointer(c2)
+       >>> c2.next = pointer(c1)
        >>> p = c1
        >>> for i in range(8):
        ...     print p.name,
