@@ -1,17 +1,6 @@
 Builtin functions
 -----------------
 
-XXX Change to alphabetical order!
-
-``CFUNCTYPE(restype, *argtypes)``
-
-    Create a function prototype using the C calling convention.
-
-``WINFUNCTYPE(restype, *argtypes)`` (Windows only)
-
-    Create a function prototype using the __stdcall calling convention
-    (on Windows), or using the C calling convention (on Windows CE).
-
 ``addressof(object)``
 
     Returns the address of a ctypes instance as an integer.
@@ -20,12 +9,6 @@ XXX Change to alphabetical order!
 
     Returns the alignment requirements in bytes of a ctypes type or
     instance.
-
-``sizeof(type_or_object)``
-
-    Returns the size in bytes of a ctypes type or instance.  Same as
-    the C sizeof() function.
-
 
 ``byref(object)``
 
@@ -36,81 +19,38 @@ XXX Change to alphabetical order!
 
 ``cast(object, typ)``
 
-    Somewhat similar to the cast operator in C.  Interpret and return
-    ``object`` as if it was an instance of type ``typ``.  ``typ`` must
-    be a pointer type.
+    This function is similar to the cast operator in C.  Returns a new
+    instance of ``type`` which shares the memory block of ``object``.
+    ``typ`` must be a pointer type.
 
-    XXX more needed.
+``CFUNCTYPE(restype, *argtypes)``
 
-``POINTER(cls)``
+    Create a function prototype using the C calling convention.
 
-    This factory function creates and returns a new ctypes type.
-    Pointer types are cached, so calling this function is cheap.
-
-    To create a ``NULL`` pointer instance, use this recipe::
-
-        null_ptr = POINTER(c_int)()
-
-``pointer(object)``
-
-    This function creates a new pointer instance, pointing to the
-    supplied argument.  The return pointer is of type
-    ``POINTER(type(object))``.  If you have a ctypes instance, and you
-    want to pass the address of it to a function call, you should use
-    ``byref(object)`` which is much faster.
-    
-
-``string_at(addr[, size])``
-
-    This function does the same as the Python ``PyString_FromString`` /
-    ``PyString_FromStringAndSize`` C api functions.
-
-``wstring_at(addr[, size])``
-
-    This function does the same as the Python ``PyUnicode_FromWideString``
-    C api function.  If ``size`` is not specified, ``wcslen`` is used
-    to determine the string length.
 
 ``create_string_buffer(init, size=None)``
 
     Convenience function to create a mutable character buffer.
 
+    ``init`` must be a string.  If ``size`` is supplied it must be a
+    positive integer that specifies the size of the buffer, otherwise
+    the length of the ``init`` string is used.
+    This function returns a ctypes array of characters ``c_char``.
 
 ``create_unicode_buffer(init, size=None)``
 
     Convenience function to create a mutable unicode buffer.
 
+    ``init`` must be a unicode string.  If ``size`` is supplied it
+    must be a positive integer that specifies the number of characters
+    in the buffer, otherwise the length of the ``init`` string is
+    used.  This function returns a ctypes array of characters ``c_wchar``.
 
-``memmove(dst, src, count)``
-
-    Same as the standard C ``memmove`` library function: copies
-    ``count`` bytes from ``src`` to ``dst``.  ``dst`` and ``src`` must
-    be integers or anything that can be converted into a pointer.
-
-``memset(dst, c, count)``
-
-    Same as the standard C ``memset`` function.  Fills the memory block
-    at address ``dst`` with ``count`` bytes of value ``c``.
-
-
-``set_conversion_mode(encoding, errors)``
-
-    This function sets the encoding/decoding rules when ctypes has to
-    convert between unicode and byte strings.  It returns the previous
-    encoding, as well as a tuple of any errors.
 
 ``DllCanUnloadNow()``, ``DllGetClassObject(rclsid, riid, ppv)`` (Windows only)
 
-    Functions used in COM servers.
+    Functions used to implement COM servers.
 
-``WinError(code=None, descr=None)``
-
-    XXX This is probably the worst named thing in ctypes!
-
-    This function creates a WindowsError instance.  If ``code`` is not
-    specified, GetLastError() is called to determine the error code.
-    If ``descr`` is not specified, ``FormatError`` is called to get a
-    textual description of the error.
 
 ``FormatError([code])`` (Windows only)
 
@@ -121,8 +61,95 @@ XXX Change to alphabetical order!
 
     Returns the last error code set by Windows.
 
+``memmove(dst, src, count)``
+
+    Same as the standard C ``memmove`` library function: copies
+    ``count`` bytes from ``src`` to ``dst``.  ``dst`` and ``src`` must
+    be integers or anything else that can be converted into a pointer.
+
+``memset(dst, c, count)``
+
+    Same as the standard C ``memset`` function.  Fills the memory block
+    at address ``dst`` with ``count`` bytes of value ``c``.  ``dst`` must be
+    an integer specifying an address, or a ctypes instance.
+
+
+``pointer(object)``
+
+    This function creates a new pointer instance, pointing to the
+    supplied argument which must be an instance of a ctypes type.  The
+    return pointer is of type ``POINTER(type(object))``.  If you have
+    a ctypes instance, and you want to pass the address of it to a
+    function call, you should use ``byref(object)`` instead which is
+    much faster.
+
+    NULL pointer instances are boolean``False``, so to check for a
+    NULL pointer do this::
+
+        # assuming ptr is in ctypes pointer instance
+        if ptr:
+            print "Non-NULL pointer instance"
+        else:
+            print "NULL pointer instance"
+    
+
+``POINTER(cls)``
+
+    This factory function creates and returns a new ctypes type.
+    Pointer types are cached, so calling this function is cheap.
+
+    To create a ``NULL`` pointer instance, call the created type
+    without an argument::
+
+        null_ptr = POINTER(c_int)()
+
+
+``set_conversion_mode(encoding, errors)``
+
+    This function sets the encoding/decoding rules which are used when
+    ctypes has to convert between unicode and byte strings.  It
+    returns the previous encoding, as well as a tuple of any errors.
+    If not set, default conversions are used:
+    On Windows, ``msbc, ignore`` , on other systems, ``ascii, strict``.
+
+
+``sizeof(type_or_object)``
+
+    Returns the size in bytes of a ctypes type or instance memory
+    buffer.  Does the same as the C sizeof() function.
+
+
+``string_at(addr[, size])``
+
+    This function does the same as the Python ``PyString_FromString`` /
+    ``PyString_FromStringAndSize`` C api functions.
+
+``WinError(code=None, descr=None)``
+
+    XXX This is probably the worst named thing in ctypes!
+
+    This function creates a ``WindowsError`` instance.  If ``code`` is
+    not specified, GetLastError() is called to determine the error
+    code.  If ``descr`` is not specified, ``FormatError`` is called to
+    get a textual description of the error.
+
+``WINFUNCTYPE(restype, *argtypes)`` (Windows only)
+
+    Create a function prototype using the __stdcall calling convention
+    (on Windows), or using the C calling convention (on Windows CE).
+
+``wstring_at(addr[, size])``
+
+    This function does the same as the Python ``PyUnicode_FromWideString``
+    C api function.  If ``size`` is not specified, ``wcslen`` is used
+    to determine the string length.
+
+
 Deprecated functions
-~~~~~~~~~~~~~~~~~~~~
+--------------------
+
+These deprecated functions are still supported for backwards
+comatibility, they should not be used for new code:
 
 ``c_buffer(init, size=None)``
 

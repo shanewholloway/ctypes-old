@@ -1,5 +1,5 @@
 Callback functions
-~~~~~~~~~~~~~~~~~~
+++++++++++++++++++
 
 ctypes is able to create C callable functions from Python callables.
 This is useful because sometimes library functions need a callback

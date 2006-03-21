@@ -1,5 +1,5 @@
 Simple types
-------------
+++++++++++++
 
 Simple types have some special behaviour: When they are accessed as
 structure or union fields, items of array instances, or as foreign
@@ -12,7 +12,7 @@ integer or long, a subclass of c_void_p is *not* converted.  This
 allows you to define new behaviour almost completely.
 
 Class attributes of simple types
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 ``__ctype__be__``, ``__ctype_le__``
 
@@ -31,7 +31,7 @@ Class attributes of simple types
 
 
 Class methods of simple types
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 
 (To be exact, these are not class methods, instead these are methods
 of the metaclass.  The most prominent difference to classmethods is
@@ -72,7 +72,7 @@ of the simple type.)
     TBD
 
 Instance attributes of simple types
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
 ``_objects`` (never modify this)
 
@@ -103,7 +103,7 @@ Instance attributes of simple types
 
 
 Numeric types
-~~~~~~~~~~~~~
+-------------
 
 Integer types are ``c_byte``, ``c_short``, ``c_int``, ``c_long``,
 ``c_longlong`` and their unsigned variants ``c_ubyte``, ``c_ushort``,
@@ -118,7 +118,7 @@ alias for ``c_long``, on 64-bit platforms where sizeof(long) ==
 sizeof(long long), ``c_long`` is an alias for ``c_longlong``.
 
 Character types
-~~~~~~~~~~~~~~~
+---------------
 
 Character types are ``c_char`` and ``c_wchar``, representing the C
 ``char`` and ``wchar_t`` types.
@@ -130,7 +130,7 @@ encoding/decoding rules.
 
 
 Pointer types
-~~~~~~~~~~~~~
+-------------
 
 The only simple pointer type is ``c_void_p``, which represents the C
 ``void *`` data type.  ``c_void_p`` can also be written as
@@ -149,7 +149,7 @@ XXX Shouldn't the constructor accept the same types as from_param?
 
 
 String types
-~~~~~~~~~~~~
+------------
 
 ctypes has the ``c_char_p`` and ``c_wchar_p`` types which represent
 const pointers to zero terminated strings in C: ``const char *`` and

@@ -1,6 +1,6 @@
 
 Foreign functions
------------------
++++++++++++++++++
 
 Functions exported from loaded shared libraries (foreign functions)
 can be accessed in two ways. The easiest way is to retrieve them as
@@ -44,7 +44,7 @@ should validate the library function result, raise an error if it
 detects a failure, or return the needed return value otherwise.
 
 Function prototypes
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 Another way to access a function exported from shared libraries is to
 first create a prototype by calling a factory function, specifying the
@@ -71,7 +71,7 @@ function as string, and a loaded library::
     atoi = proto("atoi", libc)
 
 Parameter flags
-~~~~~~~~~~~~~~~
+---------------
 
 It is possible to specify a third argument ``paramflags`` when calling
 the prototype.  This is used to specify additional information for
@@ -114,7 +114,7 @@ something else, or raise an error if it detects that the library
 function has failed.
 
 COM methods (Windows only)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 XXX Should this be left undocumented?  Mentioned for completeness.
 
