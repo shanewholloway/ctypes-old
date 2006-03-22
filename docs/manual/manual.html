@@ -306,9 +306,9 @@ ul.auto-toc {
 <li><a class="reference" href="#function-prototypes" id="id6" name="id6">Function prototypes</a></li>
 <li><a class="reference" href="#parameter-flags" id="id7" name="id7">Parameter flags</a></li>
 <li><a class="reference" href="#com-methods-windows-only" id="id8" name="id8">COM methods (Windows only)</a></li>
+<li><a class="reference" href="#callback-functions" id="id9" name="id9">Callback functions</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#callback-functions" id="id9" name="id9">Callback functions</a></li>
 <li><a class="reference" href="#simple-types" id="id10" name="id10">Simple types</a><ul>
 <li><a class="reference" href="#class-attributes-of-simple-types" id="id11" name="id11">Class attributes of simple types</a></li>
 <li><a class="reference" href="#class-methods-of-simple-types" id="id12" name="id12">Class methods of simple types</a></li>
@@ -591,9 +591,8 @@ information in case the method returns a FAILED ''HRESULT`` value.</p>
 listed in the prototypes <tt class="docutils literal"><span class="pre">argtypes</span></tt> when they are called: this must
 be the integer address of a COM interface pointer.</p>
 </div>
-</div>
 <div class="section">
-<h1><a class="toc-backref" href="#id9" id="callback-functions" name="callback-functions">Callback functions</a></h1>
+<h2><a class="toc-backref" href="#id9" id="callback-functions" name="callback-functions">Callback functions</a></h2>
 <p>ctypes is able to create C callable functions from Python callables.
 This is useful because sometimes library functions need a callback
 function parameter; the <tt class="docutils literal"><span class="pre">qsort</span></tt> C function is such an example.</p>
@@ -618,6 +617,7 @@ cleaned up by Python's garbage collector and external code then
 tries to call it.</p>
 <p>Callback objects can also be called from Python - this may be useful
 for debugging.</p>
+</div>
 </div>
 <div class="section">
 <h1><a class="toc-backref" href="#id10" id="simple-types" name="simple-types">Simple types</a></h1>
