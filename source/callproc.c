@@ -1372,7 +1372,7 @@ static int
 converter(PyObject *obj, void **address)
 {
 	*address = PyLong_AsVoidPtr(obj);
-	return address != NULL;
+	return *address != NULL;
 }
 
 static PyObject *
