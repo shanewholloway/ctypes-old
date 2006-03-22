@@ -48,15 +48,15 @@ of the simple type.)
 
 ``from_param``
 
-    This is a class method (an instance method of the metaclass, to be
-    exact) that is used to adapt function parameters.  If a
-    ``c_int`` type is specified in a function's argtypes sequence,
-    ``c_int.from_param(arg)`` will be called by ctypes and the result
-    will be passed to the foreign function call as a parameter.
+    This class method is used to adapt function parameters.  If a type
+    is specified in a function's argtypes sequence, in a function call
+    the ``from_param(arg)`` method will be called with the actual
+    argument, and the result will be passed to the foreign function
+    call as a parameter.
 
     ``from_param`` usually returns an internal object that you cannot
-    use in Python code - it only makes sense to pass this to foreign
-    functions.
+    use in Python code - it only makes sense to pass this object to
+    foreign functions.
 
     On one hand, ``from_param`` is a performance optimization - it
     allows you to pass Python integers to function calls expecting a
@@ -74,6 +74,12 @@ of the simple type.)
 Instance attributes of simple types
 -----------------------------------
 
+``value``
+
+    Allows to get or set the current value of the object.  For simple
+    types, this is always a native Python object like integer, long,
+    string, unicode, or None.
+
 ``_objects`` (never modify this)
 
     Implementation artifact: a Python object keeping references to
@@ -89,12 +95,6 @@ Instance attributes of simple types
 
     Implementation artifact: does this object have to free its memory
     block on destruction.
-
-``value``
-
-    Allows to get or set the current value of the object.  For simpe
-    types, this is always a native Python object like integer, long,
-    string, or unicode.
 
 ``_as_parameter_`` (readonly)
 
