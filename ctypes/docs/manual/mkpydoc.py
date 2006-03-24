@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-# Convert the Optik docs to LaTeX for use in Python docs
+# Convert the ctypes docs to LaTeX for use in Python docs
+
+# This script is a hacked version taken from the Optik SVN repository.
 
 import sys, os
 import re
@@ -29,9 +31,6 @@ class PyLaTeXWriter(LaTeXWriter):
 
 class PyLaTeXTranslator(LaTeXTranslator):
     remap_title = {
-        "The Tao of Option Parsing" : "Background",
-        "Optik Tutorial": "Tutorial",
-        "Optik Reference Guide": "Reference Guide",
         }
 
     # XXX need to factor this out
@@ -86,7 +85,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
         title = re.sub(r'[^\w\s\-]', '', title)
         title = re.sub(r'\b(the|an?|and|your|are)\b', '', title)
         title = re.sub(r'(example \d+).*', r'\1', title)
-        title = title.replace("optik", "optparse")
+##        title = title.replace("optik", "optparse")
         return "ctypes-" + "-".join(title.split())
 
     def visit_document(self, node):
@@ -243,7 +242,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
 
         # A couple of transformations are easiest if they go direct
         # to LaTeX, so do them *after* encode().
-        text = text.replace("Optik", "\\module{optparse}")
+##        text = text.replace("Optik", "\\module{optparse}")
         text = text.replace("UNIX", "\\UNIX{}")
 
         self.body.append(text)
@@ -282,7 +281,8 @@ def convert(infilename, outfilename):
     pub.publish()
 
 def main():
-    convert("manual.txt", "manual.tex")
+##    convert("manual.txt", "manual.tex")
+    convert("tutorial.txt", "../../../trunk/Doc/lib/libctypes.tex")
     if missing:
         mod = open("missing.py", "w")
         mod.write("# possible markups:\n")
