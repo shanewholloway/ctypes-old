@@ -1,13 +1,12 @@
-===============
 ctypes tutorial
-===============
++++++++++++++++
 
 This tutorial describes version 0.9.9 of ``ctypes``. 
 Since older versions are quite common, I'll mention major differences
 when needed.
 
 Loading dynamic link libraries
-==============================
+------------------------------
 
 ``ctypes`` exports the ``cdll``, and on Windows also ``windll`` and
 ``oledll`` objects to load dynamic link libraries.
@@ -50,7 +49,7 @@ on Linux and other systems.
 
 
 Accessing functions from loaded dlls
-====================================
+------------------------------------
 
 Functions are accessed as attributes of dll objects::
 
@@ -96,7 +95,7 @@ identifiers, like ``"??2@YAPAXI@Z"``. In this case you have to use
 
 
 Calling functions
-=================
+-----------------
 
 You can call these functions like any other Python callable. This
 example uses the ``time()`` function, which returns system time in
@@ -146,7 +145,7 @@ Before we move on calling functions with other parameter types, we
 have to learn more about ``ctypes`` data types.
 
 Simple data types
-=================
+-----------------
 
 ``ctypes`` defines a number of primitive C compatible data types :
 
@@ -222,7 +221,7 @@ mutable memory block containing unicode characters of the C type
 ``wchar_t`` use the ``create_unicode_buffer`` function.
 
 Calling functions, continued
-============================
+----------------------------
 
 Note that printf prints to the real standard output channel, *not* to
 ``sys.stdout``, so these examples will only work at the console
@@ -257,7 +256,7 @@ type::
       >>>
 
 Calling functions with your own custom data types
-=================================================
+-------------------------------------------------
 
 You can also customize ``ctypes`` argument conversion to allow
 instances of your own classes be used as function arguments.
@@ -282,7 +281,7 @@ If you don't want to store the instance's data in the
 which makes the data avaiblable.
 
 Specifying the required argument types (function prototypes)
-============================================================
+------------------------------------------------------------
 
 It is possible to specify the required argument types of functions
 exported from DLLs by setting the ``argtypes`` attribute.
@@ -324,7 +323,7 @@ the ``_as_parameter_`` attribute.
 
 
 Return types
-============
+------------
 
 By default functions are assumed to return integers.  Other return
 types can be specified by setting the ``restype`` attribute of the
@@ -398,7 +397,7 @@ an exception.  ``WinError`` takes an optional error code parameter, if
 no one is used, it calls ``GetLastError()`` to retrieve it.
 
 Passing pointers (or: passing parameters by reference)
-======================================================
+------------------------------------------------------
 
 Sometimes a C api function expects a *pointer* to a data type as
 parameter, probably to write into the corresponding location, or if
@@ -425,7 +424,7 @@ if you don't need the pointer object in Python itself::
       1 3.1400001049 'Hello'
 
 Structures and Unions
-=====================
+---------------------
 
 Structures and unions must derive from the ``Structure`` and ``Union``
 base classes which are defined in the ``ctypes`` module. Each subclass
@@ -502,7 +501,7 @@ also does in MSVC.
 value* to function calls.
 
 Arrays
-======
+------
 
 Arrays are sequences, containing a fixed number of instances of the
 same type.
@@ -549,7 +548,7 @@ Initializers of the correct type can also be specified::
       >>>
 
 Pointers
-========
+--------
 
 Pointer instances are created by calling the ``pointer`` function on a
 ``ctypes`` type::
@@ -600,7 +599,7 @@ if you receive a pointer from a C function, and you *know* that the
 pointer actually points to an array instead of a single item.
 
 Pointer classes/types
-=====================
+---------------------
 
 Behind the scenes, the ``pointer`` function does more than simply
 create pointer instances, it has to create pointer *types* first.
@@ -620,7 +619,7 @@ This is done with the ``POINTER`` function, which accepts any
        >>>
 
 Incomplete Types
-================
+----------------
 
 **Note:** This code seems to work in older versions, but the past
 convention was to use the now deprecated ``SetPointerType`` function.
@@ -688,7 +687,7 @@ to each other, and finally follow the pointer chain a few times::
 
 
 Callback functions
-==================
+------------------
 
 (This example is too long, I should have used a shorter array)
 
@@ -857,7 +856,7 @@ used from C code. ctypes doesn't, and if you don't, they may be
 garbage collected, crashing your program when a callback is made.
 
 Accessing values exported from dlls
-===================================
+-----------------------------------
 
 Sometimes, a dll not only exports functions, it also exports
 values. Examples in the Python dll itself are the ``Py_OptimizeFlag``,
@@ -934,7 +933,7 @@ XXX Describe how to access the ``code`` member fields, which contain
 the byte code for the modules.
 
 Surprises
-=========
+---------
 
 There are some corners in ``ctypes`` where you may be expect something
 else than what actually happens.
@@ -978,7 +977,7 @@ object accessing the root-object's underlying buffer.
 
 
 Bugs, ToDo and non-implemented things
-=====================================
+-------------------------------------
 
 XXX Wrong
     Bitfields are not implemented.
