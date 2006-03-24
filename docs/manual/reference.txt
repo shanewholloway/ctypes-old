@@ -1,0 +1,12 @@
+ctypes manual
++++++++++++++
+
+Shared libaries, DLLs
+---------------------
+
+class LibraryLoader
+...................
+
+
+predefined library loaders
+..........................
