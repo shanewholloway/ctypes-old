@@ -281,8 +281,7 @@ def convert(infilename, outfilename):
     pub.publish()
 
 def main():
-##    convert("manual.txt", "manual.tex")
-    convert("tutorial.txt", "../../../trunk/Doc/lib/libctypes.tex")
+    convert("libctypes.txt", "../../../trunk/Doc/lib/libctypes.tex")
     if missing:
         mod = open("missing.py", "w")
         mod.write("# possible markups:\n")
