@@ -2,12 +2,6 @@
 ctypes tutorial
 ===============
 
-This tutorial is based on Thomas Heller's tutorial, which is included in
-ctypes distribution, and available online at
-http://starship.python.net/crew/theller/ctypes/tutorial.html
-
-.. contents::
-
 This tutorial describes version 0.9.9 of ``ctypes``. 
 Since older versions are quite common, I'll mention major differences
 when needed.
@@ -159,46 +153,7 @@ when needed.
 
     ``ctypes`` defines a number of primitive C compatible data types :
 
-    +---------------+-----------------------+-----------+
-    |ctypes' type   |C type                 |Python type|
-    +===============+=======================+===========+
-    |``c_char``     |``char``               |character  |
-    +---------------+-----------------------+-----------+
-    |``c_byte``     |``char``               |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_ubyte``    |``unsigned char``      |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_short``    |``short``              |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_ushort``   |``unsigned short``     |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_int``      |``int``                |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_uint``     |``unsigned int``       |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_long``     |``long``               |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_ulong``    |``unsigned long``      |long       |
-    +---------------+-----------------------+-----------+
-    |``c_longlong`` |``__int64`` or         |long       |
-    |               |``long long``          |           |
-    +---------------+-----------------------+-----------+
-    |``c_ulonglong``|``unsigned __int64`` or|long       |
-    |               |``unsigned long long`` |           |
-    +---------------+-----------------------+-----------+
-    |``c_float``    |``float``              |float      |
-    +---------------+-----------------------+-----------+
-    |``c_double``   |``double``             |float      |
-    +---------------+-----------------------+-----------+
-    |``c_char_p``   |``char *``             |string or  |
-    |               |(NUL terminated)       |``None``   |
-    +---------------+-----------------------+-----------+
-    |``c_wchar_p``  |``wchar_t *``          |unicode or |
-    |               |(NUL terminated)       |``None``   |
-    +---------------+-----------------------+-----------+
-    |``c_void_p``   |``void *``             |integer or |
-    |               |                       |``None``   |
-    +---------------+-----------------------+-----------+
+    XXX table missing, rst2latex is not able to handle it ;-(
 
     All these types can be created by calling them with an optional
     initializer of the correct type and value::
