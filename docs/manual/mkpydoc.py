@@ -19,6 +19,8 @@ class OptikReader(StandaloneReader):
     #                      (ReplacementTransform,))
     pass
 
+from markup import codemarkup
+missing = set()
 
 class PyLaTeXWriter(LaTeXWriter):
     def __init__(self):
@@ -26,70 +28,6 @@ class PyLaTeXWriter(LaTeXWriter):
         self.translator_class = PyLaTeXTranslator
 
 class PyLaTeXTranslator(LaTeXTranslator):
-    codemarkup = {
-        'optik'                 : 'module',
-
-        # Methods of OptionParser, Option, Values, ...
-        'add_option()'          : 'method',
-        'set_defaults()'        : 'method',
-        'parse_args()'          : 'method',
-        'OptionParser.parse_args()' : 'method',
-        'parser.print_help()'   : 'method',
-        'error()'               : 'method',
-
-        'take_action()'         : 'method',
-        'Option.take_action()'  : 'method',
-        'MyOption.take_action()': 'method',
-
-        'ensure_value()'        : 'method',
-        '_process_long_opt()'   : 'method',
-        '_process_short_opts()' : 'method',
-
-        # Optik/optparse classes
-        'OptionParser'          : 'class',
-        'Option'                : 'class',
-
-        'make_option()'         : 'function',
-
-        # Class attributes of Option
-        'ACTIONS'               : 'member',
-        'STORE_ACTIONS'         : 'member',
-        'TYPED_ACTIONS'         : 'member',
-        'TYPES'                 : 'member',
-        'TYPE_CHECKER'          : 'member',
-        'Option.TYPE_CHECKER'   : 'member',
-        
-
-        # Miscellaneous builtins / other standard stuff
-        'sys.exit()'            : 'function',
-        'sys.argv'              : 'var',
-        'str()'                 : 'function',
-        'getattr()'             : 'function',
-        'copy()'                : 'function',
-        'None'                  : 'code',
-        'True'                  : 'code',
-        'False'                 : 'code',
-
-
-        # Hmmm, these sorta depend on context (but they're pretty
-        # consistently the main Option attributes).
-        'action'                : 'member',
-        'type'                  : 'member',
-        'dest'                  : 'member',
-        'help'                  : 'member',
-
-        # Various values for Option.action: what is the right markup?
-        'store'                 : 'code',
-        'store_true'            : 'code',
-        'store_false'           : 'code',
-        'store_const'           : 'code',
-        'append'                : 'code',
-        'extend'                : 'code',
-        'count'                 : 'code',
-        'callback'              : 'code',
-        'version'               : 'code',
-        }
-
     remap_title = {
         "The Tao of Option Parsing" : "Background",
         "Optik Tutorial": "Tutorial",
@@ -191,6 +129,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
                                 r'(\.[a-zA-Z_][a-zA-Z_0-9]*)*'
                                 r'(\(\))?$')
 
+    _cache = {}
     def visit_literal(self, node):
         assert isinstance(node[0], nodes.Text)
         text = node[0].data
@@ -205,9 +144,10 @@ class PyLaTeXTranslator(LaTeXTranslator):
             cmd = 'longprogramopt'
             text = text[2:]
         elif self._identifier_re.match(text):
-            cmd = self.codemarkup.get(text)
+            cmd = codemarkup.get(text)
             if cmd is None:
-                #print "warning: unrecognized code word %r" % text
+##                print "warning: unrecognized code word %r" % text
+                missing.add(text)
                 cmd = 'code'
         else:
             cmd = 'code'
@@ -344,5 +284,15 @@ def convert(infilename, outfilename):
 
 def main():
     convert("manual.txt", "manual.tex")
+    if missing:
+        mod = open("missing.py", "w")
+        mod.write("# possible markups:\n")
+        mod.write("# module, code, method, class, function, member, var.  Are there more?\n")
+        mod.write("codemarkup = {\n")
+        keys = sorted(missing)
+        for name in keys:
+            mod.write("    '%s': 'code',\n" % name)
+        mod.write("}\n")
+        mod.close()
 
 main()
