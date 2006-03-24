@@ -129,7 +129,6 @@ class PyLaTeXTranslator(LaTeXTranslator):
                                 r'(\.[a-zA-Z_][a-zA-Z_0-9]*)*'
                                 r'(\(\))?$')
 
-    _cache = {}
     def visit_literal(self, node):
         assert isinstance(node[0], nodes.Text)
         text = node[0].data
