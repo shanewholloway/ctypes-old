@@ -150,7 +150,7 @@ Simple data types
 ``ctypes`` defines a number of primitive C compatible data types :
 
     +---------------+-----------------------+-----------+
-    |ctypes' type   |C type                 |Python type|
+    |ctypes type    |C type                 |Python type|
     +===============+=======================+===========+
     |``c_char``     |``char``               |character  |
     +---------------+-----------------------+-----------+
