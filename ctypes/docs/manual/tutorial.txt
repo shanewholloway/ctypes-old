@@ -926,9 +926,9 @@ break out of the loop when we hit the NULL entry::
       ...    if item.name is None:
       ...        break
       ...
-      __hello__ 100
-      __phello__ -100
-      __phello__.spam 100
+      __hello__ 104
+      __phello__ -104
+      __phello__.spam 104
       None 0
       >>>
 
