@@ -139,7 +139,7 @@ class my_build_ext(build_ext.build_ext):
                 for ext in self.extensions:
                     if ext.name == "_ctypes":
                         ext.sources.remove("source/libffi_msvc/win32.S")
-                        ext.extra_link_args = []
+                    ext.extra_link_args = []
 
         build_ext.build_ext.build_extensions(self)
 
