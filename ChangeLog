@@ -1,3 +1,21 @@
+2006-03-27  Thomas Heller  <theller@python.net>
+
+	* setup.py: Fixes from Khalid A. Bakr.
+
+	He writes: """I have made some changes (see attached diff) to the
+	setup.py to have MinGW pass the "--enable-stdcall-fixup" to the
+	linker to suppress some warnings. And I have added another linker
+	option, namely "--kill-at" to remove the @XY decoration that MinGW
+	normally attaches to stdcall functions.
+
+	With the latter change, test_cfuncs (which had previously reported
+	26 failures out of 52 tests) now only reports 3. It seems that the
+	stdcall part now passes as it does when compiled with a MSVC type
+	compiler."""
+
+	Still, all ctypes callback tests crash Python, and there are other
+	failures as well - when compiled with mingw.
+
 2006-03-20  Thomas Heller  <theller@python.net>
 
 	*  source\cfield.c: Accessing unaligned structure fields
