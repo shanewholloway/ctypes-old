@@ -132,18 +132,14 @@ class my_build_ext(build_ext.build_ext):
                 # determining how to compile a file.  So, even if win32.S
                 # is in sources, we have to add '.s'.
                 self.compiler.src_extensions.append('.s')
-                # We should add the '--enable-stdcall-fixup' compiler flag
                 for ext in self.extensions:
                     if ext.name == "_ctypes":
                         ext.sources.remove("source/libffi_msvc/win32.c")
-# This doesn't work - the option goes to the end of the command line,
-# but it should probably be at the beginning.  So, we have to live
-# with the warning.
-##                    ext.extra_compile_args.append("--enable-stdcall-fixup")
             else:
                 for ext in self.extensions:
                     if ext.name == "_ctypes":
                         ext.sources.remove("source/libffi_msvc/win32.S")
+                        ext.extra_link_args = []
 
         build_ext.build_ext.build_extensions(self)
 
@@ -254,14 +250,37 @@ if sys.platform == "win32":
 ##        extra_compile_args = ["/Wp64"]
     else:
         extra_compile_args = []
+
+    # Extra arguments passed to linker from MinGW,
+    # will be removed, in my_build_ext, if compiler <> MinGW
+    extra_link_args = []
+
+    # In MinGW32, the first linker option should be:
+    #    -Xlinker --enable-stdcall-fixup
+    # but here this option is split into two options to
+    # force distutils not to surroud the entire option
+    # with double quotes as it sees a space in it. So:
+
+    extra_link_args.extend(["-Xlinker", "--enable-stdcall-fixup",
+
+    # In MinGW32, the --kill-at linker option forces MinGW to
+    # remove the @XY decoration from function names, hence making
+    # the stdcall functions of _ctypes_test and those tested in
+    # test_cfuns.py behave similarly to the one compiled in MSVC.
+
+                            "-Wl,--kill-at"])
+
     extensions = [Extension("_ctypes",
                             extra_compile_args = extra_compile_args,
+                            extra_link_args = extra_link_args,
                             export_symbols=["DllGetClassObject,PRIVATE",
                                             "DllCanUnloadNow,PRIVATE"],
                             libraries=["ole32", "user32", "oleaut32", "uuid"],
                             include_dirs=["source/libffi_msvc"],
                             **kw),
                   Extension("_ctypes_test",
+                            extra_compile_args = extra_compile_args,
+                            extra_link_args = extra_link_args,
                             libraries=["oleaut32", "user32"],
                             sources=["source/_ctypes_test.c"],
                             include_dirs=["source/libffi_msvc"],
