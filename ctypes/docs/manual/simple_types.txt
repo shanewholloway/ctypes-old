@@ -14,7 +14,7 @@ allows you to define new behaviour almost completely.
 Class attributes of simple types
 --------------------------------
 
-``__ctype__be__``, ``__ctype_le__``
+``__ctype_be__``, ``__ctype_le__``
 
     If the type supports different byte order (pointer types do NOT
     support this), ``__ctype_be__`` and ``__ctype_le__`` are types
