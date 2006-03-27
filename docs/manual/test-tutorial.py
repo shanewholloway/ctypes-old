@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import doctest
 SKIP = doctest.register_optionflag("SKIP")
 
