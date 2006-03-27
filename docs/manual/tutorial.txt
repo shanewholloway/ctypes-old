@@ -26,9 +26,9 @@ cdecl calling convention::
 
       >>> from ctypes import *
       >>> print windll.kernel32
-      <WinDLL 'kernel32', handle 77e80000 at 7ecfe8>
+      <WinDLL 'kernel32', handle 7c800000 at ...>
       >>> print cdll.msvcrt
-      <CDLL 'msvcrt', handle 78000000 at 80b010>
+      <CDLL 'msvcrt', handle 77be0000 at ...>
 
 In principle the same way should work on Linux, but most of the time
 it seems required to specify the search path in this way. So this
@@ -36,7 +36,7 @@ example shows also how to load libraries by specifying their
 filename::
 
        >>> from ctypes import *
-       >>> libc = cdll.load("/lib/libc.so.6")
+       >>> libc = cdll.load("/lib/libc.so.6") # doctest: +SKIP
        <CDLL '/lib/libc.so.6', handle 40018c28 at 4019978c>
        >>>
 
@@ -55,9 +55,9 @@ Functions are accessed as attributes of dll objects::
 
       >>> from ctypes import *
       >>> print cdll.msvcrt.printf
-      <ctypes._CdeclFuncPtr object ar 0x00905F68>
+      <_FuncPtr object at 0x...>
       >>> print windll.kernel32.GetModuleHandleA
-      <ctypes._StdcallFuncPtr object ar 0x008E6D28>
+      <_FuncPtr object at 0x...>
       >>> print windll.kernel32.MyOwnFunction
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
@@ -90,7 +90,7 @@ identifiers, like ``"??2@YAPAXI@Z"``. In this case you have to use
 ``getattr`` to retrieve the function (XXX Better example?)::
 
       >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z")
-      <ctypes._CdeclFuncPtr object at 0x00905EE0>
+      <_FuncPtr object at 0x...>
       >>>
 
 
@@ -107,7 +107,7 @@ be used as the NULL pointer)::
 
       >>> from ctypes import *
       >>> print cdll.msvcrt.time(None)
-      1048777320
+      1143...
       >>> print hex(windll.kernel32.GetModuleHandleA(None))
       0x1d000000
 
@@ -118,11 +118,11 @@ does this by examining the stack after the function returns::
       >>> windll.kernel32.GetModuleHandleA()
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      ValueError: Procedure probably called with not enough arguments
+      ValueError: Procedure probably called with not enough arguments (4 bytes missing)
       >>> windll.kernel32.GetModuleHandleA(0, 0)
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      ValueError: Procedure probably called with too many arguments
+      ValueError: Procedure probably called with too many arguments (4 bytes in excess)
       >>>
 
 On Windows, ``ctypes`` uses win32 structured exception handling to
@@ -132,7 +132,7 @@ called with invalid argument values::
       >>> windll.kernel32.GetModuleHandleA(32)
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      WindowsError: exception: access violation
+      WindowsError: exception: access violation reading 0x00000020
       >>>
 
 There are, however, enough ways to crash Python with ``ctypes``, so
@@ -149,31 +149,72 @@ Simple data types
 
 ``ctypes`` defines a number of primitive C compatible data types :
 
-XXX table missing, rst2latex is not able to handle it ;-(
+    +---------------+-----------------------+-----------+
+    |ctypes' type   |C type                 |Python type|
+    +===============+=======================+===========+
+    |``c_char``     |``char``               |character  |
+    +---------------+-----------------------+-----------+
+    |``c_byte``     |``char``               |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_ubyte``    |``unsigned char``      |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_short``    |``short``              |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_ushort``   |``unsigned short``     |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_int``      |``int``                |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_uint``     |``unsigned int``       |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_long``     |``long``               |integer    |
+    +---------------+-----------------------+-----------+
+    |``c_ulong``    |``unsigned long``      |long       |
+    +---------------+-----------------------+-----------+
+    |``c_longlong`` |``__int64`` or         |long       |
+    |               |``long long``          |           |
+    +---------------+-----------------------+-----------+
+    |``c_ulonglong``|``unsigned __int64`` or|long       |
+    |               |``unsigned long long`` |           |
+    +---------------+-----------------------+-----------+
+    |``c_float``    |``float``              |float      |
+    +---------------+-----------------------+-----------+
+    |``c_double``   |``double``             |float      |
+    +---------------+-----------------------+-----------+
+    |``c_char_p``   |``char *``             |string or  |
+    |               |(NUL terminated)       |``None``   |
+    +---------------+-----------------------+-----------+
+    |``c_wchar_p``  |``wchar_t *``          |unicode or |
+    |               |(NUL terminated)       |``None``   |
+    +---------------+-----------------------+-----------+
+    |``c_void_p``   |``void *``             |integer or |
+    |               |                       |``None``   |
+    +---------------+-----------------------+-----------+
+
+
 
 All these types can be created by calling them with an optional
 initializer of the correct type and value::
 
       >>> c_int()
-      c_int(0)
-      >>> c_char_p("Hello World")
+      c_long(0)
+      >>> c_char_p("Hello, World")
       c_char_p('Hello, World')
-      >>> c_uint(-3)
-      Traceback (most recent call last):
-        File "<stdin>", line 1, in ?
-      ValueError: Value out of range
+      >>> c_ushort(-3)
+      c_ushort(65533)
+      >>>
     
 Since these types are mutable, their value can also be changed
 afterwards::
 
       >>> i = c_int(42)
       >>> print i
-      c_int(42)
+      c_long(42)
       >>> print i.value
       42
       >>> i.value = -99
       >>> print i.value
       -99
+      >>>
 
 Assigning a new value to instances of the pointer types ``c_char_p``,
 ``c_wchar_p``, and ``c_void_p`` changes the *memory location* they
@@ -188,7 +229,7 @@ because Python strings are immutable)::
       >>> print c_s
       c_char_p('Hi, there')
       >>> print s                 # first string is unchanged
-      Hello, World      
+      Hello, World
 
 You should be careful, however, not to pass them to functions
 expecting pointers to mutable memory. If you need mutable memory
@@ -228,19 +269,19 @@ Note that printf prints to the real standard output channel, *not* to
 prompt, not from within *IDLE* or *PythonWin*::
 
       >>> from ctypes import *; printf = cdll.msvcrt.printf
-      >>> printf("Hello, %s\n", "World!")
+      >>> printf("Hello, %s\n", "World!") # doctest: +SKIP
       Hello, World!
       14
-      >>> printf("Hello, %S", u"World!") # Note the upper case S!
+      >>> printf("Hello, %S", u"World!") # doctest: +SKIP
       Hello, World!
       14
-      >>> printf("%d bottles of beer\n", 42)
+      >>> printf("%d bottles of beer\n", 42) # doctest: +SKIP
       42 bottles of beer
       19
-      >>> printf("%f bottles of beer\n", 42.5)
+      >>> printf("%f bottles of beer\n", 42.5) # doctest: +SKIP
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      TypeError: Don't know how to convert parameter 2
+      ArgumentError: argument 2: exceptions.TypeError: Don't know how to convert parameter 2
       >>>
 
 As has been mentioned before, all Python types except integers,
@@ -250,7 +291,7 @@ type::
 
       >>> from ctypes import *
       >>> printf = cdll.msvcrt.printf
-      >>> printf("An int %d, a double %f\n", 1234, c_double(3.14))
+      >>> printf("An int %d, a double %f\n", 1234, c_double(3.14)) # doctest: +SKIP
       Integer 1234, double 3.1400001049
       34
       >>>
@@ -271,7 +312,7 @@ or unicode::
       >>> bottles = Bottles(42)
       >>> from ctypes import *
       >>> printf = cdll.msvcrt.printf
-      >>> printf("%d bottles of beer\n", bottles)
+      >>> printf("%d bottles of beer\n", bottles) # doctest: +SKIP
       42 bottles of beer
       19
       >>>
@@ -295,18 +336,18 @@ with this feature)::
       >>> from ctypes import *
       >>> printf = cdll.msvcrt.printf
       >>> printf.argtypes = [c_char_p, c_char_p, c_int, c_double]
-      >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2)
+      >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2) # doctest: +SKIP
       String 'Hi', Int 10, Double 2.200000
 
 Specifying a format protects against incompatible argument types (just
 as a prototype for a C function), and tries to convert the arguments
 to valid types::
 
-      >>> printf("%d %d %d", 1, 2, 3)
+      >>> printf("%d %d %d", 1, 2, 3) # doctest: +SKIP
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       TypeError: string expected instead of int instance
-      >>> printf("%s %d %f", "X", 2, 3)
+      >>> printf("%s %d %f", "X", 2, 3) # doctest: +SKIP
       X 2 3.00000012
       >>>
 
@@ -335,7 +376,7 @@ string::
 
       >>> from ctypes import *
       >>> strchr = cdll.msvcrt.strchr
-      >>> strchr("abcdef", ord("d"))
+      >>> strchr("abcdef", ord("d")) # doctest: +SKIP
       8059983
       >>> strchr.restype = c_char_p # c_char_p is a pointer to a string
       >>> strchr("abcdef", ord("d"))
@@ -350,18 +391,18 @@ a single character Python string into a C char::
 
       >>> from ctypes import *
       >>> msvcrt = cdll.msvcrt
-      >>> msvcrt.strchr.restype = "s"
+      >>> msvcrt.strchr.restype = c_char_p
       >>> msvcrt.strchr.argtypes = [c_char_p, c_char]
       >>> msvcrt.strchr("abcdef", "d")
       'def'
       >>> msvcrt.strchr("abcdef", "def")
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      TypeError: one character string expected
+      ArgumentError: argument 2: exceptions.TypeError: one character string expected
       >>> print msvcrt.strchr("abcdef", "x")
       None
-      >>> print msvcrt.strchr("abcdef", "d")
-      "def"
+      >>> msvcrt.strchr("abcdef", "d")
+      'def'
       >>>
       
 XXX Mention the ``errcheck`` protocol...
@@ -384,7 +425,7 @@ for error return values and automatically raise an exception::
       >>> GetModuleHandle.restype = ValidHandle
       >>> GetModuleHandle(None)
       486539264
-      >>> GetModuleHandle("something silly")
+      >>> GetModuleHandle("something silly") # doctest: +IGNORE_EXCEPTION_DETAIL
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
         File "<stdin>", line 3, in ValidHandle
@@ -416,12 +457,13 @@ if you don't need the pointer object in Python itself::
       >>> f = c_float()
       >>> s = create_string_buffer('\000' * 32)
       >>> print i.value, f.value, repr(s.value)
-      0 0.0 ''      
+      0 0.0 ''
       >>> msvcrt.sscanf("1 3.14 Hello", "%d %f %s",
       ...               byref(i), byref(f), s)
       3
       >>> print i.value, f.value, repr(s.value)
       1 3.1400001049 'Hello'
+      >>>
 
 Structures and Unions
 ---------------------
@@ -468,7 +510,7 @@ and ``lowerright`` ::
       ...
       >>> rc = RECT(point)
       >>> print rc.upperleft.x, rc.upperleft.y
-      10 20
+      0 5
       >>> print rc.lowerright.x, rc.lowerright.y
       0 0
       >>>
@@ -485,7 +527,7 @@ in bytes and the offset of this field from the beginning of the
 internal memory buffer::
 
       >>> print POINT.x.size, POINT.x.offset
-      0 4
+      4 0
       >>> print POINT.y.size, POINT.y.offset
       4 4
       >>>
@@ -520,7 +562,7 @@ containing 4 POINTs among other stuff::
       ...
       >>> class MyStruct(Structure):
       ...    _fields_ = [("a", c_int),
-      ...                ("b", float),
+      ...                ("b", c_float),
       ...                ("point_array", POINT * 4)]
       >>>
       >>> print len(MyStruct().point_array)
@@ -541,7 +583,8 @@ Initializers of the correct type can also be specified::
       >>> from ctypes import *
       >>> TenIntegers = c_int * 10
       >>> ii = TenIntegers(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-      <__main__.c_int_Array_10 object at 0x009119F0>
+      >>> print ii
+      <c_long_Array_10 object at 0x...>
       >>> for i in ii: print i,
       ...
       1 2 3 4 5 6 7 8 9 10
@@ -564,7 +607,7 @@ Pointer instances have a ``contents`` attribute which returns the
 ctypes' type pointed to, the ``c_int(42)`` in the above case::
 
        >>> pi.contents
-       c_int(42)
+       c_long(42)
        >>>
 
 Assigning another ``c_int`` instance to the pointer's contents
@@ -573,7 +616,7 @@ where this is stored::
 
        >>> pi.contents = c_int(99)
        >>> pi.contents
-       c_int(99)
+       c_long(99)
        >>>
 
 Pointer instances can also be indexed with integers::
@@ -582,14 +625,15 @@ Pointer instances can also be indexed with integers::
        99
        >>>
 
+XXX What is this???
 Assigning to an integer index changes the pointed to value::
 
        >>> i2 = pi[0]
        >>> i2
-       c_int(99)
+       99
        >>> pi[0] = 22
        >>> i2
-       c_int(22)
+       99
        >>>
 
 It is also possible to use indexes different from 0, but you must know
@@ -609,13 +653,13 @@ This is done with the ``POINTER`` function, which accepts any
        >>> from ctypes import *
        >>> PI = POINTER(c_int)
        >>> PI
-       <class 'ctypes.LP_c_int>
+       <class 'ctypes.LP_c_long'>
        >>> PI(42)
        Traceback (most recent call last):
          File "<stdin>", line 1, in ?
-       TypeError: expected c_int instead of int
+       TypeError: expected c_long instead of int
        >>> PI(c_int(42))
-       <ctypes.LP_c_int object at 0x008ECCE8>
+       <ctypes.LP_c_long object at 0x...>
        >>>
 
 Incomplete Types
@@ -664,8 +708,8 @@ We can do it by creating an *incomplete type*. Just leave out the
        >>> class cell(Structure):
        ...     pass
        ...
-       >>> cell._fields = [("name", c_char_p),
-       ...                 ("next", POINTER(cell))]
+       >>> cell._fields_ = [("name", c_char_p),
+       ...                  ("next", POINTER(cell))]
        >>>
 
 Lets try it. We create two instances of ``cell``, and let them point
@@ -750,25 +794,25 @@ Create the C callable function::
 And we're ready to go::
 
        >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
-       py_cmp_func <ctypes.LP_c_int object at 0x009127E8> <ctypes.LP_c_int object at 0x00927DF8>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
        -1
        >>>
 
@@ -871,11 +915,11 @@ only work on Windows::
       >>> pydll = cdll.python22
       >>> opt_flag = c_int.in_dll(pydll, "Py_OptimizeFlag")
       >>> print opt_flag
-      c_int(0)
+      c_long(0)
       >>>
 
 If the interpreter would have been started with ``-O``, the sample
-would have printed ``c_int(1)``, or ``c_int(2)`` if ``-OO`` would have
+would have printed ``c_long(1)``, or ``c_long(2)`` if ``-OO`` would have
 been specified.
 
 A somewhat extended example which also demontrates the use of pointers
@@ -901,11 +945,12 @@ example size, we show only how this table can be read with
       ...
       >>>
 
+XXX Should use pythonapi instead!!!
 We have ``loaded`` the Python dll and defined the ``struct _frozen``
 data type, so we can get the pointer to the table::
 
       >>> FrozenTable = POINTER(struct_frozen)
-      >>> table = FrozenTable.in_dll(pdll, "PyImport_FrozenModules")
+      >>> table = FrozenTable.in_dll(pydll, "PyImport_FrozenModules")
       >>>
 
 Since ``table`` is a ``pointer`` to the ``struct_frozen`` records, we
@@ -942,7 +987,7 @@ Consider the following example::
 
       >>> from ctypes import *
       >>> class POINT(Structure):
-      ...     _fields_ = ("x", "i"), ("y", "i")
+      ...     _fields_ = ("x", c_int), ("y", c_int)
       ...
       >>> class RECT(Structure):
       ...     _fields_ = ("a", POINT), ("b", POINT)
