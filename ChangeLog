@@ -1,5 +1,8 @@
 2006-03-27  Thomas Heller  <theller@python.net>
 
+	* source/libffi_msvc/prep_cif.c: Fix calling of stdcall functions
+	on Windows, when compiled with MingW32.
+
 	* setup.py: Fixes from Khalid A. Bakr.
 
 	He writes: """I have made some changes (see attached diff) to the
