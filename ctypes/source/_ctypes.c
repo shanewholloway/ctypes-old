@@ -1224,6 +1224,19 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 			return value;
 		}
 	}
+/* function pointer */
+	if (CFuncPtrObject_Check(value)) {
+		PyCArgObject *parg;
+		CFuncPtrObject *func;
+		func = (CFuncPtrObject *)value;
+		parg = new_CArgObject();
+		parg->pffi_type = &ffi_type_pointer;
+		parg->tag = 'P';
+		Py_INCREF(value);
+		parg->value.p = *(void **)func->b_ptr;
+		parg->obj = value;
+		return (PyObject *)parg;
+	}
 /* c_char_p, c_wchar_p */
 	stgd = PyObject_stgdict(value);
 	if (stgd && CDataObject_Check(value) && stgd->proto && PyString_Check(stgd->proto)) {
@@ -4405,8 +4418,10 @@ cast_check_pointertype(PyObject *arg)
 
 	if (PointerTypeObject_Check(arg))
 		return 1;
+	if (CFuncPtrTypeObject_Check(arg))
+		return 1;
 	dict = PyType_stgdict(arg);
-	if (dict) {
+	if (dict && dict->proto) {
 		if (PyString_Check(dict->proto)
 		    && (strchr("sPzUZXO", PyString_AS_STRING(dict->proto)[0]))) {
 			/* simple pointer types, c_void_p, c_wchar_p, BSTR, ... */
