@@ -1,3 +1,15 @@
+2006-04-05  Thomas Heller  <theller@python.net>
+
+	* ctypes/_loader.py: Extend the posix findLib_ld function to try
+	output from 'ldd'. This makes findLib work on OSF1 (True
+	64). Patch from Neal Norwitz.
+
+	* source/libffi/src/powerpc/darwin_closure.S: Remove the
+	live_support segment attribute so that this file compiles on OSX 10.3.
+
+	* source/libffi: Add support for OpenBSD.  The ctypes test-suite
+	works.
+
 2006-03-27  Thomas Heller  <theller@python.net>
 
 	* source/libffi_msvc/prep_cif.c: Fix calling of stdcall functions
