@@ -2,31 +2,33 @@ from ctypes import *
 import sys, unittest
 import os, StringIO
 
+libc_name = None
+if os.name == "nt":
+    libc_name = "msvcrt"
+elif os.name == "ce":
+    libc_name = "coredll"
+elif sys.platform == "darwin":
+    libc_name = "libc.dylib"
+elif sys.platform == "cygwin":
+    libc_name = "cygwin1.dll"
+else:
+    for line in os.popen("ldd %s" % sys.executable):
+        if "libc.so" in line:
+            libc_name = line.split()[2]
+            print "libc_name is", libc_name
+            break
+
 class LoaderTest(unittest.TestCase):
 
     unknowndll = "xxrandomnamexx"
 
-    def test_load(self):
-        if os.name == "nt":
-            name = "msvcrt"
-        elif os.name == "ce":
-            name = "coredll"
-        elif sys.platform == "darwin":
-            name = "libc.dylib"
-        elif sys.platform.startswith("freebsd"):
-            name = "libc.so"
-        elif sys.platform in ("sunos5", "osf1V5"):
-            name = "libc.so"
-        elif sys.platform.startswith("netbsd") or sys.platform.startswith("openbsd"):
-            name = "libc.so"
-        else:
-            name = "libc.so.6"
-##        print (sys.platform, os.name)
-        try:
-            cdll.load(name)
-        except Exception, details:
-            self.fail((str(details), name, (os.name, sys.platform)))
-        self.assertRaises(OSError, cdll.load, self.unknowndll)
+    if libc_name is not None:
+        def test_load(self):
+            cdll.load(libc_name)
+            cdll.load(os.path.basename(libc_name))
+            self.assertRaises(OSError, cdll.load, self.unknowndll)
+    else:
+        print "Warning: libc not found"
 
     def test_load_version(self):
         version = "6"
