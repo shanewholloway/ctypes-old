@@ -15,7 +15,7 @@ else:
     for line in os.popen("ldd %s" % sys.executable):
         if "libc.so" in line:
             libc_name = line.split()[2]
-            print "libc_name is", libc_name
+            print "libc_name is", line
             break
 
 class LoaderTest(unittest.TestCase):
@@ -32,10 +32,9 @@ class LoaderTest(unittest.TestCase):
         def test_load_version(self):
             cdll.load_version("c", "6")
             # linux uses version, libc 9 should not exist
-            self.assertRaises(OSError, cdll.load_version, name, "9")
+            self.assertRaises(OSError, cdll.load_version, "c", "9")
             self.assertRaises(OSError, cdll.load_version, self.unknowndll, "")
 
-##    if os.name == "posix" and sys.platform != "sunos5":
         def test_find(self):
             name = "c"
             cdll.find(name)
