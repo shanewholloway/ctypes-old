@@ -181,7 +181,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
     def depart_title(self, node):
         self.in_title = False
         self.body.append(self.context.pop())
-        
+
     def visit_target(self, node):
         pass
 
@@ -196,7 +196,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
 
     def depart_definition(self, node):
         pass
-    
+
     def visit_definition_list_item(self, node):
         pass
 
@@ -220,7 +220,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
             print "got refid=%r, label=%r" % (node['refid'], label)
         else:
             print "warning: unhandled reference: node=%r" % node
-            LaTeXTranslator.visit_reference(self, node)          
+            LaTeXTranslator.visit_reference(self, node)
 
         self.body.append("section~\\ref{%s}, " % label)
         raise nodes.SkipDeparture
@@ -265,7 +265,7 @@ def concatenate_sources(sources, target):
         outfile.write("\n\n")
         file.close()
     outfile.close()
-    
+
 def convert(infilename, outfilename):
 
     print "converting %s to %s" % (infilename, outfilename)
