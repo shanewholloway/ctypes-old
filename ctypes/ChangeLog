@@ -10,6 +10,14 @@
 	* source/libffi: Add support for OpenBSD.  The ctypes test-suite
 	works.
 
+2006-03-29  Thomas Heller  <theller@python.net>
+
+	* source\_ctypes.c: Accept function pointers as first argument,
+	and a function pointer types as second argument in the cast
+	function.
+
+	Fix a potential segfault.
+
 2006-03-27  Thomas Heller  <theller@python.net>
 
 	* source/libffi_msvc/prep_cif.c: Fix calling of stdcall functions
