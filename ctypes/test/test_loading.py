@@ -27,36 +27,32 @@ class LoaderTest(unittest.TestCase):
             cdll.load(libc_name)
             cdll.load(os.path.basename(libc_name))
             self.assertRaises(OSError, cdll.load, self.unknowndll)
-    else:
-        print "Warning: libc not found"
 
-    def test_load_version(self):
-        version = "6"
-        name = "c"
-        if sys.platform == "linux2":
-            cdll.load_version(name, version)
+    if libc_name is not None and "libc.so.6" in libc_name:
+        def test_load_version(self):
+            cdll.load_version("c", "6")
             # linux uses version, libc 9 should not exist
             self.assertRaises(OSError, cdll.load_version, name, "9")
-        self.assertRaises(OSError, cdll.load_version, self.unknowndll, "")
+            self.assertRaises(OSError, cdll.load_version, self.unknowndll, "")
 
-    if os.name == "posix" and sys.platform != "sunos5":
+##    if os.name == "posix" and sys.platform != "sunos5":
         def test_find(self):
             name = "c"
             cdll.find(name)
             self.assertRaises(OSError, cdll.find, self.unknowndll)
 
-    def test_load_library(self):
-        if os.name == "nt":
-            windll.load_library("kernel32").GetModuleHandleW
-            windll.LoadLibrary("kernel32").GetModuleHandleW
-            WinDLL("kernel32").GetModuleHandleW
-        elif os.name == "ce":
-            windll.load_library("coredll").GetModuleHandleW
-            windll.LoadLibrary("coredll").GetModuleHandleW
-            WinDLL("coredll").GetModuleHandleW
+    if os.name in ("nt", "ce"):
+        def test_load_library(self):
+            if os.name == "nt":
+                windll.load_library("kernel32").GetModuleHandleW
+                windll.LoadLibrary("kernel32").GetModuleHandleW
+                WinDLL("kernel32").GetModuleHandleW
+            elif os.name == "ce":
+                windll.load_library("coredll").GetModuleHandleW
+                windll.LoadLibrary("coredll").GetModuleHandleW
+                WinDLL("coredll").GetModuleHandleW
 
-    def test_load_ordinal_functions(self):
-        if os.name in ("nt", "ce"):
+        def test_load_ordinal_functions(self):
             import _ctypes_test
             dll = WinDLL(_ctypes_test.__file__)
             # We load the same function both via ordinal and name
