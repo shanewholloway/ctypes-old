@@ -4421,7 +4421,7 @@ cast_check_pointertype(PyObject *arg)
 	if (CFuncPtrTypeObject_Check(arg))
 		return 1;
 	dict = PyType_stgdict(arg);
-	if (dict && dict->proto) {
+	if (dict) {
 		if (PyString_Check(dict->proto)
 		    && (strchr("sPzUZXO", PyString_AS_STRING(dict->proto)[0]))) {
 			/* simple pointer types, c_void_p, c_wchar_p, BSTR, ... */
