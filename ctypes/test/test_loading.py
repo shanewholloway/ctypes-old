@@ -14,8 +14,11 @@ elif sys.platform == "cygwin":
 else:
     for line in os.popen("ldd %s" % sys.executable):
         if "libc.so" in line:
-            libc_name = line.split()[2]
-            print "libc_name is", line
+            if sys.platform == "openbsd3":
+                libc_name = line.split()[4]
+            else:
+                libc_name = line.split()[2]
+##            print "libc_name is", libc_name
             break
 
 class LoaderTest(unittest.TestCase):
