@@ -1,3 +1,11 @@
+2006-04-06  Thomas Heller  <theller@python.net>
+
+	* Simplify code, improve error handling, and a Py_ssize_t fix by
+	Neal Norwitz.
+
+	* Spelled 'signed char' instead of 'char', to avoid test failures
+	on platforms where the C 'char' type is unsigned.
+	
 2006-04-05  Thomas Heller  <theller@python.net>
 
 	* ctypes/_loader.py: Extend the posix findLib_ld function to try
