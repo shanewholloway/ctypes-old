@@ -21,6 +21,17 @@ class OptikReader(StandaloneReader):
     #                      (ReplacementTransform,))
     pass
 
+# python 2.3
+if not hasattr(__builtins__,"set"):
+    import sets
+    set = sets.Set
+if not hasattr(__builtins__,"sorted"):
+    def sorted(list):
+        if hasattr(list,"sort"):
+            return list.sort()
+        # maybe it is sorted
+        return list
+
 from markup import codemarkup
 missing = set()
 
@@ -71,9 +82,15 @@ class PyLaTeXTranslator(LaTeXTranslator):
             "\\versionadded{%(version_added)s}\n"
             % vars(self.__class__)
             ]
-
+        # TODO definitions get from latexwriter
+        # TODO definitions must be guarded if multiple modules are included
+        self.definitions = [
+                "\\newlength{\\locallinewidth}\n"
+                "\\setlength{\\locallinewidth}{\\linewidth}\n"
+            ]
     def astext(self):
-        return ''.join(self.head_prefix +
+        return ''.join(self.definitions +
+                       self.head_prefix +
                        self.head +
                        self.body_prefix +
                        self.body +
@@ -203,12 +220,6 @@ class PyLaTeXTranslator(LaTeXTranslator):
     def depart_definition_list_item(self, node):
         pass
 
-    # override merely to lose the newline, which causes problems
-    # in one obscure case -- can go away if the docutils developers
-    # accept my second patch to latex2e.py
-    def depart_term(self, node):
-        self.body.append(']')
-
     def visit_reference(self, node):
         if node.has_key('refuri'):
             refuri = node['refuri']
@@ -281,7 +292,8 @@ def convert(infilename, outfilename):
     pub.publish()
 
 def main():
-    convert("libctypes.txt", "../../../trunk/Doc/lib/libctypes.tex")
+    convert("tutorial.txt", "tutorial.tex")
+##    convert("libctypes.txt", "../../../trunk/Doc/lib/libctypes.tex")
     if missing:
         mod = open("missing.py", "w")
         mod.write("# possible markups:\n")
