@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 import sys
 import doctest
+
+# handle platform specific issues
 WINDOWS = doctest.register_optionflag("WINDOWS")
 LINUX = doctest.register_optionflag("LINUX")
 SKIP = doctest.register_optionflag("SKIP")
 
+# handle size specific issues
 import ctypes
 c_int_name = ctypes.c_int.__name__
 
@@ -20,9 +23,6 @@ class MyDocTestRunner(base):
             elif SKIP in ex.options:
                 examples.remove(ex)
             else:
-##                print "REPLACE:"
-##                print "\t", ex.want
-##                print "\t", ex.want.replace("c_long", c_int_name)
                 ex.want = ex.want.replace("c_long", c_int_name)
         test.examples = examples
         return base.run(self, test, compileflags, out, clear_globs)
