@@ -783,17 +783,17 @@ Create the C callable function::
 
 And we're ready to go::
 
-       >>> qsort(ia, len(ia), sizeof(c_int), cmp_func) # doctest: +WINDOWS
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
+       >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
+       py_cmp_func <ctypes.LP_c_long object at 0x00...> <ctypes.LP_c_long object at 0x00...>
        >>>
 
 We know how to access the contents of a pointer, so lets redefine our callback::
@@ -852,7 +852,6 @@ Windows::
     py_cmp_func 5 7
     py_cmp_func 1 7
     py_cmp_func 5 1
-    -1
     >>>
 
 Linux::
