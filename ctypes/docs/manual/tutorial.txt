@@ -272,16 +272,16 @@ Note that printf prints to the real standard output channel, *not* to
 prompt, not from within *IDLE* or *PythonWin*::
 
       >>> printf = libc.printf
-      >>> printf("Hello, %s\n", "World!") # doctest: +SKIP
+      >>> printf("Hello, %s\n", "World!")
       Hello, World!
       14
-      >>> printf("Hello, %S", u"World!") # doctest: +SKIP
+      >>> printf("Hello, %S", u"World!")
       Hello, World!
-      14
-      >>> printf("%d bottles of beer\n", 42) # doctest: +SKIP
+      13
+      >>> printf("%d bottles of beer\n", 42)
       42 bottles of beer
       19
-      >>> printf("%f bottles of beer\n", 42.5) # doctest: +SKIP
+      >>> printf("%f bottles of beer\n", 42.5)
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ArgumentError: argument 2: exceptions.TypeError: Don't know how to convert parameter 2
@@ -292,9 +292,9 @@ strings, and unicode strings have to be wrapped in their corresponding
 ``ctypes`` type, so that they can be converted to the required C data
 type::
 
-      >>> printf("An int %d, a double %f\n", 1234, c_double(3.14)) # doctest: +SKIP
+      >>> printf("An int %d, a double %f\n", 1234, c_double(3.14))
       Integer 1234, double 3.1400001049
-      34
+      31
       >>>
 
 Calling functions with your own custom data types
@@ -311,7 +311,7 @@ or unicode::
       ...         self._as_parameter_ = number
       ...
       >>> bottles = Bottles(42)
-      >>> printf("%d bottles of beer\n", bottles) # doctest: +SKIP
+      >>> printf("%d bottles of beer\n", bottles)
       42 bottles of beer
       19
       >>>
@@ -333,19 +333,22 @@ format string, on the other hand this is quite handy to experiment
 with this feature)::
 
       >>> printf.argtypes = [c_char_p, c_char_p, c_int, c_double]
-      >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2) # doctest: +SKIP
+      >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2)
       String 'Hi', Int 10, Double 2.200000
+      37
+      >>>
 
 Specifying a format protects against incompatible argument types (just
 as a prototype for a C function), and tries to convert the arguments
 to valid types::
 
-      >>> printf("%d %d %d", 1, 2, 3) # doctest: +SKIP
+      >>> printf("%d %d %d", 1, 2, 3)
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      TypeError: string expected instead of int instance
-      >>> printf("%s %d %f", "X", 2, 3) # doctest: +SKIP
+      ArgumentError: argument 2: exceptions.TypeError: wrong type
+      >>> printf("%s %d %f", "X", 2, 3)
       X 2 3.00000012
+      12
       >>>
 
 If you have defined your own classes which you pass to function calls,

@@ -223,8 +223,7 @@ pre.address {
 
 pre.literal-block, pre.doctest-block {
   margin-left: 2em ;
-  margin-right: 2em ;
-  background-color: #eeeeee }
+  margin-right: 2em }
 
 span.classifier {
   font-family: sans-serif ;
@@ -281,9 +280,6 @@ h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
 h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
   font-size: 100% }
 
-tt.docutils {
-  background-color: #eeeeee }
-
 ul.auto-toc {
   list-style-type: none }
 
@@ -306,9 +302,9 @@ ul.auto-toc {
 <li><a class="reference" href="#function-prototypes" id="id6" name="id6">Function prototypes</a></li>
 <li><a class="reference" href="#parameter-flags" id="id7" name="id7">Parameter flags</a></li>
 <li><a class="reference" href="#com-methods-windows-only" id="id8" name="id8">COM methods (Windows only)</a></li>
-<li><a class="reference" href="#callback-functions" id="id9" name="id9">Callback functions</a></li>
 </ul>
 </li>
+<li><a class="reference" href="#callback-functions" id="id9" name="id9">Callback functions</a></li>
 <li><a class="reference" href="#simple-types" id="id10" name="id10">Simple types</a><ul>
 <li><a class="reference" href="#class-attributes-of-simple-types" id="id11" name="id11">Class attributes of simple types</a></li>
 <li><a class="reference" href="#class-methods-of-simple-types" id="id12" name="id12">Class methods of simple types</a></li>
@@ -591,8 +587,9 @@ information in case the method returns a FAILED ''HRESULT`` value.</p>
 listed in the prototypes <tt class="docutils literal"><span class="pre">argtypes</span></tt> when they are called: this must
 be the integer address of a COM interface pointer.</p>
 </div>
+</div>
 <div class="section">
-<h2><a class="toc-backref" href="#id9" id="callback-functions" name="callback-functions">Callback functions</a></h2>
+<h1><a class="toc-backref" href="#id9" id="callback-functions" name="callback-functions">Callback functions</a></h1>
 <p>ctypes is able to create C callable functions from Python callables.
 This is useful because sometimes library functions need a callback
 function parameter; the <tt class="docutils literal"><span class="pre">qsort</span></tt> C function is such an example.</p>
@@ -618,7 +615,6 @@ tries to call it.</p>
 <p>Callback objects can also be called from Python - this may be useful
 for debugging.</p>
 </div>
-</div>
 <div class="section">
 <h1><a class="toc-backref" href="#id10" id="simple-types" name="simple-types">Simple types</a></h1>
 <p>Simple types have some special behaviour: When they are accessed as
@@ -631,7 +627,7 @@ integer or long, a subclass of c_void_p is <em>not</em> converted.  This
 allows you to define new behaviour almost completely.</p>
 <div class="section">
 <h2><a class="toc-backref" href="#id11" id="class-attributes-of-simple-types" name="class-attributes-of-simple-types">Class attributes of simple types</a></h2>
-<p><tt class="docutils literal"><span class="pre">__ctype__be__</span></tt>, <tt class="docutils literal"><span class="pre">__ctype_le__</span></tt></p>
+<p><tt class="docutils literal"><span class="pre">__ctype_be__</span></tt>, <tt class="docutils literal"><span class="pre">__ctype_le__</span></tt></p>
 <blockquote>
 If the type supports different byte order (pointer types do NOT
 support this), <tt class="docutils literal"><span class="pre">__ctype_be__</span></tt> and <tt class="docutils literal"><span class="pre">__ctype_le__</span></tt> are types
@@ -659,14 +655,14 @@ TBD</blockquote>
 TBD</blockquote>
 <p><tt class="docutils literal"><span class="pre">from_param</span></tt></p>
 <blockquote>
-<p>This is a class method (an instance method of the metaclass, to be
-exact) that is used to adapt function parameters.  If a
-<tt class="docutils literal"><span class="pre">c_int</span></tt> type is specified in a function's argtypes sequence,
-<tt class="docutils literal"><span class="pre">c_int.from_param(arg)</span></tt> will be called by ctypes and the result
-will be passed to the foreign function call as a parameter.</p>
+<p>This class method is used to adapt function parameters.  If a type
+is specified in a function's argtypes sequence, in a function call
+the <tt class="docutils literal"><span class="pre">from_param(arg)</span></tt> method will be called with the actual
+argument, and the result will be passed to the foreign function
+call as a parameter.</p>
 <p><tt class="docutils literal"><span class="pre">from_param</span></tt> usually returns an internal object that you cannot
-use in Python code - it only makes sense to pass this to foreign
-functions.</p>
+use in Python code - it only makes sense to pass this object to
+foreign functions.</p>
 <p>On one hand, <tt class="docutils literal"><span class="pre">from_param</span></tt> is a performance optimization - it
 allows you to pass Python integers to function calls expecting a
 <tt class="docutils literal"><span class="pre">c_int</span></tt> argument type, without having to create a full-featured
@@ -681,6 +677,11 @@ TBD</blockquote>
 </div>
 <div class="section">
 <h2><a class="toc-backref" href="#id13" id="instance-attributes-of-simple-types" name="instance-attributes-of-simple-types">Instance attributes of simple types</a></h2>
+<p><tt class="docutils literal"><span class="pre">value</span></tt></p>
+<blockquote>
+Allows to get or set the current value of the object.  For simple
+types, this is always a native Python object like integer, long,
+string, unicode, or None.</blockquote>
 <p><tt class="docutils literal"><span class="pre">_objects</span></tt> (never modify this)</p>
 <blockquote>
 Implementation artifact: a Python object keeping references to
@@ -694,11 +695,6 @@ Implementation artifact: the base object owning the memory block
 <blockquote>
 Implementation artifact: does this object have to free its memory
 block on destruction.</blockquote>
-<p><tt class="docutils literal"><span class="pre">value</span></tt></p>
-<blockquote>
-Allows to get or set the current value of the object.  For simpe
-types, this is always a native Python object like integer, long,
-string, or unicode.</blockquote>
 <p><tt class="docutils literal"><span class="pre">_as_parameter_</span></tt> (readonly)</p>
 <blockquote>
 Implementation artifact (?): how to pass this object as a function
