@@ -2,6 +2,7 @@ from ctypes import *
 import sys, unittest
 import os, StringIO
 from ctypes.util import find_library
+from ctypes.test import is_resource_enabled
 
 libc_name = None
 if os.name == "nt":
@@ -19,8 +20,10 @@ else:
                 libc_name = line.split()[4]
             else:
                 libc_name = line.split()[2]
-##            print "libc_name is", libc_name
             break
+
+if is_resource_enabled("printing"):
+    print "libc_name is", libc_name
 
 class LoaderTest(unittest.TestCase):
 
