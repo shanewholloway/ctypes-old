@@ -25,10 +25,12 @@ standard C library containing most standard C functions, and uses the
 cdecl calling convention::
 
       >>> from ctypes import *
-      >>> print windll.kernel32
-      <WinDLL 'kernel32', handle 7c800000 at ...>
-      >>> print cdll.msvcrt
-      <CDLL 'msvcrt', handle 77be0000 at ...>
+      >>> print windll.kernel32 # doctest: +WINDOWS
+      <WinDLL 'kernel32', handle ... at ...>
+      >>> print cdll.msvcrt # doctest: +WINDOWS
+      <CDLL 'msvcrt', handle ... at ...>
+      >>> libc = cdll.msvcrt # doctest: +WINDOWS
+      >>>
 
 In principle the same way should work on Linux, but most of the time
 it seems required to specify the search path in this way. So this
@@ -36,8 +38,9 @@ example shows also how to load libraries by specifying their
 filename::
 
        >>> from ctypes import *
-       >>> libc = cdll.load("/lib/libc.so.6") # doctest: +SKIP
-       <CDLL '/lib/libc.so.6', handle 40018c28 at 4019978c>
+       >>> libc = cdll.LoadLibrary("/lib/libc.so.6") # doctest: +LINUX
+       >>> print libc # doctest: +LINUX
+       <CDLL '/lib/libc.so.6', handle ... at ...>
        >>>
 
 **Note:** in older versions, the ``LoadLibrary`` method should be used
@@ -54,11 +57,11 @@ Accessing functions from loaded dlls
 Functions are accessed as attributes of dll objects::
 
       >>> from ctypes import *
-      >>> print cdll.msvcrt.printf
+      >>> libc.printf
       <_FuncPtr object at 0x...>
-      >>> print windll.kernel32.GetModuleHandleA
+      >>> print windll.kernel32.GetModuleHandleA # doctest: +WINDOWS
       <_FuncPtr object at 0x...>
-      >>> print windll.kernel32.MyOwnFunction
+      >>> print windll.kernel32.MyOwnFunction # doctest: +WINDOWS
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
         File "ctypes.py", line 239, in __getattr__
@@ -89,7 +92,7 @@ Sometimes, dlls export functions with names which aren't valid Python
 identifiers, like ``"??2@YAPAXI@Z"``. In this case you have to use
 ``getattr`` to retrieve the function (XXX Better example?)::
 
-      >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z")
+      >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z") # doctest: +WINDOWS
       <_FuncPtr object at 0x...>
       >>>
 
@@ -105,21 +108,21 @@ which returns a win32 module handle.
 This example calls both functions with a NULL pointer (``None`` should
 be used as the NULL pointer)::
 
-      >>> from ctypes import *
-      >>> print cdll.msvcrt.time(None)
-      1143...
-      >>> print hex(windll.kernel32.GetModuleHandleA(None))
+      >>> print libc.time(None)
+      114...
+      >>> print hex(windll.kernel32.GetModuleHandleA(None)) # doctest: +WINDOWS
       0x1d000000
+      >>>
 
 ``ctypes`` tries to protect you from calling functions with the wrong
 number of arguments.  Unfortunately this only works on Windows.  It
 does this by examining the stack after the function returns::
 
-      >>> windll.kernel32.GetModuleHandleA()
+      >>> windll.kernel32.GetModuleHandleA() # doctest: +WINDOWS
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ValueError: Procedure probably called with not enough arguments (4 bytes missing)
-      >>> windll.kernel32.GetModuleHandleA(0, 0)
+      >>> windll.kernel32.GetModuleHandleA(0, 0) # doctest: +WINDOWS
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ValueError: Procedure probably called with too many arguments (4 bytes in excess)
@@ -129,7 +132,7 @@ On Windows, ``ctypes`` uses win32 structured exception handling to
 prevent crashes from general protection faults when functions are
 called with invalid argument values::
 
-      >>> windll.kernel32.GetModuleHandleA(32)
+      >>> windll.kernel32.GetModuleHandleA(32) # doctest: +WINDOWS
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       WindowsError: exception: access violation reading 0x00000020
@@ -268,7 +271,7 @@ Note that printf prints to the real standard output channel, *not* to
 ``sys.stdout``, so these examples will only work at the console
 prompt, not from within *IDLE* or *PythonWin*::
 
-      >>> from ctypes import *; printf = cdll.msvcrt.printf
+      >>> printf = libc.printf
       >>> printf("Hello, %s\n", "World!") # doctest: +SKIP
       Hello, World!
       14
@@ -289,8 +292,6 @@ strings, and unicode strings have to be wrapped in their corresponding
 ``ctypes`` type, so that they can be converted to the required C data
 type::
 
-      >>> from ctypes import *
-      >>> printf = cdll.msvcrt.printf
       >>> printf("An int %d, a double %f\n", 1234, c_double(3.14)) # doctest: +SKIP
       Integer 1234, double 3.1400001049
       34
@@ -310,8 +311,6 @@ or unicode::
       ...         self._as_parameter_ = number
       ...
       >>> bottles = Bottles(42)
-      >>> from ctypes import *
-      >>> printf = cdll.msvcrt.printf
       >>> printf("%d bottles of beer\n", bottles) # doctest: +SKIP
       42 bottles of beer
       19
@@ -333,8 +332,6 @@ variable number and different types of parameters depending on the
 format string, on the other hand this is quite handy to experiment
 with this feature)::
 
-      >>> from ctypes import *
-      >>> printf = cdll.msvcrt.printf
       >>> printf.argtypes = [c_char_p, c_char_p, c_int, c_double]
       >>> printf("String '%s', Int %d, Double %f\n", "Hi", 10, 2.2) # doctest: +SKIP
       String 'Hi', Int 10, Double 2.200000
@@ -374,8 +371,7 @@ Here is a more advanced example, it uses the strchr function, which
 expects a string pointer and a char, and returns a pointer to a
 string::
 
-      >>> from ctypes import *
-      >>> strchr = cdll.msvcrt.strchr
+      >>> strchr = libc.strchr
       >>> strchr("abcdef", ord("d")) # doctest: +SKIP
       8059983
       >>> strchr.restype = c_char_p # c_char_p is a pointer to a string
@@ -389,19 +385,17 @@ If you want to avoid the ``ord("x")`` calls above, you can set the
 ``argtypes`` attribute, and the second argument will be converted from
 a single character Python string into a C char::
 
-      >>> from ctypes import *
-      >>> msvcrt = cdll.msvcrt
-      >>> msvcrt.strchr.restype = c_char_p
-      >>> msvcrt.strchr.argtypes = [c_char_p, c_char]
-      >>> msvcrt.strchr("abcdef", "d")
+      >>> strchr.restype = c_char_p
+      >>> strchr.argtypes = [c_char_p, c_char]
+      >>> strchr("abcdef", "d")
       'def'
-      >>> msvcrt.strchr("abcdef", "def")
+      >>> strchr("abcdef", "def")
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ArgumentError: argument 2: exceptions.TypeError: one character string expected
-      >>> print msvcrt.strchr("abcdef", "x")
+      >>> print strchr("abcdef", "x")
       None
-      >>> msvcrt.strchr("abcdef", "d")
+      >>> strchr("abcdef", "d")
       'def'
       >>>
       
@@ -414,18 +408,17 @@ example) as the ``restype`` attribute.  It will be called with the
 be used as the result of your function call. This is useful to check
 for error return values and automatically raise an exception::
 
-      >>> from ctypes import *
-      >>> GetModuleHandle = windll.kernel32.GetModuleHandleA
+      >>> GetModuleHandle = windll.kernel32.GetModuleHandleA # doctest: +WINDOWS
       >>> def ValidHandle(value):
       ...     if value == 0:
       ...         raise WinError()
       ...     return value
       ...
       >>>
-      >>> GetModuleHandle.restype = ValidHandle
-      >>> GetModuleHandle(None)
+      >>> GetModuleHandle.restype = ValidHandle # doctest: +WINDOWS
+      >>> GetModuleHandle(None) # doctest: +WINDOWS
       486539264
-      >>> GetModuleHandle("something silly") # doctest: +IGNORE_EXCEPTION_DETAIL
+      >>> GetModuleHandle("something silly") # doctest: +WINDOWS +IGNORE_EXCEPTION_DETAIL
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
         File "<stdin>", line 3, in ValidHandle
@@ -451,15 +444,13 @@ parameters by reference.  The same effect can be achieved with the
 it constructs a real pointer object, so it is faster to use ``byref``
 if you don't need the pointer object in Python itself::
 
-      >>> from ctypes import *
-      >>> msvcrt = cdll.msvcrt
       >>> i = c_int()
       >>> f = c_float()
       >>> s = create_string_buffer('\000' * 32)
       >>> print i.value, f.value, repr(s.value)
       0 0.0 ''
-      >>> msvcrt.sscanf("1 3.14 Hello", "%d %f %s",
-      ...               byref(i), byref(f), s)
+      >>> libc.sscanf("1 3.14 Hello", "%d %f %s",
+      ...             byref(i), byref(f), s)
       3
       >>> print i.value, f.value, repr(s.value)
       1 3.1400001049 'Hello'
@@ -650,11 +641,10 @@ create pointer instances, it has to create pointer *types* first.
 This is done with the ``POINTER`` function, which accepts any
 ``ctypes`` type, and returns a new type::
 
-       >>> from ctypes import *
        >>> PI = POINTER(c_int)
        >>> PI
        <class 'ctypes.LP_c_long'>
-       >>> PI(42)
+       >>> PI(42) # doctest: +IGNORE_EXCEPTION_DETAIL
        Traceback (most recent call last):
          File "<stdin>", line 1, in ?
        TypeError: expected c_long instead of int
@@ -757,10 +747,10 @@ I will present an example here which uses the standard C library's
 callback function. ``qsort`` will be used to sort an array of
 integers::
     
-       >>> from ctypes import *
        >>> IntArray5 = c_int * 5
        >>> ia = IntArray5(5, 1, 7, 33, 99)
-       >>> qsort = cdll.msvcrt.qsort
+       >>> qsort = libc.qsort
+       >>> qsort.restype = None
        >>>
 
 ``qsort`` must be called with a pointer to the data to sort, the
@@ -793,7 +783,7 @@ Create the C callable function::
 
 And we're ready to go::
 
-       >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
+       >>> qsort(ia, len(ia), sizeof(c_int), cmp_func) # doctest: +WINDOWS
        py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
        py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
        py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
@@ -804,7 +794,6 @@ And we're ready to go::
        py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
        py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
        py_cmp_func <ctypes.LP_c_long object at 0x00C70AD0> <ctypes.LP_c_long object at 0x00C70B20>
-       -1
        >>>
 
 We know how to access the contents of a pointer, so lets redefine our callback::
@@ -814,7 +803,11 @@ We know how to access the contents of a pointer, so lets redefine our callback::
     ...     return 0
     ...
     >>> cmp_func = CMPFUNC(py_cmp_func)
-    >>> qsort(ia, len(ia), sizeof(c_int), cmp_func)
+    >>>
+
+Here is what we get on Windows::
+
+    >>> qsort(ia, len(ia), sizeof(c_int), cmp_func) # doctest: +WINDOWS
     py_cmp_func 7 1
     py_cmp_func 33 1
     py_cmp_func 99 1
@@ -825,7 +818,17 @@ We know how to access the contents of a pointer, so lets redefine our callback::
     py_cmp_func 7 99
     py_cmp_func 33 99
     py_cmp_func 7 33
-    -1
+    >>>
+
+It is funny to see that on linux the sort function seems to work much
+more efficient, it is doing less comparisons::
+
+    >>> qsort(ia, len(ia), sizeof(c_int), cmp_func) # doctest: +LINUX
+    py_cmp_func 5 1
+    py_cmp_func 33 99
+    py_cmp_func 7 33
+    py_cmp_func 5 7
+    py_cmp_func 1 7
     >>>
 
 Ah, we're nearly done! Last refinements::
@@ -834,7 +837,11 @@ Ah, we're nearly done! Last refinements::
     ...     print "py_cmp_func", a[0], b[0]
     ...     return a[0] - b[0]
     ...
-    >>> qsort(ia, len(ia), sizeof(c_int), CMPFUNC(py_cmp_func))
+    >>>
+
+Windows::
+
+    >>> qsort(ia, len(ia), sizeof(c_int), CMPFUNC(py_cmp_func)) # doctest: +WINDOWS
     py_cmp_func 33 7
     py_cmp_func 99 33
     py_cmp_func 5 99
@@ -846,6 +853,16 @@ Ah, we're nearly done! Last refinements::
     py_cmp_func 1 7
     py_cmp_func 5 1
     -1
+    >>>
+
+Linux::
+
+    >>> qsort(ia, len(ia), sizeof(c_int), CMPFUNC(py_cmp_func)) # doctest: +LINUX
+    py_cmp_func 5 1
+    py_cmp_func 33 99
+    py_cmp_func 7 33
+    py_cmp_func 1 7
+    py_cmp_func 5 7
     >>>
 
 So, is our array sorted now::
