@@ -1,10 +1,10 @@
 """create and manipulate C data types in Python"""
 
-# special developer support to use ctypes from the CVS sandbox,
-# without installing it
 import os as _os, sys as _sys
 from itertools import chain as _chain
 
+# special developer support to use ctypes from the CVS sandbox,
+# without installing it
 # XXX Remove this for the python core version
 _magicfile = _os.path.join(_os.path.dirname(__file__), ".CTYPES_DEVEL")
 if _os.path.isfile(_magicfile):
@@ -17,11 +17,7 @@ from _ctypes import Union, Structure, Array
 from _ctypes import _Pointer
 from _ctypes import CFuncPtr as _CFuncPtr
 from _ctypes import __version__ as _ctypes_version
-try:
-    from _ctypes import RTLD_LOCAL, RTLD_GLOBAL
-except (ImportError, AttributeError):
-    RTLD_GLOBAL = RTLD_LOCAL = None
-
+from _ctypes import RTLD_LOCAL, RTLD_GLOBAL
 from _ctypes import ArgumentError
 
 from struct import calcsize as _calcsize
