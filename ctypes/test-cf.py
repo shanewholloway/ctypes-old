@@ -54,9 +54,9 @@ for hostname, python in others + hostinfo:
     if len(sys.argv) > 1:
         args = " ".join(sys.argv[1:])
     else:
-        args = "test"
+        args = "test -v"
 
-    cmd = "cd $HOME/ctypes; %s setup.py %s" % (python, args)
+    cmd = "cd $HOME/ctypes; %s setup.py -q build %s" % (python, args)
     print cmd
     if (hostname, python) in hostinfo:
         ret = os.system('ssh -l theller cf-shell.sf.net "ssh %s \'%s\'"' % (hostname, cmd))
