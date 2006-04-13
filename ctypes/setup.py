@@ -11,7 +11,7 @@ dlls. It allows wrapping these libraries in pure Python.
 
 LIBFFI_SOURCES='source/libffi'
 
-__version__ = "0.9.9.5"
+__version__ = "0.9.9.6"
 
 ################################################################
 
