@@ -22,6 +22,15 @@ class MyDocTestRunner(base):
                 examples.remove(ex)
             elif SKIP in ex.options:
                 examples.remove(ex)
+            elif "printf(" in ex.source:
+                # handle that doctest doesn't catch printf's output
+                lines = ex.want.splitlines()
+                try:
+                    int(lines[-1])
+                except ValueError:
+                    pass
+                else:
+                    ex.want = "\n".join(lines[1:]) + "\n"
             else:
                 ex.want = ex.want.replace("c_long", c_int_name)
         test.examples = examples
