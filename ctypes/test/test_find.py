@@ -2,6 +2,7 @@ import unittest
 import os, sys
 from ctypes import *
 from ctypes.util import find_library
+from ctypes.test import is_resource_enabled
 
 if sys.platform == "win32":
     lib_gl = find_library("OpenGL32")
@@ -19,7 +20,7 @@ else:
     lib_gle = find_library("gle")
 
 ## print, for debugging
-if 0:
+if is_resource_enabled("printing"):
     if lib_gl or lib_glu or lib_glut or lib_gle:
         print "OpenGL libraries:"
         for item in (("GL", lib_gl),
