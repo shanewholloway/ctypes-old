@@ -1,3 +1,8 @@
+2006-04-13  Thomas Heller  <theller@python.net>
+
+	* Merged in several changes made in Python SVN: RTLD_LOCAL and
+	RTLD_GLOBAL are defined for each platform.
+
 2006-04-06  Thomas Heller  <theller@python.net>
 
 	* Simplify code, improve error handling, and a Py_ssize_t fix by
