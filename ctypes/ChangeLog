@@ -1,5 +1,38 @@
 2006-04-13  Thomas Heller  <theller@python.net>
 
+	*  Merged in changes made in the 'LoadLibrary_branch' branch:
+
+	Restore the old way to load libraries again:
+
+	cdll/windll have a LoadLibrary method, and no other public
+	attributes.  CDLL/WinDLL accept library pathname in the
+	constructor, that's the only public attribute: all the find(),
+	load(), and load_library() methods are gone.  In other words,
+	use these ways to load shared libraries:
+
+	CDLL("path_to_lib")
+	CDLL("path_to_lib", mode=RTLD_GLOBAL)
+	cdll.path_to_lib
+	cdll.LoadLibrary("path_to_lib")
+	cdll.LoadLibrary("path_to_lib", mode=RTLD_GLOBAL)
+
+	The CDLL/WinDLL base class has been renamed to LibraryLoader,
+	in case anyone wants to subclass it.
+	
+	The ctypes._loader module has been removed completely.
+
+	ctypes.util has been revived, it implements a find_library()
+	function which should be useful to find libraries from the linker
+	name (on platforms where this makes sense):
+	
+	find_library("c") -> "/usr/lib/libc.so.6" (Linux)
+	find_library("c") -> "/usr/lib/libc.dylib" (OS X)
+	find_library("msvcr71") -> "c:\windows\system32\msvcr71.dll" (Windows)
+
+	If the library is not found, None is returned.
+	
+2006-04-13  Thomas Heller  <theller@python.net>
+
 	* Merged in several changes made in Python SVN: RTLD_LOCAL and
 	RTLD_GLOBAL are defined for each platform.
 

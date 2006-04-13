@@ -12,7 +12,8 @@ _ctypes.pyd
 _ctypes_d.pyd
 archive
 build
+comtypes
 dist
 extensions
+others.py
 test.output
-comtypes

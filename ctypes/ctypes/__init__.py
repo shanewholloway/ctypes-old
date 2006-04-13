@@ -31,8 +31,6 @@ if _os.name in ("nt", "ce"):
 from _ctypes import FUNCFLAG_CDECL as _FUNCFLAG_CDECL, \
      FUNCFLAG_PYTHONAPI as _FUNCFLAG_PYTHONAPI
 
-from ctypes._loader import LibraryLoader
-
 """
 WINOLEAPI -> HRESULT
 WINOLEAPI_(type)
@@ -359,6 +357,23 @@ if _os.name in ("nt", "ce"):
         class _FuncPtr(_CFuncPtr):
             _flags_ = _FUNCFLAG_STDCALL
             _restype_ = HRESULT
+
+class LibraryLoader(object):
+    def __init__(self, dlltype):
+        self._dlltype = dlltype
+
+    def __getattr__(self, name):
+        if name[0] == '_':
+            raise AttributeError(name)
+        dll = self._dlltype(name)
+        setattr(self, name, dll)
+        return dll
+
+    def __getitem__(self, name):
+        return getattr(self, name)
+
+    def LoadLibrary(self, name):
+        return self._dlltype(name)
 
 cdll = LibraryLoader(CDLL)
 pydll = LibraryLoader(PyDLL)
