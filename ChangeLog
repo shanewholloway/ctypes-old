@@ -1,3 +1,8 @@
+2006-04-15  Thomas Heller  <theller@python.net>
+
+	* source\libffi\src\x86\ffi.c (ffi_prep_cif_machdep): Add a fix
+	for FreeBSD.  See also http://python.org/sf/1470353.
+
 2006-04-13  Thomas Heller  <theller@python.net>
 
 	* Changed version number to 0.9.9.6.
