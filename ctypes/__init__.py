@@ -425,7 +425,12 @@ def PYFUNCTYPE(restype, *argtypes):
         _restype_ = restype
         _flags_ = _FUNCFLAG_CDECL | _FUNCFLAG_PYTHONAPI
     return CFunctionType
-cast = PYFUNCTYPE(py_object, c_void_p, py_object)(_cast_addr)
+_cast = PYFUNCTYPE(py_object, c_void_p, py_object)(_cast_addr)
+
+def cast(obj, typ):
+    result = _cast(obj, typ)
+    result.__keepref = obj
+    return result
 
 _string_at = CFUNCTYPE(py_object, c_void_p, c_int)(_string_at_addr)
 def string_at(ptr, size=0):
