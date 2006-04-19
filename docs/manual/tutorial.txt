@@ -4,8 +4,16 @@ ctypes tutorial
 ===============
 
 This tutorial describes version 0.9.9 of ``ctypes``. 
-Since older versions are quite common, I'll mention major differences
-when needed.
+
+Note: The code samples in this tutorial uses ``doctest`` to make sure
+that they actually work.  Since some code samples behave differently
+under Linux, Windows, or Mac OS X, they contain doctest directives in
+comments.
+
+Note: Quite some code samples references the ctypes ``c_int`` type.
+This type is an alias to the ``c_long`` type on 32-bit systems.  So,
+you should not be confused if ``c_long`` is printed if you would
+expect ``c_int`` - they are actually the same type.
 
 Loading dynamic link libraries
 ------------------------------
@@ -44,11 +52,12 @@ calling the constructor::
 
        >>> cdll.LoadLibrary("libc.so.6") # doctest: +LINUX
        <CDLL 'libc.so.6', handle ... at ...>
-       >>> libc = CDLL("libc.so.6")
-       >>> libc
+       >>> libc = CDLL("libc.so.6")	# doctest: +LINUX
+       >>> libc				# doctest: +LINUX
        <CDLL 'libc.so.6', handle ... at ...>
        >>>
 
+XXX Add section for Mac OS X.
 
 Accessing functions from loaded dlls
 ------------------------------------
@@ -100,8 +109,13 @@ These functions can be accessed by indexing the dll object with the
 odinal number::
 
       >>> cdll.kernel32[1] # doctest: +WINDOWS
-      <_FuncPtr object ar 0x...>
+      <_FuncPtr object at 0x...>
       >>> cdll.kernel32[0] # doctest: +WINDOWS
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+        File "ctypes.py", line 310, in __getitem__
+          func = _StdcallFuncPtr(name, self)
+      AttributeError: function ordinal 0 not found
       >>>
 
 Calling functions
