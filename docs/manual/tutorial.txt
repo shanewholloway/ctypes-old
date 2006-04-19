@@ -43,17 +43,11 @@ or you should load the library by creating an instance of CDLL by
 calling the constructor::
 
        >>> cdll.LoadLibrary("libc.so.6") # doctest: +LINUX
-       <CDLL '/lib/libc.so.6', handle ... at ...>
-       >>> CDLL("libc.so.6")
-       <CDLL '/lib/libc.so.6', handle ... at ...>
+       <CDLL 'libc.so.6', handle ... at ...>
+       >>> libc = CDLL("libc.so.6")
+       >>> libc
+       <CDLL 'libc.so.6', handle ... at ...>
        >>>
-
-**Note:** in older versions, the ``LoadLibrary`` method should be used
-instead.
-
-This tutorial uses windows in its examples, however, functions from
-the standard C library like ``strchr`` and ``printf`` should also work
-on Linux and other systems.
 
 
 Accessing functions from loaded dlls
@@ -72,7 +66,7 @@ Functions are accessed as attributes of dll objects::
         File "ctypes.py", line 239, in __getattr__
           func = _StdcallFuncPtr(name, self)
       AttributeError: function 'MyOwnFunction' not found
-
+      >>>
 
 Note that win32 system dlls like ``kernel32`` and ``user32`` often
 export ANSI as well as UNICODE versions of a function. The UNICODE
@@ -95,12 +89,20 @@ or unicode strings respectively.
 
 Sometimes, dlls export functions with names which aren't valid Python
 identifiers, like ``"??2@YAPAXI@Z"``. In this case you have to use
-``getattr`` to retrieve the function (XXX Better example?)::
+``getattr`` to retrieve the function::
 
       >>> getattr(cdll.msvcrt, "??2@YAPAXI@Z") # doctest: +WINDOWS
       <_FuncPtr object at 0x...>
       >>>
 
+On Windows, some dlls export functions not by name but by ordinal.
+These functions can be accessed by indexing the dll object with the
+odinal number::
+
+      >>> cdll.kernel32[1] # doctest: +WINDOWS
+      <_FuncPtr object ar 0x...>
+      >>> cdll.kernel32[0] # doctest: +WINDOWS
+      >>>
 
 Calling functions
 -----------------
