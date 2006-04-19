@@ -703,20 +703,11 @@ This is done with the ``POINTER`` function, which accepts any
 Incomplete Types
 ----------------
 
-**Note:** This code seems to work in older versions, but the past
-convention was to use the now deprecated ``SetPointerType`` function.
-If you have an older version and the following example does not work
-for you, try looking up that function.
-
 *Incomplete Types* are structures, unions or arrays whose members are
-not yet specified. In the ``ctypes`` context, you can create types
-representing pointers to these incomplete types by passing their name
-(as a string) to the POINTER function, and complete the result
-subclass later.
+not yet specified. In C, they are specified by forward declarations, which
+are defined later::
 
-Consider this example (C-code)::
-
-       struct cell;
+       struct cell; /* forward declaration */
 
        struct {
            char *name;
@@ -737,10 +728,8 @@ does not work::
        >>>
 
 because the new ``class cell`` is not available in the class statement
-itself.
-
-We can do it by creating an *incomplete type*. Just leave out the
-``_fields_`` declaration and fill it up later::
+itself.  In ``ctypes``, we can define the ``cell`` class and set the
+``_fields_`` attribute later, after the class statement::
 
        >>> from ctypes import *
        >>> class cell(Structure):
@@ -775,14 +764,13 @@ Callback functions
 callables. These are sometimes called *callback functions*.
 
 First, you must create a class for the callback function, the class
-knows the calling convention, the result type the function has to
-return, and the number and types of the arguments this function will
-receive.
+knows the calling convention, the return type, and the number and
+types of arguments this function will receive.
 
-``ctypes`` provides the CFUNCTYPE factory function to create types for
-callback functions using the normal cdecl calling convention, and, on
-Windows, the WINFUNCTYPE factory function to create types for callback
-functions using the stdcall calling convention.
+The CFUNCTYPE factory function creates types for callback functions
+using the normal cdecl calling convention, and, on Windows, the
+WINFUNCTYPE factory function creates types for callback functions
+using the stdcall calling convention.
 
 Both of these factory functions are called with the result type as
 first argument, and the callback functions expected argument types as
@@ -800,11 +788,11 @@ integers::
        >>>
 
 ``qsort`` must be called with a pointer to the data to sort, the
-number of items in the data array, the size of one item, and the sort
-function, which is the callback. The callback function will then be
+number of items in the data array, the size of one item, and a pointer
+to the comparison function, the callback. The callback will then be
 called with two pointers to items, and it must return a negative
-integer if the first item is smaller than the second, a 0 if they are
-equal, and a positive integer else.
+integer if the first item is smaller than the second, a zero if they
+are equal, and a positive integer else.
 
 So our callback function receives pointers to integers, and must
 return an integer. First we create the ``type`` for the callback
@@ -814,7 +802,7 @@ function::
        >>>
 
 For the first implementation of the callback function, we simply print
-the arguments we get, and return 0 (incremental development)::
+the arguments we get, and return 0 (incremental development ;-)::
 
        >>> def py_cmp_func(a, b):
        ...     print "py_cmp_func", a, b
@@ -822,7 +810,7 @@ the arguments we get, and return 0 (incremental development)::
        ...
        >>>
 
-Create the C callable function::
+Create the C callable callback::
 
        >>> cmp_func = CMPFUNC(py_cmp_func)
        >>>
@@ -877,7 +865,8 @@ more efficient, it is doing less comparisons::
     py_cmp_func 1 7
     >>>
 
-Ah, we're nearly done! Last refinements::
+Ah, we're nearly done! The last step is to actually compare the two
+items and return a useful result::
 
     >>> def py_cmp_func(a, b):
     ...     print "py_cmp_func", a[0], b[0]
@@ -885,7 +874,7 @@ Ah, we're nearly done! Last refinements::
     ...
     >>>
 
-Windows::
+Final run on Windows::
 
     >>> qsort(ia, len(ia), sizeof(c_int), CMPFUNC(py_cmp_func)) # doctest: +WINDOWS
     py_cmp_func 33 7
@@ -900,7 +889,7 @@ Windows::
     py_cmp_func 5 1
     >>>
 
-Linux::
+and on Linux::
 
     >>> qsort(ia, len(ia), sizeof(c_int), CMPFUNC(py_cmp_func)) # doctest: +LINUX
     py_cmp_func 5 1
@@ -927,15 +916,14 @@ Accessing values exported from dlls
 -----------------------------------
 
 Sometimes, a dll not only exports functions, it also exports
-values. Examples in the Python dll itself are the ``Py_OptimizeFlag``,
-an integer set to 0, 1, or 2, depending on the ``-O`` or ``-OO`` flag
-given on startup.
+values. An example in the Python library itself is the
+``Py_OptimizeFlag``, an integer set to 0, 1, or 2, depending on the
+``-O`` or ``-OO`` flag given on startup.
 
-Starting with version 0.6.1, ``ctypes`` can access values like this
-with the ``in_dll`` class methods of the types. The following examples
-only work on Windows::
+``ctypes`` can access values like this with the ``in_dll`` class
+methods of the type.  ``pythonapi`` ìs a predefined symbol giving
+access to the Python C api::
 
-      >>> from ctypes import *
       >>> opt_flag = c_int.in_dll(pythonapi, "Py_OptimizeFlag")
       >>> print opt_flag
       c_long(0)
@@ -945,7 +933,7 @@ If the interpreter would have been started with ``-O``, the sample
 would have printed ``c_long(1)``, or ``c_long(2)`` if ``-OO`` would have
 been specified.
 
-A somewhat extended example which also demontrates the use of pointers
+An extended example which also demonstrates the use of pointers
 accesses the ``PyImport_FrozenModules`` pointer exported by Python.
 
 Quoting the Python docs: *This pointer is initialized to point to an
@@ -967,19 +955,18 @@ example size, we show only how this table can be read with
       ...
       >>>
 
-XXX Should use pythonapi instead!!!
-We have ``loaded`` the Python dll and defined the ``struct _frozen``
-data type, so we can get the pointer to the table::
+We have defined the ``struct _frozen`` data type, so we can get the
+pointer to the table::
 
       >>> FrozenTable = POINTER(struct_frozen)
       >>> table = FrozenTable.in_dll(pythonapi, "PyImport_FrozenModules")
       >>>
 
-Since ``table`` is a ``pointer`` to the ``struct_frozen`` records, we
-can iterate over it, we just have to make sure that our loop
-terminates, because pointers have no size. Sooner or later it would
-probably crash with an access violation or whatever, so it's better to
-break out of the loop when we hit the NULL entry::
+Since ``table`` is a ``pointer`` to the array of ``struct_frozen``
+records, we can iterate over it, but we just have to make sure that
+our loop terminates, because pointers have no size. Sooner or later it
+would probably crash with an access violation or whatever, so it's
+better to break out of the loop when we hit the NULL entry::
 
       >>> for item in table:
       ...    print item.name, item.size
@@ -993,7 +980,7 @@ break out of the loop when we hit the NULL entry::
       >>>
 
 The fact that standard Python has a frozen module and a frozen package
-(indicated by the negative size member) is not wellknown, AFAIK it is
+(indicated by the negative size member) is not wellknown, it is only
 used for testing. Try it out with ``import __hello__`` for example.
 
 XXX Describe how to access the ``code`` member fields, which contain
@@ -1002,7 +989,7 @@ the byte code for the modules.
 Surprises
 ---------
 
-There are some corners in ``ctypes`` where you may be expect something
+There are some edges in ``ctypes`` where you may be expect something
 else than what actually happens.
 
 Consider the following example::
@@ -1039,14 +1026,29 @@ in turn, changes the contents of ``temp1``. So, the last assignment
 ``rc.b = temp1``, doesn't have the expected effect.
 
 Keep in mind that retrieving subobjects from Structure, Unions, and
-Arrays doesn't *copy* the subobject, it does more retrieve a wrapper
+Arrays doesn't *copy* the subobject, instead it retrieves a wrapper
 object accessing the root-object's underlying buffer.
+
+
+Another example that may behave different from what one would expect is this::
+
+    >>> s = c_char_p()
+    >>> s.value = "abc def ghi"
+    >>> s.value
+    'abc def ghi'
+    >>> s.value is s.value
+    False
+    >>>
+
+Why is it printing ``False``?  ctypes instances are objects containing
+a memory block plus some descriptors accessing the contents of the
+memory.  Storing a Python object in the memory block does not store
+the object itself, instead the ``contents`` of the object is stored.
+Accessing the contents again constructs a new Python each time!
 
 
 Bugs, ToDo and non-implemented things
 -------------------------------------
-
-XXX Wrong
 
 Enumeration types are not implemented. You can do it easily yourself,
 using ``c_int`` as the base class.
