@@ -521,9 +521,9 @@ Fields descriptors can be retrieved from the *class*, they are useful
 for debugging because they can provide useful information::
 
       >>> print POINT.x
-      <Field type=c_int, ofs=0, size=4>
+      <Field type=c_long, ofs=0, size=4>
       >>> print POINT.y
-      <Field type=c_int, ofs=4, size=4>
+      <Field type=c_long, ofs=4, size=4>
       >>>
 
 
@@ -556,9 +556,9 @@ specified as the third item in the ``_fields_`` tuples::
     ...                 ("second_16", c_int, 16)]
     ...
     >>> print Int.first_16
-    <Field type=c_int, ofs=0:0, bits=16>
+    <Field type=c_long, ofs=0:0, bits=16>
     >>> print Int.second_16
-    <Field type=c_int, ofs=0:16, bits=16>
+    <Field type=c_long, ofs=0:16, bits=16>
     >>>
 
 
