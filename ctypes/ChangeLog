@@ -1,3 +1,18 @@
+2006-04-19  Thomas Heller  <theller@python.net>
+
+	* When a 'source' object is casted to another object, the other
+	object keeps a reference to the source object to keep it alive.
+
+2006-04-18  Thomas Heller  <theller@python.net>
+
+	* Patch from Skip Montanaro, in Python SVN: C++ compiler cleanup:
+	the typical few casts, and ...  C++ didn't like that the
+	StgDictObject's ffi_type member had the same name as its type.  I
+	changed that to ffi_type_pointer.
+
+	Fix refcount issues in CreateSwappedType - this removes the
+	refleak when reloading ctypes.
+
 2006-04-15  Thomas Heller  <theller@python.net>
 
 	* source\libffi\src\x86\ffi.c (ffi_prep_cif_machdep): Add a fix
