@@ -910,14 +910,12 @@ Linux::
     py_cmp_func 5 7
     >>>
 
-So, is our array sorted now::
+So, our array sorted now::
 
     >>> for i in ia: print i,
     ...
     1 5 7 33 99
     >>>
-
-Yep, it worked!
 
 **Important note for callback functions:**
 
