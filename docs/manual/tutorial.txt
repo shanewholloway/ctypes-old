@@ -34,14 +34,17 @@ cdecl calling convention::
       >>> libc = cdll.msvcrt # doctest: +WINDOWS
       >>>
 
-In principle the same way should work on Linux, but most of the time
-it seems required to specify the search path in this way. So this
-example shows also how to load libraries by specifying their
-filename::
+Windows appends the usual '.dll' file suffix automatically.
 
-       >>> from ctypes import *
-       >>> libc = cdll.LoadLibrary("/lib/libc.so.6") # doctest: +LINUX
-       >>> print libc # doctest: +LINUX
+On Linux, it is required to specify the filename *including* the
+extension to load a library, so attribute access does not work.
+Either the ``LoadLibrary`` method of the dll loaders should be used,
+or you should load the library by creating an instance of CDLL by
+calling the constructor::
+
+       >>> cdll.LoadLibrary("libc.so.6") # doctest: +LINUX
+       <CDLL '/lib/libc.so.6', handle ... at ...>
+       >>> CDLL("libc.so.6")
        <CDLL '/lib/libc.so.6', handle ... at ...>
        >>>
 
