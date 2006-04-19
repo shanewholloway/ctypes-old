@@ -1,5 +1,7 @@
+``ctypes`` is a foreign function library for Python.
+
 ctypes tutorial
-+++++++++++++++
+===============
 
 This tutorial describes version 0.9.9 of ``ctypes``. 
 Since older versions are quite common, I'll mention major differences
@@ -515,16 +517,18 @@ several ways::
       >>> r = RECT(POINT(1, 2), POINT(3, 4))
       >>> r = RECT((1, 2), (3, 4))
 
-XXX Fields descriptors can be retrieved from the *class*, they
-have readonly ``size`` and ``offset`` attributes describing the size
-in bytes and the offset of this field from the beginning of the
-internal memory buffer::
+Fields descriptors can be retrieved from the *class*, they are useful
+for debugging because they can provide useful information::
 
-      >>> print POINT.x.size, POINT.x.offset
-      4 0
-      >>> print POINT.y.size, POINT.y.offset
-      4 4
+      >>> print POINT.x
+      <Field type=c_int, ofs=0, size=4>
+      >>> print POINT.y
+      <Field type=c_int, ofs=4, size=4>
       >>>
+
+
+Structure/Union Alignment and Byte Order
+----------------------------------------
 
 By default, Structure and Union fields are aligned in the same way the
 C compiler does it. It is possible to override this behaviour be
@@ -533,8 +537,30 @@ definition. This must be set to a positive integer and specifies the
 maximum alignment for the fields. This is what ``#pragma pack(n)``
 also does in MSVC.
 
-**New in version 0.6.2**: Structures and unions can also be passed *by
-value* to function calls.
+``ctypes`` uses the native byte order for Structures and Unions.  To
+build structures with non-native byte order, you can use one of the
+BigEndianStructure, LittleEndianStructure, BigEndianUnion, and
+LittleEndianUnion base classes.  These classes cannot contain pointer
+fields.
+
+
+Bit Fields in Structures and Unions
+-----------------------------------
+
+It is possible to create structures and unions containing bit fields.
+Bit fields are only possible for integer fields, the bit width is
+specified as the third item in the ``_fields_`` tuples::
+
+    >>> class Int(Structure):
+    ...     _fields_ = [("first_16", c_int, 16),
+    ...                 ("second_16", c_int, 16)]
+    ...
+    >>> print Int.first_16
+    <Field type=c_int, ofs=0:0, bits=16>
+    >>> print Int.second_16
+    <Field type=c_int, ofs=0:16, bits=16>
+    >>>
+
 
 Arrays
 ------
