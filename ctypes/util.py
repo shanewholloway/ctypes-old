@@ -2,7 +2,7 @@ import sys, os
 import ctypes
 
 # find_library(name) returns the pathname of a library, or None.
-if os.name in ("nt", "ce"):
+if os.name == "nt":
     def find_library(name):
         # See MSDN for the REAL search order.
         for directory in os.environ['PATH'].split(os.pathsep):
@@ -15,6 +15,16 @@ if os.name in ("nt", "ce"):
             if os.path.exists(fname):
                 return fname
         return None
+
+if os.name == "ce":
+    # search path according to MSDN:
+    # - absolute path specified by filename
+    # - The .exe launch directory
+    # - the Windows directory
+    # - ROM dll files (where are they?)
+    # - OEM specified search path: HKLM\Loader\SystemPath
+    def find_library(name):
+        return name
 
 if os.name == "posix" and sys.platform == "darwin":
     from ctypes.macholib.dyld import dyld_find as _dyld_find
