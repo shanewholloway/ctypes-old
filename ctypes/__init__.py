@@ -78,9 +78,11 @@ def CFUNCTYPE(restype, *argtypes):
     The function prototype can be called in three ways to create a
     callable object:
 
-    prototype(funct) - returns a C callable function calling funct
-    prototype(vtbl_index, method_name[, paramflags]) - a Python callable that calls a COM method
-    prototype(funct_name, dll[, paramflags]) - a Python callable that calls an exported function in a dll
+    prototype(integer address) -> foreign function
+    prototype(callable) -> create and return a C callable function from callable
+    prototype(integer index, method name[, paramflags]) -> foreign function calling a COM method
+    prototype((ordinal number, dll object)[, paramflags]) -> foreign function exported by ordinal
+    prototype((function name, dll object)[, paramflags]) -> foreign function exported by name
     """
     try:
         return _c_functype_cache[(restype, argtypes)]
