@@ -1,4 +1,4 @@
-???ctypes 0.9.9.4 released - Mar 9, 2006
+ctypes 0.9.9.6 released - Apr 20, 2006
 =====================================
 
 Overview
@@ -12,38 +12,32 @@ Overview
     wrap libraries in pure Python.  It is even possible to implement C
     callback functions in pure Python.
 
-    ctypes includes a code generator toolchain which allows
-    automatic creation of library wrappers from C header files.
-    This feature is still experimental and beta quality.
-
     ctypes runs on Windows, Windows CE, MacOS X, Linux, Solaris,
     FreeBSD, OpenBSD. It may also run on other systems, provided that
     libffi supports this platform.
 
-Changes in 0.9.9.4
 
-    (These are the most important changes, see the ChangeLog for
-    complete details)
+Changes in 0.9.9.6
 
-    This is an intermediate release, after large restructuring of the
-    CVS repository, and large cleanup.  The 0.9.9.4 release has also
-    been committed into the Python source distribution - ctypes will
-    be included with Python 2.5 when it comes out.
+    The most important change is that the old way to load libraries
+    has been restored: cdll.LoadLibrary(path), and CDLL(path) work
+    again.  For details see the changelog in CVS and in the source
+    distribution.
 
-    There have been lots of changes - if you are the author or user of
-    a package that uses ctypes, please test it with this release
-    and report problems on the ctypes-users mailing list.
+    It was a mistake to change that in the 0.9.9.3 release - I
+    apologize for any confusion and additional work this has caused or
+    will cause.
 
-    The LoadLibrary method is back again.  It is an alias for the new
-    load_library method.
+    New module ctypes.util which contains a cross-platform
+    find_library function.
 
     Sized integer types (c_int8, c_int16, and so on) have been added
     by integrating a patch from Joe Wreschnig.  Also c_size_t, which
     corresonds to the 'size_t' C type has been added.
 
-    A long standing bug 'set array members through a pointer to it'
-    has been fixed.  Thanks to Axel Seibert for pushing me to this.
-    Other bugfixes.
+    Two long standing bugs with pointers have been fixed.  Thanks to
+    Axel Seibert for pushing me to the first, and thanks to Armin Rigo
+    for finding the second one.
 
     The ctypes.decorator module has been removed completely, so the
     'cdecl' and 'stdcall' symbols are no longer available.
@@ -58,6 +52,7 @@ Changes in 0.9.9.4
 
     The development in CVS now takes place in the HEAD again, the
     'branch_1_0' branch is no longer used.
+
 
 Changes in 0.9.9.3
 
@@ -104,87 +99,10 @@ Changes in 0.9.9.3
 
 	Lots of improvements to the code generator.
 
-Changes in 0.9.6
-
-    Thanks to all of you who reported bugs so quickly, and those who
-    tried out the codegenerator toolchain.
-
-    Bug fixes:
-
-    - keyword arguments in Structure/Union initializers had no effect.
-
-    - it was impossible to override the from_parm class method
-    in subclasses of c_void_p, c_char_p, and c_wchar_p.
-
-    - removed the __del__ method of _CDLL. It caused uncollectable
-    garbage in Python's gc.
-
-    - ctypes.com.register: enclose the Python script to run a com
-    server in quotes, otherwise it won't run correctly when the
-    directory name contains spaces.
-
-    Enhancements:
-
-    - Several changes have been made to the h2xml script from the
-    codegenerator toolchain. See the documentation (linked below) for
-    details.
-
-Additions in 0.9.5
-
-    New package ctypes.wrap. This contains decorators usable for
-    easier creation of wrapper functions.
-
-    This package also contains a toolchain for (semi)automatic
-    creation of wrappers for external libraries - it can parse
-    C header files and generate ctypes code for the declarations in
-    them.  It can even handle preprocessor definitions! For details,
-    see http://starship.python.net/crew/theller/ctypes/codegen.html
-
-
-Changes in 0.9.5
-
-    On systems where sizeof(int) == sizeof(long), c_int/c_long and
-    c_uint/c_ulong are now aliases.  Similar for c_long/c_longlong and
-    c_ulong/c_ulonglong.  This prevents unneeded type errors.
-
-    If an exception occurs in a callback function, a full traceback is
-    now printed.  Raising SystemExit in a callback function now
-    correctly exists Python.
-
-    HRESULT is now a proper ctype - no longer a function.  This allows
-    to use it in the argtypes sequence for function prototypes.
-
-    An easier way to define structures and unions that reference
-    themselves, or have dependencies to other data types.  The
-    _fields_ attribute can now be set *after* the Structure/Union
-    class has been created.  This makes the SetPointerType function
-    obsolete.
-
-    The semantics of the _fields_ attribute in sub-subclasses of
-    Structure and Union has been fixed.  The baseclasses _fields_ list
-    is extended, not replaced, in subclasses.  Assigning _fields_ when
-    it is no longer possible raises an error now.
-
-    Structures and unions now work as restype and in the argtypes list
-    for functions.
-
-    An important bug has been fixed with pointers.
-
-
-    Detailed changelog is in CVS:
-
-    <http://cvs.sourceforge.net/viewcvs.py/ctypes/ctypes/ChangeLog?rev=1.86.2.39>
-
-
 Download
 
     Downloads are available in the sourceforge files section
     <http://sourceforge.net/project/showfiles.php?group_id=71702>
-
-    Separate source distributions are available for windows and non-windows systems.
-    Please use the .zip file for Windows and Windows CE, and use the
-    .tar.gz file for non-Windows systems (it contains the complete
-    cross-platform libffi sources).
 
     Binary windows installers, which contain compiled extension
     modules, are also available, be sure to download the correct one

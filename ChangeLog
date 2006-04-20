@@ -1,5 +1,7 @@
 2006-04-19  Thomas Heller  <theller@python.net>
 
+	* docs\manual\tutorial.txt:  Updates to the tutorial.
+
 	* When a 'source' object is casted to another object, the other
 	object keeps a reference to the source object to keep it alive.
 
