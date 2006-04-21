@@ -1,0 +1,11 @@
+to-do list for ctypes
+---------------------
+
+- Docs, docs, docs.
+
+- Integrate newer libffi sources (HPPA architecture).
+
+- Finish the MingW32 port.
+
+- Port to Win64 (AMD).
+
