@@ -38,5 +38,8 @@ class MyDocTestRunner(base):
 doctest.DocTestRunner = MyDocTestRunner
 
 if __name__ == "__main__":
+    # Python 2.5a2 formats exceptions differently than before, so we
+    # add IGNORE_EXCEPTION_DETAIL.  I do not know if this will be
+    # fixed or not.
     doctest.testfile("tutorial.txt",
-                     optionflags=doctest.ELLIPSIS)
+                     optionflags=doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL)
