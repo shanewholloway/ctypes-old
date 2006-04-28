@@ -254,6 +254,7 @@ because Python strings are immutable)::
       c_char_p('Hi, there')
       >>> print s                 # first string is unchanged
       Hello, World
+      >>>
 
 You should be careful, however, not to pass them to functions
 expecting pointers to mutable memory. If you need mutable memory
@@ -606,6 +607,7 @@ containing 4 POINTs among other stuff::
       >>>
       >>> print len(MyStruct().point_array)
       4
+      >>>
 
 
 Instances are created in the usual way, by calling the class::
@@ -1010,6 +1012,7 @@ Consider the following example::
       >>> rc.a, rc.b = rc.b, rc.a
       >>> print rc.a.x, rc.a.y, rc.b.x, rc.b.y
       3 4 3 4
+      >>>
 
 Hm. We certainly expected the last statement to print ``3 4 1 2``.
 What happended? Here are the steps of the ``rc.a, rc.b = rc.b, rc.a``
@@ -1018,6 +1021,7 @@ line above::
       >>> temp0, temp1 = rc.b, rc.a
       >>> rc.a = temp0
       >>> rc.b = temp1
+      >>>
 
 Note that ``temp0`` and ``temp1`` are objects still using the internal
 buffer of the ``rc`` object above. So executing ``rc.a = temp0``
