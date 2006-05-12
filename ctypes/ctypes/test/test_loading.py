@@ -51,8 +51,9 @@ class LoaderTest(unittest.TestCase):
 
     if os.name in ("nt", "ce"):
         def test_load_library(self):
-            print find_library("kernel32")
-            print find_library("user32")
+            if is_resource_enabled("printing"):
+                print find_library("kernel32")
+                print find_library("user32")
 
             if os.name == "nt":
                 windll.kernel32.GetModuleHandleW
