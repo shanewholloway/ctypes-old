@@ -1,3 +1,22 @@
+2006-04-28  Thomas Heller  <theller@python.net>
+
+	* docs/manual/tutorial.txt: End each code sample with '>>>', so
+	that doctest also works on the LaTeX version of the tutorial
+	(otherwise some tests would break because doctest would see
+	'\end{verbatim}' as expected output.
+
+	* docs/manual/test-tutorial.py: Python 2.5a2 formats exceptions in
+	a different way (I'm not sure if this will be fixed or not).  Add
+	doctest.IGNORE_EXCEPTION_DETAIL.
+
+2006-04-26  Thomas Heller  <theller@python.net>
+
+	* Tagged release_0_9_9_6, and released it.
+
+2006-04-25  Thomas Heller  <theller@python.net>
+
+	* Fix compiler warnings on Darwin, patch by Brett Canon.
+
 2006-04-19  Thomas Heller  <theller@python.net>
 
 	* docs\manual\tutorial.txt:  Updates to the tutorial.
