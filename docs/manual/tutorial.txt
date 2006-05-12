@@ -443,7 +443,7 @@ for error return values and automatically raise an exception::
       >>> GetModuleHandle.restype = ValidHandle # doctest: +WINDOWS
       >>> GetModuleHandle(None) # doctest: +WINDOWS
       486539264
-      >>> GetModuleHandle("something silly") # doctest: +WINDOWS +IGNORE_EXCEPTION_DETAIL
+      >>> GetModuleHandle("something silly") # doctest: +WINDOWS
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
         File "<stdin>", line 3, in ValidHandle
@@ -694,7 +694,7 @@ This is done with the ``POINTER`` function, which accepts any
        >>> PI = POINTER(c_int)
        >>> PI
        <class 'ctypes.LP_c_long'>
-       >>> PI(42) # doctest: +IGNORE_EXCEPTION_DETAIL
+       >>> PI(42)
        Traceback (most recent call last):
          File "<stdin>", line 1, in ?
        TypeError: expected c_long instead of int
