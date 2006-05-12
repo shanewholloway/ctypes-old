@@ -9,3 +9,4 @@ to-do list for ctypes
 
 - Port to Win64 (AMD).
 
+- Remove the _pointer_type_cache leak.
