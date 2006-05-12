@@ -119,7 +119,7 @@ if _os.name in ("nt", "ce"):
 elif _os.name == "posix":
     from _ctypes import dlopen as _dlopen
 
-from _ctypes import sizeof, byref, addressof, alignment
+from _ctypes import sizeof, byref, addressof, alignment, resize
 from _ctypes import _SimpleCData
 
 class py_object(_SimpleCData):
@@ -427,12 +427,10 @@ def PYFUNCTYPE(restype, *argtypes):
         _restype_ = restype
         _flags_ = _FUNCFLAG_CDECL | _FUNCFLAG_PYTHONAPI
     return CFunctionType
-_cast = PYFUNCTYPE(py_object, c_void_p, py_object)(_cast_addr)
 
+_cast = PYFUNCTYPE(py_object, c_void_p, py_object, py_object)(_cast_addr)
 def cast(obj, typ):
-    result = _cast(obj, typ)
-    result.__keepref = obj
-    return result
+    return _cast(obj, obj, typ)
 
 _string_at = CFUNCTYPE(py_object, c_void_p, c_int)(_string_at_addr)
 def string_at(ptr, size=0):
