@@ -342,6 +342,10 @@ static PyMethodDef CDataType_methods[] = {
 static PyObject *
 CDataType_repeat(PyObject *self, Py_ssize_t length)
 {
+	if (length <= 0)
+		return PyErr_Format(PyExc_ValueError,
+				    "Array length must be >= 0, not %d",
+				    length);
 	return CreateArrayType(self, length);
 }
 
@@ -3520,7 +3524,7 @@ Array_item(PyObject *_self, Py_ssize_t index)
 	int offset, size;
 	StgDictObject *stgdict;
 
-	if (index < 0 || index >= self->b_length) {
+	if (index < 0 || (self->b_length > 1 && index >= self->b_length)) {
 		PyErr_SetString(PyExc_IndexError,
 				"invalid index");
 		return NULL;
@@ -3549,11 +3553,11 @@ Array_slice(PyObject *_self, Py_ssize_t ilow, Py_ssize_t ihigh)
 
 	if (ilow < 0)
 		ilow = 0;
-	else if (ilow > self->b_length)
+	else if (ilow > self->b_length && self->b_length != 1)
 		ilow = self->b_length;
 	if (ihigh < ilow)
 		ihigh = ilow;
-	else if (ihigh > self->b_length)
+	else if (ihigh > self->b_length && self->b_length != 1)
 		ihigh = self->b_length;
 	len = ihigh - ilow;
 
@@ -3596,7 +3600,7 @@ Array_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 	}
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
-	if (index < 0 || index >= stgdict->length) {
+	if (index < 0 || (self->b_length > 1 && index >= self->b_length)) {
 		PyErr_SetString(PyExc_IndexError,
 				"invalid index");
 		return -1;
@@ -3623,13 +3627,15 @@ Array_ass_slice(PyObject *_self, Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *va
 
 	if (ilow < 0)
 		ilow = 0;
-	else if (ilow > self->b_length)
+	else if (ilow > self->b_length && self->b_length != 1)
 		ilow = self->b_length;
+
 	if (ihigh < 0)
 		ihigh = 0;
+
 	if (ihigh < ilow)
 		ihigh = ilow;
-	else if (ihigh > self->b_length)
+	else if (ihigh > self->b_length && self->b_length != 1)
 		ihigh = self->b_length;
 
 	len = PySequence_Length(value);
@@ -4439,7 +4445,7 @@ cast_check_pointertype(PyObject *arg)
 }
 
 static PyObject *
-cast(void *ptr, PyObject *ctype)
+cast(void *ptr, PyObject *src, PyObject *ctype)
 {
 	CDataObject *result;
 	if (0 == cast_check_pointertype(ctype))
@@ -4447,6 +4453,12 @@ cast(void *ptr, PyObject *ctype)
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
 	if (result == NULL)
 		return NULL;
+	/* KeepRef consumes a refcount on src */
+	Py_INCREF(src);
+	if (-1 == KeepRef(result, 0, src)) {
+		Py_DECREF(result);
+		return NULL;
+	}
 	/* Should we assert that result is a pointer type? */
 	memcpy(result->b_ptr, &ptr, sizeof(void *));
 	return (PyObject *)result;
