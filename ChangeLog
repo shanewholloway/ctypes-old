@@ -1,3 +1,8 @@
+2006-05-12  Thomas Heller  <theller@python.net>
+
+	* Some fixes to the test-suite.  Free allocated memory, remove
+	duplicate tests, don't run unreliable tests by default.
+
 2006-04-28  Thomas Heller  <theller@python.net>
 
 	* docs/manual/tutorial.txt: End each code sample with '>>>', so
