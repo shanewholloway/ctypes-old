@@ -1122,6 +1122,11 @@ memory.  Storing a Python object in the memory block does not store
 the object itself, instead the ``contents`` of the object is stored.
 Accessing the contents again constructs a new Python each time!
 
+Variable size data types
+------------------------
+
+XXX describe var-sized arrays
+XXX describe resize
 
 Bugs, ToDo and non-implemented things
 -------------------------------------
