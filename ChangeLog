@@ -1,5 +1,14 @@
 2006-05-12  Thomas Heller  <theller@python.net>
 
+	* Bug fix for the cast function, so that it better keeps needed
+	objects alive.  Prevent creation of array types with zero or
+	negative sizes.
+
+	* Implemented support for variable sized data structures: array
+	types with exactly 1 element don't do bounds checking any more,
+	and a resize function can resize the internal memory buffer of
+	ctypes instances.
+
 	* Some fixes to the test-suite.  Free allocated memory, remove
 	duplicate tests, don't run unreliable tests by default.
 
