@@ -1830,6 +1830,9 @@ unique_key(CDataObject *target, int index)
  * building a sequence of indexes during the path.  The indexes, which are a
  * couple of small integers, are used to build a byte string usable as
  * key int the root object's _objects dict.
+ *
+ * Note: This function steals a refcount of the third argument, even if it
+ * fails!
  */
 static int
 KeepRef(CDataObject *target, Py_ssize_t index, PyObject *keep)
@@ -2615,11 +2618,11 @@ CFuncPtr_FromDll(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	*(void **)self->b_ptr = address;
 
+	Py_INCREF((PyObject *)dll); /* for KeepRef */
 	if (-1 == KeepRef((CDataObject *)self, 0, dll)) {
 		Py_DECREF((PyObject *)self);
 		return NULL;
 	}
-	Py_INCREF((PyObject *)dll); /* for KeepRef above */
 
 	Py_INCREF(self);
 	self->callable = (PyObject *)self;
@@ -2755,11 +2758,11 @@ CFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	   correctly...
 	*/
 
+	Py_INCREF((PyObject *)self); /* for KeepRef */
 	if (-1 == KeepRef((CDataObject *)self, 0, (PyObject *)self)) {
 		Py_DECREF((PyObject *)self);
 		return NULL;
 	}
-	Py_INCREF((PyObject *)self); /* for KeepRef above */
 
 	return (PyObject *)self;
 }
