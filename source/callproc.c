@@ -1459,7 +1459,7 @@ resize(PyObject *self, PyObject *args)
 				"excepted ctypes instance");
 		return NULL;
 	}
-	if (size < (size_t)dict->size) {
+	if (size < dict->size) {
 		PyErr_Format(PyExc_ValueError,
 			     "minimum size is %d", dict->size);
 		return NULL;
