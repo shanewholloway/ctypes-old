@@ -1,2 +1,2 @@
-- On platforms that require strict alignment (like sparc solaris), accessing
-  unaligned structure fields will crash Python with a core dump.
+- Memory leak in the _pointer_type_cache dictionary since types are
+  made immortal.
