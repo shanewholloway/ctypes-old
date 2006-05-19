@@ -1,3 +1,15 @@
+2006-05-19  Thomas Heller  <theller@python.net>
+
+	* docs\manual\tutorial.txt: Document variable-sized data types.
+
+	* source\_ctypes.c: Allow zero-sized arrays again, although
+	accessing elements will always raise IndexError.
+
+	* source\_ctypes.c: Change the way unique_key calculates the keys
+	into the b_objects array.  The previous way was broken for arrays
+	or structures having more than 256 components, which led to
+	strange errors.
+
 2006-05-18  Thomas Heller  <theller@python.net>
 
 	* source\callproc.c: Fix compiler warning about comparison of
