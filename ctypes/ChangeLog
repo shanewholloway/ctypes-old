@@ -1,5 +1,8 @@
 2006-05-19  Thomas Heller  <theller@python.net>
 
+	* docs\anatomy.txt: Add some documentation, also containing
+	doctest testcases, about some ctypes object internals.
+
 	* docs\manual\tutorial.txt: Document variable-sized data types.
 
 	* source\_ctypes.c: Allow zero-sized arrays again, although
