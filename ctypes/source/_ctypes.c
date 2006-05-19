@@ -1813,23 +1813,42 @@ GetKeepedObjects(CDataObject *target)
 }
 
 static PyObject *
-unique_key(CDataObject *target, int index)
+unique_key(CDataObject *target, Py_ssize_t index)
 {
-	char string[256]; /* XXX is that enough? */
+	char string[256];
 	char *cp = string;
-	*cp++ = index + '0';
+	size_t bytes_left;
+
+	assert(sizeof(string) - 1 > sizeof(Py_ssize_t) * 2);
+	cp += sprintf(cp, "%x", index);
 	while (target->b_base) {
-		*cp++ = target->b_index + '0';
+		bytes_left = sizeof(string) - (cp - string) - 1;
+		/* Hex format needs 2 characters per byte */
+		if (bytes_left < sizeof(Py_ssize_t) * 2) {
+			PyErr_SetString(PyExc_ValueError,
+					"ctypes object structure too deep");
+			return NULL;
+		}
+		cp += sprintf(cp, ":%x", index);
 		target = target->b_base;
 	}
 	return PyString_FromStringAndSize(string, cp-string);
 }
-/* Keep a reference to 'keep' in the 'target', at index 'index' */
+
 /*
- * KeepRef travels the target's b_base pointer down to the root,
- * building a sequence of indexes during the path.  The indexes, which are a
- * couple of small integers, are used to build a byte string usable as
- * key int the root object's _objects dict.
+ * Keep a reference to 'keep' in the 'target', at index 'index'.
+ *
+ * If 'keep' is None, do nothing.
+ *
+ * Otherwise create a dictionary (if it does not yet exist) id the root
+ * objects 'b_objects' item, which will store the 'keep' object under a unique
+ * key.
+ *
+ * The unique_key helper travels the target's b_base pointer down to the root,
+ * building a string containing hex-formatted indexes found during traversal,
+ * separated by colons.
+ *
+ * The index tuple is used as a key into the root object's b_objects dict.
  *
  * Note: This function steals a refcount of the third argument, even if it
  * fails!
@@ -1853,6 +1872,10 @@ KeepRef(CDataObject *target, Py_ssize_t index, PyObject *keep)
 		return 0;
 	}
 	key = unique_key(target, index);
+	if (key == NULL) {
+		Py_DECREF(keep);
+		return -1;
+	}
 	result = PyDict_SetItem(ob->b_objects, key, keep);
 	Py_DECREF(key);
 	Py_DECREF(keep);
