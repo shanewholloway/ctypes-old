@@ -5,6 +5,7 @@ import doctest
 # handle platform specific issues
 WINDOWS = doctest.register_optionflag("WINDOWS")
 LINUX = doctest.register_optionflag("LINUX")
+OSX = doctest.register_optionflag("OSX")
 SKIP = doctest.register_optionflag("SKIP")
 
 # handle size specific issues
@@ -19,6 +20,8 @@ class MyDocTestRunner(base):
             if WINDOWS in ex.options and sys.platform != "win32":
                 examples.remove(ex)
             elif LINUX in ex.options and not sys.platform.startswith("linux"):
+                examples.remove(ex)
+            elif OSX in ex.options and not sys.platform.startswith("darwin"):
                 examples.remove(ex)
             elif SKIP in ex.options:
                 examples.remove(ex)
