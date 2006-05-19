@@ -344,7 +344,11 @@ CDataType_repeat(PyObject *self, Py_ssize_t length)
 {
 	if (length < 0)
 		return PyErr_Format(PyExc_ValueError,
+#if (PY_VERSION_HEX < 0x02050000)
 				    "Array length must be >= 0, not %d",
+#else
+				    "Array length must be >= 0, not %zd",
+#endif
 				    length);
 	return CreateArrayType(self, length);
 }
@@ -1820,7 +1824,11 @@ unique_key(CDataObject *target, Py_ssize_t index)
 	size_t bytes_left;
 
 	assert(sizeof(string) - 1 > sizeof(Py_ssize_t) * 2);
+#if (PY_VERSION_HEX < 0x02050000)
+	cp += sprintf(cp, "%zx", index);
+#else
 	cp += sprintf(cp, "%x", index);
+#endif
 	while (target->b_base) {
 		bytes_left = sizeof(string) - (cp - string) - 1;
 		/* Hex format needs 2 characters per byte */
@@ -1829,7 +1837,11 @@ unique_key(CDataObject *target, Py_ssize_t index)
 					"ctypes object structure too deep");
 			return NULL;
 		}
+#if (PY_VERSION_HEX < 0x02050000)
 		cp += sprintf(cp, ":%x", target->b_index);
+#else
+		cp += sprintf(cp, ":%zx", target->b_index);
+#endif
 		target = target->b_base;
 	}
 	return PyString_FromStringAndSize(string, cp-string);
@@ -4620,7 +4632,7 @@ init_ctypes(void)
 #endif
 	PyModule_AddObject(m, "FUNCFLAG_CDECL", PyInt_FromLong(FUNCFLAG_CDECL));
 	PyModule_AddObject(m, "FUNCFLAG_PYTHONAPI", PyInt_FromLong(FUNCFLAG_PYTHONAPI));
-	PyModule_AddStringConstant(m, "__version__", "0.9.9.6");
+	PyModule_AddStringConstant(m, "__version__", "0.9.9.7");
 
 	PyModule_AddObject(m, "_memmove_addr", PyLong_FromVoidPtr(memmove));
 	PyModule_AddObject(m, "_memset_addr", PyLong_FromVoidPtr(memset));
