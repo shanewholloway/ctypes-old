@@ -1,5 +1,8 @@
 2006-05-18  Thomas Heller  <theller@python.net>
 
+	* source\callproc.c: Fix compiler warning about comparison of
+	signed and unsigned values.
+
 	* source\_ctypes.c: Correct recount issues in the (unlikely) case
 	that KeepRef fails.
 
