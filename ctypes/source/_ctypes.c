@@ -1825,9 +1825,9 @@ unique_key(CDataObject *target, Py_ssize_t index)
 
 	assert(sizeof(string) - 1 > sizeof(Py_ssize_t) * 2);
 #if (PY_VERSION_HEX < 0x02050000)
-	cp += sprintf(cp, "%zx", index);
-#else
 	cp += sprintf(cp, "%x", index);
+#else
+	cp += sprintf(cp, "%zx", index);
 #endif
 	while (target->b_base) {
 		bytes_left = sizeof(string) - (cp - string) - 1;
