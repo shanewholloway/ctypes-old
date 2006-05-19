@@ -1829,7 +1829,7 @@ unique_key(CDataObject *target, Py_ssize_t index)
 					"ctypes object structure too deep");
 			return NULL;
 		}
-		cp += sprintf(cp, ":%x", index);
+		cp += sprintf(cp, ":%x", target->b_index);
 		target = target->b_base;
 	}
 	return PyString_FromStringAndSize(string, cp-string);
