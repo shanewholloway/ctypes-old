@@ -342,7 +342,7 @@ static PyMethodDef CDataType_methods[] = {
 static PyObject *
 CDataType_repeat(PyObject *self, Py_ssize_t length)
 {
-	if (length <= 0)
+	if (length < 0)
 		return PyErr_Format(PyExc_ValueError,
 				    "Array length must be >= 0, not %d",
 				    length);
@@ -3550,7 +3550,7 @@ Array_item(PyObject *_self, Py_ssize_t index)
 	int offset, size;
 	StgDictObject *stgdict;
 
-	if (index < 0 || (self->b_length > 1 && index >= self->b_length)) {
+	if (self->b_length == 0 || index < 0 || (self->b_length > 1 && index >= self->b_length)) {
 		PyErr_SetString(PyExc_IndexError,
 				"invalid index");
 		return NULL;
@@ -3626,7 +3626,8 @@ Array_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 	}
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
-	if (index < 0 || (self->b_length > 1 && index >= self->b_length)) {
+	if (self->b_length == 0 || index < 0
+	    || (self->b_length > 1 && index >= self->b_length)) {
 		PyErr_SetString(PyExc_IndexError,
 				"invalid index");
 		return -1;

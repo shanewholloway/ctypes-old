@@ -33,8 +33,18 @@ class VarSizeTest(unittest.TestCase):
 
     def test_array_invalid_length(self):
         # cannot create arrays with non-positive size
-        self.failUnlessRaises(ValueError, lambda: c_int * 0)
+        self.failUnlessRaises(ValueError, lambda: c_int * -1)
         self.failUnlessRaises(ValueError, lambda: c_int * -3)
+
+    def test_zerosized_array(self):
+        array = (c_int * 0)()
+        # accessing elements of zero-sized arrays raise IndexError
+        self.failUnlessRaises(IndexError, array.__setitem__, 0, None)
+        self.failUnlessRaises(IndexError, array.__getitem__, 0)
+        self.failUnlessRaises(IndexError, array.__setitem__, 1, None)
+        self.failUnlessRaises(IndexError, array.__getitem__, 1)
+        self.failUnlessRaises(IndexError, array.__setitem__, -1, None)
+        self.failUnlessRaises(IndexError, array.__getitem__, -1)
 
     def test_varsized_array(self):
         array = (c_int * 20)(20, 21, 22, 23, 24, 25, 26, 27, 28, 29)
