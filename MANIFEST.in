@@ -1,5 +1,5 @@
 # standard files
-include ACKS ANNOUNCE ChangeLog MANIFEST MANIFEST.in LICENSE.txt NEWS.txt README*
+include ACKS ANNOUNCE BUGS ChangeLog MANIFEST MANIFEST.in LICENSE.txt NEWS.txt README*
 
 # support files for development
 include ctypes-dev.el
@@ -25,6 +25,7 @@ recursive-include source *.c *.h *.S *.asm *.in
 include wince/_ctypes.vcw wince/_ctypes.vcp wince/_ctypes_test.vcp
 
 # docs/manual
+include docs/anatomy.txt
 include docs/manual/tutorial.txt
 include docs/manual/tutorial.html
 include docs/manual/mkpydoc.py
