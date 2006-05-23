@@ -301,7 +301,7 @@ class CDLL(object):
         return "<%s '%s', handle %x at %x>" % \
                (self.__class__.__name__, self._name,
                 (self._handle & (_sys.maxint*2 + 1)),
-                id(self))
+                id(self) & (_sys.maxint*2 + 1))
 
     def __getattr__(self, name):
         if name.startswith('__') and name.endswith('__'):
