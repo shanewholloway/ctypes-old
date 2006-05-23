@@ -1,3 +1,9 @@
+2006-05-23  Thomas Heller  <theller@python.net>
+
+	* ctypes\__init__.py: Fixed a possible FutureWarning when id()
+	returned an integer less than zero or larger than sys.maxint, in
+	CDLL.__repr__.
+
 2006-05-19  Thomas Heller  <theller@python.net>
 
 	* docs\anatomy.txt: Add some documentation, also containing
