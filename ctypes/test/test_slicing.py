@@ -63,7 +63,7 @@ class SlicesTestCase(unittest.TestCase):
         dll.my_free.restype = None
         def errcheck(result, func, args):
             retval = result.value
-            dll.my_free(retval)
+            dll.my_free(result)
             return retval
 
         dll.my_strdup.restype = allocated_c_char_p
