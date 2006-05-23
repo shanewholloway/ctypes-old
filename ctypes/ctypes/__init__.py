@@ -1,7 +1,6 @@
 """create and manipulate C data types in Python"""
 
 import os as _os, sys as _sys
-from itertools import chain as _chain
 
 # special developer support to use ctypes from the CVS sandbox,
 # without installing it
