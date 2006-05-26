@@ -640,54 +640,64 @@ Initializers of the correct type can also be specified::
 Pointers
 --------
 
+XXX Rewrite this section.  Normally one only uses indexing, not the .contents
+attribute!
+List some recipes with pointers.  bool(ptr),  POINTER(tp)(), ...?
+
 Pointer instances are created by calling the ``pointer`` function on a
 ``ctypes`` type::
 
-       >>> from ctypes import *
-       >>> i = c_int(42)
-       >>> pi = pointer(i)
-       >>>
-
-XXX XXX Not correct: use indexing, not the contents atribute
+    >>> from ctypes import *
+    >>> i = c_int(42)
+    >>> pi = pointer(i)
+    >>>
 
 Pointer instances have a ``contents`` attribute which returns the
-ctypes' type pointed to, the ``c_int(42)`` in the above case::
+object to which the pointer points, the ``i`` object above::
 
-       >>> pi.contents
-       c_long(42)
-       >>>
+    >>> pi.contents
+    c_long(42)
+    >>>
+
+Note that ``ctypes`` does not have OOR (original object return), it
+constructs a new, equivalent object each time you retrieve an
+attribute::
+
+    >>> pi.contents is i
+    False
+    >>> pi.contents is pi.contents
+    False
+    >>>
 
 Assigning another ``c_int`` instance to the pointer's contents
 attribute would cause the pointer to point to the memory location
 where this is stored::
 
-       >>> pi.contents = c_int(99)
-       >>> pi.contents
-       c_long(99)
-       >>>
+    >>> pi.contents = c_int(99)
+    >>> pi.contents
+    c_long(99)
+    >>>
 
 Pointer instances can also be indexed with integers::
 
-       >>> pi[0]
-       99
-       >>>
+    >>> pi[0]
+    99
+    >>>
 
-XXX What is this???
 Assigning to an integer index changes the pointed to value::
 
-       >>> i2 = pi[0]
-       >>> i2
-       99
-       >>> pi[0] = 22
-       >>> i2
-       99
-       >>>
+    >>> print i
+    c_long(99)
+    >>> pi[0] = 22
+    >>> print i
+    c_long(22)
+    >>>
 
 It is also possible to use indexes different from 0, but you must know
-what you're doing when you use this: You access or change arbitrary
-memory locations when you do this. Generally you only use this feature
-if you receive a pointer from a C function, and you *know* that the
-pointer actually points to an array instead of a single item.
+what you're doing, just as in C: You can access or change arbitrary
+memory locations. Generally you only use this feature if you receive a
+pointer from a C function, and you *know* that the pointer actually
+points to an array instead of a single item.
 
 Pointer classes/types
 ---------------------
@@ -1174,7 +1184,7 @@ no bounds checking on them::
     >>> print sizeof(short_array)
     2
     >>> resize(short_array, 32)
-     >>> sizeof(short_array)
+    >>> sizeof(short_array)
     32
     >>> sizeof(type(short_array))
     2
