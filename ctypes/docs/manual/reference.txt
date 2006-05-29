@@ -200,9 +200,11 @@ simple data types
 -----------------
 
 ``_SimpleCData`` : classdesc*
-    This non-public class is the base class of all ctypes data
+    This non-public class is the base class of all simple ctypes data
     types. It is mentioned here because it contains the common
     attributes of the ctypes data types.
+
+Instances have a single attribute:
 
 ``value`` : memberdesc
     This attribute contains the actual value of the instance. For
@@ -210,7 +212,7 @@ simple data types
 
 These are the simple ctypes data types:
 
-``c_byte([value]) : classdesc*
+``c_byte`` : classdesc*
     Represents a C signed char datatype, and interprets the value as
     small integer. The constructor accepts an optional integer
     initializer; no overflow checking is done.
