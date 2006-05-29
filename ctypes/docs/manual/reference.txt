@@ -171,3 +171,27 @@ ctypes functions
     address ``address`` as unicode string. If ``size`` is specified,
     it is used as the number of characters of the string, otherwise
     the string is assumed to be zero-terminated.
+
+
+data types
+----------
+
+``_CData`` : classdesc*
+    This non-public class is the base class of all ctypes data types.
+    Among other things, a ctypes type instance contains a memory block
+    that contains C compatible data.
+
+Common methods of ctypes data types, these are all class methods (to
+be exact, they are methods of the metaclass):
+
+``from_address(address)`` : methoddesc
+    This method returns a ctypes type instance using the memory
+    specified by address.
+
+``from_param(obj)`` : methoddesc
+    This method adapts obj to a ctypes type. 
+
+``in_dll(name, library)`` : methoddesc
+    This method returns a ctypes type instance exported by a shared
+    library. name is the name of the symbol that exports the data,
+    library is the loaded shared library.
