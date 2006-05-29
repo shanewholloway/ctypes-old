@@ -1,3 +1,10 @@
+:Module: ctypes
+:Summary: A foreign function library for Python.
+:Module Type: standard
+:Author: Thomas Heller <theller@python.net>
+:Synopsis: A foreign function library for Python.
+:Version Added: 2.5
+
 ``ctypes`` is a foreign function library for Python.
 
 .. include:: tutorial.txt
