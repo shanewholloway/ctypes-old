@@ -1,195 +1,198 @@
 ctypes reference
 ================
 
-``addressof(obj)``
-    Returns the address of ``obj`` as integer. ``obj`` must be an
-    instance of a ctypes type.
+ctypes functions
+----------------
 
-``alignment(obj)``
-    Returns the byte alignment requirement of ``obj``.
+``addressof(obj)`` : funcdesc
 
-``ArgumentError``
-    This exception is raised when a parameter cannot be used in a
-    foreign function call.
+    Returns the address of the memory buffer as integer.  ``obj`` must
+    be an instanceof a ctypes type.
 
-.. undocumented because deprecated.
-	``ARRAY``
-	``Array``
+``alignment(obj_or_type)`` : funcdesc
 
-``BigEndianStructure``
-    Base class.
+    Returns the alignment requirements of a ctypes type.
+    ``obj_or_type`` must be a ctypes type or instance.
+
+``ArgumentError()`` : excdesc
+
+    This exception is raised when a foreign function call cannot
+    convert one of the passed arguments.
 
 ``byref(obj)`` : funcdesc
-   Returns a light-weight pointer to a ctypes instance.  The returned
-   object can only be used as function call parameter.  Behaves the
-   same as calling ``pointer(object)``, but is a lot faster.  Same as
-   ``&object`` in C.
-   
 
-.. undocumented because deprecated.
-	``c_buffer``
+    Returns a light-weight pointer to ``obj``, which must be an
+    instance of a ctypes type. The returned object can only be used as
+    a foreign function call parameter. It behaves similar to
+    ``pointer(obj)``, but the construction is a lot faster.
 
-.. topic:: ``c_byte``
-   :class: funcdef
+``cast(obj, type)`` : funcdesc
 
-   Represents the C ``char`` data type, interpreted as integer.
+    This function is similar to the cast operator in C. It returns a
+    new instance of ``type`` which points to the same memory block as
+    ``obj``. ``type`` must be a pointer type, and ``obj`` must be an
+    object that can be interpreted as a pointer.
 
-``c_char_p``
+``CFUNCTYPE(restype, *argtypes)`` : funcdesc
 
-``c_char``
+    This is a factory function that returns a function prototype. The
+    function prototype describes a function that has a result type of
+    ``restype``, and accepts arguments as specified by
+    ``argtypes``. The function prototype can be used to construct
+    several kinds of functions, depending on how the prototype is
+    called.
 
-``c_double``
+    The prototypes returned by ``CFUNCTYPE`` or ``PYFUNCTYPE`` create
+    functions that use the standard C calling convention, prototypes
+    returned from ``WINFUNCTYPE`` (on Windows) use the ``__stdcall``
+    calling convention.
 
-``c_float``
+    Functions created by calling the ``CFUNCTYPE`` and ``WINFUNCTYPE``
+    prototypes release the Python GIL before entering the foreign
+    function, and acquire it back after leaving the function code.
 
+``create_string_buffer(init_or_size[, size])`` : funcdesc
 
-``c_int8``, ``c_int16``, ``c_int32``, ``c_int64``
+    This function creates a mutable character buffer. The returned
+    object is a ctypes array of ``c_char``.
 
-``c_short``
+    ``init_or_size`` must be an integer which specifies the size of
+    the array, or a string which will be used to initialize the array
+    items.
 
-``c_int``
+    If a string is specified as first argument, the buffer is made one
+    item larger than the length of the string so that the last element
+    in the array is a NUL termination character. An integer can be
+    passed as second argument which allows to specify the size of the
+    array if the length of the string should not be used.
 
-``c_long``
+    If the first parameter is a unicode string, it is converted into
+    an 8-bit string according to ctypes conversion rules.
 
-``c_longlong``
+``create_unicode_buffer(init_or_size[, size])`` : funcdesc
 
-``c_size_t``
+    This function creates a mutable unicode character buffer. The
+    returned object is a ctypes array of ``c_wchar``.
 
-``c_ubyte``
+    ``init_or_size`` must be an integer which specifies the size of
+    the array, or a unicode string which will be used to initialize
+    the array items.
 
-``c_uint16``
+    If a unicode string is specified as first argument, the buffer is
+    made one item larger than the length of the string so that the
+    last element in the array is a NUL termination character. An
+    integer can be passed as second argument which allows to specify
+    the size of the array if the length of the string should not be
+    used.
 
-``c_uint32``
+    If the first parameter is a 8-bit string, it is converted into an
+    unicode string according to ctypes conversion rules.
 
-``c_uint64``
+``DllCanUnloadNow()`` : funcdesc
 
-``c_uint8``
+    Windows only: This function is a hook which allows to implement
+    inprocess COM servers with ctypes. It is called from the
+    DllCanUnloadNow function that the _ctypes extension dll exports.
 
-``c_uint``
+``DllGetClassObject()`` : funcdesc
 
-``c_ulong``
+    Windows only: This function is a hook which allows to implement
+    inprocess COM servers with ctypes. It is called from the
+    DllGetClassObject function that the ``_ctypes`` extension dll exports.
 
-``c_ulonglong``
+``FormatError([code])`` : funcdesc
 
-``c_ushort``
+    Windows only: Returns a textual description of the error code. If
+    no error code is specified, the last error code is used by calling
+    the Windows api function GetLastError.
 
-``c_void_p``
+``GetLastError()`` : funcdesc
 
-``c_voidp``
-
-``c_wchar_p``
-
-``c_wchar``
-
-``cast(obj, type)``
-    This function is similar to the cast operator in C.  Returns a new
-    instance of ``type`` which shares the memory block of ``object``.
-    ``type`` must be a pointer type.
-
-
-``CDLL``
-
-``cdll``
-
-``CFUNCTYPE``
-
-``create_string_buffer(init_or_size[, size])``
-    Convenience function which creates a mutable character buffer.
-
-    ``init`` must be a string.  If ``size`` is supplied it must be a
-    positive integer that specifies the size of the buffer, otherwise
-    the length of the ``init`` string is used.
-    This function returns a ctypes array of characters ``c_char``.
-
-``create_unicode_buffer``
-    Convenience function which creates a mutable character buffer.
-
-    ``init`` must be a unicode string.  If ``size`` is supplied it
-    must be a positive integer that specifies the size of the buffer,
-    otherwise the length of the ``init`` string is used.  This
-    function returns a ctypes array of wide characters ``c_wchar``.
-
-``DllCanUnloadNow``
-    Windows only. This function is used to implement COM servers.
-
-``DllGetClassObject``
-    Windows only. This function is used to implement COM servers.
-
-``FormatError([code], [descr])``
-    Windows only. Returns a textual description of the error code, or
-    the last error code set by Windows.
-
-``GetLastError()``
-    Windows only.  Return the last error code set by Windows in the
+    Windows only: Returns the last error code set by Windows in the
     calling thread.
 
-``HRESULT``
+``memmove(dst, src, count)`` : funcdesc
 
-``LibraryLoader``
-    Instances of this type are used to load shared libraries.
+    Same as the standard C memmove library function: copies ``count``
+    bytes from ``src`` to ``dst``. ``dst`` and ``src`` must be
+    integers or ctypes instances that can be converted to pointers.
 
-``LittleEndianStructure``
+``memset(dst, c, count)`` : funcdesc
 
-``memmove(dst, src, count)``
-    Same as the standard C ``memmove`` library function: copies
-    ``count`` bytes from ``src`` to ``dst``.  ``dst`` and ``src`` must
-    be integers or anything else that can be converted into a pointer.
+    Same as the standard C memset library function: fills the memory
+    block at address ``dst`` with ``count`` bytes of value
+    ``c``. ``dst`` must be an integer specifying an address, or a
+    ctypes instance.
 
-``memset(dst, c, count)``
-    Same as the standard C ``memset`` function.  Fills the memory block
-    at address ``dst`` with ``count`` bytes of value ``c``.  ``dst`` must be
-    an integer specifying an address, or a ctypes instance.
+``POINTER(type)`` : funcdesc
 
-``OleDLL``
+    This factory function creates and returns a new ctypes pointer
+    type. Pointer types are cached an reused internally, so calling
+    this function repeatedly is cheap. type must be a ctypes type.
 
-``oledll``
+``pointer(obj)`` : funcdesc
 
-``POINTER(type)``
-    This factory function creates and returns a new ctypes type.
-    Pointer types are cached, so calling this function repeatedly is
-    cheap.
+    This function creates a new pointer instance, pointing to ``obj``. The
+    returned object is of the type POINTER(type(obj)).
 
-``pointer(obj)``
-    This function creates a new pointer instance, pointing to ``obj``
-    which must be an instance of a ctypes type.  The return pointer is
-    of type ``POINTER(type(obj))``.  If you just want to pass a
-    pointer to this object to a foreign function call, you should use
-    ``byref(obj)`` instead which is much faster.
+    Note: If you just want to pass a pointer to an object to a foreign
+    function call, you should use ``byref(obj)`` which is much faster.
 
-``py_object``
+``PYFUNCTYPE(restype, *argtypes)`` : funcdesc
 
-``PyDLL``
+    TBD
 
-``pydll``
+``pythonapi()`` : funcdesc
 
-``PYFUNCTYPE``
+    XXX Not a function.
 
-``pythonapi``
+``resize(obj, size)`` : funcdesc
 
-``resize``
+    This function resizes the internal memory buffer of obj, which
+    must be an instance of a ctypes type. It is not possible to make
+    the buffer smaller than the native size of the objects type, as
+    given by sizeof(type(obj)), but it is possible to enlarge the
+    buffer.
 
-``RTLD_GLOBAL``
+``set_conversion_mode(encoding, errors)`` : funcdesc
 
-``RTLD_LOCAL``
+    This function sets the rules that ctypes objects use when
+    converting between 8-bit strings and unicode strings. encoding
+    must be a string specifying an encoding, like ``'utf-8'`` or
+    ``'mbcs'``, errors must be a string specifying the error handling
+    on encoding/decoding errors. Examples of possible values are
+    ``"strict"``, ``"replace"``, or ``"ignore"``.
 
-``set_conversion_mode``
+    set_conversion_mode returns a 2-tuple containing the previous
+    conversion rules. On windows, the initial conversion rules are
+    ``('mbcs', 'ignore')``, on other systems ``('ascii', 'strict')``.
 
-``SetPointerType``
+``sizeof(obj_or_type)`` : funcdesc
 
-``sizeof``
+    Returns the size in bytes of a ctypes type or instance memory
+    buffer. Does the same as the C ``sizeof()`` function.
 
-``string_at``
+``string_at(address[, size])`` : funcdesc
 
-``Structure``
+    This function returns the string starting at memory address
+    address. If size is specified, it is used as size, otherwise the
+    string is assumed to be zero-terminated.
 
-``Union``
+``WinError(code=None, descr=None)`` : funcdesc
 
-``WinDLL``
+    Windows only: this function is probably the worst-named thing in
+    ctypes. It creates an instance of WindowsError. If ``code`` is not
+    specified, ``GetLastError`` is called to determine the error
+    code. If ``descr`` is not spcified, ``FormatError`` is called to
+    get a textual description of the error.
 
-``windll``
+``WINFUNCTYPE(restype, *argtypes)`` : funcdesc
 
-``WinError``
+    TBD
 
-``WINFUNCTYPE``
+``wstring_at(address)`` : funcdesc
 
-``wstring_at``
+    This function returns the wide character string starting at memory
+    address ``address`` as unicode string. If ``size`` is specified,
+    it is used as the number of characters of the string, otherwise
+    the string is assumed to be zero-terminated.
