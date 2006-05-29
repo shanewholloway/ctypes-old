@@ -5,36 +5,30 @@ ctypes functions
 ----------------
 
 ``addressof(obj)`` : funcdesc
-
     Returns the address of the memory buffer as integer.  ``obj`` must
-    be an instanceof a ctypes type.
+    be an instance of a ctypes type.
 
 ``alignment(obj_or_type)`` : funcdesc
-
     Returns the alignment requirements of a ctypes type.
     ``obj_or_type`` must be a ctypes type or instance.
 
 ``ArgumentError()`` : excdesc
-
     This exception is raised when a foreign function call cannot
     convert one of the passed arguments.
 
 ``byref(obj)`` : funcdesc
-
     Returns a light-weight pointer to ``obj``, which must be an
     instance of a ctypes type. The returned object can only be used as
     a foreign function call parameter. It behaves similar to
     ``pointer(obj)``, but the construction is a lot faster.
 
 ``cast(obj, type)`` : funcdesc
-
     This function is similar to the cast operator in C. It returns a
     new instance of ``type`` which points to the same memory block as
     ``obj``. ``type`` must be a pointer type, and ``obj`` must be an
     object that can be interpreted as a pointer.
 
 ``CFUNCTYPE(restype, *argtypes)`` : funcdesc
-
     This is a factory function that returns a function prototype. The
     function prototype describes a function that has a result type of
     ``restype``, and accepts arguments as specified by
@@ -52,7 +46,6 @@ ctypes functions
     function, and acquire it back after leaving the function code.
 
 ``create_string_buffer(init_or_size[, size])`` : funcdesc
-
     This function creates a mutable character buffer. The returned
     object is a ctypes array of ``c_char``.
 
@@ -70,7 +63,6 @@ ctypes functions
     an 8-bit string according to ctypes conversion rules.
 
 ``create_unicode_buffer(init_or_size[, size])`` : funcdesc
-
     This function creates a mutable unicode character buffer. The
     returned object is a ctypes array of ``c_wchar``.
 
@@ -89,65 +81,54 @@ ctypes functions
     unicode string according to ctypes conversion rules.
 
 ``DllCanUnloadNow()`` : funcdesc
-
     Windows only: This function is a hook which allows to implement
     inprocess COM servers with ctypes. It is called from the
     DllCanUnloadNow function that the _ctypes extension dll exports.
 
 ``DllGetClassObject()`` : funcdesc
-
     Windows only: This function is a hook which allows to implement
     inprocess COM servers with ctypes. It is called from the
     DllGetClassObject function that the ``_ctypes`` extension dll exports.
 
 ``FormatError([code])`` : funcdesc
-
     Windows only: Returns a textual description of the error code. If
     no error code is specified, the last error code is used by calling
     the Windows api function GetLastError.
 
 ``GetLastError()`` : funcdesc
-
     Windows only: Returns the last error code set by Windows in the
     calling thread.
 
 ``memmove(dst, src, count)`` : funcdesc
-
     Same as the standard C memmove library function: copies ``count``
     bytes from ``src`` to ``dst``. ``dst`` and ``src`` must be
     integers or ctypes instances that can be converted to pointers.
 
 ``memset(dst, c, count)`` : funcdesc
-
     Same as the standard C memset library function: fills the memory
     block at address ``dst`` with ``count`` bytes of value
     ``c``. ``dst`` must be an integer specifying an address, or a
     ctypes instance.
 
 ``POINTER(type)`` : funcdesc
-
     This factory function creates and returns a new ctypes pointer
     type. Pointer types are cached an reused internally, so calling
     this function repeatedly is cheap. type must be a ctypes type.
 
 ``pointer(obj)`` : funcdesc
-
-    This function creates a new pointer instance, pointing to ``obj``. The
-    returned object is of the type POINTER(type(obj)).
+    This function creates a new pointer instance, pointing to
+    ``obj``. The returned object is of the type POINTER(type(obj)).
 
     Note: If you just want to pass a pointer to an object to a foreign
     function call, you should use ``byref(obj)`` which is much faster.
 
 ``PYFUNCTYPE(restype, *argtypes)`` : funcdesc
-
     TBD
 
 ``pythonapi()`` : funcdesc
-
     XXX Not a function.
 
 ``resize(obj, size)`` : funcdesc
-
     This function resizes the internal memory buffer of obj, which
     must be an instance of a ctypes type. It is not possible to make
     the buffer smaller than the native size of the objects type, as
@@ -155,7 +136,6 @@ ctypes functions
     buffer.
 
 ``set_conversion_mode(encoding, errors)`` : funcdesc
-
     This function sets the rules that ctypes objects use when
     converting between 8-bit strings and unicode strings. encoding
     must be a string specifying an encoding, like ``'utf-8'`` or
@@ -168,18 +148,15 @@ ctypes functions
     ``('mbcs', 'ignore')``, on other systems ``('ascii', 'strict')``.
 
 ``sizeof(obj_or_type)`` : funcdesc
-
     Returns the size in bytes of a ctypes type or instance memory
     buffer. Does the same as the C ``sizeof()`` function.
 
 ``string_at(address[, size])`` : funcdesc
-
     This function returns the string starting at memory address
     address. If size is specified, it is used as size, otherwise the
     string is assumed to be zero-terminated.
 
 ``WinError(code=None, descr=None)`` : funcdesc
-
     Windows only: this function is probably the worst-named thing in
     ctypes. It creates an instance of WindowsError. If ``code`` is not
     specified, ``GetLastError`` is called to determine the error
@@ -187,11 +164,9 @@ ctypes functions
     get a textual description of the error.
 
 ``WINFUNCTYPE(restype, *argtypes)`` : funcdesc
-
     TBD
 
 ``wstring_at(address)`` : funcdesc
-
     This function returns the wide character string starting at memory
     address ``address`` as unicode string. If ``size`` is specified,
     it is used as the number of characters of the string, otherwise
