@@ -330,3 +330,59 @@ These are the simple ctypes data types:
 ``HRESULT`` : classdesc*
     Windows only: Represents a HRESULT value, which contains success
     or error information for a function or method call.
+
+structured data types
+---------------------
+
+``BigEndianStructure`` : classdesc*
+    Structure with big endian byte order.
+
+``LittleEndianStructure`` : classdesc*
+    Structure with little endian byte order.
+
+``Structure`` : classdesc*
+    Structure with native byte order.
+
+``Union`` : classdesc*
+    Union with native byte order.
+
+
+libraries
+---------
+
+``CDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc*
+    XXX
+
+``cdll`` : vardesc
+    XXX
+
+``LibraryLoader(dlltype)`` : classdesc*
+    ``LoadLibrary(name, mode=RTLD_LOCAL, handle=None)`` : methoddesc
+        Load a shared library.
+
+``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+    XXX
+
+``oledll`` : vardesc
+    XXX
+
+``py_object`` : classdesc*
+    XXX
+
+``PyDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+    XXX
+
+``pydll`` : vardesc
+    XXX
+
+``RTLD_GLOBAL`` : vardesc
+    XXX
+
+``RTLD_LOCAL`` : vardesc
+    XXX
+
+``WinDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+    XXX
+
+``windll`` : vardesc
+    XXX
