@@ -356,9 +356,11 @@ libraries
 ``cdll`` : vardesc
     XXX
 
-``LibraryLoader(dlltype)`` : classdesc*
-    ``LoadLibrary(name, mode=RTLD_LOCAL, handle=None)`` : methoddesc
-        Load a shared library.
+``LibraryLoader(dlltype)`` : classdesc
+    Base class which loads shared libraries.
+
+``LoadLibrary(name, mode=RTLD_LOCAL, handle=None)`` : methoddesc
+    Load a shared library.
 
 ``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
     XXX
