@@ -1,32 +1,57 @@
 ctypes reference
 ================
 
-helper functions
-----------------
+loading shared libraries
+------------------------
 
-``addressof(obj)`` : funcdesc
-    Returns the address of the memory buffer as integer.  ``obj`` must
-    be an instance of a ctypes type.
+``LibraryLoader(dlltype)`` : classdesc
+    Class which loads shared libraries.
 
-``alignment(obj_or_type)`` : funcdesc
-    Returns the alignment requirements of a ctypes type.
-    ``obj_or_type`` must be a ctypes type or instance.
+``LoadLibrary(name, mode=RTLD_LOCAL, handle=None)`` : methoddesc
+    Load a shared library.
 
-``ArgumentError()`` : excdesc
-    This exception is raised when a foreign function call cannot
-    convert one of the passed arguments.
+``CDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc*
+    XXX
 
-``byref(obj)`` : funcdesc
-    Returns a light-weight pointer to ``obj``, which must be an
-    instance of a ctypes type. The returned object can only be used as
-    a foreign function call parameter. It behaves similar to
-    ``pointer(obj)``, but the construction is a lot faster.
+``cdll`` : vardesc
+    XXX
 
-``cast(obj, type)`` : funcdesc
-    This function is similar to the cast operator in C. It returns a
-    new instance of ``type`` which points to the same memory block as
-    ``obj``. ``type`` must be a pointer type, and ``obj`` must be an
-    object that can be interpreted as a pointer.
+``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+    XXX
+
+``oledll`` : vardesc
+    XXX
+
+``py_object`` : classdesc*
+    XXX
+
+``PyDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+    XXX
+
+``pydll`` : vardesc
+    XXX
+
+``RTLD_GLOBAL`` : vardesc
+    XXX
+
+``RTLD_LOCAL`` : vardesc
+    XXX
+
+``WinDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+    XXX
+
+``windll`` : vardesc
+    XXX
+
+foreign functions
+-----------------
+
+The ultimate goal (so to say) of ``ctypes`` is to call functions in
+shared libraries, aka as foreign functions.
+
+There are several ways to access foreign functions.
+
+XXX as attributes of loaded libraries.
 
 ``CFUNCTYPE(restype, *argtypes)`` : funcdesc
     This is a factory function that returns a function prototype. The
@@ -44,6 +69,41 @@ helper functions
     Functions created by calling the ``CFUNCTYPE`` and ``WINFUNCTYPE``
     prototypes release the Python GIL before entering the foreign
     function, and acquire it back after leaving the function code.
+
+``WINFUNCTYPE(restype, *argtypes)`` : funcdesc
+    TBD
+
+``PYFUNCTYPE(restype, *argtypes)`` : funcdesc
+    TBD
+
+``ArgumentError()`` : excdesc
+    This exception is raised when a foreign function call cannot
+    convert one of the passed arguments.
+
+
+
+helper functions
+----------------
+
+``addressof(obj)`` : funcdesc
+    Returns the address of the memory buffer as integer.  ``obj`` must
+    be an instance of a ctypes type.
+
+``alignment(obj_or_type)`` : funcdesc
+    Returns the alignment requirements of a ctypes type.
+    ``obj_or_type`` must be a ctypes type or instance.
+
+``byref(obj)`` : funcdesc
+    Returns a light-weight pointer to ``obj``, which must be an
+    instance of a ctypes type. The returned object can only be used as
+    a foreign function call parameter. It behaves similar to
+    ``pointer(obj)``, but the construction is a lot faster.
+
+``cast(obj, type)`` : funcdesc
+    This function is similar to the cast operator in C. It returns a
+    new instance of ``type`` which points to the same memory block as
+    ``obj``. ``type`` must be a pointer type, and ``obj`` must be an
+    object that can be interpreted as a pointer.
 
 ``create_string_buffer(init_or_size[, size])`` : funcdesc
     This function creates a mutable character buffer. The returned
@@ -122,9 +182,6 @@ helper functions
     Note: If you just want to pass a pointer to an object to a foreign
     function call, you should use ``byref(obj)`` which is much faster.
 
-``PYFUNCTYPE(restype, *argtypes)`` : funcdesc
-    TBD
-
 ``pythonapi()`` : funcdesc
     XXX Not a function.
 
@@ -162,9 +219,6 @@ helper functions
     specified, ``GetLastError`` is called to determine the error
     code. If ``descr`` is not spcified, ``FormatError`` is called to
     get a textual description of the error.
-
-``WINFUNCTYPE(restype, *argtypes)`` : funcdesc
-    TBD
 
 ``wstring_at(address)`` : funcdesc
     This function returns the wide character string starting at memory
@@ -418,46 +472,3 @@ descriptors which allow read/write access to the fields.
         td.vt = VT_PTR
 	td.lptdesc = POINTER(some_type)
 	td.u.lptdesc = POINTER(some_type)
-
-
-libraries
----------
-
-``CDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc*
-    XXX
-
-``cdll`` : vardesc
-    XXX
-
-``LibraryLoader(dlltype)`` : classdesc
-    Abstract base class which loads shared libraries.
-
-``LoadLibrary(name, mode=RTLD_LOCAL, handle=None)`` : methoddesc
-    Load a shared library.
-
-``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
-    XXX
-
-``oledll`` : vardesc
-    XXX
-
-``py_object`` : classdesc*
-    XXX
-
-``PyDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
-    XXX
-
-``pydll`` : vardesc
-    XXX
-
-``RTLD_GLOBAL`` : vardesc
-    XXX
-
-``RTLD_LOCAL`` : vardesc
-    XXX
-
-``WinDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
-    XXX
-
-``windll`` : vardesc
-    XXX
