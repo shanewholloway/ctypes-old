@@ -1,13 +1,11 @@
 #!/usr/bin/python
 
-# Convert the ctypes docs to LaTeX for use in Python docs
+# Convert the reStructuredText docs to LaTeX for use in Python docs
 
 # This script is a hacked version taken from the Optik SVN repository.
 
 import sys, os
 import re
-from popen2 import popen2
-from glob import glob
 import rfc822
 from distutils.dep_util import newer_group, newer
 from docutils.core import Publisher
@@ -44,14 +42,6 @@ class PyLaTeXTranslator(LaTeXTranslator):
     remap_title = {
         }
     roman = (None,None,"ii","iii","iv","v")
-    # XXX need to factor this out
-    module_name = "ctypes"
-    module_summary = "A foreign function library for Python."
-    module_type = "standard"
-    module_author = "Thomas Heller"
-    module_author_email = "theller@python.net"
-    module_synopsis = ("A foreign function library for Python.")
-    version_added = "2.5"
 
     refuri_override = {
         "reference" : "reference-guide",
@@ -60,10 +50,14 @@ class PyLaTeXTranslator(LaTeXTranslator):
 
     def __init__(self, document):
         LaTeXTranslator.__init__(self, document)
+        self.label_prefix = ""
+        self.docinfo = {}
         self.head_prefix = []
         self.head = []
         self.body_prefix = []
         self.in_title = False
+        self.in_anydesc = False  # _title is different if it is a funcdesc
+        self.admonition_stack = []
 
         # Disable a bunch of methods from the base class.
         empty_method = lambda self: None
@@ -73,15 +67,7 @@ class PyLaTeXTranslator(LaTeXTranslator):
                          'field_name'):
             setattr(self, 'visit_' + nodetype, empty_method)
             setattr(self, 'depart_' + nodetype, empty_method)
-        # TODO document properties from document
-        self.head_prefix = [
-            "\\section{\\module{%(module_name)s} --- %(module_summary)s}\n"
-            "\\declaremodule{%(module_type)s}{%(module_name)s}\n"
-            "\\moduleauthor{%(module_author)s}{%(module_author_email)s}\n"
-            "\\modulesynopsis{%(module_synopsis)s}\n"
-            "\\versionadded{%(version_added)s}\n"
-            % vars(self.__class__)
-            ]
+        self.head_prefix = []
         # definitions must be guarded if multiple modules are included
         self.definitions = [
                 "\\ifx\\locallinewidth\\undefined\\newlength{\\locallinewidth}\\fi\n"
@@ -95,14 +81,16 @@ class PyLaTeXTranslator(LaTeXTranslator):
                        self.body +
                        self.body_suffix)
 
+    def set_label_prefix(self, text):
+        self.label_prefix = text.replace(" ","-")
+
     def generate_section_label(self, title):
         title = title.lower()
         title = re.sub(r'\([^\)]*\)', '', title)
         title = re.sub(r'[^\w\s\-]', '', title)
         title = re.sub(r'\b(the|an?|and|your|are)\b', '', title)
         title = re.sub(r'(example \d+).*', r'\1', title)
-##        title = title.replace("optik", "optparse")
-        return "ctypes-" + "-".join(title.split())
+        return self.label_prefix + "-" + "-".join(title.split())
 
     def visit_document(self, node):
         pass
@@ -111,32 +99,66 @@ class PyLaTeXTranslator(LaTeXTranslator):
         pass
 
     def visit_docinfo(self, node):
-        #print "visit_docinfo: %r" % node
-        self.docinfo = []
+        pass
 
     def depart_docinfo(self, node):
-        #print "depart_docinfo: %r" % node
-        self.body = self.docinfo + self.body
-        self.docinfo = None
+        # module and summary are mandatory
+        self.body.append(
+                "\\section{\\module{%(module)s} --- %(summary)s}\n"
+                % self.docinfo )
+        if self.docinfo.has_key("moduletype"):
+            self.body.append(
+                    "\\declaremodule{%(moduletype)s}{%(module)s}\n"
+                    % self.docinfo )
+        if self.docinfo.has_key("moduleauthor"):
+            self.body.append(
+                    "\\moduleauthor{%(moduleauthor)s}{%(moduleauthoremail)s}\n"
+                    % self.docinfo )
+        if self.docinfo.has_key("synopsis"):
+            self.body.append(
+                    "\\modulesynopsis{%(synopsis)s}\n"
+                    % self.docinfo )
+        if self.docinfo.has_key("release"):
+            self.body.append( "\\release{%(release)s}\n" % self.docinfo )
+        if self.docinfo.has_key("shortversion"):
+            self.body.append( "\\setshortversion{%(shortversion)s}\n" 
+                              % self.docinfo )
+        if self.docinfo.has_key("sectionauthor"):
+            self.body.append(
+                    "\\sectionauthor{%(sectionauthor)s}{%(sectionauthoremail)s}\n"
+                    % self.docinfo )
+        if self.docinfo.has_key("versionadded"):
+            self.body.append(
+                    "\\versionadded{%(versionadded)s}\n"
+                    % self.docinfo )
 
     def visit_docinfo_item(self, node, name):
-        #print "visit_docinfo_item: node=%r, name=%r" % (node, name)
         if name == "author":
-            (name, email) = rfc822.parseaddr(node.astext())
-            self.docinfo.append("\\sectionauthor{%s}{%s}\n" % (name, email))
+            (ename, email) = rfc822.parseaddr(node.astext())
+            self.docinfo["moduleauthor"] = ename
+            self.docinfo["moduleauthoremail"] = email
             raise nodes.SkipNode
 
     def depart_docinfo_item(self, node):
         pass
 
-    #def visit_field(self, node):
-    #    (name, value) = (node[0].astext(), node[1].astext())
-    #    print "visit_field: node=%r (name=%r, value=%r)" % (node, name, value)
-    #    if self.docinfo is not None:
-    #        if name == "VersionAdded":
-    #            self.docinfo.append("\\versionadded{%s}\n" % value)
-    #            raise nodes.SkipNode
-
+    def visit_field(self, node):
+        if isinstance(node.parent, nodes.docinfo):
+            name = node[0].astext().lower().replace(" ","")
+            if name == "moduleauthor":
+                (ename, email) = rfc822.parseaddr(node[1].astext())
+                self.docinfo["moduleauthor"] = ename
+                self.docinfo["moduleauthoremail"] = email
+            elif name in ("author", "sectionauthor") :
+                (ename, email) = rfc822.parseaddr(node[1].astext())
+                self.docinfo["sectionauthor"] = ename
+                self.docinfo["sectionauthoremail"] = email
+            else:
+                if name == "module":
+                    self.set_label_prefix(node[1].astext())
+                self.docinfo[name] = node[1].astext()
+            raise nodes.SkipNode
+        
     _quoted_string_re = re.compile(r'\"[^\"]*\"')
     _short_opt_string_re = re.compile(r'-[a-zA-Z]')
     _long_opt_string_re = re.compile(r'--[a-zA-Z-]+')
@@ -147,7 +169,6 @@ class PyLaTeXTranslator(LaTeXTranslator):
     def visit_literal(self, node):
         assert isinstance(node[0], nodes.Text)
         text = node[0].data
-####        text = re.sub(r'optik(\.[a-z]+)?\.', 'optparse.', text)
         if self.in_title:
             cmd = None
         elif self._quoted_string_re.match(text):
@@ -171,6 +192,93 @@ class PyLaTeXTranslator(LaTeXTranslator):
         if cmd is not None:
             self.body.append('\\%s{' % cmd)
 
+    # use topics for special environments
+    def visit_topic(self, node):
+        classes = node.get('classes', ['topic', ])
+        if classes[0] in ('datadesc', 'datadescni', 'excdesc', 'classdesc*',
+                        'csimplemacrodesc', 'ctypedesc', 'memberdesc',
+                        'memberdescni', 'cvardesc', 'excclassdesc',
+                        'funcdesc', 'funcdescni', 'methoddesc', 
+                        'methoddescni', 'cmemberdesc', 'classdesc',
+                        'cfuncdesc'):
+            self.body.append('\n\\begin{%s}' % classes[0])
+            self.context.append('\\end{%s}\n' % classes[0])
+            self.in_anydesc = classes[0]
+        else:
+            self.context.append('')
+
+    def depart_topic(self, node):
+        self.in_anydesc = False
+        self.body.append(self.context.pop())
+
+    # use definition lists for special environments
+    #
+    # definition_list
+    #   defintion_list_item
+    #     term
+    #     classifier
+    #     definition
+    #       paragraph ?
+    def visit_definition_list(self, node):
+        pass
+
+    def depart_definition_list(self, node):
+        pass
+
+    def visit_definition_list_item(self, node):
+        self._dl_term = []
+
+    def depart_definition_list_item(self, node):
+        try:
+            self.body.append(self.context.pop())
+        except:
+            self.body.append("% WARN definition list without classifier\n")
+            
+
+    def visit_term(self, node):
+        self._dl_term.append(node.astext())
+        raise nodes.SkipNode
+
+    def depart_term(self, node):
+        pass
+    
+    def visit_classifier(self, node):
+        # TODO here it should be decided if it is latex or python
+        classifier = node.astext()
+        
+        if classifier in ('datadesc', 'datadescni', 'excdesc', 'classdesc*',
+                        'csimplemacrodesc', 'ctypedesc', 'memberdesc',
+                        'memberdescni', 'cvardesc', 'excclassdesc',
+                        'funcdesc', 'funcdescni', 'methoddesc', 
+                        'methoddescni', 'cmemberdesc', 'classdesc',
+                        'cfuncdesc'):
+            pass
+        else:
+            classifier = 'datadescni'
+        self.body.append('\n\\begin{%s}' % classifier)
+        self.in_anydesc = classifier
+        self.body.append(self.anydesc_title(self._dl_term.pop()))
+        self.context.append('\\end{%s}\n' % classifier)
+        self.in_anydesc = None
+        raise nodes.SkipNode
+
+    def depart_classifier(self, node):
+        pass
+
+    def visit_definition(self, node):
+        if len(self._dl_term)>0:
+            # no classifier, fake it (maybe make a plain latex description).
+            classifier = 'datadescni'
+            self.body.append('\n\\begin{%s}' % classifier)
+            self.in_anydesc = classifier
+            self.body.append(self.anydesc_title(self._dl_term.pop()))
+            self.context.append('\\end{%s}\n' % classifier)
+            self.in_anydesc = None
+
+    def depart_definition(self, node):
+        pass
+
+
     def depart_literal(self, node):
         if not self.in_title:
             self.body.append('}')
@@ -184,11 +292,28 @@ class PyLaTeXTranslator(LaTeXTranslator):
         self.verbatim = 0
         self.body.append("\n\\end{verbatim}\n")
 
+    def anydesc_title(self, title):
+        """Returns the title for xxxdesc environments."""
+        if self.in_anydesc in ('ctypedesc','memberdesc','memberdescni',):
+            # TODO [tag_or_type] {name}
+            return '%s' % title
+        elif self.in_anydesc in ('cvardesc','excclassdesc',
+                                'funcdesc','funcdescni'):
+            # "funcname(arguments)" to "{funcname}{arguments}"
+            # "funcname([arguments])" to "{funcname}{\optional{arguments}}"
+            t = '{'+title.replace('(','}{').replace(')','}')
+            return t.replace('[','\\optional{').replace(']','}')
+        # 'datadesc','datadescni', 'excdesc','classdesc*','csimplemacrodesc'
+        return "{%s}" % title
+
     def visit_title(self, node):
         title = node.astext()
+        if self.in_anydesc:
+            self.body.append(self.anydesc_title(title))
+            raise nodes.SkipNode
         title = self.remap_title.get(title, title)
+        # TODO label_prefix might not be set yet.
         label = self.generate_section_label(title)
-        #print "%s -> %s" % (title, label)
         section_name = self.d_class.section(self.section_level + 1)
         self.body.append("\n\n\\%s{" % section_name)
         self.context.append("\\label{%s}}\n" % label)
@@ -197,40 +322,41 @@ class PyLaTeXTranslator(LaTeXTranslator):
     def depart_title(self, node):
         self.in_title = False
         self.body.append(self.context.pop())
-
+        
     def visit_target(self, node):
         pass
 
     def depart_target(self, node):
         pass
 
+    def visit_admonition(self, node, name=''):
+        self.admonition_stack.append(name)
+        if name in ('note', 'warning'):
+            self.body.append('\\begin{notice}[%s]' % name)
+        else:
+            LaTeXTranslator.visit_admonition(self, node, name)
+    def depart_admonition(self, node=None):
+        name = self.admonition_stack.pop()
+        if name=="note":
+            self.body.append('\\end{notice}\n')
+        else:
+            LaTeXTranslator.depart_admonition(self, node)
+
     def bookmark(self, node):
-        pass
-
-    def visit_definition(self, node):
-        pass
-
-    def depart_definition(self, node):
-        pass
-
-    def visit_definition_list_item(self, node):
-        pass
-
-    def depart_definition_list_item(self, node):
         pass
 
     def visit_reference(self, node):
         if node.has_key('refuri'):
             refuri = node['refuri']
             basename = os.path.splitext(refuri)[0]
-            label = "optparse-" + self.refuri_override.get(basename, basename)
+            label = self.label_prefix + "-" + self.refuri_override.get(basename, basename)
             print "got refuri=%r, label=%r" % (refuri, label)
         elif node.has_key('refid'):
             label = self.generate_section_label(node['refid'])
             print "got refid=%r, label=%r" % (node['refid'], label)
         else:
             print "warning: unhandled reference: node=%r" % node
-            LaTeXTranslator.visit_reference(self, node)
+            LaTeXTranslator.visit_reference(self, node)          
 
         self.body.append("section~\\ref{%s}, " % label)
         raise nodes.SkipDeparture
@@ -247,12 +373,10 @@ class PyLaTeXTranslator(LaTeXTranslator):
             text = self._em_dash_re.sub(u"\u2014", text)
             text = self._quoted_phrase_re.sub(u"\u201C\\1\u201D", text)
             text = re.sub(r'\bdocument\b', "section", text)
-####        text = re.sub(r'optik(\.[a-z]+)?', 'optparse', text)
         text = self.encode(text)
 
         # A couple of transformations are easiest if they go direct
         # to LaTeX, so do them *after* encode().
-##        text = text.replace("Optik", "\\module{optparse}")
         text = text.replace("UNIX", "\\UNIX{}")
 
         self.body.append(text)
