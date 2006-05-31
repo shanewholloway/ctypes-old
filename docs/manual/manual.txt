@@ -1,9 +1,0 @@
-=============
-ctypes manual
-=============
-
-(work in progress, $Revision$)
-
-.. contents::
-
-.. include:: docs.txt
