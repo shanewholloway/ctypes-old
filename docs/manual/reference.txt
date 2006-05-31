@@ -46,12 +46,14 @@ loading shared libraries
 foreign functions
 -----------------
 
-The ultimate goal (so to say) of ``ctypes`` is to call functions in
-shared libraries, aka as foreign functions.
+The ultimate goal of ``ctypes`` is to call functions in shared
+libraries, aka as foreign functions.  Foreign function instances can
+be created by accessing them as attributes of loaded shared libraries,
+or by instantiating a *function prototype*.
 
-There are several ways to access foreign functions.
+Function prototypes are created by factory functions.
 
-XXX as attributes of loaded libraries.
+They are created by calling one of the following factory functions:
 
 ``CFUNCTYPE(restype, *argtypes)`` : funcdesc
     This is a factory function that returns a function prototype. The
@@ -250,12 +252,12 @@ be exact, they are methods of the metaclass):
     library. name is the name of the symbol that exports the data,
     library is the loaded shared library.
 
-simple data types
------------------
+Fundamental data types
+----------------------
 
 ``_SimpleCData`` : classdesc*
-    This non-public class is the base class of all simple ctypes data
-    types. It is mentioned here because it contains the common
+    This non-public class is the base class of all fundamental ctypes
+    data types. It is mentioned here because it contains the common
     attributes of the ctypes data types.
 
 Instances have a single attribute:
@@ -264,7 +266,7 @@ Instances have a single attribute:
     This attribute contains the actual value of the instance. For
     integer types, it is an integer.
 
-These are the simple ctypes data types:
+These are the fundamental ctypes data types:
 
 ``c_byte`` : classdesc*
     Represents the C signed char datatype, and interprets the value as

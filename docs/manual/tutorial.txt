@@ -172,8 +172,8 @@ can directly be used as parameters in these function calls.
 Before we move on calling functions with other parameter types, we
 have to learn more about ``ctypes`` data types.
 
-Simple data types
------------------
+Fundamental data types
+----------------------
 
 ``ctypes`` defines a number of primitive C compatible data types :
 
