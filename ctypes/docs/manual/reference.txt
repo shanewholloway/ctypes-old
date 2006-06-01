@@ -451,7 +451,6 @@ defining a ``_fields_`` class variable.  ``ctypes`` will create
 descriptors which allow read/write access to the fields.
 
 ``_fields_`` : memberdesc
-
     A sequence defining the structure fields.  The items must be
     2-tuples or 3-tuples.  The first tuple item is the name of the
     field, the second item specifies the type of the field; it must be
@@ -479,14 +478,13 @@ descriptors which allow read/write access to the fields.
     class variable will raise an AttributeError.
 
 ``_pack_`` : memberdesc
-
     An optional small integer that allows to override the alignment of
     structure fields in the instance.  ``_pack_`` must be defined when
     ``_fields_`` is assigned, otherwise it will have no effect.
 
 ``_anonymous_`` : memberdesc
-
-    An optional sequence that lists the names of anonymous fields.
+    An optional sequence that lists the names of unnamed (anonymous)
+    fields.
 
     The fields listed in this variable must be structure or union type
     fields.  ``ctypes`` will create descriptors in the structure type
