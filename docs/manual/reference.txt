@@ -43,6 +43,9 @@ loading shared libraries
 ``windll`` : vardesc
     XXX
 
+``pythonapi()`` : vardesc
+    XXX
+
 foreign functions
 -----------------
 
@@ -183,9 +186,6 @@ helper functions
 
     Note: If you just want to pass a pointer to an object to a foreign
     function call, you should use ``byref(obj)`` which is much faster.
-
-``pythonapi()`` : funcdesc
-    XXX Not a function.
 
 ``resize(obj, size)`` : funcdesc
     This function resizes the internal memory buffer of obj, which
