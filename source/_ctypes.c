@@ -3678,7 +3678,7 @@ Array_ass_slice(PyObject *_self, Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *va
 		ihigh = self->b_length;
 
 	len = PySequence_Length(value);
-	if (len != ihigh - ilow) {
+	if (self->b_length != 1 && len != ihigh - ilow) {
 		PyErr_SetString(PyExc_ValueError,
 				"Can only assign sequence of same size");
 		return -1;

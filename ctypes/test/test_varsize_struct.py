@@ -98,5 +98,18 @@ class VarSizeTest(unittest.TestCase):
         varsize_array[1:9] = range(1001, 1009)
         self.failUnlessEqual(varsize_array[1:9], range(1001, 1009))
 
+    def test_vararray_is_sane(self):
+        array = (c_int * 15)(20, 21, 22, 23, 24, 25, 26, 27, 28, 29)
+
+        varsize_array = (c_int * 1).from_address(addressof(array))
+        varsize_array[:] = [1, 2, 3, 4, 5]
+
+        self.failUnlessEqual(array[:], [1, 2, 3, 4, 5, 25, 26, 27, 28, 29, 0, 0, 0, 0, 0])
+        self.failUnlessEqual(varsize_array[0:10], [1, 2, 3, 4, 5, 25, 26, 27, 28, 29])
+
+        array[:5] = [10, 11, 12, 13, 14]
+        self.failUnlessEqual(array[:], [10, 11, 12, 13, 14, 25, 26, 27, 28, 29, 0, 0, 0, 0, 0])
+        self.failUnlessEqual(varsize_array[0:10], [10, 11, 12, 13, 14, 25, 26, 27, 28, 29])
+        
 if __name__ == "__main__":
     unittest.main()
