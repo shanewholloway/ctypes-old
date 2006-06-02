@@ -1,3 +1,18 @@
+2006-06-02  Thomas Heller  <theller@python.net>
+
+	* Fixed slice assignment to variable-sized arrays, with test.
+
+2006-06-01  Thomas Heller  <theller@python.net>
+
+	* Added support for unnamed structure fields, they must be listed
+	in the '_anonymous_' class variable.
+
+2006-05-31  Thomas Heller  <theller@python.net>
+
+	* Merged in changes done in Python trunk, by Bob Ippolito and
+	Ronald Oussuren: enable darwin/x86 support for libffi and hence
+	ctypes (doesn't yet support --enable-universalsdk)
+
 2006-05-23  Thomas Heller  <theller@python.net>
 
 	* ctypes\__init__.py: Fixed a possible FutureWarning when id()
