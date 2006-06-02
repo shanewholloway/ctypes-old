@@ -438,21 +438,21 @@ structured data types
     Abstract base class for unions in native byte order.
 
 ``BigEndianStructure(*args, **kw)`` : classdesc
-    Abstract base class for structures in big endian byte order.
+    Abstract base class for structures in *big endian* byte order.
 
 ``LittleEndianStructure(*args, **kw)`` : classdesc
-    Abstract base class for structures in little endian byte order.
+    Abstract base class for structures in *little endian* byte order.
+
+Structures with non-native byte order cannot contain pointer type
+fields, or any other data types containing pointer type fields.
 
 ``Structure(*args, **kw)`` : classdesc
-    Abstract base class for structures in native byte order.
+    Abstract base class for structures in *native* byte order.
 
 Concrete structure and union types must be created by subclassing one
 of these types, and at least define a ``_fields_`` class variable.
 ``ctypes`` will create descriptors which allow reading and writing the
-fields by direct attribute accesses.
-
-Structures with non-native byte order cannot contain pointer type
-fields, or any other data types containing pointer type fields.
+fields by direct attribute accesses.  These are the 
 
 ``_fields_`` : memberdesc
     A sequence defining the structure fields.  The items must be
@@ -460,13 +460,13 @@ fields, or any other data types containing pointer type fields.
     the second item specifies the type of the field; it can be any
     ctypes data type.
 
-    The third item is optional, and only allowed for integer field
-    types.  It allows to define structures containing bit fields, it
-    must be a small positive integer specifying the width of the bit
+    For integer type fields, a third optional item can be given.  It
+    must be a small positive integer defining the bit width of the
     field.
 
     Field names must be unique within one structure or union.  This is
-    not checked.
+    not checked, only one field can be accessed when names are
+    repeated.
 
     It is possible to define the ``_fields_`` class variable *after*
     the class statement that defines the Structure subclass, this
@@ -484,16 +484,27 @@ fields, or any other data types containing pointer type fields.
     called on it, and so on).  Later assignments to the ``_fields_``
     class variable will raise an AttributeError.
 
-    Structure and union subclass constructors accept both
+    Structure and union subclass constructors accept both positional
+    and named arguments.  Positional arguments are used to initialize
+    the fields in the same order as they appear in the ``_fields_``
+    definition, named arguments are used to initialize the fields with
+    the corresponding name.
+
+    It is possible to defined sub-subclasses of structure types, they
+    inherit the fields of the base class plus the ``_fields_`` defined
+    in the sub-subclass, if any.
+
 
 ``_pack_`` : memberdesc
     An optional small integer that allows to override the alignment of
-    structure fields in the instance.  ``_pack_`` must be defined when
-    ``_fields_`` is assigned, otherwise it will have no effect.
+    structure fields in the instance.  ``_pack_`` must already be
+    defined when ``_fields_`` is assigned, otherwise it will have no
+    effect.
 
 ``_anonymous_`` : memberdesc
     An optional sequence that lists the names of unnamed (anonymous)
-    fields.
+    fields.  ``_anonymous_`` must be already defined when ``_fields_``
+    is assigned, otherwise it will have no effect.
 
     The fields listed in this variable must be structure or union type
     fields.  ``ctypes`` will create descriptors in the structure type
@@ -525,3 +536,8 @@ fields, or any other data types containing pointer type fields.
         td.vt = VT_PTR
 	td.lptdesc = POINTER(some_type)
 	td.u.lptdesc = POINTER(some_type)
+
+It is possible to defined sub-subclasses of structures, they inherit
+the fields of the base class.  If the subclass definition has a
+separate``_fields_`` variable, the fields specified in this are
+appended to the fields of the base class.
