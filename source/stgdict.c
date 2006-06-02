@@ -199,7 +199,7 @@ MakeFields(PyObject *type, CFieldObject *descr)
 
   		Py_DECREF(fdescr);
 		
-		if (-1 == PyObject_SetAttr(type, fname, new_descr)) {
+		if (-1 == PyObject_SetAttr(type, fname, (PyObject *)new_descr)) {
 			Py_DECREF(fieldlist);
 			Py_DECREF(new_descr);
 			return -1;
