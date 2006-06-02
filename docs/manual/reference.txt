@@ -1,7 +1,7 @@
 ctypes reference
 ================
 
-loading shared libraries
+Loading shared libraries
 ------------------------
 
 ``LibraryLoader(dlltype)`` : classdesc
@@ -46,13 +46,16 @@ loading shared libraries
 ``pythonapi()`` : vardesc
     XXX
 
-foreign functions
+Foreign functions
 -----------------
 
 The ultimate goal of ``ctypes`` is to call functions in shared
 libraries, aka as foreign functions.  Foreign function instances can
-be created by accessing them as attributes of loaded shared libraries,
-or by instantiating a *function prototype*.
+be created by retrieving them as attributes of loaded shared
+libraries, or by instantiating a *function prototype*.
+
+By default, functions got as attributes of loaded shared libraries
+accept any arguments, and have a return type of ``c_int``.
 
 Function prototypes are created by factory functions.
 
@@ -87,8 +90,8 @@ They are created by calling one of the following factory functions:
 
 
 
-helper functions
-----------------
+Utility functions
+-----------------
 
 ``addressof(obj)`` : funcdesc
     Returns the address of the memory buffer as integer.  ``obj`` must
@@ -233,13 +236,13 @@ Data types
 ----------
 
 ``_CData`` : classdesc*
-    This non-public class is the base class of all ctypes data types.
-    Among other things, all ctypes type instances contain a memory
-    block that hold C compatible data; the address of the memory block
-    is returned by the ``addressof()`` helper function.  Another
-    instance variable is exposed as ``_objects``; this contains other
-    Python objects that need to be kept alive in case the memory block
-    contains pointers.
+    This non-public class is the common base class of all ctypes data
+    types.  Among other things, all ctypes type instances contain a
+    memory block that hold C compatible data; the address of the
+    memory block is returned by the ``addressof()`` helper function.
+    Another instance variable is exposed as ``_objects``; this
+    contains other Python objects that need to be kept alive in case
+    the memory block contains pointers.
 
 Common methods of ctypes data types, these are all class methods (to
 be exact, they are methods of the metaclass):
@@ -281,8 +284,8 @@ Fundamental data types
     This non-public class is the base class of all fundamental ctypes
     data types. It is mentioned here because it contains the common
     attributes of the fundamental ctypes data types.  ``_SimpleCData``
-    is a subclass of ``_CData``, so it inherits the methods and
-    attributes of that.
+    is a subclass of ``_CData``, so it inherits their methods and
+    attributes.
 
 Instances have a single attribute:
 
@@ -298,11 +301,12 @@ Instances have a single attribute:
     constructed.  The same is true for all other ctypes object
     instances.
 
-Fundamental data types, whether returned as result of foreign function
-calls, or, for example, by retrieving structure field members, are
-transparently converted to native Python types.  In other words, if a
-foreign function has a ``restype`` of ``c_char_p``, you will always
-receive a Python string, *not* a ``c_char_p`` instance.
+Fundamental data types, when returned as foreign function call
+results, or, for example, by retrieving structure field members or
+array items, are transparently converted to native Python types.  In
+other words, if a foreign function has a ``restype`` of ``c_char_p``,
+you will always receive a Python string, *not* a ``c_char_p``
+instance.
 
 Subclasses of fundamental data types do *not* inherit this behaviour.
 So, if a foreign functions ``restype`` is a subclass of ``c_void_p``,
@@ -431,7 +435,7 @@ These are the fundamental ctypes data types:
     Windows only: Represents a ``HRESULT`` value, which contains success
     or error information for a function or method call.
 
-structured data types
+Structured data types
 ---------------------
 
 ``Union(*args, **kw)`` : classdesc
@@ -541,3 +545,8 @@ It is possible to defined sub-subclasses of structures, they inherit
 the fields of the base class.  If the subclass definition has a
 separate``_fields_`` variable, the fields specified in this are
 appended to the fields of the base class.
+
+Arrays and pointers
+-------------------
+
+XXX
