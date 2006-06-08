@@ -138,8 +138,8 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(X.y.size, sizeof(c_char))
 
         # readonly
-        self.assertRaises(TypeError, setattr, X.x, "offset", 92)
-        self.assertRaises(TypeError, setattr, X.x, "size", 92)
+        self.assertRaises((TypeError, AttributeError), setattr, X.x, "offset", 92)
+        self.assertRaises((TypeError, AttributeError), setattr, X.x, "size", 92)
 
         class X(Union):
             _fields_ = [("x", c_int),
@@ -152,8 +152,8 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(X.y.size, sizeof(c_char))
 
         # readonly
-        self.assertRaises(TypeError, setattr, X.x, "offset", 92)
-        self.assertRaises(TypeError, setattr, X.x, "size", 92)
+        self.assertRaises((TypeError, AttributeError), setattr, X.x, "offset", 92)
+        self.assertRaises((TypeError, AttributeError), setattr, X.x, "size", 92)
 
         # XXX Should we check nested data types also?
         # offset is always relative to the class...
@@ -294,7 +294,7 @@ class StructureTestCase(unittest.TestCase):
         # In Python 2.5, Exception is a new-style class, and the repr changed
         if issubclass(Exception, object):
             self.failUnlessEqual(msg,
-                                 "(Phone) <class 'exceptions.TypeError'>: "
+                                 "(Phone) <type 'exceptions.TypeError'>: "
                                  "expected string or Unicode object, int found")
         else:
             self.failUnlessEqual(msg,
@@ -305,7 +305,7 @@ class StructureTestCase(unittest.TestCase):
         self.failUnlessEqual(cls, RuntimeError)
         if issubclass(Exception, object):
             self.failUnlessEqual(msg,
-                                 "(Phone) <class 'exceptions.ValueError'>: too many initializers")
+                                 "(Phone) <type 'exceptions.ValueError'>: too many initializers")
         else:
             self.failUnlessEqual(msg, "(Phone) exceptions.ValueError: too many initializers")
 
