@@ -111,7 +111,9 @@ class IncludeParser(object):
         """Create a temporary source file, 'compile' with gccxml to an
         xmlfile, and remove the source file again."""
         fname = self.create_source_file(lines)
-        args = ["gccxml", fname, "-fxml=%s" % xmlfile]
+        args = ["gccxml", fname]
+        if xmlfile is not None:
+            args.append("-fxml=%s" % xmlfile)
         if self.options.flags:
             args.extend(self.options.flags)
         try:
