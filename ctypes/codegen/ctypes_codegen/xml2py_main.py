@@ -101,15 +101,8 @@ def main(argv=None):
                       callback=windows_dlls,
                       help="add all standard windows dlls to the searched dlls list")
 
-##    try:
-##        import comtypes
-##    except ImportError:
-##        default_modules = ["ctypes", "ctypes.com"]
-##    else:
-##        default_modules = ["ctypes", "comtypes"]
     default_modules = ["ctypes.wintypes",
                        "ctypes",
-##                       "comtypes"
                        ]
         
     parser.add_option("-m",
