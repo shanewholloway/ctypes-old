@@ -291,33 +291,15 @@ class Generator(object):
             print >> self.stream, "# %s %s" % head.struct.location
         basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
-            self.need_GUID()
-            method_names = [m.name for m in head.struct.members if type(m) is typedesc.Method]
+###            method_names = [m.name for m in head.struct.members if type(m) is typedesc.Method]
             print >> self.stream, "class %s(%s):" % (head.struct.name, ", ".join(basenames))
-            print >> self.stream, "    _iid_ = GUID('{}') # please look up iid and fill in!"
-            if "Enum" in method_names:
-                print >> self.stream, "    def __iter__(self):"
-                print >> self.stream, "        return self.Enum()"
-            elif method_names == "Next Skip Reset Clone".split():
-                print >> self.stream, "    def __iter__(self):"
-                print >> self.stream, "        return self"
-                print >> self.stream
-                print >> self.stream, "    def next(self):"
-                print >> self.stream, "         arr, fetched = self.Next(1)"
-                print >> self.stream, "         if fetched == 0:"
-                print >> self.stream, "             raise StopIteration"
-                print >> self.stream, "         return arr[0]"
         else:
-            methods = [m for m in head.struct.members if type(m) is typedesc.Method]
-            if methods:
-                # Hm. We cannot generate code for IUnknown...
-                print >> self.stream, "assert 0, 'cannot generate code for IUnknown'"
-                print >> self.stream, "class %s(_com_interface):" % head.struct.name
-            elif type(head.struct) == typedesc.Structure:
+###            methods = [m for m in head.struct.members if type(m) is typedesc.Method]
+            if type(head.struct) == typedesc.Structure:
                 print >> self.stream, "class %s(Structure):" % head.struct.name
             elif type(head.struct) == typedesc.Union:
                 print >> self.stream, "class %s(Union):" % head.struct.name
-            print >> self.stream, "    pass"
+        print >> self.stream, "    pass"
         self.names.add(head.struct.name)
 
     _structures = 0
@@ -434,9 +416,13 @@ class Generator(object):
             elif type(m) is typedesc.Constructor:
                 pass
 
-        # we don't need _pack_ on Unions (I hope, at least), and not
-        # on COM interfaces:
-        if not methods:
+        if methods:
+            # XXX we have parsed the COM interface methods but should
+            # we emit any code for them?
+            pass
+        else:
+            # we don't need _pack_ on Unions (I hope, at least), and not
+            # on COM interfaces.
             try:
                 pack = calc_packing(body.struct, fields)
                 if pack is not None:
@@ -448,7 +434,13 @@ class Generator(object):
                 warnings.warn(message, UserWarning)
                 print >> self.stream, "# WARNING: %s" % details
 
-        if fields:
+        if not fields:
+            # XXX Normally this does not work for COM
+            # interfaces. _fields_ must be defined before they are
+            # subclassed.
+##            print >> self.stream, "%s._fields_ = []" % body.struct.name
+            pass
+        else:
             if body.struct.bases:
                 assert len(body.struct.bases) == 1
                 self.generate(body.struct.bases[0].get_body())
@@ -485,52 +477,6 @@ class Generator(object):
                 align = body.struct.align // 8
                 print >> self.stream, "assert alignment(%s) == %s, alignment(%s)" % \
                       (body.struct.name, align, body.struct.name)
-
-        if methods:
-            # Ha! Autodetect ctypes.com or comtypes ;)
-            if "COMMETHOD" in self.known_symbols:
-                self.need_COMMETHOD()
-            else:
-                self.need_STDMETHOD()
-            # method definitions normally span several lines.
-            # Before we generate them, we need to 'import' everything they need.
-            # So, call type_name for each field once,
-            for m in methods:
-                self.type_name(m.returns)
-                for a in m.iterArgTypes():
-                    self.type_name(a)
-            if "COMMETHOD" in self.known_symbols:
-                print >> self.stream, "%s._methods_ = [" % body.struct.name
-            else:
-                # ctypes.com needs baseclass methods listed as well
-                if body.struct.bases:
-                    basename = body.struct.bases[0].name
-                    print >> self.stream, "%s._methods_ = %s._methods + [" % \
-                          (body.struct.name, basename)
-                else:
-                    print >> self.stream, "%s._methods_ = [" % body.struct.name
-            if body.struct.location:
-                print >> self.stream, "# %s %s" % body.struct.location
-
-            if "COMMETHOD" in self.known_symbols:
-                for m in methods:
-                    if m.location:
-                        print >> self.stream, "    # %s %s" % m.location
-                    print >> self.stream, "    COMMETHOD([], %s, '%s'," % (
-                        self.type_name(m.returns),
-                        m.name)
-                    for a in m.iterArgTypes():
-                        print >> self.stream, \
-                              "               ( [], %s, )," % self.type_name(a)
-                    print >> self.stream, "             ),"
-            else:
-                for m in methods:
-                    args = [self.type_name(a) for a in m.iterArgTypes()]
-                    print >> self.stream, "    STDMETHOD(%s, '%s', [%s])," % (
-                        self.type_name(m.returns),
-                        m.name,
-                        ", ".join(args))
-            print >> self.stream, "]"
 
     def find_dllname(self, func):
         if hasattr(func, "dllname"):
@@ -577,29 +523,6 @@ class Generator(object):
             return
         print >> self.imports, "WSTRING = c_wchar_p"
         self._WSTRING_defined = True
-
-    _STDMETHOD_defined = False
-    def need_STDMETHOD(self):
-        if self._STDMETHOD_defined:
-            return
-        print >> self.imports, "from ctypes.com import STDMETHOD"
-        self._STDMETHOD_defined = True
-
-    _COMMETHOD_defined = False
-    def need_COMMETHOD(self):
-        if self._COMMETHOD_defined:
-            return
-        print >> self.imports, "from comtypes import COMMETHOD"
-        self._COMMETHOD_defined = True
-
-    _GUID_defined = False
-    def need_GUID(self):
-        if self._GUID_defined:
-            return
-        self._GUID_defined = True
-        modname = self.known_symbols.get("GUID")
-        if modname:
-            print >> self.imports, "from %s import GUID" % modname
 
     _functiontypes = 0
     _notfound_functiontypes = 0
