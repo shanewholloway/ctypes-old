@@ -1827,7 +1827,12 @@ unique_key(CDataObject *target, Py_ssize_t index)
 #if (PY_VERSION_HEX < 0x02050000)
 	cp += sprintf(cp, "%x", index);
 #else
+#ifdef MS_WIN32
+/* MSVC does not understand the 'z' size specifier */
+	cp += sprintf(cp, "%Ix", index);
+#else
 	cp += sprintf(cp, "%zx", index);
+#endif
 #endif
 	while (target->b_base) {
 		bytes_left = sizeof(string) - (cp - string) - 1;
@@ -1838,9 +1843,13 @@ unique_key(CDataObject *target, Py_ssize_t index)
 			return NULL;
 		}
 #if (PY_VERSION_HEX < 0x02050000)
-		cp += sprintf(cp, ":%x", target->b_index);
+		cp += sprintf(cp, ":%x", (int)target->b_index);
 #else
-		cp += sprintf(cp, ":%zx", target->b_index);
+#ifdef MS_WIN32
+		cp += sprintf(cp, ":%Ix", (size_t)target->b_index);
+#else
+		cp += sprintf(cp, ":%zx", (size_t)target->b_index);
+#endif
 #endif
 		target = target->b_base;
 	}
