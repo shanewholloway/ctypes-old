@@ -1,7 +1,8 @@
 # Create ctypes wrapper code for abstract type descriptions.
 # Type descriptions are collections of typedesc instances.
 
-import typedesc, sys, types
+import typedesc, sys
+import textwrap
 
 ASSUME_STRINGS = True
 
@@ -690,11 +691,11 @@ class Generator(object):
         self.output.write("\n\n")
         self.output.write(self.stream.getvalue())
 
-        import textwrap
         text = "__all__ = [%s]" % ", ".join([repr(str(n)) for n in self.names])
 
-        for line in textwrap.wrap(text,
-                                  subsequent_indent="           "):
+        wrapper = textwrap.TextWrapper(break_long_words=False,
+                                       subsequent_indent="           ")
+        for line in wrapper.wrap(text):
             print >> self.output, line
         return loops
 
