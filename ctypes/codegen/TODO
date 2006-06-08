@@ -1,0 +1,16 @@
+codegenerator bugs:
+
+- Don't use the no-longer existing cdecl or stdcall decorators.
+
+- Don't generate code for COM interfaces.
+
+- In ctypes/comtypes: Move GUID and _GUID into ctypes.wintypes.
+
+- Import definitions from ctypes.wintypes
+
+- When no '-o outfile' flag is given to h2xml.py, it generates an
+  output file named 'None' ;-).
+
+- Import the old docs into cvs.
+
+- Write a README file.

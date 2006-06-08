@@ -1,4 +1,6 @@
 2006-06-08  Thomas Heller  <theller@python.net>
 
+	* Added a TODO list.
+
 	* Initial import of the current ctypes codegenerator version.
 
