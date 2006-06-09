@@ -181,6 +181,7 @@ typedef struct {
 	PyObject *proto;		/* a type or NULL */
 	GETFUNC getfunc;		/* getter function if proto is NULL */
 	SETFUNC setfunc;		/* setter function if proto is NULL */
+	int anonymous;
 } CFieldObject;
 
 /* A subclass of PyDictObject, used as the instance dictionary of ctypes

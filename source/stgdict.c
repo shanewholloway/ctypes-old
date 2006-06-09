@@ -147,7 +147,8 @@ PyObject_stgdict(PyObject *self)
  and index adjusted, and stuff them into type.
  */
 static int
-MakeFields(PyObject *type, CFieldObject *descr)
+MakeFields(PyObject *type, CFieldObject *descr,
+	   Py_ssize_t index, Py_ssize_t offset)
 {
 	Py_ssize_t i;
 	PyObject *fields;
@@ -182,6 +183,17 @@ MakeFields(PyObject *type, CFieldObject *descr)
 			Py_DECREF(fieldlist);
 			return -1;
 		}
+		if (fdescr->anonymous) {
+			int rc = MakeFields(type, fdescr,
+					    index + fdescr->index,
+					    offset + fdescr->offset);
+			Py_DECREF(fdescr);
+			if (rc == -1) {
+				Py_DECREF(fieldlist);
+				return -1;
+			}
+			continue;
+		}
  		new_descr = (CFieldObject *)PyObject_CallObject((PyObject *)&CField_Type, NULL);
 		assert(new_descr->ob_type == &CField_Type);
 		if (new_descr == NULL) {
@@ -190,8 +202,8 @@ MakeFields(PyObject *type, CFieldObject *descr)
 			return -1;
 		}
  		new_descr->size = fdescr->size;
- 		new_descr->offset = fdescr->offset + descr->offset;
- 		new_descr->index = fdescr->index + descr->index;
+ 		new_descr->offset = fdescr->offset + offset;
+ 		new_descr->index = fdescr->index + index;
  		new_descr->proto = fdescr->proto;
  		Py_XINCREF(new_descr->proto);
  		new_descr->getfunc = fdescr->getfunc;
@@ -231,14 +243,18 @@ MakeAnonFields(PyObject *type)
 
 	for (i = 0; i < PySequence_Fast_GET_SIZE(anon_names); ++i) {
 		PyObject *fname = PySequence_Fast_GET_ITEM(anon_names, i); /* borrowed */
-		PyObject *descr = PyObject_GetAttr(type, fname);
+		CFieldObject *descr = (CFieldObject *)PyObject_GetAttr(type, fname);
 		if (descr == NULL) {
 			Py_DECREF(anon_names);
 			return -1;
 		}
 		assert(descr->ob_type == &CField_Type);
+		descr->anonymous = 1;
+
 		/* descr is in the field descriptor. */
-		if (-1 == MakeFields(type, (CFieldObject *)descr)) {
+		if (-1 == MakeFields(type, (CFieldObject *)descr,
+				     ((CFieldObject *)descr)->index,
+				     ((CFieldObject *)descr)->offset)) {
 			Py_DECREF(descr);
 			Py_DECREF(anon_names);
 			return -1;

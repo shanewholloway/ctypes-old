@@ -35,5 +35,26 @@ class AnonTest(unittest.TestCase):
                                                       {"_fields_": [],
                                                        "_anonymous_": ["x"]}))
 
+    def test_nested(self):
+        class ANON_S(Structure):
+            _fields_ = [("a", c_int)]
+
+        class ANON_U(Union):
+            _fields_ = [("_", ANON_S),
+                        ("b", c_int)]
+            _anonymous_ = ["_"]
+
+        class Y(Structure):
+            _fields_ = [("x", c_int),
+                        ("_", ANON_U),
+                        ("y", c_int)]
+            _anonymous_ = ["_"]
+        
+        self.failUnlessEqual(Y.x.offset, 0)
+        self.failUnlessEqual(Y.a.offset, sizeof(c_int))
+        self.failUnlessEqual(Y.b.offset, sizeof(c_int))
+        self.failUnlessEqual(Y._.offset, sizeof(c_int))
+        self.failUnlessEqual(Y.y.offset, sizeof(c_int) * 2)
+
 if __name__ == "__main__":
     unittest.main()
