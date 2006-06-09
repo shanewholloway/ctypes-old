@@ -4118,11 +4118,6 @@ Pointer_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 	}
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
-	if (index != 0) {
-		PyErr_SetString(PyExc_IndexError,
-				"invalid index");
-		return -1;
-	}
 	size = stgdict->size / stgdict->length;
 
 	/* XXXXX Make sure proto is NOT NULL! */
@@ -4501,11 +4496,17 @@ cast(void *ptr, PyObject *src, PyObject *ctype)
 	result = (CDataObject *)PyObject_CallFunctionObjArgs(ctype, NULL);
 	if (result == NULL)
 		return NULL;
-	/* KeepRef consumes a refcount on src */
-	Py_INCREF(src);
-	if (-1 == KeepRef(result, 0, src)) {
-		Py_DECREF(result);
-		return NULL;
+
+	if (CDataObject_Check(src)) {
+		CDataObject *obj = (CDataObject *)src;
+		/* CData_GetContainer will initialize src.b_objects, we need
+		   this so it can be shared */
+		CData_GetContainer(obj);
+		Py_XINCREF(obj->b_objects);
+		result->b_objects = obj->b_objects;
+
+		Py_XINCREF(obj->b_base);
+		result->b_base = obj->b_base;
 	}
 	/* Should we assert that result is a pointer type? */
 	memcpy(result->b_ptr, &ptr, sizeof(void *));
