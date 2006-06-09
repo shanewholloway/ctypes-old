@@ -4074,7 +4074,8 @@ static PyObject *
 Pointer_item(PyObject *_self, Py_ssize_t index)
 {
 	CDataObject *self = (CDataObject *)_self;
-	int size, offset;
+	int size;
+	Py_ssize_t offset;
 	StgDictObject *stgdict, *itemdict;
 	PyObject *proto;
 
@@ -4103,6 +4104,7 @@ Pointer_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 {
 	CDataObject *self = (CDataObject *)_self;
 	int size;
+	Py_ssize_t offset;
 	StgDictObject *stgdict;
 
 	if (value == NULL) {
@@ -4119,10 +4121,11 @@ Pointer_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
 	size = stgdict->size / stgdict->length;
+	offset = index * size;
 
 	/* XXXXX Make sure proto is NOT NULL! */
 	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
-			 index, size, *(void **)self->b_ptr);
+			 index, size, (*(char **)self->b_ptr) + offset);
 }
 
 static PyObject *
@@ -4139,8 +4142,8 @@ Pointer_get_contents(CDataObject *self, void *closure)
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
 	return CData_FromBaseObj(stgdict->proto,
-				   (PyObject *)self, 0,
-				   *(void **)self->b_ptr);
+				 (PyObject *)self, 0,
+				 *(void **)self->b_ptr);
 }
 
 static int
@@ -4497,16 +4500,34 @@ cast(void *ptr, PyObject *src, PyObject *ctype)
 	if (result == NULL)
 		return NULL;
 
+	/*
+	  The casted objects '_objects' member:
+
+	  It must certainly contain the source objects one.
+	  It must contain the source object itself.
+	 */
 	if (CDataObject_Check(src)) {
 		CDataObject *obj = (CDataObject *)src;
 		/* CData_GetContainer will initialize src.b_objects, we need
 		   this so it can be shared */
 		CData_GetContainer(obj);
-		Py_XINCREF(obj->b_objects);
+		/* But we need a dictionary! */
+		if (obj->b_objects == Py_None) {
+			Py_DECREF(Py_None);
+			obj->b_objects = PyDict_New();
+		}
+		Py_INCREF(obj->b_objects);
 		result->b_objects = obj->b_objects;
-
-		Py_XINCREF(obj->b_base);
-		result->b_base = obj->b_base;
+		if (result->b_objects) {
+			PyObject *index = PyLong_FromVoidPtr((void *)src);
+			int rc;
+			if (index == NULL)
+				return NULL;
+			rc = PyDict_SetItem(result->b_objects, index, src);
+			Py_DECREF(index);
+			if (rc == -1)
+				return NULL;
+		}
 	}
 	/* Should we assert that result is a pointer type? */
 	memcpy(result->b_ptr, &ptr, sizeof(void *));
