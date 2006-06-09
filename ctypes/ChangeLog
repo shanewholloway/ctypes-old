@@ -1,3 +1,11 @@
+2006-06-09  Thomas Heller  <theller@python.net>
+
+	* A casted object does now reference the source objects '_objects'
+	member.
+
+	* It is now possible to assign arbitrary indexes on pointer
+	instances.
+
 2006-06-08  Thomas Heller  <theller@python.net>
 
 	* Merged in changes done in Python trunk: Fixes for 64-bit big

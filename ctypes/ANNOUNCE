@@ -1,5 +1,5 @@
-ctypes 0.9.9.6 released - Apr 20, 2006
-=====================================
+ctypes 0.9.9.7 released - June 9, 2006
+======================================
 
 Overview
 
@@ -16,6 +16,29 @@ Overview
     FreeBSD, OpenBSD. It may also run on other systems, provided that
     libffi supports this platform.
 
+
+Changes in 0.9.9.7
+
+    Fixes for 654-bit big endian machines.
+
+    It is now possible to read and write any indexes of pointer
+    instances (up to 0.9.9.6, reading was allowed for any indexes, but
+    writing only for index zero).
+
+    Support for unnamed (anonymous) structure fields has been added,
+    the field names must be listed in the '_anonymous_' class
+    variable.
+
+    Enabled darwin/x86 support for libffi (Bob Ippolito and Ronald
+    Oussuren).
+
+    Added support for variable sized data structures: array
+    types with exactly 1  element don't do  bounds checking any  more,
+    and  a resize  function can resize  the internal  memory buffer of
+    ctypes instances.
+
+    Fixed a bug with certain array or structure types that contained
+    more than 256 elements.
 
 Changes in 0.9.9.6
 
