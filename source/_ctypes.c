@@ -4085,9 +4085,9 @@ Pointer_item(PyObject *_self, Py_ssize_t index)
 		return NULL;
 	}
 
-
 	stgdict = PyObject_stgdict((PyObject *)self);
 	assert(stgdict);
+	assert(stgdict->proto);
 	
 	proto = stgdict->proto;
 	/* XXXXXX MAKE SURE PROTO IS NOT NULL! */
@@ -4095,7 +4095,7 @@ Pointer_item(PyObject *_self, Py_ssize_t index)
 	size = itemdict->size;
 	offset = index * itemdict->size;
 
-	return CData_get(stgdict->proto, stgdict->getfunc, (PyObject *)self,
+	return CData_get(proto, stgdict->getfunc, (PyObject *)self,
 			 index, size, (*(char **)self->b_ptr) + offset);
 }
 
@@ -4105,7 +4105,8 @@ Pointer_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 	CDataObject *self = (CDataObject *)_self;
 	int size;
 	Py_ssize_t offset;
-	StgDictObject *stgdict;
+	StgDictObject *stgdict, *itemdict;
+	PyObject *proto;
 
 	if (value == NULL) {
 		PyErr_SetString(PyExc_TypeError,
@@ -4120,11 +4121,16 @@ Pointer_ass_item(PyObject *_self, Py_ssize_t index, PyObject *value)
 	}
 	
 	stgdict = PyObject_stgdict((PyObject *)self);
-	size = stgdict->size / stgdict->length;
-	offset = index * size;
+	assert(stgdict);
+	assert(stgdict->proto);
 
-	/* XXXXX Make sure proto is NOT NULL! */
-	return CData_set((PyObject *)self, stgdict->proto, stgdict->setfunc, value,
+	proto = stgdict->proto;
+	/* XXXXXX MAKE SURE PROTO IS NOT NULL! */
+	itemdict = PyType_stgdict(proto);
+	size = itemdict->size;
+	offset = index * itemdict->size;
+
+	return CData_set((PyObject *)self, proto, stgdict->setfunc, value,
 			 index, size, (*(char **)self->b_ptr) + offset);
 }
 
