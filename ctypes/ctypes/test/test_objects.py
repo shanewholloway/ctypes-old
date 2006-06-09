@@ -42,7 +42,7 @@ The'array' attribute of the 'x' object shares part of the memory buffer
 of 'x' ('_b_base_' is either None, or the root object owning the memory block):
 
 >>> print x.array._b_base_ # doctest: +ELLIPSIS
-<X object at 0x...>
+<ctypes.test.test_objects.X object at 0x...>
 >>>
 
 >>> x.array[0] = 'spam spam spam'
@@ -54,13 +54,13 @@ of 'x' ('_b_base_' is either None, or the root object owning the memory block):
 
 '''
 
-import unittest, os
+import unittest, doctest
+
+import ctypes.test.test_objects
 
 class TestCase(unittest.TestCase):
     def test(self):
-        import doctest
-        doctest.testfile(os.path.abspath(__file__))
+        doctest.testmod(ctypes.test.test_objects)
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testfile(os.path.abspath(__file__))
+    doctest.testmod(ctypes.test.test_objects)
