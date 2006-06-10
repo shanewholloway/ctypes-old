@@ -19,15 +19,16 @@ Overview
 
 Changes in 0.9.9.7
 
-    Fixes for 654-bit big endian machines.
+    Fixes for 64-bit big endian machines.
 
-    It is now possible to read and write any indexes of pointer
-    instances (up to 0.9.9.6, reading was allowed for any indexes, but
+    It is now possible to read and write any index of pointer
+    instances (up to 0.9.9.6, reading was allowed for any index, but
     writing only for index zero).
 
     Support for unnamed (anonymous) structure fields has been added,
     the field names must be listed in the '_anonymous_' class
-    variable.
+    variable.  Fields of unnamed structure fields can be accessed
+    directly from the parent structure.
 
     Enabled darwin/x86 support for libffi (Bob Ippolito and Ronald
     Oussuren).
