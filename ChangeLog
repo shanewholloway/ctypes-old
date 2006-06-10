@@ -1,6 +1,14 @@
+2006-06-10  Thomas Heller  <theller@python.net>
+
+	* Fix build on MIPS for libffi.
+
 2006-06-09  Thomas Heller  <theller@python.net>
 
-	* Tagged release 0_9_9_7.
+	* Correctly support nested anonymous structures/union fields.
+	
+	* Remove the restriction that pointer item assignments only work
+	with index of zero.  Another fix for the cast function to keep
+	needed objects alive.
 
 	* A casted object does now reference the source objects '_objects'
 	member.
