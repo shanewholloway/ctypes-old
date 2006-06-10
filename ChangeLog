@@ -1,5 +1,7 @@
 2006-06-10  Thomas Heller  <theller@python.net>
 
+	* Tagged release_0_9_9_7.
+
 	* Fix build on MIPS for libffi.
 
 2006-06-09  Thomas Heller  <theller@python.net>
