@@ -163,16 +163,16 @@ attribute of the loader instance.
 These prefabricated library loaders are available:
 
 ``cdll`` : vardesc
-    Loads ``CDLL`` instances.
+    Creates ``CDLL`` instances.
 
 ``windll`` : vardesc
-    Windows only: Loads ``WinDLL`` instances.
+    Windows only: Creates ``WinDLL`` instances.
 
 ``oledll`` : vardesc
-    Windows only: Loads ``OleDLL`` instances.
+    Windows only: Creates ``OleDLL`` instances.
 
 ``pydll`` : vardesc
-    Loads ``PyDLL`` instances.
+    Creates ``PyDLL`` instances.
 
 
 For accessing the C Python api directly, a ready-to-use Python shared
@@ -182,22 +182,77 @@ library object is available:
     An instance of ``PyDLL`` that exposes Python C api functions as
     attributes.  Note that all these functions are assumed to return
     integers, which is of course not always the truth, so you have to
-    assign the correct ``restype`` attribute.
+    assign the correct ``restype`` attribute to use these functions.
 
 Foreign functions
 -----------------
 
-The ultimate goal of ``ctypes`` is to call functions in shared
-libraries, aka as foreign functions.  Foreign function instances can
-be created by retrieving them as attributes of loaded shared
-libraries, or by instantiating a *function prototype*.
+As explained in the previous section, foreign functions can be
+accessed as attributes of loaded shared libraries.  The function
+objects created in this way by default accept any number of arguments,
+accept any ctypes data instances as arguments, and return the default
+result type specified by the library loader.
 
-By default, functions got as attributes of loaded shared libraries
-accept any arguments, and have a return type of ``c_int``.
+This behaviour can be customized by assigning to special attributes of
+the foreign function object.
 
-Function prototypes are created by factory functions.
+``restype`` : memberdesc
+    Assign a ctypes type to specify the result type of the foreign
+    function.  Use ``None`` for ``void`` a function not returning
+    anything.
 
-They are created by calling one of the following factory functions:
+    It is possible to assign a callable Python object that is not a
+    ctypes type, in this case the function is assumed to return an
+    integer, and the callable will be called with this integer,
+    allowing to do further processing or error checking.  Using this
+    is deprecated, for more flexible postprocessing or error checking
+    use a ctypes data type as ``restype`` and assign a callable to the
+    ``errcheck`` attribute.
+
+``argtypes``: memberdesc
+    Assign a tuple of ctypes types to specify the argument types that
+    the function accepts.  Functions using the ``stdcall`` calling
+    convention can only be called with the same number of arguments as
+    the length of this tuple; functions using the C calling convention
+    accept additional, unspecified arguments as well.
+
+    When a foreign function is called, each actual argument is passed
+    to the ``from_param`` class method of the items in the
+    ``argtypes`` tuple, this method allows to adapt the actual
+    argument to an object that the foreign function accepts.  For
+    example, a ``c_char_p`` item in the ``argtypes`` tuple will
+    convert a unicode string passed as argument into an byte string
+    using ctypes conversion rules.
+
+``errcheck`` : memberdesc
+    Assign a Python function or another callable to this attribute.
+    The callable will be called with three or more arguments:
+
+``callable(result, func, arguments, *others)`` : funcdescni
+    ``result`` is what the foreign function returns, as specified by the
+    ``restype`` attribute.
+
+    ``func`` is the foreign function object itself, this allows to
+    reuse the same callable object to check or postprocess the results
+    of several functions.
+
+    ``arguments`` is a tuple containing the parameters originally
+    passed to the function call, this allows to specialize the
+    behaviour on the arguments used.
+
+    The object that this function returns will be returned from the
+    foreign function call, but it can also check the result value and
+    raise an exception if the foreign function call failed.
+    
+    ``others`` will usually be an empty tuple, it is only used in
+    combination with ``paramflags`` documented below.
+
+Foreign functions can also be created by instantiating function
+prototypes.  Function prototypes are comparable to function prototypes
+in C; they describe a function (return type, argument types, calling
+convention) without defining an implementation.
+
+Function prototypes are created by calling a factory function:
 
 ``CFUNCTYPE(restype, *argtypes)`` : funcdesc
     This is a factory function that returns a function prototype. The
@@ -217,7 +272,8 @@ They are created by calling one of the following factory functions:
     function, and acquire it back after leaving the function code.
 
 ``WINFUNCTYPE(restype, *argtypes)`` : funcdesc
-    TBD
+    Same as ``CFUNCTYPE``, but the function will use the ``stdcall``
+    calling convention.
 
 ``PYFUNCTYPE(restype, *argtypes)`` : funcdesc
     TBD
@@ -387,10 +443,17 @@ be exact, they are methods of the metaclass):
 
 ``from_address(address)`` : methoddesc
     This method returns a ctypes type instance using the memory
-    specified by address.
+    specified by address which must be an integer.
 
 ``from_param(obj)`` : methoddesc
-    This method adapts obj to a ctypes type. 
+    This method adapts obj to a ctypes type.  It is called with the
+    actual object used in a foreign function call, when the type is
+    present in the foreign functions ``argtypes`` tuple; it must
+    return an object that can be used as function call parameter.
+
+    All ctypes data types have a default implementation of this
+    classmethod, normally it returns ``obj`` if that is an instance of
+    the type.  Some types accept other objects as well.
 
 ``in_dll(name, library)`` : methoddesc
     This method returns a ctypes type instance exported by a shared
