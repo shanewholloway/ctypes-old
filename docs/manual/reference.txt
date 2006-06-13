@@ -74,7 +74,7 @@ process.  One way is to instantiate one of the following classes:
     Functions in these libraries use the standard C calling
     convention, and are assumed to return ``int``.
 
-``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
     Windows only: Instances of this class represent loaded shared
     libraries, functions in these libraries use the ``stdcall``
     calling convention, and are assumed to return the windows specific
@@ -83,7 +83,7 @@ process.  One way is to instantiate one of the following classes:
     with additional error code.  If the return value signals a
     failure, an ``WindowsError`` is automatically raised.
 
-``WinDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+``WinDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
     Windows only: Instances of this class represent loaded shared
     libraries, functions in these libraries use the ``stdcall``
     calling convention, and are assumed to return ``int`` by default.
@@ -95,7 +95,7 @@ process.  One way is to instantiate one of the following classes:
 The Python GIL is released before calling any function exported by
 these libraries, and reaquired afterwards.
 
-``PyDLL(name, mode=RTLD_LOCAL, handle=None)`` : funcdesc
+``PyDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
     Instances of this class behave like ``CDLL`` instances, except
     that the Python GIL is *not* released during the function call,
     and after the function execution the Python error flag is checked.
