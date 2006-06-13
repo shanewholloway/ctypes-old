@@ -1,3 +1,8 @@
+2006-06-13  Thomas Heller  <theller@python.net>
+
+	* Fixed a problem in gccxmlparser.py when 'Constructor'
+	descriptions created by gccxml gave no 'name' attribute.
+
 2006-06-09  Thomas Heller  <theller@python.net>
 
 	* ctypes_codegen\codegenerator.py: Added a USE_COMMENTS variable
@@ -10,8 +15,8 @@
 
 2006-06-08  Thomas Heller  <theller@python.net>
 
-	* ctypes_codegen\codegenerator.py: When generating the '__all__' list,
-	don't break long strings.
+	* ctypes_codegen\codegenerator.py: When generating the '__all__'
+	list, don't break long strings.
 
 	* h2xml does no longer create a file named 'None' when no output
 	file was given on the command line.
