@@ -179,7 +179,6 @@ For accessing the C Python api directly, a ready-to-use Python shared
 library object is available:
 
 ``pythonapi`` : vardesc
-
     An instance of ``PyDLL`` that exposes Python C api functions as
     attributes.  Note that all these functions are assumed to return
     integers, which is of course not always the truth, so you have to
@@ -344,7 +343,7 @@ Utility functions
     on encoding/decoding errors. Examples of possible values are
     ``"strict"``, ``"replace"``, or ``"ignore"``.
 
-    set_conversion_mode returns a 2-tuple containing the previous
+    ``set_conversion_mode`` returns a 2-tuple containing the previous
     conversion rules. On windows, the initial conversion rules are
     ``('mbcs', 'ignore')``, on other systems ``('ascii', 'strict')``.
 
