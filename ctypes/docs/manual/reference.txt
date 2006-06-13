@@ -136,7 +136,7 @@ an underscore to not clash with exported function names:
 ``_handle``: memberdescni
     The system handle used to access the library.
 
-``_name'': memberdescni
+``_name``: memberdescni
     The name of the library passed in the contructor.
 
 
