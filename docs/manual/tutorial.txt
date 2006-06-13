@@ -55,13 +55,8 @@ calling the constructor::
        <CDLL 'libc.so.6', handle ... at ...>
        >>>
 
-XXX Add section for Mac OS X.
+.. XXX Add section for Mac OS X.
 
-Finding shared libraries
-------------------------
-
-XXX Add description of ctypes.util.find_library (once I really
-understand it enough to describe it).
 
 Accessing functions from loaded dlls
 ------------------------------------
