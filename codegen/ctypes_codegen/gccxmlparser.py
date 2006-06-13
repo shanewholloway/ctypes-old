@@ -206,7 +206,9 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         func.returns = self.all[func.returns]
 
     def Constructor(self, attrs):
-        name = attrs["name"]
+        name = attrs.get("name", None)
+        if not name:
+            name = attrs["mangled"]
         return typedesc.Constructor(name)
 
     def _fixup_Constructor(self, const): pass
