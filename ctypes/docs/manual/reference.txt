@@ -133,10 +133,10 @@ each time.
 The following public attributes are available, their name starts with
 an underscore to not clash with exported function names:
 
-``_handle``: memberdescni
+``_handle``: memberdesc
     The system handle used to access the library.
 
-``_name``: memberdescni
+``_name``: memberdesc
     The name of the library passed in the contructor.
 
 
