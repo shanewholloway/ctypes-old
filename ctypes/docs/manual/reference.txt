@@ -301,7 +301,7 @@ the parameters in the call.
     ``func_spec`` must be a 2-tuple ``(name_or_ordinal, library)``.
     The first item is the name of the exported function as string, or
     the ordinal of the exported function as small integer.  The second
-    item must the shared library instance.
+    item is the shared library instance.
 
 ``prototype(vtbl_index, name[, paramflags[, iid]])`` : funcdescni
     Returns a foreign function that will call a COM method.
@@ -314,7 +314,32 @@ the parameters in the call.
     pointer to the COM interface as first argument, in addition to
     those parameters that are specified in the ``argtypes`` tuple.
 
-XXX Document paramflags.
+The optional ``paramflags`` parameter creates foreign function
+wrappers with much more functionality than the features described
+above, it may be used to implement frameworks with ctypes.
+
+It must be a sequence of tuples, it must have the same length as
+``argtypes``.  Each item in the ``paramflags`` tuple contains further
+information about each parameter, it must be a tuple again which
+contains 1, 2, or 3 items.
+
+The first item must be an integer which specifies flags for the
+parameter.  The following flag values are defined:
+
+1
+    Specifies an input parameter to the function.
+
+2
+    Output parameter.  The foreign function fills in a value.
+
+4
+    Input parameter which defaults to the integer zero.
+
+The second item is the parameter name.  If this is specified, the
+foreign function supports named parameters.
+
+The third item is the default value for this parameter.
+
 
 
 Utility functions
