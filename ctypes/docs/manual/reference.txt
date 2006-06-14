@@ -194,7 +194,7 @@ accept any ctypes data instances as arguments, and return the default
 result type specified by the library loader.  They are instances of a
 private class:
 
-``_FuncPtr`` : classdescni
+``_FuncPtr`` : classdesc
     Base class for C callable foreign functions.
 
 This behaviour can be customized by assigning to special attributes of
@@ -277,12 +277,14 @@ types of the function.
     Python calling convention.  The function will *not* release the
     GIL during the call.
 
-Instantiating function prototypes
-.................................
+Function prototypes created by the factory functions can be
+instantiated in different ways, depending on how they are called.
 
-Function prototypes created by the factory functions can be instatiated
-in different ways, depending on how they are called.
-
+    prototype(integer address) -> foreign function
+    prototype(callable) -> create and return a C callable function from callable
+    prototype(integer index, method name[, paramflags]) -> foreign function calling a COM method
+    prototype((ordinal number, dll object)[, paramflags]) -> foreign function exported by ordinal
+    prototype((function name, dll object)[, paramflags]) -> foreign function exported by name
 
 XXX Where does the exception description belong?
 
