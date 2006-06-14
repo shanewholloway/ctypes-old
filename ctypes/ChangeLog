@@ -1,3 +1,10 @@
+2006-06-12  Thomas Heller  <theller@python.net>
+
+	* Fix wrong printf format in _ctypes.c.
+
+	* Release the GIL during COM method calls, to avoid deadlocks in
+	Python coded COM objects.
+
 2006-06-10  Thomas Heller  <theller@python.net>
 
 	* Tagged release_0_9_9_7.
