@@ -209,7 +209,7 @@ the foreign function object.
     use a ctypes data type as ``restype`` and assign a callable to the
     ``errcheck`` attribute.
 
-``argtypes``: memberdesc
+``argtypes`` : memberdesc
     Assign a tuple of ctypes types to specify the argument types that
     the function accepts.  Functions using the ``stdcall`` calling
     convention can only be called with the same number of arguments as
