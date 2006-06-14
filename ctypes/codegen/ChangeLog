@@ -1,3 +1,8 @@
+2006-06-13  Thomas Heller  <theller@python.net>
+
+	* The '-l' option for the xml2py.py script now takes the linker
+	library name instead of the library pathname.
+
 2006-06-14  Thomas Heller  <theller@python.net>
 
 	* The subprocess module is now required, although the code is
