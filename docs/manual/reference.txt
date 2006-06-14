@@ -316,15 +316,14 @@ the parameters in the call.
 
 The optional ``paramflags`` parameter creates foreign function
 wrappers with much more functionality than the features described
-above, it may be used to implement frameworks with ctypes.
+above.
 
-It must be a sequence of tuples, it must have the same length as
-``argtypes``.  Each item in the ``paramflags`` tuple contains further
-information about each parameter, it must be a tuple again which
-contains 1, 2, or 3 items.
+``paramflags`` must be a tuple of the same length as ``argtypes``.
 
-The first item must be an integer which specifies flags for the
-parameter.  The following flag values are defined:
+Each item in this tuple contains further information about a
+parameter, it must be a tuple containing 1, 2, or 3 items.
+
+The first item is an integer containing flags for the parameter.
 
 1
     Specifies an input parameter to the function.
@@ -335,10 +334,38 @@ parameter.  The following flag values are defined:
 4
     Input parameter which defaults to the integer zero.
 
-The second item is the parameter name.  If this is specified, the
-foreign function supports named parameters.
+The optional second item is the parameter name as string.  If this is
+specified, the foreign function can be called with named parameters.
 
-The third item is the default value for this parameter.
+The optional third item is the default value for this parameter.
+
+This example demonstrates how to wrap the Windows ``MessageBoxA``
+function so that it supports default parameters and named arguments.
+The C declaration from the windows header file is this::
+
+    WINUSERAPI int WINAPI
+    MessageBoxA(
+	HWND hWnd ,
+	LPCSTR lpText,
+	LPCSTR lpCaption,
+	UINT uType);
+
+Here is the wrapping with ``ctypes``:
+
+    >>> from ctypes import c_int, WINFUNCTYPE, wndll
+    >>> from ctypes.wintypes import HWND, LPCSTR, UINT
+    >>> prototype = WINFUNCTYPE(c_int, HWND, LPCSTR, LPCSTR, c_uint)
+    >>> paramflags = (1, "hwnd", 0), (1, "text", "Hi"), (1, "caption", None), (1, "flags", 0)
+    >>> MessageBox = prototype(("MessageBoxA", windll.user32), paramflags)
+    >>>
+
+The MessageBox foreign function can now be called in these ways::
+
+    >>> MessageBox()
+    >>> MessageBox(text="Spam, spam, spam")
+    >>> MessageBox(flags=2, text="foo bar")
+    >>>
+
 
 
 
