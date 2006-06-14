@@ -278,13 +278,37 @@ types of the function.
     GIL during the call.
 
 Function prototypes created by the factory functions can be
-instantiated in different ways, depending on how they are called.
+instantiated in different ways, depending on the type and number of
+the parameters in the call.
 
-    prototype(integer address) -> foreign function
-    prototype(callable) -> create and return a C callable function from callable
-    prototype(integer index, method name[, paramflags]) -> foreign function calling a COM method
-    prototype((ordinal number, dll object)[, paramflags]) -> foreign function exported by ordinal
-    prototype((function name, dll object)[, paramflags]) -> foreign function exported by name
+``prototype(address)`` : funcdescni
+    Returns a foreign function at the specified address.
+
+``prototype(callable)`` : funcdescni
+    Create a C callable function (a callback function) from a Python
+    ``callable``.
+
+``prototype((name, library)[, paramflags])`` : funcdescni
+    Returns a foreign function by looking up ``name`` in the shared
+    library ``dll``.
+
+``prototype((ordinal, library)[, paramflags])`` : funcdescni
+    Returns a foreign function which is exported by the ordinal number
+    ``ordinal`` in the shared library ``dll``.  This mechanism only
+    exists on Windows.
+
+``prototype(vtbl_index, name[, paramflags[, iid]])`` : funcdescni
+    Returns a foreign function that will call a COM method.
+    ``vtbl_index`` is the index into the virtual function table, a
+    small nonnegative integer. ``name`` is name of the COM method.
+    ``iid`` is an optional pointer to the interface identifier which
+    is used in extended error reporting.
+
+    COM methods use a special calling convention: They require a
+    pointer to the COM interface as first argument, in addition to
+    those parameters that are specified in the ``argtypes`` tuple.
+
+XXX Document paramflags.
 
 XXX Where does the exception description belong?
 
