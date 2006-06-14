@@ -191,7 +191,11 @@ As explained in the previous section, foreign functions can be
 accessed as attributes of loaded shared libraries.  The function
 objects created in this way by default accept any number of arguments,
 accept any ctypes data instances as arguments, and return the default
-result type specified by the library loader.
+result type specified by the library loader.  They are instances of a
+private class:
+
+``_FuncPtr`` : classdescni
+    Base class for C callable foreign functions.
 
 This behaviour can be customized by assigning to special attributes of
 the foreign function object.
