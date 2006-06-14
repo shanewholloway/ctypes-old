@@ -247,36 +247,40 @@ the foreign function object.
     ``others`` will usually be an empty tuple, it is only used in
     combination with ``paramflags`` documented below.
 
-Foreign functions can also be created by instantiating function
-prototypes.  Function prototypes are comparable to function prototypes
-in C; they describe a function (return type, argument types, calling
-convention) without defining an implementation.
+Instances of foreign functions are also C compatible data types; they
+represent C function pointers.
 
-Function prototypes are created by calling a factory function:
+Foreign functions can also be created by instantiating function
+prototypes.  Function prototypes are similar to function prototypes in
+C; they describe a function (return type, argument types, calling
+convention) without defining an implementation.  The factory
+functions must be called with the desired result type and the argument
+types of the function.
 
 ``CFUNCTYPE(restype, *argtypes)`` : funcdesc
-    This is a factory function that returns a function prototype. The
-    function prototype describes a function that has a result type of
-    ``restype``, and accepts arguments as specified by
-    ``argtypes``. The function prototype can be used to construct
-    several kinds of functions, depending on how the prototype is
-    called.
-
-    The prototypes returned by ``CFUNCTYPE`` or ``PYFUNCTYPE`` create
-    functions that use the standard C calling convention, prototypes
-    returned from ``WINFUNCTYPE`` (on Windows) use the ``__stdcall``
-    calling convention.
-
-    Functions created by calling the ``CFUNCTYPE`` and ``WINFUNCTYPE``
-    prototypes release the Python GIL before entering the foreign
-    function, and acquire it back after leaving the function code.
+    The returned function prototype creates functions that use the
+    standard C calling convention.  The function will release the GIL
+    during the call.
 
 ``WINFUNCTYPE(restype, *argtypes)`` : funcdesc
-    Same as ``CFUNCTYPE``, but the function will use the ``stdcall``
-    calling convention.
+    Windows only: The returned function prototype creates functions
+    that use the ``stdcall`` calling convention, except on Windows CE
+    where ``WINFUNCTYPE`` is the same as ``CFUNCTYPE``.  The function
+    will release the GIL during the call.
 
 ``PYFUNCTYPE(restype, *argtypes)`` : funcdesc
-    TBD
+    The returned function prototype creates functions that use the
+    Python calling convention.  The function will *not* release the
+    GIL during the call.
+
+Instantiating function prototypes
+.................................
+
+Function prototypes created by the factory functions can be instatiated
+in different ways, depending on how they are called.
+
+
+XXX Where does the exception description belong?
 
 ``ArgumentError()`` : excdesc
     This exception is raised when a foreign function call cannot
@@ -638,6 +642,10 @@ These are the fundamental ctypes data types:
 
 ``py_object`` : classdesc*
     Represents the C ``PyObject *`` datatype.
+
+The ``ctypes.wintypes`` module provides quite some other Windows
+specific data types, for example ``HWND``, ``WPARAM``, or ``DWORD``.
+Some useful structures like ``MSG`` or ``RECT`` are also defined.
 
 Structured data types
 ---------------------
