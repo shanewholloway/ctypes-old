@@ -132,7 +132,15 @@ def main(argv=None):
     known_symbols = {}
 
     from ctypes import CDLL
-    dlls = [CDLL(name) for name in options.dlls]
+    from ctypes.util import find_library
+
+    def load_library(name):
+        path = find_library(name)
+        if path is None:
+            raise RuntimeError("Library '%s' not found" % name)
+        return CDLL(path)
+
+    dlls = [load_library(name) for name in options.dlls]
 
     for name in options.modules:
         mod = __import__(name)
