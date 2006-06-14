@@ -1,5 +1,4 @@
-import sys, os, re, tempfile
-C_KEYWORDS = EXCLUDED = EXCLUDED_RE = []
+import sys, os, re, tempfile, linecache
 import gccxmlparser, typedesc
 import subprocess # the subprocess module is required
 
@@ -43,14 +42,10 @@ class IncludeParser(object):
           flags - sequence of strings
           keep_temporary_files - true if temporary files should not be deleted
           cpp_symbols - whether to include preprocessor symbols in the XML file
-          excluded_symbols - collection of names for additional preprocessor symbols to exclude
-          excluded_symbols_re - collection of regular expressions for names to exclude
           xml_file - pathname of output file (may be None)
         """
         self.options = options
         self.excluded = set()
-        self.excluded.update(EXCLUDED)
-        self.excluded.update(self.options.excluded_symbols)
         try:
             data = open(EXCLUDES_FILE, "U").read()
         except IOError:
@@ -58,11 +53,6 @@ class IncludeParser(object):
         else:
             self.excluded.update(data.splitlines())
             
-
-        self.excluded_re = set()
-        self.excluded_re.update(EXCLUDED_RE)
-        self.excluded_re.update(self.options.excluded_symbols_re)
-
     def create_source_file(self, lines, ext=".cpp"):
         "Create a temporary file, write lines to it, and return the filename"
         fd, fname = tempfile.mkstemp(ext, text=True)
@@ -124,8 +114,6 @@ class IncludeParser(object):
                 print >> sys.stderr, "Info: file '%s' not removed" % fname
 
     def display_compiler_errors(self, lines):
-        print >> sys.stderr, "Compiler errors on these source lines:"
-        import re, linecache
         pat = re.compile(r"(.*\.cpp):(\d+):(.*)")
         output = []
         invalid_symbols = set()
@@ -143,12 +131,18 @@ class IncludeParser(object):
                 output.append(text)
             if line.startswith(" ") and output:
                 output[-1] = output[-1] + line.strip()
-        for line in output:
-            print >> sys.stderr, line
         if invalid_symbols:
+            print >> sys.stderr, "There were compiler errors on #define symbols."
+            print >> sys.stderr, "These symbols were added to the config file:"
             ofi = open(EXCLUDES_FILE, "a")
             for sym in invalid_symbols:
                 ofi.write("%s\n" % sym)
+                print >> sys.stderr, "\t%s" % sym
+            print >> sys.stderr, "Please restart the script to try again!"
+        else:
+            print >> sys.stderr, "Compiler errors on these source lines:"
+            for line in output:
+                print >> sys.stderr, line
 
     def get_defines(self, include_files):
         """'Compile' an include file with gccxml, and return a
@@ -171,17 +165,11 @@ class IncludeParser(object):
 
     wordpat = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
     def is_excluded(self, name, value):
-
         INVALID_CHARS = "=/{}&;"
         if "(" in name:
             return "IS_FUNCTION"
-        if value in C_KEYWORDS:
-            return "value is keyword"
         if name in self.excluded:
             return "excluded"
-        for pat in self.excluded_re:
-            if pat.match(name):
-                return "excluded (regex)"
         if value[0] in INVALID_CHARS or value[-1] in INVALID_CHARS:
             return "cannot be a value"
         if self.wordpat.match(name) and self.wordpat.match(value):
