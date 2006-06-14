@@ -194,7 +194,7 @@ accept any ctypes data instances as arguments, and return the default
 result type specified by the library loader.  They are instances of a
 private class:
 
-``_FuncPtr`` : classdesc
+``_FuncPtr`` : classdesc*
     Base class for C callable foreign functions.
 
 This behaviour can be customized by assigning to special attributes of
