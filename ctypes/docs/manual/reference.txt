@@ -296,14 +296,12 @@ the parameters in the call.
     Create a C callable function (a callback function) from a Python
     ``callable``.
 
-``prototype((name, library)[, paramflags])`` : funcdescni
-    Returns a foreign function by looking up ``name`` in the shared
-    library ``dll``.
-
-``prototype((ordinal, library)[, paramflags])`` : funcdescni
-    Returns a foreign function which is exported by the ordinal number
-    ``ordinal`` in the shared library ``dll``.  This mechanism only
-    exists on Windows.
+``prototype(func_spec[, paramflags])`` : funcdescni
+    Returns a foreign function exported by a shared library.
+    ``func_spec`` must be a 2-tuple ``(name_or_ordinal, library)``.
+    The first item is the name of the exported function as string, or
+    the ordinal of the exported function as small integer.  The second
+    item must the shared library instance.
 
 ``prototype(vtbl_index, name[, paramflags[, iid]])`` : funcdescni
     Returns a foreign function that will call a COM method.
