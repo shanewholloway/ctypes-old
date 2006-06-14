@@ -1,5 +1,5 @@
 """h2xml - convert C include file(s) into an xml file by running gccxml."""
-import sys, os, tempfile, re, ConfigParser
+import sys, os, ConfigParser
 from ctypes_codegen import cparser
 from optparse import OptionParser
 
@@ -19,18 +19,6 @@ def main(argv=None):
         print >> sys.stderr, detail
         return 1
 
-    def get_option(option, default_value):
-        # return an option from the platform specific section of the
-        # config file, or return the default_value if either the
-        # section or the option is not present.
-        try:
-            return config.get(sys.platform, option)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            return default_value
-
-    excluded = get_option("excluded", "").split()
-    excluded_re = get_option("excluded_re", "").split()
-    
     parser = OptionParser("usage: %prog includefile ... [options]")
     parser.add_option("-q", "--quiet",
                       dest="quiet",
@@ -80,18 +68,6 @@ def main(argv=None):
                       "(useful for finding problems)",
                       default=False)
 
-    parser.add_option("-s",
-                      dest="excluded_symbols",
-                      action="append",
-                      help="specify preprocessor symbol name to exclude",
-                      default=excluded)
-
-    parser.add_option("-r",
-                      dest="excluded_symbols_re",
-                      action="append",
-                      help="regular expression for preprocessor symbol names to exclude",
-                      default=[])
-
     options, files = parser.parse_args(argv[1:])
 
     if not files:
@@ -100,10 +76,7 @@ def main(argv=None):
         return 1
 
     options.flags = options.gccxml_options
-
     options.verbose = not options.quiet
-
-    options.excluded_symbols_re = [re.compile(pat) for pat in options.excluded_symbols_re]
 
     try:
         parser = cparser.IncludeParser(options)
