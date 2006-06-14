@@ -197,6 +197,9 @@ private class:
 ``_FuncPtr`` : classdesc*
     Base class for C callable foreign functions.
 
+Instances of foreign functions are also C compatible data types; they
+represent C function pointers.
+
 This behaviour can be customized by assigning to special attributes of
 the foreign function object.
 
@@ -251,8 +254,13 @@ the foreign function object.
     ``others`` will usually be an empty tuple, it is only used in
     combination with ``paramflags`` documented below.
 
-Instances of foreign functions are also C compatible data types; they
-represent C function pointers.
+``ArgumentError()`` : excdesc
+    This exception is raised when a foreign function call cannot
+    convert one of the passed arguments.
+
+
+Function prototypes
+-------------------
 
 Foreign functions can also be created by instantiating function
 prototypes.  Function prototypes are similar to function prototypes in
@@ -309,13 +317,6 @@ the parameters in the call.
     those parameters that are specified in the ``argtypes`` tuple.
 
 XXX Document paramflags.
-
-XXX Where does the exception description belong?
-
-``ArgumentError()`` : excdesc
-    This exception is raised when a foreign function call cannot
-    convert one of the passed arguments.
-
 
 
 Utility functions
