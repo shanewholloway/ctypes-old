@@ -1,3 +1,23 @@
+2006-06-14  Thomas Heller  <theller@python.net>
+
+	* The subprocess module is now required, although the code is
+	still compatible with Python 2.3.
+
+	* The '#define' symbols that cause compilation errors are now
+	determined at runtime:
+
+	If the '-c' option is given, compiler error messages are parsed to
+	find those '#define ' symbols that are causing them.  These
+	symbols are then appended to the file
+	~/.ctypes_codegen/cparser_excludes.  If these errors occur, it is
+	required to restart h2xml.py, but chances are good that the next
+	run works better (it may be required to repeat this process
+	several times until all errors have vanished).
+
+	The cparser_config.py module has been removed because it does no
+	longer list symbols that have to be excluded.
+
+
 2006-06-13  Thomas Heller  <theller@python.net>
 
 	* Fixed a problem in gccxmlparser.py when 'Constructor'
