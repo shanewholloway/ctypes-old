@@ -562,7 +562,7 @@ class Generator(object):
             if USE_COMMENTS and func.location:
                 print >> self.stream, "# %s %s" % func.location
             print >> self.stream, "%s = %s.%s" % (func.name, libname, func.name)
-            print >> self.stream, "%s.restypes = %s" % (func.name, self.type_name(func.returns))
+            print >> self.stream, "%s.restype = %s" % (func.name, self.type_name(func.returns))
             print >> self.stream, "# %s(%s)" % (func.name, ", ".join(argnames))
             print >> self.stream, "%s.argtypes = [%s]" % (func.name, ", ".join(args))
 
