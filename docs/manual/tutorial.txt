@@ -1066,9 +1066,6 @@ The fact that standard Python has a frozen module and a frozen package
 (indicated by the negative size member) is not wellknown, it is only
 used for testing. Try it out with ``import __hello__`` for example.
 
-XXX Describe how to access the ``code`` member fields, which contain
-the byte code for the modules.
-
 Surprises
 ---------
 
