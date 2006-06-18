@@ -128,8 +128,8 @@ which returns a win32 module handle.
 This example calls both functions with a NULL pointer (``None`` should
 be used as the NULL pointer)::
 
-      >>> print libc.time(None)
-      114...
+      >>> print libc.time(None) # doctest: +SKIP
+      1150640792
       >>> print hex(windll.kernel32.GetModuleHandleA(None)) # doctest: +WINDOWS
       0x1d000000
       >>>
