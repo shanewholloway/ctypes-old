@@ -717,22 +717,18 @@ Type conversions
 ----------------
 
 Usually, ctypes does strict type checking.  This means, if you have
-``POINTER(c_int)`` in the ``argtypes`` list of a function or in the
-``_fields_`` of a structure definition, only instances of exactly the
-same type are accepted.  There are some exceptions to this rule, where
-ctypes accepts other objects.  For example, you can pass compatible
-array instances instead of pointer types.  So, for ``POINTER(c_int)``,
-ctypes accepts an array of c_int values::
+``POINTER(c_int)`` in the ``argtypes`` list of a function or as the
+type of a member field in a structure definition, only instances of
+exactly the same type are accepted.  There are some exceptions to this
+rule, where ctypes accepts other objects.  For example, you can pass
+compatible array instances instead of pointer types.  So, for
+``POINTER(c_int)``, ctypes accepts an array of c_int::
 
       >>> class Bar(Structure):
       ...     _fields_ = [("count", c_int), ("values", POINTER(c_int))]
       ...
       >>> bar = Bar()
-      >>> print bar._objects
-      None
       >>> bar.values = (c_int * 3)(1, 2, 3)
-      >>> print bar._objects
-      {'1': ({}, <ctypes._endian.c_long_Array_3 object at ...>)}
       >>> bar.count = 3
       >>> for i in range(bar.count):
       ...     print bar.values[i]
@@ -751,9 +747,9 @@ XXX list other conversions...
 
 Sometimes you have instances of incompatible types.  In ``C``, you can
 cast one type into another type.  ``ctypes`` provides a ``cast``
-function which can be used in the same way.  The Bar structure defined
-above accepts ``POINTER(c_int)`` pointers or ``c_int`` arrays for its
-``values`` field, but not instances of other types::
+function which can be used in the same way.  The ``Bar`` structure
+defined above accepts ``POINTER(c_int)`` pointers or ``c_int`` arrays
+for its ``values`` field, but not instances of other types::
 
       >>> bar.values = (c_byte * 4)()
       Traceback (most recent call last):
@@ -984,7 +980,10 @@ and on Linux::
     py_cmp_func 5 7
     >>>
 
-So, our array sorted now::
+It is quite interesting to see that the Windows ``qsort`` function
+needs more comparisons than the linux version!
+
+As we can easily check, our array sorted now::
 
     >>> for i in ia: print i,
     ...
@@ -994,14 +993,14 @@ So, our array sorted now::
 **Important note for callback functions:**
 
 Make sure you keep references to CFUNCTYPE objects as long as they are
-used from C code. ctypes doesn't, and if you don't, they may be
+used from C code. ``ctypes`` doesn't, and if you don't, they may be
 garbage collected, crashing your program when a callback is made.
 
 Accessing values exported from dlls
 -----------------------------------
 
 Sometimes, a dll not only exports functions, it also exports
-values. An example in the Python library itself is the
+variables. An example in the Python library itself is the
 ``Py_OptimizeFlag``, an integer set to 0, 1, or 2, depending on the
 ``-O`` or ``-OO`` flag given on startup.
 
