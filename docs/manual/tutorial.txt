@@ -105,7 +105,7 @@ identifiers, like ``"??2@YAPAXI@Z"``. In this case you have to use
 
 On Windows, some dlls export functions not by name but by ordinal.
 These functions can be accessed by indexing the dll object with the
-odinal number::
+ordinal number::
 
       >>> cdll.kernel32[1] # doctest: +WINDOWS
       <_FuncPtr object at 0x...>
@@ -453,7 +453,7 @@ an exception.  ``WinError`` takes an optional error code parameter, if
 no one is used, it calls ``GetLastError()`` to retrieve it.
 
 Please note that a much more powerful error checking mechanism is
-available with the ``errcheck`` attribute; see the reference manual
+available through the ``errcheck`` attribute; see the reference manual
 for details.
 
 Passing pointers (or: passing parameters by reference)
