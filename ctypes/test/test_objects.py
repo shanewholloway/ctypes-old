@@ -66,4 +66,5 @@ class TestCase(unittest.TestCase):
             doctest.testmod(ctypes.test.test_objects)
 
 if __name__ == '__main__':
-    doctest.testmod(ctypes.test.test_objects)
+    if sys.hexversion > 0x02040000:
+        doctest.testmod(ctypes.test.test_objects)
