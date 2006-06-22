@@ -321,7 +321,7 @@ above.
 Each item in this tuple contains further information about a
 parameter, it must be a tuple containing 1, 2, or 3 items.
 
-The first item is an integer containing flags for the parameter.
+The first item is an integer containing flags for the parameter:
 
 1
     Specifies an input parameter to the function.
@@ -874,7 +874,7 @@ fields by direct attribute accesses.  These are the
     ``u`` field is defined as anonymous field, it is now possible to
     access the members directly off the TYPEDESC instance.
     ``td.lptdesc`` and ``td.u.lptdesc`` are equivalent, but the former
-    is faster since it does not need to create a temporary ``_U``
+    is faster since it does not need to create a temporary union
     instance::
 
         td = TYPEDESC()
@@ -884,7 +884,7 @@ fields by direct attribute accesses.  These are the
 
 It is possible to defined sub-subclasses of structures, they inherit
 the fields of the base class.  If the subclass definition has a
-separate``_fields_`` variable, the fields specified in this are
+separate ``_fields_`` variable, the fields specified in this are
 appended to the fields of the base class.
 
 Arrays and pointers
