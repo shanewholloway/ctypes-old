@@ -1,3 +1,6 @@
+######################################################################
+#  This file should be kept compatible with Python 2.3, see PEP 291. #
+######################################################################
 """create and manipulate C data types in Python"""
 
 import os as _os, sys as _sys
@@ -74,7 +77,7 @@ def CFUNCTYPE(restype, *argtypes):
     restype: the result type
     argtypes: a sequence specifying the argument types
 
-    The function prototype can be called in three ways to create a
+    The function prototype can be called in different ways to create a
     callable object:
 
     prototype(integer address) -> foreign function

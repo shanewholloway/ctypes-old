@@ -1,20 +1,34 @@
-# This file contains the most useful windows datatypes.
+######################################################################
+#  This file should be kept compatible with Python 2.3, see PEP 291. #
+######################################################################
+
+# The most useful windows datatypes
 from ctypes import *
 
 BYTE = c_byte
 WORD = c_ushort
 DWORD = c_ulong
 
+WCHAR = c_wchar
+UINT = c_uint
+
+DOUBLE = c_double
+
 BOOLEAN = BYTE
 BOOL = c_long
-VARIANT_BOOL = c_short
+
+from ctypes import _SimpleCData
+class VARIANT_BOOL(_SimpleCData):
+    _type_ = "v"
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.value)
 
 ULONG = c_ulong
 LONG = c_long
 
 # in the windows header files, these are structures.
-LARGE_INTEGER = c_longlong
-ULARGE_INTEGER = c_ulonglong
+_LARGE_INTEGER = LARGE_INTEGER = c_longlong
+_ULARGE_INTEGER = ULARGE_INTEGER = c_ulonglong
 
 LPCOLESTR = LPOLESTR = OLESTR = c_wchar_p
 LPCWSTR = LPWSTR = c_wchar_p
@@ -140,3 +154,19 @@ class WIN32_FIND_DATAW(Structure):
                 ("dwReserved1", DWORD),
                 ("cFileName", c_wchar * MAX_PATH),
                 ("cAlternameFileName", c_wchar * 14)]
+
+__all__ = ['ATOM', 'BOOL', 'BOOLEAN', 'BYTE', 'COLORREF', 'DOUBLE',
+           'DWORD', 'FILETIME', 'HACCEL', 'HANDLE', 'HBITMAP', 'HBRUSH',
+           'HCOLORSPACE', 'HDC', 'HDESK', 'HDWP', 'HENHMETAFILE', 'HFONT',
+           'HGDIOBJ', 'HGLOBAL', 'HHOOK', 'HICON', 'HINSTANCE', 'HKEY',
+           'HKL', 'HLOCAL', 'HMENU', 'HMETAFILE', 'HMODULE', 'HMONITOR',
+           'HPALETTE', 'HPEN', 'HRGN', 'HRSRC', 'HSTR', 'HTASK', 'HWINSTA',
+           'HWND', 'LANGID', 'LARGE_INTEGER', 'LCID', 'LCTYPE', 'LGRPID',
+           'LONG', 'LPARAM', 'LPCOLESTR', 'LPCSTR', 'LPCWSTR', 'LPOLESTR',
+           'LPSTR', 'LPWSTR', 'MAX_PATH', 'MSG', 'OLESTR', 'POINT',
+           'POINTL', 'RECT', 'RECTL', 'RGB', 'SC_HANDLE',
+           'SERVICE_STATUS_HANDLE', 'SIZE', 'SIZEL', 'SMALL_RECT', 'UINT',
+           'ULARGE_INTEGER', 'ULONG', 'VARIANT_BOOL', 'WCHAR',
+           'WIN32_FIND_DATAA', 'WIN32_FIND_DATAW', 'WORD', 'WPARAM', '_COORD',
+           '_FILETIME', '_LARGE_INTEGER', '_POINTL', '_RECTL', '_SMALL_RECT',
+           '_ULARGE_INTEGER', 'tagMSG', 'tagPOINT', 'tagRECT', 'tagSIZE']

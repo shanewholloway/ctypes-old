@@ -1,5 +1,7 @@
+######################################################################
+#  This file should be kept compatible with Python 2.3, see PEP 291. #
+######################################################################
 import sys, os
-import ctypes
 
 # find_library(name) returns the pathname of a library, or None.
 if os.name == "nt":
@@ -41,7 +43,7 @@ if os.name == "posix" and sys.platform == "darwin":
 
 elif os.name == "posix":
     # Andreas Degert's find functions, using gcc, /sbin/ldconfig, objdump
-    import re, tempfile
+    import re, tempfile, errno
 
     def _findLib_gcc(name):
         expr = '[^\(\)\s]*lib%s\.[^\(\)\s]*' % name
