@@ -1,23 +1,25 @@
 2006-06-23  Thomas Heller  <theller@python.net>
 
-	* Remove the use_generators argument and the corresponding command
-	line option for xml2py.py, since the code generator does not
-	create decorators any more.
+	* xml2py.py: Remove the use_generators argument and the
+	corresponding command line option for xml2py.py, since the code
+	generator does not create decorators any more.
 
 	Add a '-c' command line option which will insert comments in the
 	generated code that will point the the location in the include
-	file where the data types are defined.
-
+	file where the data types are defined.  This replaces the
+	hardcoded USE_COMMENTS variable.
 
 2006-06-13  Thomas Heller  <theller@python.net>
 
-	* The '-l' option for the xml2py.py script now takes the linker
-	library name instead of the library pathname.
+	* xml2py.py: The '-l' option for the xml2py.py script now takes
+	the linker library name instead of the library pathname.  I still
+	have to find out which library (on posix systems) really defines a
+	function.
 
 2006-06-14  Thomas Heller  <theller@python.net>
 
-	* The subprocess module is now required, although the code is
-	still compatible with Python 2.3.
+	* h2xml.py: The subprocess module is now required, although the
+	code is still compatible with Python 2.3.
 
 	* The '#define' symbols that cause compilation errors are now
 	determined at runtime:
@@ -32,7 +34,6 @@
 
 	The cparser_config.py module has been removed because it does no
 	longer list symbols that have to be excluded.
-
 
 2006-06-13  Thomas Heller  <theller@python.net>
 
