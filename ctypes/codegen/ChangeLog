@@ -1,3 +1,14 @@
+2006-06-23  Thomas Heller  <theller@python.net>
+
+	* Remove the use_generators argument and the corresponding command
+	line option for xml2py.py, since the code generator does not
+	create decorators any more.
+
+	Add a '-c' command line option which will insert comments in the
+	generated code that will point the the location in the include
+	file where the data types are defined.
+
+
 2006-06-13  Thomas Heller  <theller@python.net>
 
 	* The '-l' option for the xml2py.py script now takes the linker
