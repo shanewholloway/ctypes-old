@@ -14,7 +14,8 @@
 	* xml2py.py: The '-l' option for the xml2py.py script now takes
 	the linker library name instead of the library pathname.  I still
 	have to find out which library (on posix systems) really defines a
-	function.
+	function.  The generated code that loads the libraries has been
+	reworked.
 
 2006-06-14  Thomas Heller  <theller@python.net>
 
