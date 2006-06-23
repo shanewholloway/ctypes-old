@@ -101,7 +101,7 @@ class DynamicGenerator(object):
         dlls = [ctypes.CDLL(name) for name in xml2py.windows_dll_names]
 
         self.generator = codegenerator.Generator(output=self,
-                                                 use_decorators=False,
+                                                 generate_comments=False,
                                                  known_symbols=None,
                                                  searched_dlls=dlls)
         # the generator has .done and .names attributes, which are

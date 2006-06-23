@@ -5,7 +5,6 @@ import typedesc, sys, os
 import textwrap
 
 # This should be configurable
-USE_COMMENTS = True
 ASSUME_STRINGS = True
 
 try:
@@ -151,14 +150,14 @@ dont_assert_size = set(
 
 class Generator(object):
     def __init__(self, output,
-                 use_decorators=False,
+                 generate_comments=False,
                  known_symbols=None,
                  searched_dlls=None):
         self.output = output
         self.stream = StringIO.StringIO()
         self.imports = StringIO.StringIO()
 ##        self.stream = self.imports = self.output
-        self.use_decorators = use_decorators
+        self.generate_comments = generate_comments
         self.known_symbols = known_symbols or {}
         self.searched_dlls = searched_dlls or []
 
@@ -289,7 +288,7 @@ class Generator(object):
         for struct in head.struct.bases:
             self.generate(struct.get_head())
             self.more.add(struct)
-        if USE_COMMENTS and head.struct.location:
+        if self.generate_comments and head.struct.location:
             print >> self.stream, "# %s %s" % head.struct.location
         basenames = [self.type_name(b) for b in head.struct.bases]
         if basenames:
@@ -462,7 +461,7 @@ class Generator(object):
                       (body.struct.name, unnamed_fields.values())
             print >> self.stream, "%s._fields_ = [" % body.struct.name
 
-            if USE_COMMENTS and body.struct.location:
+            if self.generate_comments and body.struct.location:
                 print >> self.stream, "    # %s %s" % body.struct.location
             index = 0
             for f in fields:
@@ -559,11 +558,12 @@ class Generator(object):
 
             argnames = [a or "p%d" % (i+1) for i, a in enumerate(func.iterArgNames())]
 
-            if USE_COMMENTS and func.location:
+            if self.generate_comments and func.location:
                 print >> self.stream, "# %s %s" % func.location
             print >> self.stream, "%s = %s.%s" % (func.name, libname, func.name)
             print >> self.stream, "%s.restype = %s" % (func.name, self.type_name(func.returns))
-            print >> self.stream, "# %s(%s)" % (func.name, ", ".join(argnames))
+            if self.generate_comments:
+                print >> self.stream, "# %s(%s)" % (func.name, ", ".join(argnames))
             print >> self.stream, "%s.argtypes = [%s]" % (func.name, ", ".join(args))
 
             self.names.add(func.name)
@@ -663,7 +663,7 @@ def generate_code(xmlfile,
                   expressions=None,
                   symbols=None,
                   verbose=False,
-                  use_decorators=False,
+                  generate_comments=False,
                   known_symbols=None,
                   searched_dlls=None,
                   types=None):
@@ -703,7 +703,7 @@ def generate_code(xmlfile,
 
     ################
     gen = Generator(outfile,
-                    use_decorators=use_decorators,
+                    generate_comments=generate_comments,
                     known_symbols=known_symbols,
                     searched_dlls=searched_dlls)
 
