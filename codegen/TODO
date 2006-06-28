@@ -1,12 +1,14 @@
 codegenerator bugs:
 
-- In ctypes/comtypes: Move GUID and _GUID into ctypes.wintypes.
+- If -c is given for h2xml.py, we should rerun gccxml as long as
+compiler errors are found.
+
+- Refactor the code so that function generation can be easily adjusted
+in subclasses of the code generator.
 
 - Import the old docs into cvs.
 
 - Write a README file.
-
-- Don't add 'artificial' structure or union names to the __all__ list.
 
 - Fix code generation for inline functions:
 <C code>
