@@ -1,3 +1,12 @@
+2006-06-30  Thomas Heller  <theller@python.net>
+
+	* source/callproc.c: The _ctypes extension module now exports the
+	function "uses_seh()" which will return True when Windows
+	Structured Exception Handling (SEH) is used to catch faults in
+	foreign functions, False otherwise.  SEH is not used when _ctypes
+	is compiled with the Mingw compiler, or with MSVC in DEBUG mode.
+
+
 2006-06-12  Thomas Heller  <theller@python.net>
 
 	* Fix wrong printf format in _ctypes.c.
