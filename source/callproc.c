@@ -1515,7 +1515,21 @@ resize(PyObject *self, PyObject *args)
 	return Py_None;
 }
 
+static PyObject *
+uses_seh(PyObject *self, PyObject *args)
+{
+#ifdef DONT_USE_SEH
+	Py_INCREF(Py_False);
+	return Py_False;
+#else
+	Py_INCREF(Py_True);
+	return Py_True;
+#endif
+}
+
 PyMethodDef module_methods[] = {
+	{"uses_seh", uses_seh, METH_NOARGS,
+	 "Return whether ctypes uses Windows structured exception handling"},
 	{"resize", resize, METH_VARARGS, "Resize the memory buffer of a ctypes instance"},
 #ifdef CTYPES_UNICODE
 	{"set_conversion_mode", set_conversion_mode, METH_VARARGS, set_conversion_mode_doc},
