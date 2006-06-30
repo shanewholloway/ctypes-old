@@ -14,6 +14,14 @@
 	is compiled with the Mingw compiler, or with MSVC in DEBUG mode.
 
 
+2006-06-22  Thomas Heller  <theller@python.net>
+
+	* Merge in changes done in Python SVN for 2.5 beta 1:
+	- cleanup whitespace
+	- add Python2.3 compatibility comments
+	- fix the testsuite for openbsd
+
+
 2006-06-12  Thomas Heller  <theller@python.net>
 
 	* Fix wrong printf format in _ctypes.c.
