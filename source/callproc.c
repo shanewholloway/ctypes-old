@@ -1518,7 +1518,7 @@ resize(PyObject *self, PyObject *args)
 static PyObject *
 uses_seh(PyObject *self, PyObject *args)
 {
-#ifdef DONT_USE_SEH
+#if defined(DONT_USE_SEH) || !defined(MS_WIN32)
 	Py_INCREF(Py_False);
 	return Py_False;
 #else
