@@ -1,5 +1,12 @@
 2006-06-30  Thomas Heller  <theller@python.net>
 
+	* source/libffi_msvc/fficonfig.h: #define __attribute__(x) only
+	for MSVC, not for mingw compilers. This was the main thing that
+	was missing for building _ctypes with MINGW32.
+
+	Still, 2 tests are failing when compiled with mingw32:
+	test_bitfields and test_struct_return_8H.
+
 	* source/callproc.c: The _ctypes extension module now exports the
 	function "uses_seh()" which will return True when Windows
 	Structured Exception Handling (SEH) is used to catch faults in
