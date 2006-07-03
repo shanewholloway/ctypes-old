@@ -887,6 +887,14 @@ the fields of the base class.  If the subclass definition has a
 separate ``_fields_`` variable, the fields specified in this are
 appended to the fields of the base class.
 
+Structure and union constructors accept both positional and
+keyword arguments.  Positional arguments are used to initialize member
+fields in the same order as they are appear in ``_fields_``.  Keyword
+arguments in the constructor are interpreted as attribute assignments,
+so they will initialize ``_fields_`` with the same name, or create new
+attributes for names not present in ``_fields_``.
+
+
 Arrays and pointers
 -------------------
 
