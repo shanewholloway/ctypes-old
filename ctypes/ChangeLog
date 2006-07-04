@@ -1,3 +1,9 @@
+2006-07-04  Thomas Heller  <theller@python.net>
+
+	* source\cfield.c: Applied a patch that Khalid A. Bakr sent in
+	some time ago, it fixes the bitfield test when _ctypes is compiled
+	with the MINGW32.
+
 2006-06-30  Thomas Heller  <theller@python.net>
 
 	* source/libffi_msvc/fficonfig.h: #define __attribute__(x) only
