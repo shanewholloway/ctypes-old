@@ -1,3 +1,16 @@
+2006-07-05  Thomas Heller  <theller@python.net>
+
+	* Merge in change done in Python SVN trunk: Protect the thread api
+	calls in the _ctypes extension module within
+	#ifdef WITH_THREADS/#endif blocks.  Found by Sam Rushing.
+
+	* Merge changes done by Ronald Oussoren in Python SVN trunk: Sync
+	the darwin/x86 port libffi with the copy in PyObjC. This fixes a
+	number of bugs in that port. The most annoying ones were due to
+	some subtle differences between the document ABI and the actual
+	implementation :-( There are no python unittests that fail without
+	this patch, but without it some of libffi's unittests fail.
+
 2006-07-04  Thomas Heller  <theller@python.net>
 
 	* source\cfield.c: Applied a patch that Khalid A. Bakr sent in
