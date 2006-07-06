@@ -231,6 +231,12 @@ the foreign function object.
     convert a unicode string passed as argument into an byte string
     using ctypes conversion rules.
 
+    New: It is now possible to put items in argtypes which are not
+    ctypes types, but each item must have a ``from_param`` method
+    which returns a value usable as argument (integer, string, ctypes
+    instance).  This allows to define adapters that can adapt custom
+    objects as function parameters.
+
 ``errcheck`` : memberdesc
     Assign a Python function or another callable to this attribute.
     The callable will be called with three or more arguments:
