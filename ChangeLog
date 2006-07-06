@@ -1,3 +1,11 @@
+2006-07-06  Thomas Heller  <theller@python.net>
+
+	* ctypes\test\test_win32.py: Disable the test_SEH test unless the
+	"SEH" resource is enabled when running tests.
+
+	* Remove the "ctypes.uses_seh()" function again, it will not go
+	into Python 2.5.
+
 2006-07-05  Thomas Heller  <theller@python.net>
 
 	* Merge in change done in Python SVN trunk: Protect the thread api
