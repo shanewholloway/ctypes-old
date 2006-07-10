@@ -1,4 +1,4 @@
-import sys, re
+import sys, re, os
 from optparse import OptionParser
 from ctypes_codegen.codegenerator import generate_code
 from ctypes_codegen import typedesc
@@ -101,10 +101,11 @@ def main(argv=None):
                       callback=windows_dlls,
                       help="add all standard windows dlls to the searched dlls list")
 
-    default_modules = ["ctypes.wintypes",
-                       "ctypes",
-                       ]
-        
+    if os.name in ("ce", "win32"):
+        default_modules = ["ctypes.wintypes", "ctypes" ]
+    else:
+        default_modules = ["ctypes" ]
+
     parser.add_option("-m",
                       dest="modules",
                       metavar="module",
