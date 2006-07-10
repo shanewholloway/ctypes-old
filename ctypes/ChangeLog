@@ -1,3 +1,21 @@
+2006-07-10  Thomas Heller  <theller@python.net>
+
+	* Backport various fixes done in Python SVN:
+
+	Assigning None to pointer type structure fields possible overwrote
+	wrong fields.
+
+	Fixed a segfault when ctypes.wintypes were imported on non-Windows
+	machines.
+
+	Fix bug #1518190: accept any integer or long value in the
+	ctypes.c_void_p constructor.
+
+	Patch #1517790: It is now possible to use custom objects in the
+	ctypes foreign function argtypes sequence as long as they provide
+	a from_param method, no longer is it required that the object is a
+	ctypes type.
+
 2006-07-06  Thomas Heller  <theller@python.net>
 
 	* ctypes\test\test_win32.py: Disable the test_SEH test unless the
