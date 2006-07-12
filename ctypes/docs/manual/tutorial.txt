@@ -695,9 +695,6 @@ memory locations. Generally you only use this feature if you receive a
 pointer from a C function, and you *know* that the pointer actually
 points to an array instead of a single item.
 
-Pointer classes/types
----------------------
-
 Behind the scenes, the ``pointer`` function does more than simply
 create pointer instances, it has to create pointer *types* first.
 This is done with the ``POINTER`` function, which accepts any
@@ -713,6 +710,30 @@ This is done with the ``POINTER`` function, which accepts any
        >>> PI(c_int(42))
        <ctypes.LP_c_long object at 0x...>
        >>>
+
+Calling the pointer type without an argument creates a ``NULL``
+pointer.  ``NULL`` pointers have a ``False`` boolean value::
+
+    >>> null_ptr = POINTER(c_int)()
+    >>> print bool(null_ptr)
+    False
+    >>>
+
+``ctypes`` checks for ``NULL`` when dereferencing pointers (but
+dereferencing non-``NULL`` pointers would crash Python)::
+
+    >>> null_ptr[0]
+    Traceback (most recent call last):
+        ....
+    ValueError: NULL pointer access
+    >>>
+
+    >>> null_ptr[0] = 1234
+    Traceback (most recent call last):
+        ....
+    ValueError: NULL pointer access
+    >>>
+
 
 Type conversions
 ----------------
