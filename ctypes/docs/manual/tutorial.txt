@@ -635,10 +635,6 @@ Initializers of the correct type can also be specified::
 Pointers
 --------
 
-XXX Rewrite this section.  Normally one only uses indexing, not the .contents
-attribute!
-List some recipes with pointers.  bool(ptr),  POINTER(tp)(), ...?
-
 Pointer instances are created by calling the ``pointer`` function on a
 ``ctypes`` type::
 
