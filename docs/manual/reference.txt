@@ -114,9 +114,6 @@ The ``mode`` parameter can be used to specify how the library is
 loaded.  For details, consult the ``dlopen(3)`` manpage, on Windows,
 ``mode`` is ignored.
 
-``RTLD_LOCAL`` is the default, except on Mac OS X 10.3, where
-``RTLD_GLOBAL`` is used.
-
 ``RTLD_GLOBAL`` : vardesc
     Flag to use as ``mode`` parameter.  On platforms where this flag
     is not available, it is defined as the integer zero.
@@ -125,6 +122,10 @@ loaded.  For details, consult the ``dlopen(3)`` manpage, on Windows,
     Flag to use as ``mode`` parameter.  On platforms where this is not
     available, it is the same as ``RTLD_GLOBAL``.
 
+``DEFAULT_MODE`` : vardesc
+    The default mode which is used to load shared libraries.  On OSX
+    10.3, this is ``RTLD_GLOBAL``, otherwise it is the same as
+    ``RTLD_LOCAL``.
 
 Instances of these classes have no public methods, however
 ``__getattr__`` and ``__getitem__`` have special behaviour: functions
