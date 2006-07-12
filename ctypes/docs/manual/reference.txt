@@ -69,12 +69,12 @@ Loading shared libraries
 There are several ways to loaded shared libraries into the Python
 process.  One way is to instantiate one of the following classes:
 
-``CDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
+``CDLL(name, mode=DEFAULT_MODE, handle=None)`` : classdesc
     Instances of this class represent loaded shared libraries.
     Functions in these libraries use the standard C calling
     convention, and are assumed to return ``int``.
 
-``OleDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
+``OleDLL(name, mode=DEFAULT_MODE, handle=None)`` : classdesc
     Windows only: Instances of this class represent loaded shared
     libraries, functions in these libraries use the ``stdcall``
     calling convention, and are assumed to return the windows specific
@@ -83,7 +83,7 @@ process.  One way is to instantiate one of the following classes:
     with additional error code.  If the return value signals a
     failure, an ``WindowsError`` is automatically raised.
 
-``WinDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
+``WinDLL(name, mode=DEFAULT_MODE, handle=None)`` : classdesc
     Windows only: Instances of this class represent loaded shared
     libraries, functions in these libraries use the ``stdcall``
     calling convention, and are assumed to return ``int`` by default.
@@ -95,7 +95,7 @@ process.  One way is to instantiate one of the following classes:
 The Python GIL is released before calling any function exported by
 these libraries, and reaquired afterwards.
 
-``PyDLL(name, mode=RTLD_LOCAL, handle=None)`` : classdesc
+``PyDLL(name, mode=DEFAULT_MODE, handle=None)`` : classdesc
     Instances of this class behave like ``CDLL`` instances, except
     that the Python GIL is *not* released during the function call,
     and after the function execution the Python error flag is checked.
@@ -113,6 +113,9 @@ into the process, and to get a handle to it.
 The ``mode`` parameter can be used to specify how the library is
 loaded.  For details, consult the ``dlopen(3)`` manpage, on Windows,
 ``mode`` is ignored.
+
+``RTLD_LOCAL`` is the default, except on Mac OS X 10.3, where
+``RTLD_GLOBAL`` is used.
 
 ``RTLD_GLOBAL`` : vardesc
     Flag to use as ``mode`` parameter.  On platforms where this flag
@@ -154,10 +157,9 @@ attribute of the loader instance.
      instance.  The result is cached, so repeated attribute accesses
      return the same library each time.
 
-``LoadLibrary(name, mode=RTLD_LOCAL, handle=None)`` : methoddesc
+``LoadLibrary(name)`` : methoddesc
     Load a shared library into the process and return it.  This method
-    always creates a new instance of the library.  All three
-    parameters are passed to the constructor of the library object.
+    always returns a new instance of the library.
 
 
 These prefabricated library loaders are available:
