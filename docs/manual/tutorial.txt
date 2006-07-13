@@ -1186,33 +1186,6 @@ about 4 elements, we get errors accessing other elements::
     IndexError: invalid index
     >>>
 
-The solution is to use 1-element arrays; as a special case ctypes does
-no bounds checking on them::
-
-    >>> short_array = (c_short * 1)()
-    >>> print sizeof(short_array)
-    2
-    >>> resize(short_array, 32)
-    >>> sizeof(short_array)
-    32
-    >>> sizeof(type(short_array))
-    2
-    >>> short_array[0:8]
-    [0, 0, 0, 0, 0, 0, 0, 0]
-    >>> short_array[7] = 42
-    >>> short_array[0:8]
-    [0, 0, 0, 0, 0, 0, 0, 42]
-    >>>
-
-Using 1-element arrays as variable sized fields in structures works as
-well, but they should be used as the last field in the structure
-definition.  This example shows a definition from the Windows header
-files::
-
-    class SP_DEVICE_INTERFACE_DETAIL_DATA(Structure):
-        _fields_ = [("cbSize", c_int),
-                    ("DevicePath", c_char * 1)]
-
 Another way to use variable-sized data types with ``ctypes`` is to use
 the dynamic nature of Python, and (re-)define the data type after the
 required size is already known, on a case by case basis.
