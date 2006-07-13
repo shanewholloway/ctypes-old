@@ -1,5 +1,7 @@
 2006-07-13  Thomas Heller  <theller@python.net>
 
+	* Change version number to 0.9.9.9.
+
 	* Because of a misspelled symbols (WITH_THREADS instead of
 	WITH_THREAD) ctypes was always compiled without thread support;
 	this is now fixed.
