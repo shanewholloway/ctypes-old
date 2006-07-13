@@ -1,3 +1,12 @@
+2006-07-13  Thomas Heller  <theller@python.net>
+
+	* Because of a misspelled symbols (WITH_THREADS instead of
+	WITH_THREAD) ctypes was always compiled without thread support;
+	this is now fixed.
+
+	* Index checking on 1-sized arrays was reintroduced, so they can
+	no longer be used as variable sized data.
+	
 2006-07-10  Thomas Heller  <theller@python.net>
 
 	* Backport various fixes done in Python SVN:
