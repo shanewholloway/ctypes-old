@@ -1,8 +1,3 @@
-ctypes tutorial
-===============
-
-This tutorial describes version 0.9.9 of ``ctypes``. 
-
 Note: The code samples in this tutorial uses ``doctest`` to make sure
 that they actually work.  Since some code samples behave differently
 under Linux, Windows, or Mac OS X, they contain doctest directives in
