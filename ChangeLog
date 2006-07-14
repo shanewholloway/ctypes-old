@@ -1,3 +1,17 @@
+2006-07-14  Thomas Heller  <theller@python.net>
+
+	* Merged in changes done in Python trunk:
+
+	Fix #1521375.  When running with root priviledges, 'gcc -o
+	/dev/null' did overwrite /dev/null.  Use a temporary file instead
+	of /dev/null.
+
+	When a foreign function is retrived by calling __getitem__ on a
+	ctypes library instance, do not set it as attribute.
+
+	Fix #1467450: ctypes now uses RTLD_GLOBAL by default on OSX 10.3
+	to load shared libraries.
+
 2006-07-13  Thomas Heller  <theller@python.net>
 
 	* Change version number to 0.9.9.9.
