@@ -5,6 +5,3 @@ ctypes reference
 compatible data types, and allows to call functions in dlls/shared
 libraries.  It can be used to wrap these libraries in pure Python.
 
-.. contents::
-
-.. include:: reference.txt
