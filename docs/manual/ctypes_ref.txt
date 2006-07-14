@@ -1,9 +1,9 @@
 ctypes reference
 ================
 
-``ctypes`` is a Python package providing C data types in Python, and
-to call functions in dynamic link libraries/shared dlls. It allows
-wrapping these libraries in pure Python.
+``ctypes`` is a foreign function library for Python.  It provides C
+compatible data types, and allows to call functions in dlls/shared
+libraries.  It can be used to wrap these libraries in pure Python.
 
 .. contents::
 
