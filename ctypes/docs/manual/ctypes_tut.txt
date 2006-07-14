@@ -1,6 +1,3 @@
 ctypes tutorial
 ===============
 
-.. contents::
-
-.. include:: tutorial.txt

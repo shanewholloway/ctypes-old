@@ -356,38 +356,38 @@ The C declaration from the windows header file is this::
 
 Here is the wrapping with ``ctypes``:
 
-    >>> from ctypes import c_int, WINFUNCTYPE, windll
-    >>> from ctypes.wintypes import HWND, LPCSTR, UINT
-    >>> prototype = WINFUNCTYPE(c_int, HWND, LPCSTR, LPCSTR, c_uint)
-    >>> paramflags = (1, "hwnd", 0), (1, "text", "Hi"), (1, "caption", None), (1, "flags", 0)
-    >>> MessageBox = prototype(("MessageBoxA", windll.user32), paramflags)
-    >>>
+   >>> from ctypes import c_int, WINFUNCTYPE, windll
+   >>> from ctypes.wintypes import HWND, LPCSTR, UINT
+   >>> prototype = WINFUNCTYPE(c_int, HWND, LPCSTR, LPCSTR, c_uint)
+   >>> paramflags = (1, "hwnd", 0), (1, "text", "Hi"), (1, "caption", None), (1, "flags", 0)
+   >>> MessageBox = prototype(("MessageBoxA", windll.user32), paramflags)
+   >>>
 
 The MessageBox foreign function can now be called in these ways::
 
-    >>> MessageBox()
-    >>> MessageBox(text="Spam, spam, spam")
-    >>> MessageBox(flags=2, text="foo bar")
-    >>>
+   >>> MessageBox()
+   >>> MessageBox(text="Spam, spam, spam")
+   >>> MessageBox(flags=2, text="foo bar")
+   >>>
 
 A second example demonstrates output parameters.  The win32
 ``GetWindowRect`` function retrieves the dimensions of a specified
 window by copying them into ``RECT`` structure that the caller has to
 supply.  Here is the C declaration::
 
-    WINUSERAPI BOOL WINAPI
-    GetWindowRect(
+   WINUSERAPI BOOL WINAPI
+   GetWindowRect(
 	HWND hWnd,
 	LPRECT lpRect);
 
 Here is the wrapping with ``ctypes``:
 
-    >>> from ctypes import POINTER, WINFUNCTYPE, windll
-    >>> from ctypes.wintypes import BOOL, HWND, RECT
-    >>> prototype = WINFUNCTYPE(BOOL, HWND, POINTER(RECT))
-    >>> paramflags = (1, "hwnd"), (2, "lprect")
-    >>> GetWindowRect = prototype(("GetWindowRect", windll.user32), paramflags)
-    >>>
+   >>> from ctypes import POINTER, WINFUNCTYPE, windll
+   >>> from ctypes.wintypes import BOOL, HWND, RECT
+   >>> prototype = WINFUNCTYPE(BOOL, HWND, POINTER(RECT))
+   >>> paramflags = (1, "hwnd"), (2, "lprect")
+   >>> GetWindowRect = prototype(("GetWindowRect", windll.user32), paramflags)
+   >>>
 
 Functions with output parameters will automatically return the output
 parameter value if there is a single one, or a tuple containing the
@@ -400,12 +400,12 @@ further output processing and error checking.  The win32
 failure, so this function could do the error checking, and raises an
 exception when the api call failed::
 
-    >>> def errcheck(result, func, args):
-    ...     if not result:
-    ...         raise WinError()
-    ...     return args
-    >>> GetWindowRect.errcheck = errcheck
-    >>>
+   >>> def errcheck(result, func, args):
+   ...     if not result:
+   ...         raise WinError()
+   ...     return args
+   >>> GetWindowRect.errcheck = errcheck
+   >>>
 
 If the ``errcheck`` function returns the argument tuple it receives
 unchanged, ``ctypes`` continues the normal processing it does on the
@@ -414,14 +414,14 @@ coordinates instead of a ``RECT`` instance, you can retrieve the
 fields in the function and return them instead, the normal processing
 will no longer take place::
 
-    >>> def errcheck(result, func, args):
-    ...     if not result:
-    ...         raise WinError()
-    ...     rc = args[1]
-    ...     return rc.left, rc.top, rc.bottom, rc.right
-    >>>
-    >>> GetWindowRect.errcheck = errcheck
-    >>>
+   >>> def errcheck(result, func, args):
+   ...     if not result:
+   ...         raise WinError()
+   ...     rc = args[1]
+   ...     return rc.left, rc.top, rc.bottom, rc.right
+   >>>
+   >>> GetWindowRect.errcheck = errcheck
+   >>>
 
 Utility functions
 -----------------
