@@ -1,0 +1,8 @@
+ctypes tutorial
+===============
+
+This tutorial describes version 0.9.9 of ``ctypes``. 
+
+.. contents::
+
+.. include:: tutorial.txt

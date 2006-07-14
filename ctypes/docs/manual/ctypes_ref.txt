@@ -1,0 +1,10 @@
+ctypes reference
+================
+
+``ctypes`` is a Python package providing C data types in Python, and
+to call functions in dynamic link libraries/shared dlls. It allows
+wrapping these libraries in pure Python.
+
+.. contents::
+
+.. include:: reference.txt
