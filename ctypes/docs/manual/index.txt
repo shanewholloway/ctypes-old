@@ -1,0 +1,3 @@
+``ctypes`` is a foreign function library for Python.  It provides C
+compatible data types, and allows to call functions in dlls/shared
+libraries.  It can be used to wrap these libraries in pure Python.

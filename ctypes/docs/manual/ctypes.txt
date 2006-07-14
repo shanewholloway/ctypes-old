@@ -5,21 +5,17 @@
 :Synopsis: A foreign function library for Python.
 :Version Added: 2.5
 
-``ctypes`` is a foreign function library for Python.
+``ctypes`` is a foreign function library for Python.  It provides C
+compatible data types, and allows to call functions in dlls/shared
+libraries.  It can be used to wrap these libraries in pure Python.
 
 ctypes tutorial
 ===============
-
-This tutorial describes version 0.9.9 of ``ctypes``. 
 
 .. include:: tutorial.txt
 
 
 ctypes reference
 ================
-
-``ctypes`` is a Python package providing C data types in Python, and
-to call functions in dynamic link libraries/shared dlls. It allows
-wrapping these libraries in pure Python.
 
 .. include:: reference.txt
