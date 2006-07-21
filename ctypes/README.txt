@@ -25,8 +25,8 @@ News
 
 Requirements
 
-    ctypes 0.9 requires Python 2.3 or higher, since it makes intensive
-    use of the new type system.
+    ctypes requires Python 2.3 or higher, since it makes intensive use
+    of the new type system.
 
     ctypes uses libffi, which is copyright Red Hat, Inc.  Complete
     license see below.
@@ -70,6 +70,14 @@ Installation
 	    python setup.py install [options]
 
 
+    Windows CE
+
+        Embedded Visual C 4.0 with service pack 2 (3?, 4?)
+
+	Pocket PC 2003 SDK
+
+	(Standalone Device Emulator 1.0)
+
         For Windows CE, a project file is provided in
         wince\_ctypes.vcw.  MS embedded Visual C 4.0 is required to
         build the extension modules.
@@ -77,9 +85,9 @@ Installation
 
 Additional notes
 
-    Current version: 0.9.9.3
+    Current version: 0.9.9.9
 
-    Homepage: http://starship.python.net/crew/theller/ctypes.html
+    Homepage: http://starship.python.net/crew/theller/ctypes/
 
 
 ctypes license
