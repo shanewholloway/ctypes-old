@@ -28,5 +28,7 @@ include wince/_ctypes.vcw wince/_ctypes.vcp wince/_ctypes_test.vcp
 include docs/anatomy.txt
 include docs/manual/tutorial.txt
 include docs/manual/tutorial.html
+include docs/manual/reference.txt
+include docs/manual/reference.html
 include docs/manual/mkpydoc.py
 include docs/manual/markup.py
