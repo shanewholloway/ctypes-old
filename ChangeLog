@@ -4,6 +4,13 @@
 	Miller: More target platforms for OpenBSD. source/libffi/configure
 	regenerated with autoconf 2.59.
 
+	* Merged in changes from Python trunk: Make sure the _ctypes
+	extension can be compiled when WITH_THREAD is not defined on
+	Windows, even if that configuration is probably not supported at
+	all.
+
+	* Replace an unneeded Py_XINCREF with Py_INCREF.
+	
 2006-07-14  Thomas Heller  <theller@python.net>
 
 	* Merged in changes done in Python trunk:
