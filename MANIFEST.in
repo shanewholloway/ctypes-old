@@ -22,7 +22,8 @@ include source/libffi/README
 recursive-include source *.c *.h *.S *.asm *.in
 
 # windows CE project files
-include wince/_ctypes.vcw wince/_ctypes.vcp wince/_ctypes_test.vcp
+include wince/_ctypes.vcw wince/_ctypes.vcp
+include wince/_ctypes_test/_ctypes_test.vcp
 
 # docs/manual
 include docs/anatomy.txt
