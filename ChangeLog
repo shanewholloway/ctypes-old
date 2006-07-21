@@ -1,3 +1,9 @@
+2006-07-21  Thomas Heller  <theller@python.net>
+
+	* source/libffi/configure.ac: Integrated a patch from Damien
+	Miller: More target platforms for OpenBSD. source/libffi/configure
+	regenerated with autoconf 2.59.
+
 2006-07-14  Thomas Heller  <theller@python.net>
 
 	* Merged in changes done in Python trunk:
