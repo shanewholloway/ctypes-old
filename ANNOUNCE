@@ -1,5 +1,5 @@
-ctypes 0.9.9.7 released - June 9, 2006
-======================================
+ctypes 0.9.9.9 released - July 21, 2006
+=======================================
 
 Overview
 
@@ -16,6 +16,36 @@ Overview
     FreeBSD, OpenBSD. It may also run on other systems, provided that
     libffi supports this platform.
 
+
+Changes in 0.9.9.9
+
+    Index checking on 1-sized arrays was reintroduced, so they can no
+    longer be used as variable sized data.
+
+    Assigning None to pointer type structure fields possible overwrote
+    wrong fields.
+
+    Fixed a segfault when ctypes.wintypes were imported on non-Windows
+    machines.
+
+    Accept any integer or long value in the ctypes.c_void_p
+    constructor.
+
+    It is now possible to use custom objects in the ctypes foreign
+    function argtypes sequence as long as they provide a from_param
+    method, no longer is it required that the object is a ctypes type.
+
+    ctypes can now be built with MingW on Windows, but it will not
+    catch access violations then since MingW does no structured
+    exception handling.
+
+    Sync the darwin/x86 port libffi with the copy in PyObjC. This
+    fixes a number of bugs in that port. The most annoying ones were
+    due to some subtle differences between the document ABI and the
+    actual implementation :-(
+
+    Release the GIL during COM method calls, to avoid deadlocks in
+    Python coded COM objects.
 
 Changes in 0.9.9.7
 
