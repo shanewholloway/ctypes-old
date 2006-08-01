@@ -7,20 +7,9 @@ Overview
     and complicated C data types transparently from Python - in other
     words: wrap libraries in pure Python.
 
-    ctypes runs on Windows, MacOS X, Linux, Solaris, FreeBSD.  It may
-    also run on other systems, provided that libffi supports this
-    platform.
-
-    On Windows, ctypes contains (the beginning of) a COM framework
-    mainly targetted to use and implement custom COM interfaces.
-
-
-News
-
-    ctypes now uses the same code base and libffi on all platforms.
-    For easier installation, the libffi sources are now included in
-    the source distribution - no need to find, build, and install a
-    compatible libffi version.
+    ctypes runs on Windows, Windows CE, MacOS X, Linux, Solaris,
+    FreeBSD, OpenBSD.  It may also run on other systems, provided that
+    libffi supports this platform.
 
 
 Requirements
@@ -28,7 +17,7 @@ Requirements
     ctypes requires Python 2.3 or higher, since it makes intensive use
     of the new type system.
 
-    ctypes uses libffi, which is copyright Red Hat, Inc.  Complete
+    ctypes includes libffi, which is copyright Red Hat, Inc.  Complete
     license see below.
 
 
@@ -37,15 +26,9 @@ Installation
     Windows
 
         On Windows, it is the easiest to download the executable
-        installer for your Python version and execute this.
+        installer for your Python version and run it.
 
     Installation from source
-
-        Separate source distributions are available for windows and
-        non-windows systems.  Please use the .zip file for Windows (it
-        contains the ctypes.com framework), and use the .tar.gz file
-        for non-Windows systems (it contains the complete
-        cross-platform libffi sources).
 
         To install ctypes from source, unpack the distribution, enter
         the ctypes-0.9.x source directory, and enter
@@ -53,9 +36,7 @@ Installation
             python setup.py build
 
 	This will build the Python extension modules.  A C compiler is
-	required. On OS X, the segment attribute live_support must be
-	defined. If your compiler doesn't know about it, upgrade or
-	set the environment variable CCASFLAGS="-Dno_live_support".
+	required.
 
 	To run the supplied tests, enter
 
@@ -72,15 +53,35 @@ Installation
 
     Windows CE
 
-        Embedded Visual C 4.0 with service pack 2 (3?, 4?)
+        Required software to build the _ctypes.pyd extension module
+        for Windows CE (all these are free downloads):
 
-	Pocket PC 2003 SDK
+	- Embedded Visual C 4.0 with service pack 2 (3?, 4?)
 
-	(Standalone Device Emulator 1.0)
+	- Pocket PC 2003 SDK
 
-        For Windows CE, a project file is provided in
-        wince\_ctypes.vcw.  MS embedded Visual C 4.0 is required to
-        build the extension modules.
+	- The Python 2.3 or 2.4 windows CE development files: include
+	files, header files.
+
+	Open the wince\_ctypes.vcw project file with embedded visual C
+	4.0.  Select "POCKET PC 2003", "Win32 (WCE ARMV4) Release",
+	and "POCKET PC 2003 Device" in the comboboxes.
+
+	From the menu, select Tools->Options->Directories, and add
+	these directories:
+
+	    Include files: add c:\Python-2.4.3-wince-dev\INCLUDE
+	    Library files: add c:\Python-2.4.3-wince-dev\LIB
+
+	Right click '_ctypes files' in the FileView, select
+	'Settings', then the 'Debug' tab.
+
+	Enter '\Program Files\Python24' in the 'Download directory'
+	box.  Do the same for the '_ctypes_test' project.
+
+	Now you can connect your pocket PC, build the projects in
+	visual C, and both _ctypes.pyd and _ctypes_test.pyd should be
+	downloaded automatically to your device.
 
 
 Additional notes
