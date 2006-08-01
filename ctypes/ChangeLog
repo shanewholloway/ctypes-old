@@ -1,3 +1,8 @@
+2006-08-01  Thomas Heller  <theller@python.net>
+
+	* source/_ctypes.c: Fix a potential segfault and several potential
+	refcount leaks in the cast() function.
+
 2006-07-21  Thomas Heller  <theller@python.net>
 
 	* source/libffi/configure.ac: Integrated a patch from Damien
