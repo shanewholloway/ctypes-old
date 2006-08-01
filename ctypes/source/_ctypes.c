@@ -4521,23 +4521,30 @@ cast(void *ptr, PyObject *src, PyObject *ctype)
 		if (obj->b_objects == Py_None) {
 			Py_DECREF(Py_None);
 			obj->b_objects = PyDict_New();
+			if (obj->b_objects == NULL)
+				goto failed;
 		}
-		Py_INCREF(obj->b_objects);
 		result->b_objects = obj->b_objects;
 		if (result->b_objects) {
-			PyObject *index = PyLong_FromVoidPtr((void *)src);
+			PyObject *index;
 			int rc;
+			Py_INCREF(obj->b_objects);
+			index = PyLong_FromVoidPtr((void *)src);
 			if (index == NULL)
-				return NULL;
+				goto failed;
 			rc = PyDict_SetItem(result->b_objects, index, src);
 			Py_DECREF(index);
 			if (rc == -1)
-				return NULL;
+				goto failed;
 		}
 	}
 	/* Should we assert that result is a pointer type? */
 	memcpy(result->b_ptr, &ptr, sizeof(void *));
 	return (PyObject *)result;
+
+  failed:
+	Py_DECREF(result);
+	return NULL;
 }
 
 #ifdef CTYPES_UNICODE
