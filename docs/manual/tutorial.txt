@@ -130,8 +130,10 @@ be used as the NULL pointer)::
       >>>
 
 ``ctypes`` tries to protect you from calling functions with the wrong
-number of arguments.  Unfortunately this only works on Windows.  It
-does this by examining the stack after the function returns::
+number of arguments or the wrong calling convention.  Unfortunately
+this only works on Windows, for ``stdcall`` functions.  It does this
+by examining the stack after the function returns, so although an
+error is raised the function *has* been called::
 
       >>> windll.kernel32.GetModuleHandleA() # doctest: +WINDOWS
       Traceback (most recent call last):
@@ -142,6 +144,24 @@ does this by examining the stack after the function returns::
         File "<stdin>", line 1, in ?
       ValueError: Procedure probably called with too many arguments (4 bytes in excess)
       >>>
+
+The same exception is raised when you call an ``stdcall`` function
+with the ``cdecl`` calling convention, or vice versa::
+
+      >>> cdll.kernel32.GetModuleHandleA(None) # doctest: +WINDOWS
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Procedure probably called with not enough arguments (4 bytes missing)
+      >>>
+
+      >>> windll.msvcrt.printf("spam") # doctest: +WINDOWS
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Procedure probably called with too many arguments (4 bytes in excess)
+      >>>
+
+To find out the correct calling convention you have to look into the C
+header file or the documentation for the function you want to call.
 
 On Windows, ``ctypes`` uses win32 structured exception handling to
 prevent crashes from general protection faults when functions are
