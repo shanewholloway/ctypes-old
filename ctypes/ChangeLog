@@ -1,3 +1,11 @@
+2006-08-03  Thomas Heller  <theller@python.net>
+
+	* ctypes/__init__.py: Remove support for ctypes.com in
+	DllCanUnloadNow and DllGetClassObject.
+
+	Fix the DllGetClassObject and DllCanUnloadNow so that they forward
+	the call to the comtypes.server.inprocserver module.
+
 2006-08-01  Thomas Heller  <theller@python.net>
 
 	* source/_ctypes.c: Fix a potential segfault and several potential
