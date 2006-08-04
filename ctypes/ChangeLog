@@ -1,5 +1,7 @@
 2006-08-03  Thomas Heller  <theller@python.net>
 
+	* Changed version number to 1.0.0.
+	
 	* ctypes/__init__.py: Remove support for ctypes.com in
 	DllCanUnloadNow and DllGetClassObject.
 
