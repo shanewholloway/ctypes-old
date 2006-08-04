@@ -26,7 +26,17 @@ if os.name == "ce":
     # - ROM dll files (where are they?)
     # - OEM specified search path: HKLM\Loader\SystemPath
     def find_library(name):
-        return name
+        # Does it make sense to implement this correctly?  For now we
+        # fake.
+        #
+        # The proper solution (also for windows) would be to call
+        # LoadLibraryEx(name, NULL, LOAD_LIBRARY_AS_DATAFILE), then
+        # get the module name with GetModuleFileName and return that.
+        #
+        # OTOH, why use find_library on windows at all?
+        if not "." in name:
+            name += ".dll"
+        return os.path.exists(name)
 
 if os.name == "posix" and sys.platform == "darwin":
     from ctypes.macholib.dyld import dyld_find as _dyld_find
