@@ -1,5 +1,5 @@
-ctypes 0.9.9.9 released - July 21, 2006
-=======================================
+ctypes 1.0.0 released - August 4, 2006
+======================================
 
 Overview
 
@@ -16,6 +16,14 @@ Overview
     FreeBSD, OpenBSD. It may also run on other systems, provided that
     libffi supports this platform.
 
+
+Changes in 1.0.0
+
+    Better support for comtypes.  More target platforms for OpenBSD.
+    Several small bugfixes.
+
+    This is exactly the same version as included in Python 2.5b3,
+    which was recently released.
 
 Changes in 0.9.9.9
 
