@@ -1,3 +1,62 @@
-``ctypes`` is a foreign function library for Python.  It provides C
-compatible data types, and allows to call functions in dlls/shared
-libraries.  It can be used to wrap these libraries in pure Python.
+The ctypes package
+==================
+
+Overview
+--------
+
+    ``ctypes`` is an advanced ffi (Foreign Function Interface) package
+    for Python_ 2.3 and higher.  In Python_ 2.5, which is currently in
+    beta, it is already included.
+
+    ctypes allows to call functions exposed from dlls/shared libraries
+    and has extensive facilities to create, access and manipulate
+    simple and complicated C data types in Python - in other words:
+    wrap libraries in pure Python. It is even possible to implement C
+    callback functions in pure Python.
+
+    ctypes works on Windows, Windows CE, Mac OS X, Linux, Solaris,
+    FreeBSD, OpenBSD. It may also run on other systems, provided that
+    libffi supports this platform.
+
+.. _Python: http://www.python.org/
+
+Documentation
+-------------
+
+    Documentation is available in several formats.
+
+    - The tutorial_ and the reference_ as one single HTML page each.
+
+    - Single HTML pages from the official `Python 2.5 documentation`_.
+
+.. _tutorial: ./tutorial.html
+.. _reference: ./reference.html
+
+.. _`Python 2.5 documentation`: http://docs.python.org/dev/lib/module-ctypes.html
+
+Related projects
+----------------
+
+    A codegenerator_ which will parse C header files and generate
+    ctypes compatible Python code.  There is currently no official
+    release for the code generator, but you can get it from the
+    `codegenerator SVN repository`_.
+
+    A pure Python COM package named comtypes_, especially useful for
+    calling and implementing custom COM interfaces without the need to
+    write C/C++ code.
+
+.. _`codegenerator SVN repository`: http://svn.python.org/projects/ctypes/trunk/codegen/
+.. _comtypes: http://cheeseshop.python.org/pypi/comtypes
+.. _codegenerator: http://starship.python.net/crew/theller/ctypes/old/codegen.html
+
+Downloads
+---------
+
+    Recent releases can be downloaded in the `sourceforge files section`_.
+    The current version is 0.9.9.9, soon to be replaced by 1.0.
+
+    ``ctypes`` is licensed under the `MIT License`_.
+
+.. _`sourceforge files section`: http://sourceforge.net/project/showfiles.php?group_id=71702
+.. _`MIT License`: http://svn.python.org/view/*checkout*/ctypes/trunk/ctypes/LICENSE.txt
