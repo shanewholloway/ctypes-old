@@ -28,7 +28,8 @@ for dirpath, dirnames, files in os.walk("ctypes"):
         pyarc.write(os.path.join(dirpath, f))
 pyarc.close()
 
-arc = zipfile.ZipFile(r"dist\ctypes-2.4-arm.zip", "w")
+arc = zipfile.ZipFile(r"dist\ctypes-1.0.0.winCE-arm-py2.4.zip", "w",
+                      zipfile.ZIP_DEFLATED)
 arc.write(pathname, "ctypes.zip")
 os.remove(pathname)
 
