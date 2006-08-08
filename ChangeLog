@@ -1,3 +1,9 @@
+2006-08-08  Thomas Heller  <theller@python.net>
+
+	* Patch from Damien Miller for OpenBSD: Remove unneeded
+	"-fno-stack-protector" flag, support x86_64.  Regenerated
+	source/libffi/configure.
+
 2006-08-03  Thomas Heller  <theller@python.net>
 
 	* Changed version number to 1.0.0.
