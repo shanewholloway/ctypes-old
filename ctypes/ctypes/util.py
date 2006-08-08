@@ -33,7 +33,8 @@ if os.name == "ce":
         # LoadLibraryEx(name, NULL, LOAD_LIBRARY_AS_DATAFILE), then
         # get the module name with GetModuleFileName and return that.
         #
-        # OTOH, why use find_library on windows at all?
+        # OTOH, why use find_library on windows at all? LoadLibrary
+        # does all that's needed.
         if not "." in name:
             name += ".dll"
         return os.path.exists(name)
