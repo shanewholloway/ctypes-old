@@ -13,7 +13,7 @@ if _os.path.isfile(_magicfile):
     execfile(_magicfile)
 del _magicfile
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from _ctypes import Union, Structure, Array
 from _ctypes import _Pointer
