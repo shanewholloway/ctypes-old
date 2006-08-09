@@ -1,3 +1,14 @@
+2006-08-09  Thomas Heller  <theller@python.net>
+
+	* Remove the builtin _as_parameter_ attributes of ctypes
+	instances. Instead, a function pointer in the type's stgdict is
+	used to convert a ctypes instance to a function call parameter.
+
+	This allows to change the from_param methods to check for
+	_as_parameter_ attribute as the documentation promises.
+
+	Change version number to 1.0.1.
+
 2006-08-08  Thomas Heller  <theller@python.net>
 
 	* Patch from Damien Miller for OpenBSD: Remove unneeded
