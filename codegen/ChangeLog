@@ -1,3 +1,9 @@
+2006-08-11  Thomas Heller  <theller@python.net>
+
+	* codegenerator.py: Empty _field_ attributes are now generated for
+	Structure/Union (for weird reasons having to do with COM
+	interfaces NO _fields_ attribute was generated before).
+
 2006-06-23  Thomas Heller  <theller@python.net>
 
 	* xml2py.py: Remove the use_generators argument and the
