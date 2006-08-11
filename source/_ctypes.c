@@ -1651,9 +1651,9 @@ SimpleType_from_param(PyObject *type, PyObject *value)
 	parg->tag = fmt[0];
 	parg->pffi_type = fd->pffi_type;
 	parg->obj = fd->setfunc(&parg->value, value, 0);
-	if (parg->obj) {
+	if (parg->obj)
 		return (PyObject *)parg;
-	}
+	PyErr_Clear();
 	Py_DECREF(parg);
 
 	as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
