@@ -1,3 +1,14 @@
+2006-08-11  Thomas Heller  <theller@python.net>
+
+	* source/callbacks.c: When a ctypes C callback function is called,
+	zero out the result storage before converting the result to C
+	data.  This ensures that callback functions returning None will
+	pass a zero or NULL value (depending on the result type) to the
+	calling code.
+
+	Provide a better context for errors when the conversion of a
+	callback function's result cannot be converted.
+
 2006-08-09  Thomas Heller  <theller@python.net>
 
 	* Remove the builtin _as_parameter_ attributes of ctypes
