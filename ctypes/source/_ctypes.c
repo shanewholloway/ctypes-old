@@ -1135,6 +1135,8 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("Z");
 
 		parg = new_CArgObject();
+		if (parg == NULL)
+			return NULL;
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'Z';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
@@ -1195,6 +1197,8 @@ c_char_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("z");
 
 		parg = new_CArgObject();
+		if (parg == NULL)
+			return NULL;
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'z';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
@@ -1260,6 +1264,8 @@ c_void_p_from_param(PyObject *type, PyObject *value)
 		struct fielddesc *fd = getentry("P");
 
 		parg = new_CArgObject();
+		if (parg == NULL)
+			return NULL;
 		parg->pffi_type = &ffi_type_pointer;
 		parg->tag = 'P';
 		parg->obj = fd->setfunc(&parg->value, value, 0);
@@ -2582,6 +2588,8 @@ static PPROC FindAddress(void *handle, char *name, PyObject *type)
 	   where n is 0, 4, 8, 12, ..., 128
 	 */
 	mangled_name = alloca(strlen(name) + 1 + 1 + 1 + 3); /* \0 _ @ %d */
+	if (!mangled_name)
+		return NULL;
 	for (i = 0; i < 32; ++i) {
 		sprintf(mangled_name, "_%s@%d", name, i*4);
 		address = (PPROC)GetProcAddress(handle, mangled_name);
