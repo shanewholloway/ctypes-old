@@ -3,6 +3,11 @@
 	* New testcases for the _as_parameter_ property in
 	ctypes/test/test_as_parameter.py, contributed by Shane Holloway.
 
+	* Unfortunately, the result storage for a C callback function
+	cannot be zero'd out in an easy way because the size is unknown in
+	source/callbacks.c - so the following change has been taken out
+	again.
+	
 2006-08-11  Thomas Heller  <theller@python.net>
 
 	* source/callbacks.c: When a ctypes C callback function is called,
