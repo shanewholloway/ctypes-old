@@ -196,7 +196,7 @@ Fundamental data types
     |ctypes type    |C type                 |Python type   |
     +===============+=======================+==============+
     |``c_char``     |``char``               |1-character   |
-    |               |                       | string       |
+    |               |                       |string        |
     +---------------+-----------------------+--------------+
     |``c_wchar``    |``wchar_t``            |1-character   |
     |               |                       |unicode string|
@@ -230,8 +230,8 @@ Fundamental data types
     |``c_char_p``   |``char *``             |string or     |
     |               |(NUL terminated)       |``None``      |
     +---------------+-----------------------+--------------+
-    |``c_wchar_p``  |``wchar_t *``          |unicode string|
-    |               |(NUL terminated)       |or ``None``   |
+    |``c_wchar_p``  |``wchar_t *``          |unicode or    |
+    |               |(NUL terminated)       |``None``      |
     +---------------+-----------------------+--------------+
     |``c_void_p``   |``void *``             |int/long      |
     |               |                       |or ``None``   |
