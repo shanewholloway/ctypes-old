@@ -180,8 +180,8 @@ library object is available:
 
 ``pythonapi`` : vardesc
     An instance of ``PyDLL`` that exposes Python C api functions as
-    attributes.  Note that all these functions are assumed to return
-    integers, which is of course not always the truth, so you have to
+    attributes.  Note that all these functions are assumed to return C
+    ``int``, which is of course not always the truth, so you have to
     assign the correct ``restype`` attribute to use these functions.
 
 Foreign functions
@@ -209,8 +209,8 @@ the foreign function object.
     anything.
 
     It is possible to assign a callable Python object that is not a
-    ctypes type, in this case the function is assumed to return an
-    integer, and the callable will be called with this integer,
+    ctypes type, in this case the function is assumed to return a
+    C ``int``, and the callable will be called with this integer,
     allowing to do further processing or error checking.  Using this
     is deprecated, for more flexible postprocessing or error checking
     use a ctypes data type as ``restype`` and assign a callable to the
@@ -776,7 +776,9 @@ These are the fundamental ctypes data types:
     or error information for a function or method call.
 
 ``py_object`` : classdesc*
-    Represents the C ``PyObject *`` datatype.
+
+    Represents the C ``PyObject *`` datatype.  Calling this with an
+    without an argument creates a ``NULL`` ``PyObject *`` pointer.
 
 The ``ctypes.wintypes`` module provides quite some other Windows
 specific data types, for example ``HWND``, ``WPARAM``, or ``DWORD``.
@@ -811,9 +813,9 @@ fields by direct attribute accesses.  These are the
     the second item specifies the type of the field; it can be any
     ctypes data type.
 
-    For integer type fields, a third optional item can be given.  It
-    must be a small positive integer defining the bit width of the
-    field.
+    For integer type fields like ``c_int``, a third optional item can
+    be given.  It must be a small positive integer defining the bit
+    width of the field.
 
     Field names must be unique within one structure or union.  This is
     not checked, only one field can be accessed when names are
