@@ -176,8 +176,13 @@ called with invalid argument values::
 There are, however, enough ways to crash Python with ``ctypes``, so
 you should be careful anyway.
 
-Python integers, strings and unicode strings are the only objects that
-can directly be used as parameters in these function calls.
+``None``, integers, longs, byte strings and unicode strings are the
+only native Python objects that can directly be used as parameters in
+these function calls.  ``None`` is passed as a C ``NULL`` pointer,
+byte strings and unicode strings are passed as pointer to the memory
+block that contains their data (``char *`` or ``wchar_t *``).  Python
+integers and Python longs are passed as the platforms default C
+``int`` type, their value is masked to fit into the C type.
 
 Before we move on calling functions with other parameter types, we
 have to learn more about ``ctypes`` data types.
@@ -187,46 +192,46 @@ Fundamental data types
 
 ``ctypes`` defines a number of primitive C compatible data types :
 
-    +---------------+-----------------------+-----------+
-    |ctypes type    |C type                 |Python type|
-    +===============+=======================+===========+
-    |``c_char``     |``char``               |character  |
-    +---------------+-----------------------+-----------+
-    |``c_byte``     |``char``               |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_ubyte``    |``unsigned char``      |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_short``    |``short``              |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_ushort``   |``unsigned short``     |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_int``      |``int``                |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_uint``     |``unsigned int``       |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_long``     |``long``               |integer    |
-    +---------------+-----------------------+-----------+
-    |``c_ulong``    |``unsigned long``      |long       |
-    +---------------+-----------------------+-----------+
-    |``c_longlong`` |``__int64`` or         |long       |
-    |               |``long long``          |           |
-    +---------------+-----------------------+-----------+
-    |``c_ulonglong``|``unsigned __int64`` or|long       |
-    |               |``unsigned long long`` |           |
-    +---------------+-----------------------+-----------+
-    |``c_float``    |``float``              |float      |
-    +---------------+-----------------------+-----------+
-    |``c_double``   |``double``             |float      |
-    +---------------+-----------------------+-----------+
-    |``c_char_p``   |``char *``             |string or  |
-    |               |(NUL terminated)       |``None``   |
-    +---------------+-----------------------+-----------+
-    |``c_wchar_p``  |``wchar_t *``          |unicode or |
-    |               |(NUL terminated)       |``None``   |
-    +---------------+-----------------------+-----------+
-    |``c_void_p``   |``void *``             |integer or |
-    |               |                       |``None``   |
-    +---------------+-----------------------+-----------+
+    +---------------+-----------------------+-------------+
+    |ctypes type    |C type                 |Python type  |
+    +===============+=======================+=============+
+    |``c_char``     |``char``               |character    |
+    +---------------+-----------------------+-------------+
+    |``c_byte``     |``char``               |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_ubyte``    |``unsigned char``      |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_short``    |``short``              |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_ushort``   |``unsigned short``     |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_int``      |``int``                |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_uint``     |``unsigned int``       |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_long``     |``long``               |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_ulong``    |``unsigned long``      |int/long     |
+    +---------------+-----------------------+-------------+
+    |``c_longlong`` |``__int64`` or         |int/long     |
+    |               |``long long``          |             |
+    +---------------+-----------------------+-------------+
+    |``c_ulonglong``|``unsigned __int64`` or|int/long     |
+    |               |``unsigned long long`` |             |
+    +---------------+-----------------------+-------------+
+    |``c_float``    |``float``              |float        |
+    +---------------+-----------------------+-------------+
+    |``c_double``   |``double``             |float        |
+    +---------------+-----------------------+-------------+
+    |``c_char_p``   |``char *``             |string or    |
+    |               |(NUL terminated)       |``None``     |
+    +---------------+-----------------------+-------------+
+    |``c_wchar_p``  |``wchar_t *``          |unicode or   |
+    |               |(NUL terminated)       |``None``     |
+    +---------------+-----------------------+-------------+
+    |``c_void_p``   |``void *``             |int/long     |
+    |               |                       |or ``None``  |
+    +---------------+-----------------------+-------------+
 
 
 
@@ -402,11 +407,11 @@ the ``_as_parameter_`` attribute.
 Return types
 ------------
 
-By default functions are assumed to return integers.  Other return
-types can be specified by setting the ``restype`` attribute of the
-function object.
+By default functions are assumed to return the C ``int`` type.  Other
+return types can be specified by setting the ``restype`` attribute of
+the function object.
 
-Here is a more advanced example, it uses the strchr function, which
+Here is a more advanced example, it uses the ``strchr`` function, which
 expects a string pointer and a char, and returns a pointer to a
 string::
 
