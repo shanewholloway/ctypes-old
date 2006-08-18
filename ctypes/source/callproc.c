@@ -465,9 +465,11 @@ struct argument {
  */
 static int ConvParam(PyObject *obj, int index, struct argument *pa)
 {
+	StgDictObject *dict;
 	pa->keep = NULL; /* so we cannot forget it later */
-	if (PyObject_stgdict(obj)) {
-		StgDictObject *dict = PyObject_stgdict(obj);
+
+	dict = PyObject_stgdict(obj);
+	if (dict) {
 		PyCArgObject *carg;
 		assert(dict->paramfunc);
 		/* If it has an stgdict, it is a CDataObject */
