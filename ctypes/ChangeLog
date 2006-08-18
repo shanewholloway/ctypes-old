@@ -1,3 +1,26 @@
+2006-08-18  Thomas Heller  <theller@python.net>
+
+	* Sync with the Python SVN version of ctypes:
+
+	Remove the special casing of Py_None when converting the return
+	value of the Python part of a callback function to C.  If it
+	cannot be converted, call PyErr_WriteUnraisable with the exception
+	we got. Before, arbitrary data has been passed to the calling C
+	code in this case.
+
+	The __repr__ method of a NULL py_object does no longer raise an
+	exception.  Remove a stray '?' character from the exception text
+	when the value is retrieved of such an object.
+
+	Add commented assert statements to check that the result of
+	PyObject_stgdict() and PyType_stgdict() calls are non-NULL before
+	dereferencing the result.
+
+	Fix a few other nits as well.
+
+	Check for NULL return value from new_CArgObject().
+	Check for NULL return value from GenericCData_new().
+
 2006-08-14  Thomas Heller  <theller@python.net>
 
 	* New testcases for the _as_parameter_ property in
