@@ -38,6 +38,9 @@ from distutils.cygwinccompiler import Mingw32CCompiler
 if get_platform() in ["solaris-2.9-sun4u", "linux-x86_64"]:
     os.environ["CFLAGS"] = "-fPIC"
 
+if sys.platform == "win32" and "64 bit (AMD64)" in sys.version:
+    os.environ["DISTUTILS_USE_SDK"] = "1"
+
 ################################################################
 # Additional and overridden distutils commands
 #
@@ -139,7 +142,27 @@ class my_build_ext(build_ext.build_ext):
                 for ext in self.extensions:
                     if ext.name == "_ctypes":
                         ext.sources.remove("source/libffi_msvc/win32.S")
-                    ext.extra_link_args = []
+
+                        # This should be refactored, so that we can
+                        # add amd64.asm to the sources, and
+                        # my_build_ext does the rest.
+                        if "64 bit (AMD64)" in sys.version:
+
+                            ext.sources.remove("source/libffi_msvc/win32.c")
+                            ext.depends.append("source/libffi_msvc/win64.obj")
+                            ext.extra_objects.append("source/libffi_msvc/win64.obj")
+
+                            from distutils.dep_util import newer_group
+                            if newer_group(["source/libffi_msvc/win64.asm"],
+                                           "source/libffi_msvc/win64.obj",
+                                           missing="newer") or self.force:
+                                cmd = "ml64.exe /nologo /c /Zi /Fosource/libffi_msvc/win64.obj " + \
+                                      "source/libffi_msvc/win64.asm"
+                                print self.build_temp
+                                print cmd
+                                os.system(cmd)
+
+                    ext.extra_link_args = ["/DEBUG"]
 
         build_ext.build_ext.build_extensions(self)
 
@@ -239,17 +262,17 @@ if sys.platform == "win32":
         # types.c is no longer needed, ffi_type defs are in cfield.c
         "source/libffi_msvc/ffi.c",
         "source/libffi_msvc/prep_cif.c",
-        # One of these will be removed, in my_build_ext, depending
-        # on the compiler used:
+        # All except one of these will be removed, in my_build_ext,
+        # depending on the compiler used:
         "source/libffi_msvc/win32.c",
         "source/libffi_msvc/win32.S",
         ])
     if sys.version_info >= (2, 4):
-        extra_compile_args = []
+        extra_compile_args = ["/Fa", "/Zi"]
         # enable 64-bit portability warnings
 ##        extra_compile_args = ["/Wp64"]
     else:
-        extra_compile_args = []
+        extra_compile_args = ["/Fa", "/Zi"]
 
     # Extra arguments passed to linker from MinGW,
     # will be removed, in my_build_ext, if compiler <> MinGW
