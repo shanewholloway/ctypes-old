@@ -162,7 +162,7 @@ class my_build_ext(build_ext.build_ext):
                                 print cmd
                                 os.system(cmd)
 
-                    ext.extra_link_args = ["/DEBUG"]
+                    ext.extra_link_args = []
 
         build_ext.build_ext.build_extensions(self)
 
@@ -267,12 +267,7 @@ if sys.platform == "win32":
         "source/libffi_msvc/win32.c",
         "source/libffi_msvc/win32.S",
         ])
-    if sys.version_info >= (2, 4):
-        extra_compile_args = ["/Fa", "/Zi"]
-        # enable 64-bit portability warnings
-##        extra_compile_args = ["/Wp64"]
-    else:
-        extra_compile_args = ["/Fa", "/Zi"]
+    extra_compile_args = []
 
     # Extra arguments passed to linker from MinGW,
     # will be removed, in my_build_ext, if compiler <> MinGW
