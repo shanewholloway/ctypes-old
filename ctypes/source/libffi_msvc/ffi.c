@@ -400,7 +400,9 @@ ffi_prep_closure (ffi_closure* closure,
 {
   short bytes;
   char *tramp;
+#ifdef _WIN64
   int mask;
+#endif
   FFI_ASSERT (cif->abi == FFI_SYSV);
   
   if (cif->abi == FFI_SYSV)
