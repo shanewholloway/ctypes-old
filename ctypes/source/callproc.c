@@ -988,7 +988,11 @@ PyObject *_CallProc(PPROC pProc,
 	}
 	for (i = 0; i < argcount; ++i) {
 		atypes[i] = args[i].ffi_type;
-		if (atypes[i]->type == FFI_TYPE_STRUCT)
+		if (atypes[i]->type == FFI_TYPE_STRUCT 
+#ifdef _WIN64
+		    && atypes[i]->size <= sizeof(void *)
+#endif
+		    )
 			avalues[i] = (void *)args[i].value.p;
 		else
 			avalues[i] = (void *)&args[i].value;
