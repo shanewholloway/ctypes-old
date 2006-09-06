@@ -1,3 +1,10 @@
+2006-09-06  Thomas Heller  <theller@python.net>
+
+	* codegenerator.py: '_anonymous_' declarations are only generated
+	for unnamed Structure/Union fields if the type of the field is a
+	Structure or Union.  (Windows header files contain unnamed
+	structure fields of type 'int', probably for padding.)
+
 2006-08-11  Thomas Heller  <theller@python.net>
 
 	* codegenerator.py: Empty _field_ attributes are now generated for
