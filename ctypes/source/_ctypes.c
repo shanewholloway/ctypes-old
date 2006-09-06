@@ -431,7 +431,7 @@ StructType_setattro(PyObject *self, PyObject *key, PyObject *value)
 	if (-1 == PyObject_GenericSetAttr(self, key, value))
 		return -1;
 	
-	if (value && PyString_Check(key) &&
+	if (PyString_Check(key) &&
 	    0 == strcmp(PyString_AS_STRING(key), "_fields_"))
 		return StructUnionType_update_stgdict(self, value, 1);
 	return 0;
