@@ -6,6 +6,13 @@ import unittest, sys
 
 import _ctypes_test
 
+if sys.platform == "win32" and sizeof(c_void_p) == sizeof(c_ulonglong):
+    # win64
+    class Win64TestCase(unittest.TestCase):
+        def test_noargs(self):
+            # This crashed in an early version for AMD64
+            windll.user32.GetDesktopWindow()
+
 if sys.platform == "win32" and sizeof(c_void_p) == sizeof(c_int):
     # Only windows 32-bit has different calling conventions.
 
