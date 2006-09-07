@@ -87,6 +87,9 @@ ffi_call_AMD64 PROC FRAME
 .ENDPROLOG
 
 	mov	eax, DWORD PTR bytes$[rbp]
+
+;;; We need at least 5 qwords stack space...
+	add	rax, 40
 	add	rax, 15
 	and	rax, -16
 	call	__chkstk
