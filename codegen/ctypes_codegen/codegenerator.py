@@ -608,8 +608,7 @@ class Generator(object):
 	return cmp(a[0],b[0]) or cmp(int(a[1]),int(b[1]))
     cmpitems = staticmethod(cmpitems)
 
-    def generate_code(self, items):
-        print >> self.imports, "from ctypes import *"
+    def generate_items(self, items):
         items = set(items)
         loops = 0
         while items:
@@ -619,6 +618,11 @@ class Generator(object):
 
             items |= self.more
             items -= self.done
+        return loops
+
+    def generate_code(self, items):
+        print >> self.imports, "from ctypes import *"
+        loops = self.generate_items(items)
 
         self.output.write(self.imports.getvalue())
         self.output.write("\n\n")
