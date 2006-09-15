@@ -1,3 +1,11 @@
+2006-09-15  Thomas Heller  <theller@python.net>
+
+	* codegenerator.py: Refactored a method 'generate_items' out of
+	'generate_code'.  This allows better incremental code generation.
+
+	* os.name is 'win32', not 'nt', on windows. This prevented that
+	definitions from ctypes.wintypes to be used in generated code.
+
 2006-09-06  Thomas Heller  <theller@python.net>
 
 	* codegenerator.py: '_anonymous_' declarations are only generated
