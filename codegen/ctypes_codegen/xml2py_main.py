@@ -101,7 +101,7 @@ def main(argv=None):
                       callback=windows_dlls,
                       help="add all standard windows dlls to the searched dlls list")
 
-    if os.name in ("ce", "win32"):
+    if os.name in ("ce", "nt"):
         default_modules = ["ctypes.wintypes", "ctypes" ]
     else:
         default_modules = ["ctypes" ]
