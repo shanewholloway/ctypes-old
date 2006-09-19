@@ -1,3 +1,18 @@
+2006-09-19  Thomas Heller  <theller@python.net>
+
+	* cparser.py: Lots of changes.  The summary: xml2py doesn't use a
+	config file for #define symbols to exclude, instead it loops
+	several times to find the symbols that don't compile.
+	
+	* scripts/xml2py_main.py: Change the generated code that loads
+	libraries.  On windows, the absolute pathname is no longer used.
+
+	* codegenerator.py: Rework the .init_value() method so that
+	decode_value() is used in all cases.  Correct the decoding of
+	integer values - it seems decimal numbers are used except when
+	they start with a '0' which means hex (previously I assumed hex
+	always).
+
 2006-09-15  Thomas Heller  <theller@python.net>
 
 	* codegenerator.py: Refactored a method 'generate_items' out of
