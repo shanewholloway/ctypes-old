@@ -105,7 +105,7 @@ class IncludeParser(object):
             data, err = proc.communicate()
             retcode = proc.wait()
             if retcode:
-                self.display_compiler_errors(err.splitlines())
+                print >> sys.stderr, err
                 raise CompilerError, "gccxml returned %s" % retcode
         finally:
             if not self.options.keep_temporary_files:
@@ -113,9 +113,31 @@ class IncludeParser(object):
             else:
                 print >> sys.stderr, "Info: file '%s' not removed" % fname
 
-    def display_compiler_errors(self, lines):
+    def try_create_xml(self, lines, xmlfile):
+        """Create a temporary source file, 'compile' with gccxml to an
+        xmlfile, and remove the source file again."""
+        fname = self.create_source_file(lines)
+        args = ["gccxml", fname]
+        args.append("-fxml=%s" % xmlfile)
+        if self.options.flags:
+            args.extend(self.options.flags)
+
+        if self.options.verbose:
+            print >> sys.stderr, "running:", " ".join(args)
+        proc = subprocess.Popen(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                stdin=subprocess.PIPE)
+        data, err = proc.communicate()
+        retcode = proc.wait()
+        invalid_symbols = set()
+        if retcode:
+            invalid_symbols = self.parse_compiler_errors(err.splitlines())
+            os.remove(fname)
+        return invalid_symbols
+
+    def parse_compiler_errors(self, lines):
         pat = re.compile(r"(.*\.cpp):(\d+):(.*)")
-        output = []
         invalid_symbols = set()
         for line in lines:
             match = pat.search(line)
@@ -126,23 +148,10 @@ class IncludeParser(object):
                 src_line = linecache.getline(fnm, int(lineno)).rstrip()
                 is_define = re.match(r"^  DEFINE\((.*)\);$", src_line)
                 if is_define:
-                    invalid_symbols.add(is_define.group(1))
-                text = "'%s' %s" % (src_line, errmsg)
-                output.append(text)
-            if line.startswith(" ") and output:
-                output[-1] = output[-1] + line.strip()
-        if invalid_symbols:
-            print >> sys.stderr, "There were compiler errors on #define symbols."
-            print >> sys.stderr, "These symbols were added to the config file:"
-            ofi = open(EXCLUDES_FILE, "a")
-            for sym in invalid_symbols:
-                ofi.write("%s\n" % sym)
-                print >> sys.stderr, "\t%s" % sym
-            print >> sys.stderr, "Please restart the script to try again!"
-        else:
-            print >> sys.stderr, "Compiler errors on these source lines:"
-            for line in output:
-                print >> sys.stderr, line
+                    sym = is_define.group(1)
+                    if sym not in invalid_symbols:
+                        invalid_symbols.add(is_define.group(1))
+        return invalid_symbols
 
     def get_defines(self, include_files):
         """'Compile' an include file with gccxml, and return a
@@ -199,32 +208,45 @@ class IncludeParser(object):
     ################################################################
 
     def find_types(self, include_files, defines):
-        source = []
-        for fname in include_files:
-            source.append('#include "%s"' % fname)
-        source.append("#define DECLARE(sym) template <typename T> T symbol_##sym(T) {}")
-        source.append("#define DEFINE(sym) symbol_##sym(sym)")
-        for name in defines:
-            # create a function template for each value
-            source.append("DECLARE(%s)" % name)
-        source.append("int main() {")
-        for name in defines:
-            # instantiate a function template.
-            # The return type of the function is the symbol's type.
-            source.append("  DEFINE(%s);" % name)
-        source.append("}")
+        for i in range(20):
+            source = []
+            for fname in include_files:
+                source.append('#include "%s"' % fname)
+            source.append("#define DECLARE(sym) template <typename T> T symbol_##sym(T) {}")
+            source.append("#define DEFINE(sym) symbol_##sym(sym)")
+            for name in defines:
+                # create a function template for each value
+                source.append("DECLARE(%s)" % name)
+            source.append("int main() {")
+            for name in defines:
+                # instantiate a function template.
+                # The return type of the function is the symbol's type.
+                source.append("  DEFINE(%s);" % name)
+            source.append("}")
 
-        fd, fname = tempfile.mkstemp(".xml")
-        os.close(fd)
-        self.create_xml(source, fname)
-        try:
-            items = gccxmlparser.parse(fname)
-        finally:
-            # make sure the temporary file is removed after using it
-            if not self.options.keep_temporary_files:
-                os.remove(fname)
-            else:
-                print >> sys.stderr, "Info: file '%s' not removed" % fname
+            fd, fname = tempfile.mkstemp(".xml")
+            os.close(fd)
+            invalid_symbols = self.try_create_xml(source, fname)
+            if not invalid_symbols:
+                break
+            if self.options.verbose:
+                if i == 0:
+                    print >> sys.stderr, "compiler errors caused by '-c' flag.\n" \
+                          "Trying to resolve them in multiple passes."
+                print >> sys.stderr, "pass %d:" % (i + 1)
+            for n in invalid_symbols:
+                del defines[n]
+                if self.options.verbose:
+                    print >> sys.stderr, "\t", n
+        else:
+            raise CompilerError
+
+        items = gccxmlparser.parse(fname)
+        # make sure the temporary file is removed after using it
+        if not self.options.keep_temporary_files:
+            os.remove(fname)
+        else:
+            print >> sys.stderr, "Info: file '%s' not removed" % fname
 
         types = {}
         for i in items:
@@ -280,6 +302,11 @@ class IncludeParser(object):
         """Parse include files."""
         options = self.options
         
+        types = {}
+        functions = {}
+        aliases = {}
+        excluded = {}
+
         if options.cpp_symbols:
             if options.verbose:
                 print >> sys.stderr, "finding definitions ..."
@@ -294,15 +321,15 @@ class IncludeParser(object):
 
             if options.verbose:
                 print >> sys.stderr, "finding definitions types ..."
+
+            try:
                 # invoke C++ template magic
-            types = self.find_types(include_files, defines)
-            if options.verbose:
-                print >> sys.stderr, "found %d types ..." % len(types)
-        else:
-            types = {}
-            functions = {}
-            aliases = {}
-            excluded = {}
+                types = self.find_types(include_files, defines)
+                if options.verbose:
+                    print >> sys.stderr, "found %d types ..." % len(types)
+            except CompilerError:
+                print >> sys.stderr, "Could not determine the types of #define symbols."
+                types = {}
 
         if options.verbose:
             print >> sys.stderr, "creating xml output file ..."
