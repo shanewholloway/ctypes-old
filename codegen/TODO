@@ -1,15 +1,5 @@
 codegenerator bugs:
 
-- Handling of errors in h2xml.py must be improved.
-  There are two cases:
-  1. If the header file cannot be parsed by gccxml (for example,
-     if other .h files must be included before the one currently
-     processed, error messages must be shown to the user).
-  2. If '-c' is given, compiler errors may arise because of 'strange'
-     #define directives.  These errors must be parsed by h2xml.py
-     itself (they are) and the directives must be excluded, and the
-     compilation can be retried.
-
 - Think about the limitations of gccxml:
   - typedefs used in function argument lists are handled differently
     than in structure fields.  Cosmetic bug?
@@ -18,11 +8,6 @@ codegenerator bugs:
   (Would it be possible to implement a C parser in pure Python?
    PLY would probably be able to handle this, but we need a CPP
    as well).
-
-- Where to store uncompilable #defines, with '-c'?
-
-- If -c is given for h2xml.py, we should rerun gccxml as long as
-  compiler errors are found.
 
 - Refactor the code so that function generation can be easily adjusted
   in subclasses of the code generator.
