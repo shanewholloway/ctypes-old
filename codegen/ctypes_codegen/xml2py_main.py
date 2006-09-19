@@ -137,6 +137,8 @@ def main(argv=None):
     from ctypes.util import find_library
 
     def load_library(name):
+        if os.name == "nt":
+            return CDLL(name)
         path = find_library(name)
         if path is None:
             raise RuntimeError("Library '%s' not found" % name)
