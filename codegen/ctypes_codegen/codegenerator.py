@@ -172,30 +172,21 @@ class Generator(object):
             return decode_value(init)
         elif tn in ["c_float", "c_double"]:
             return float(init)
-        elif tn == "POINTER(c_char)":
-            if init[0] == '"':
-                value = eval(init)
-            else:
-                value = int(init, 16)
-            return value
-        elif tn == "POINTER(c_wchar)":
-            if init[0] == '"':
-                value = eval(init)
-            else:
-                value = int(init, 16)
+        elif tn in ("POINTER(c_char)", "STRING"):
+            return decode_value(init)
+        elif tn in ("POINTER(c_wchar)", "WSTRING"):
+            value = decode_value(init)
             if isinstance(value, str):
                 value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
                 value = value.decode("utf-16") # XXX Is this correct?
             return value
         elif tn == "c_void_p":
-            if init[0] == "0":
-                value = int(init, 16)
-            else:
-                value = int(init) # hm..
-            # Hm, ctypes represents them as SIGNED int
-            return value
-        elif tn == "c_char":
             return decode_value(init)
+        elif tn == "c_char":
+            value = decode_value(init)
+            if isinstance(value, int):
+                return chr(value)
+            return value
         elif tn == "c_wchar":
             value = decode_value(init)
             if isinstance(value, int):
