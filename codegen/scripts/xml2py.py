@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 from ctypes_codegen.xml2py_main import main
 
