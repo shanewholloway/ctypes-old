@@ -5,8 +5,8 @@ Overview
 --------
 
     ``ctypes`` is an advanced ffi (Foreign Function Interface) package
-    for Python_ 2.3 and higher.  In Python_ 2.5, which is currently in
-    beta, it is already included.
+    for Python_ 2.3 and higher.  In Python_ 2.5 it is already
+    included.
 
     ctypes allows to call functions exposed from dlls/shared libraries
     and has extensive facilities to create, access and manipulate
