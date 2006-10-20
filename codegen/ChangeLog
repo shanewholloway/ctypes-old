@@ -1,5 +1,7 @@
 2006-10-20  Thomas Heller  <theller@python.net>
 
+	* Added ctypes_codegen.test package for codegenerator tests.
+	
 	* Renamed modules from ctypes_codegen.h2xml_main to
 	ctypes_codegen.h2xml and ctypes_codegen.xml2py to
 	ctypes_codegen.xml2py.
