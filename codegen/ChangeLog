@@ -1,3 +1,13 @@
+2006-10-20  Thomas Heller  <theller@python.net>
+
+	* Renamed modules from ctypes_codegen.h2xml_main to
+	ctypes_codegen.h2xml and ctypes_codegen.xml2py to
+	ctypes_codegen.xml2py.
+
+	So, with Python2.5 it is possible to execute
+	'python -m ctypes_codegen.h2xml ...' and
+	'python -m ctypes_codegen.xml2py ...'.
+	
 2006-10-05  Thomas Heller  <theller@python.net>
 
 	* Added '#!/usr/bin/env python' to the h2xml.py and xml2py.py
