@@ -11,14 +11,16 @@ Overview
     FreeBSD, OpenBSD.  It may also run on other systems, provided that
     libffi supports this platform.
 
+    ctypes includes libffi, which is copyright Red Hat, Inc.  Complete
+    license see below.
+
 
 Requirements
 
     ctypes requires Python 2.3 or higher, since it makes intensive use
     of the new type system.
 
-    ctypes includes libffi, which is copyright Red Hat, Inc.  Complete
-    license see below.
+    In Python 2.5, the ctypes package is already included.
 
 
 Installation
@@ -31,7 +33,7 @@ Installation
     Installation from source
 
         To install ctypes from source, unpack the distribution, enter
-        the ctypes-0.9.x source directory, and enter
+        the ctypes-x.y.z source directory, and enter
 
             python setup.py build
 
@@ -82,13 +84,6 @@ Installation
 	Now you can connect your pocket PC, build the projects in
 	visual C, and both _ctypes.pyd and _ctypes_test.pyd should be
 	downloaded automatically to your device.
-
-
-Additional notes
-
-    Current version: 0.9.9.9
-
-    Homepage: http://starship.python.net/crew/theller/ctypes/
 
 
 ctypes license

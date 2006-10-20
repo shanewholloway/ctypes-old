@@ -369,10 +369,11 @@ if __name__ == '__main__':
           description="create and manipulate C data types in Python, call functions in shared libraries",
           long_description = __doc__,
           author="Thomas Heller",
-          author_email="theller@python.net",
+          author_email="theller@ctypes.org",
           license="MIT License",
           url="http://starship.python.net/crew/theller/ctypes.html",
           platforms=["windows", "Linux", "MacOS X", "Solaris", "FreeBSD"],
+          download_url="http://sourceforge.net/project/showfiles.php?group_id=71702",
 
           cmdclass = {'test': test, 'build_py': my_build_py, 'build_ext': my_build_ext,
                       'clean': my_clean, 'install_data': my_install_data,

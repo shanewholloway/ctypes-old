@@ -1,5 +1,5 @@
-ctypes 1.0.0 released - August 4, 2006
-======================================
+ctypes 1.0.1 released - October 20, 2006
+========================================
 
 Overview
 
@@ -17,149 +17,25 @@ Overview
     libffi supports this platform.
 
 
+Changes in 1.0.1
+
+    If the Python part of a ctypes callback function returns None, and
+    this cannot be converted to the required C type, an exception is
+    printed with PyErr_WriteUnraisable.  Before this change, the C
+    callback returned arbitrary values to the calling code.
+	
+    The __repr__ method of a NULL ctypes.py_object() no longer raises
+    an exception.
+
+    This release contains exactly the same code as the ctypes package
+    included in Python 2.5.
+
 Changes in 1.0.0
 
     Better support for comtypes.  More target platforms for OpenBSD.
     Several small bugfixes.
 
-    This is exactly the same version as included in Python 2.5b3,
-    which was recently released.
-
-Changes in 0.9.9.9
-
-    Index checking on 1-sized arrays was reintroduced, so they can no
-    longer be used as variable sized data.
-
-    Assigning None to pointer type structure fields possible overwrote
-    wrong fields.
-
-    Fixed a segfault when ctypes.wintypes were imported on non-Windows
-    machines.
-
-    Accept any integer or long value in the ctypes.c_void_p
-    constructor.
-
-    It is now possible to use custom objects in the ctypes foreign
-    function argtypes sequence as long as they provide a from_param
-    method, no longer is it required that the object is a ctypes type.
-
-    ctypes can now be built with MingW on Windows, but it will not
-    catch access violations then since MingW does no structured
-    exception handling.
-
-    Sync the darwin/x86 port libffi with the copy in PyObjC. This
-    fixes a number of bugs in that port. The most annoying ones were
-    due to some subtle differences between the document ABI and the
-    actual implementation :-(
-
-    Release the GIL during COM method calls, to avoid deadlocks in
-    Python coded COM objects.
-
-Changes in 0.9.9.7
-
-    Fixes for 64-bit big endian machines.
-
-    It is now possible to read and write any index of pointer
-    instances (up to 0.9.9.6, reading was allowed for any index, but
-    writing only for index zero).
-
-    Support for unnamed (anonymous) structure fields has been added,
-    the field names must be listed in the '_anonymous_' class
-    variable.  Fields of unnamed structure fields can be accessed
-    directly from the parent structure.
-
-    Enabled darwin/x86 support for libffi (Bob Ippolito and Ronald
-    Oussuren).
-
-    Added support for variable sized data structures: array
-    types with exactly 1  element don't do  bounds checking any  more,
-    and  a resize  function can resize  the internal  memory buffer of
-    ctypes instances.
-
-    Fixed a bug with certain array or structure types that contained
-    more than 256 elements.
-
-Changes in 0.9.9.6
-
-    The most important change is that the old way to load libraries
-    has been restored: cdll.LoadLibrary(path), and CDLL(path) work
-    again.  For details see the changelog in CVS and in the source
-    distribution.
-
-    It was a mistake to change that in the 0.9.9.3 release - I
-    apologize for any confusion and additional work this has caused or
-    will cause.
-
-    New module ctypes.util which contains a cross-platform
-    find_library function.
-
-    Sized integer types (c_int8, c_int16, and so on) have been added
-    by integrating a patch from Joe Wreschnig.  Also c_size_t, which
-    corresonds to the 'size_t' C type has been added.
-
-    Two long standing bugs with pointers have been fixed.  Thanks to
-    Axel Seibert for pushing me to the first, and thanks to Armin Rigo
-    for finding the second one.
-
-    The ctypes.decorator module has been removed completely, so the
-    'cdecl' and 'stdcall' symbols are no longer available.
-    The code generator has been removed completely.  It will probably
-    be made available as a separate project later.
-
-    The samples directory has been removed because it was completely
-    out-of-date.
-
-    The .zip and .tar.gz source distributions no longer contain
-    different file sets.
-
-    The development in CVS now takes place in the HEAD again, the
-    'branch_1_0' branch is no longer used.
-
-
-Changes in 0.9.9.3
-
-    Windows
-
-        The ctypes.com package is no longer included and supported.
-        It is replaced by the comtypes package which will be released
-        separately.
-
-	ctypes has been ported to Windows CE by Luke Dunstan.
-
-    Other platforms
-
-        Hye-Shik Chang has written a new build system for libffi
-        which should remove possible licensing issues.
-
-    All platforms
-
-        The library loading code has been rewritten by Andreas Degert,
-        there are now sophisticated methods to find shared libraries.
-	On OS X, this uses files from Bob Ippolito's macholib.
-        See the manual for details.
-
-        Finally I started to write the manual, it is available online:
-
-            http://tinyurl.com/7bpg4
-
-	New 'errcheck' protocol to check the return values of foreign
-	functions, suggested by Mike Fletcher.
-
-	Lots of bug fixes, especially for 64-bit platforms. Improved
-	performance when creating ctypes instances.
-
-	Subclasses of simple types (c_int, c_void_p, and so on) now
-	behave as expected - they are not automatically converted into
-	native Python types any longer.
-
-	Support for explicit byte ordering in structures has been
-	added (BigEndianStructure, LittleEndianStructure base
-	classes).
-
-	call byref() automatically, if needed, for POINTER types in
-	argtypes.
-
-	Lots of improvements to the code generator.
+    This is exactly the same version as included in Python 2.5b3.
 
 Download
 
