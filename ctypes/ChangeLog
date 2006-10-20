@@ -11,25 +11,8 @@
 	Replaced them by svn:externals definitions pointing into the official
 	Python SVN tree:
 
-	source http://svn.python.org/projects/python/tags/r25/Modules/_ctypes/
-	ctypes http://svn.python.org/projects/python/tags/r25/Lib/ctypes/
-
-	So, the code is exactly the same as the one released with Python 2.5.
-	(Note that this at least removes the Win64/AMD64 changes again).
-
-	Here are some ctypes-related entries from the Python2.5 Misc/NEWS
-	file, I do not know if this list is complete:
-	
-	- If the Python part of a ctypes callback function returns None,
-	and this cannot be converted to the required C type, an exception
-	is printed with PyErr_WriteUnraisable.  Before this change, the C
-	callback returned arbitrary values to the calling code.
-	
-	- The __repr__ method of a NULL ctypes.py_object() no longer
-	raises an exception.
-
-	- Patch # 1536908: enable building ctypes on OpenBSD/AMD64.  The
-	'-no-stack-protector' compiler flag for OpenBSD has been removed.
+	source http://svn.python.org/projects/python/trunk/Modules/_ctypes/
+	ctypes http://svn.python.org/projects/python/trunk/Lib/ctypes/
 
 2006-08-24  Thomas Heller  <theller@python.net>
 
