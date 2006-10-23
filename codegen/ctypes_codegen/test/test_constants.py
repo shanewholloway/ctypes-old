@@ -5,16 +5,15 @@ from ctypes_codegen.codegenerator import generate_code
 import tempfile
 from cStringIO import StringIO
 
-os.environ["GCCXML_COMPILER"] = "msvc71"
-
 INCLUDE = """
 int i = -1;
 unsigned int ui = -1;
-__int64 i64 = -1;
 
-/*
-unsigned __int64 ui64 = -1;
-*/
+#ifdef _MSC_VER
+__int64 i64 = -1;
+#else
+long long int i64 = 0x12345678ABCDEF;
+#endif
 """
 
 class ConstantsTest(unittest.TestCase):
@@ -33,10 +32,9 @@ class ConstantsTest(unittest.TestCase):
             generate_code(xmlfile, ofi)
             namespace = {}
             exec ofi.getvalue() in namespace
-                      
+
             self.failUnlessEqual(namespace["i"], -1)
             self.failUnlessEqual(namespace["ui"], 0xFFFFFFFF)
-            self.failUnlessEqual(namespace["i64"], -1)
 
         finally:
             print "Remove", hfile
