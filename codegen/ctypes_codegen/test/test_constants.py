@@ -17,10 +17,10 @@ long long int i64 = 0x12345678ABCDEF;
 """
 
 class ConstantsTest(unittest.TestCase):
-    def test(self):
+    def convert(self, defs):
         handle, hfile = tempfile.mkstemp(".h")
         os.close(handle)
-        open(hfile, "w").write(INCLUDE)
+        open(hfile, "w").write(defs)
 
         handle, xmlfile = tempfile.mkstemp(".xml")
         os.close(handle)
@@ -33,14 +33,25 @@ class ConstantsTest(unittest.TestCase):
             namespace = {}
             exec ofi.getvalue() in namespace
 
-            self.failUnlessEqual(namespace["i"], -1)
-            self.failUnlessEqual(namespace["ui"], 0xFFFFFFFF)
+            return namespace
 
         finally:
-            print "Remove", hfile
             os.unlink(hfile)
-            print "Remove", xmlfile
             os.unlink(xmlfile)
+
+    def test_int(self):
+        ns = self.convert("""
+        int zero = 0;
+        int one = 1;
+        int minusone = -1;
+        int maxint = 2147483647;
+        int minint = -2147483648;
+        """)
+        self.failUnlessEqual(ns["zero"], 0)
+        self.failUnlessEqual(ns["one"], 1)
+        self.failUnlessEqual(ns["minusone"], -1)
+        self.failUnlessEqual(ns["maxint"], 2147483647)
+        self.failUnlessEqual(ns["minint"], -2147483648)
 
 """
 def generate_code(xmlfile,
