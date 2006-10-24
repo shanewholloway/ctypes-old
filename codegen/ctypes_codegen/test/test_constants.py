@@ -7,6 +7,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+import ctypes
 from ctypes_codegen import h2xml
 from ctypes_codegen.codegenerator import generate_code
 
@@ -99,23 +100,33 @@ class ConstantsTest(unittest.TestCase):
         ns = self.convert("""
         #define zero 0
         #define one 1
+        #define minusone -1
         #define maxint 2147483647
         #define minint -2147483648
         #define spam "spam"
         #define foo L"foo"
+        #define LARGE 0xFFFFFFFF
+
+        #ifdef _MSC_VER
+        # define VERYLARGE 0xFFFFFFFFFFFFFFFFui64
+        #endif
         """, "-c")
 
         self.failUnlessEqual(ns.zero, 0)
         self.failUnlessEqual(ns.one, 1)
+        self.failUnlessEqual(ns.minusone, -1)
         self.failUnlessEqual(ns.maxint, 2147483647)
+        self.failUnlessEqual(ns.LARGE, 0xFFFFFFFF)
+        self.failUnlessEqual(ns.VERYLARGE, 0xFFFFFFFFFFFFFFFF)
 ##        self.failUnlessEqual(ns.minint, -2147483648)
 
         self.failUnlessEqual(ns.spam, "spam")
         self.failUnlessEqual(type(ns.spam), str)
 
-        # This test fails on wide unicode builds
-##        self.failUnlessEqual(ns.foo, "foo")
-##        self.failUnlessEqual(type(ns.foo), unicode)
+        # This test fails when sizeof(wchar_t) == 4!
+        if ctypes.sizeof(ctypes.c_wchar) == 2:
+            self.failUnlessEqual(ns.foo, "foo")
+            self.failUnlessEqual(type(ns.foo), unicode)
 
 if __name__ == "__main__":
     unittest.main()
