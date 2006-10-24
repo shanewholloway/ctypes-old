@@ -23,14 +23,17 @@ class ADict(dict):
             raise AttributeError(name)
 
 class ConstantsTest(unittest.TestCase):
-    def convert(self, defs):
+    def convert(self, defs, flags=None):
         hfile = mktemp(".h")
         open(hfile, "w").write(defs)
 
         xmlfile = mktemp(".xml")
 
         try:
-            h2xml.main(["h2xml", "-q", "-I.", hfile, "-o", xmlfile])
+            if flags:
+                h2xml.main(["h2xml", "-q", "-I.", hfile, "-o", xmlfile, flags])
+            else:
+                h2xml.main(["h2xml", "-q", "-I.", hfile, "-o", xmlfile])
             
             ofi = StringIO()
             generate_code(xmlfile, ofi)
@@ -91,6 +94,27 @@ class ConstantsTest(unittest.TestCase):
 
         self.failUnlessEqual(type(ns.zero), str)
         self.failUnlessEqual(type(ns.w_zero), unicode)
+
+    def test_defines(self):
+        ns = self.convert("""
+        #define zero 0
+        #define one 1
+        #define maxint 2147483647
+        #define minint -2147483648
+        #define spam "spam"
+        #define foo L"foo"
+        """, "-c")
+
+        self.failUnlessEqual(ns.zero, 0)
+        self.failUnlessEqual(ns.one, 1)
+        self.failUnlessEqual(ns.maxint, 2147483647)
+##        self.failUnlessEqual(ns.minint, -2147483648)
+
+        self.failUnlessEqual(ns.spam, "spam")
+        self.failUnlessEqual(type(ns.spam), str)
+
+        self.failUnlessEqual(ns.foo, "foo")
+        self.failUnlessEqual(type(ns.foo), unicode)
 
 if __name__ == "__main__":
     unittest.main()
