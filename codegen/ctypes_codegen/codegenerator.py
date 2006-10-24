@@ -121,16 +121,6 @@ def calc_packing(struct, fields):
             return pack/8
     raise PackingError, "PACKING FAILED: %s" % details
 
-def decode_value(init):
-    # decode init value from gccxml
-    if init[0] == "0":
-        return int(init, 16) # hex integer
-    elif init[0] == "'":
-        return eval(init) # character
-    elif init[0] == '"':
-        return eval(init) # string
-    return int(init) # integer
-
 def get_real_type(tp):
     if type(tp) is typedesc.Typedef:
         return get_real_type(tp.typ)
@@ -166,37 +156,24 @@ class Generator(object):
 
     def init_value(self, t, init):
         tn = self.type_name(t, False)
-        if tn in ["c_ulonglong", "c_ulong", "c_uint", "c_ushort", "c_ubyte"]:
-            return decode_value(init)
-        elif tn in ["c_longlong", "c_long", "c_int", "c_short", "c_byte"]:
-            return decode_value(init)
-        elif tn in ["c_float", "c_double"]:
-            return float(init)
-        elif tn in ("POINTER(c_char)", "STRING"):
-            return decode_value(init)
-        elif tn in ("POINTER(c_wchar)", "WSTRING"):
-            value = decode_value(init)
-            if isinstance(value, str):
-                value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
-                value = value.decode("utf-16") # XXX Is this correct?
-            return value
-        elif tn == "c_void_p":
-            return decode_value(init)
-        elif tn == "c_char":
-            value = decode_value(init)
+        value = eval(init)
+
+        if tn == "c_char":
             if isinstance(value, int):
                 return chr(value)
             return value
         elif tn == "c_wchar":
-            value = decode_value(init)
             if isinstance(value, int):
                 return unichr(value)
             return value
-        elif tn.startswith("POINTER("):
-            # Hm, POINTER(HBITMAP__) for example
-            return decode_value(init)
-        else:
-            raise ValueError, "cannot decode %s(%r)" % (tn, init)
+        elif tn in ("POINTER(c_wchar)", "WSTRING"):
+            if isinstance(value, str):
+                value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
+                value = value.decode("utf-16") # XXX Is this correct?
+                # XXX No, it's not correct: wrong when sizeof(wchar_t) == 4.
+            return value
+
+        return value
 
     def type_name(self, t, generate=True):
         # Return a string containing an expression that can be used to
