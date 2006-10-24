@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """ctypes code generator
 """
 import os, sys
