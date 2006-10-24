@@ -72,7 +72,11 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
     def Class(self, attrs): pass
     def Destructor(self, attrs): pass
     
-    def GCC_XML(self, attrs): pass
+    cvs_revision = None
+    def GCC_XML(self, attrs):
+        rev = attrs["cvs_revision"]
+        self.cvs_revision = tuple(map(int, rev.split(".")))
+
     def Namespace(self, attrs): pass
 
     def Base(self, attrs): pass
@@ -339,6 +343,12 @@ class GCCXML_Handler(xml.sax.handler.ContentHandler):
         interesting = (typedesc.Typedef, typedesc.Enumeration, typedesc.EnumValue,
                        typedesc.Function, typedesc.Structure, typedesc.Union,
                        typedesc.Variable, typedesc.Macro, typedesc.Alias)
+
+        import warnings
+        if self.cvs_revision is None:
+            warnings.warn("Could not determine CVS revision of GCCXML")
+        elif self.cvs_revision < (1, 114):
+            warnings.warn("CVS Revision of GCCXML is %d.%d" % self.cvs_revision)
 
         self.get_macros(self.cpp_data.get("functions"))
 
