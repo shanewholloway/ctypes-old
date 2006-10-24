@@ -59,6 +59,19 @@ class ConstantsTest(unittest.TestCase):
         self.failUnlessEqual(ns.maxint, 2147483647)
         self.failUnlessEqual(ns.minint, -2147483648)
 
+    def test_uint(self):
+        ns = self.convert("""
+        unsigned int zero = 0;
+        unsigned int one = 1;
+        unsigned int minusone = -1;
+        unsigned int maxuint = 0xFFFFFFFF;
+        """)
+
+        self.failUnlessEqual(ns.zero, 0)
+        self.failUnlessEqual(ns.one, 1)
+        self.failUnlessEqual(ns.minusone, 4294967295)
+        self.failUnlessEqual(ns.maxuint, 0xFFFFFFFF)
+
     def test_char(self):
         ns = self.convert("""
         char x = 'x';
