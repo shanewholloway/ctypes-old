@@ -48,6 +48,18 @@ class ConstantsTest(unittest.TestCase):
             ##print open(xmlfile).read()
             os.unlink(xmlfile)
 
+    def test_longlong(self):
+        ns = self.convert("""
+        long long int i1 = 0x7FFFFFFFFFFFFFFFLL;
+        long long int i2 = -1;
+        unsigned long long ui1 = 0x7FFFFFFFFFFFFFFFLL;
+        unsigned long long ui2 = 0xFFFFFFFFFFFFFFFFLL;
+        """)
+        self.failUnlessEqual(ns.i1, 0x7FFFFFFFFFFFFFFF)
+        self.failUnlessEqual(ns.i2, -1)
+        self.failUnlessEqual(ns.ui1, 0x7FFFFFFFFFFFFFFF)
+        self.failUnlessEqual(ns.ui2, 0xFFFFFFFFFFFFFFFF)
+
     def test_int(self):
         ns = self.convert("""
         int zero = 0;
@@ -117,7 +129,7 @@ class ConstantsTest(unittest.TestCase):
         self.failUnlessEqual(ns.minusone, -1)
         self.failUnlessEqual(ns.maxint, 2147483647)
         self.failUnlessEqual(ns.LARGE, 0xFFFFFFFF)
-        self.failUnlessEqual(ns.VERYLARGE, 0xFFFFFFFFFFFFFFFF)
+##        self.failUnlessEqual(ns.VERYLARGE, 0xFFFFFFFFFFFFFFFF)
 ##        self.failUnlessEqual(ns.minint, -2147483648)
 
         self.failUnlessEqual(ns.spam, "spam")
