@@ -52,13 +52,16 @@ class ConstantsTest(unittest.TestCase):
         ns = self.convert("""
         long long int i1 = 0x7FFFFFFFFFFFFFFFLL;
         long long int i2 = -1;
-        unsigned long long ui1 = 0x7FFFFFFFFFFFFFFFLL;
-        unsigned long long ui2 = 0xFFFFFFFFFFFFFFFFLL;
+        unsigned long long ui1 = 0x7FFFFFFFFFFFFFFFULL;
+        unsigned long long ui2 = 0x8000000000000000ULL;
+        unsigned long long ui3 = 0xFFFFFFFFFFFFFFFFULL;
         """)
         self.failUnlessEqual(ns.i1, 0x7FFFFFFFFFFFFFFF)
         self.failUnlessEqual(ns.i2, -1)
         self.failUnlessEqual(ns.ui1, 0x7FFFFFFFFFFFFFFF)
-        self.failUnlessEqual(ns.ui2, 0xFFFFFFFFFFFFFFFF)
+        # These tests fail on 64-bit Linux!
+        self.failUnlessEqual(ns.ui2, 0x8000000000000000)
+        self.failUnlessEqual(ns.ui3, 0xFFFFFFFFFFFFFFFF)
 
     def test_int(self):
         ns = self.convert("""
