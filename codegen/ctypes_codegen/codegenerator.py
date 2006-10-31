@@ -168,9 +168,15 @@ class Generator(object):
             return value
         elif tn in ("POINTER(c_wchar)", "WSTRING"):
             if isinstance(value, str):
-                value = value[:-1] # gccxml outputs "D\000S\000\000" for L"DS"
-                value = value.decode("utf-16") # XXX Is this correct?
-                # XXX No, it's not correct: wrong when sizeof(wchar_t) == 4.
+                import struct, ctypes
+                ws = ctypes.sizeof(ctypes.c_wchar)
+                if ws == 4:
+                    v = value[:-3]
+                    value = "".join(map(unichr, struct.unpack("I" * (len(v)/4), v)))
+                elif ws == 2:
+                    v = value[:-1]
+                    value = "".join(map(unichr, struct.unpack("H" * (len(v)/2), v)))
+                return value
             return value
 
         return value

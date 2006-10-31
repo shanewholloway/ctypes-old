@@ -138,10 +138,8 @@ class ConstantsTest(unittest.TestCase):
         self.failUnlessEqual(ns.spam, "spam")
         self.failUnlessEqual(type(ns.spam), str)
 
-        # This test fails when sizeof(wchar_t) == 4!
-        if ctypes.sizeof(ctypes.c_wchar) == 2:
-            self.failUnlessEqual(ns.foo, "foo")
-            self.failUnlessEqual(type(ns.foo), unicode)
+        self.failUnlessEqual(ns.foo, "foo")
+        self.failUnlessEqual(type(ns.foo), unicode)
 
 if __name__ == "__main__":
     unittest.main()
