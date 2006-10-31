@@ -1,5 +1,8 @@
 2006-10-31  Thomas Heller  <theller@python.net>
 
+	* ctypes_codegen\codegenerator.py (Generator.init_value): Reworked
+	the init function to use eval, the output should be correct now.
+
 	* Cast #define'd symbols to the type found, to avoid compilation
 	errors because of 'const'ness mismatch.
 
