@@ -24,7 +24,7 @@ class ADict(dict):
             raise AttributeError(name)
 
 class ConstantsTest(unittest.TestCase):
-    def convert(self, defs, flags=None):
+    def convert(self, defs, flags=None, dump=False):
         hfile = mktemp(".h")
         open(hfile, "w").write(defs)
 
@@ -45,23 +45,25 @@ class ConstantsTest(unittest.TestCase):
 
         finally:
             os.unlink(hfile)
-            ##print open(xmlfile).read()
+            if dump:
+                print open(xmlfile).read()
             os.unlink(xmlfile)
 
     def test_longlong(self):
         ns = self.convert("""
         long long int i1 = 0x7FFFFFFFFFFFFFFFLL;
         long long int i2 = -1;
-        unsigned long long ui1 = 0x7FFFFFFFFFFFFFFFULL;
-        unsigned long long ui2 = 0x8000000000000000ULL;
         unsigned long long ui3 = 0xFFFFFFFFFFFFFFFFULL;
+        unsigned long long ui2 = 0x8000000000000000ULL;
+        unsigned long long ui1 = 0x7FFFFFFFFFFFFFFFULL;
         """)
         self.failUnlessEqual(ns.i1, 0x7FFFFFFFFFFFFFFF)
         self.failUnlessEqual(ns.i2, -1)
         self.failUnlessEqual(ns.ui1, 0x7FFFFFFFFFFFFFFF)
-        # These tests fail on 64-bit Linux!
-        self.failUnlessEqual(ns.ui2, 0x8000000000000000)
+
+        # These two tests fail on 64-bit Linux! gccxml bug, I assume...
         self.failUnlessEqual(ns.ui3, 0xFFFFFFFFFFFFFFFF)
+        self.failUnlessEqual(ns.ui2, 0x8000000000000000)
 
     def test_int(self):
         ns = self.convert("""
