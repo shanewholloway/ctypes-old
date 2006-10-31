@@ -269,7 +269,7 @@ class IncludeParser(object):
         for fname in include_files:
             source.append('#include "%s"' % fname)
         for name, value in types.iteritems():
-            source.append("const %s cpp_sym_%s = %s;" % (types[name], name, name))
+            source.append("const %s cpp_sym_%s = (const %s) %s;" % (types[name], name, types[name], name))
         fname = self.options.xmlfile
         self.create_xml(source, fname)
 
