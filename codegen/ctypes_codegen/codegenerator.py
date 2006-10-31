@@ -3,6 +3,7 @@
 
 import typedesc, sys, os
 import textwrap
+import struct, ctypes
 
 # This should be configurable
 ASSUME_STRINGS = True
@@ -168,7 +169,6 @@ class Generator(object):
             return value
         elif tn in ("POINTER(c_wchar)", "WSTRING"):
             if isinstance(value, str):
-                import struct, ctypes
                 ws = ctypes.sizeof(ctypes.c_wchar)
                 if ws == 4:
                     v = value[:-3]
