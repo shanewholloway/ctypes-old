@@ -901,9 +901,3 @@ fields in the same order as they are appear in ``_fields_``.  Keyword
 arguments in the constructor are interpreted as attribute assignments,
 so they will initialize ``_fields_`` with the same name, or create new
 attributes for names not present in ``_fields_``.
-
-
-Arrays and pointers
--------------------
-
-XXX

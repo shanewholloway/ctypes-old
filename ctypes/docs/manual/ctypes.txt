@@ -19,3 +19,12 @@ ctypes reference
 ================
 
 .. include:: reference.txt
+
+
+
+Arrays and pointers
+-------------------
+
+Not yet written - please see `pointers <pointers>`_ and
+`arrays <arrays>`_ in the tutorial.
+
