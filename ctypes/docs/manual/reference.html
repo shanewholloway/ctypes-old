@@ -471,8 +471,8 @@ library object is available:</p>
 <dl class="docutils">
 <dt><tt class="docutils literal"><span class="pre">pythonapi</span></tt></dt>
 <dd>An instance of <tt class="docutils literal"><span class="pre">PyDLL</span></tt> that exposes Python C api functions as
-attributes.  Note that all these functions are assumed to return
-integers, which is of course not always the truth, so you have to
+attributes.  Note that all these functions are assumed to return C
+<tt class="docutils literal"><span class="pre">int</span></tt>, which is of course not always the truth, so you have to
 assign the correct <tt class="docutils literal"><span class="pre">restype</span></tt> attribute to use these functions.</dd>
 </dl>
 </div>
@@ -498,8 +498,8 @@ the foreign function object.</p>
 function.  Use <tt class="docutils literal"><span class="pre">None</span></tt> for <tt class="docutils literal"><span class="pre">void</span></tt> a function not returning
 anything.</p>
 <p class="last">It is possible to assign a callable Python object that is not a
-ctypes type, in this case the function is assumed to return an
-integer, and the callable will be called with this integer,
+ctypes type, in this case the function is assumed to return a
+C <tt class="docutils literal"><span class="pre">int</span></tt>, and the callable will be called with this integer,
 allowing to do further processing or error checking.  Using this
 is deprecated, for more flexible postprocessing or error checking
 use a ctypes data type as <tt class="docutils literal"><span class="pre">restype</span></tt> and assign a callable to the
@@ -993,9 +993,11 @@ an integer address, or a string.</dd>
 <dt><tt class="docutils literal"><span class="pre">HRESULT</span></tt></dt>
 <dd>Windows only: Represents a <tt class="docutils literal"><span class="pre">HRESULT</span></tt> value, which contains success
 or error information for a function or method call.</dd>
-<dt><tt class="docutils literal"><span class="pre">py_object</span></tt></dt>
-<dd>Represents the C <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> datatype.</dd>
 </dl>
+<p><tt class="docutils literal"><span class="pre">py_object</span></tt></p>
+<blockquote>
+Represents the C <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> datatype.  Calling this with an
+without an argument creates a <tt class="docutils literal"><span class="pre">NULL</span></tt> <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> pointer.</blockquote>
 <p>The <tt class="docutils literal"><span class="pre">ctypes.wintypes</span></tt> module provides quite some other Windows
 specific data types, for example <tt class="docutils literal"><span class="pre">HWND</span></tt>, <tt class="docutils literal"><span class="pre">WPARAM</span></tt>, or <tt class="docutils literal"><span class="pre">DWORD</span></tt>.
 Some useful structures like <tt class="docutils literal"><span class="pre">MSG</span></tt> or <tt class="docutils literal"><span class="pre">RECT</span></tt> are also defined.</p>
@@ -1026,9 +1028,9 @@ fields by direct attribute accesses.  These are the</p>
 2-tuples or 3-tuples.  The first item is the name of the field,
 the second item specifies the type of the field; it can be any
 ctypes data type.</p>
-<p>For integer type fields, a third optional item can be given.  It
-must be a small positive integer defining the bit width of the
-field.</p>
+<p>For integer type fields like <tt class="docutils literal"><span class="pre">c_int</span></tt>, a third optional item can
+be given.  It must be a small positive integer defining the bit
+width of the field.</p>
 <p>Field names must be unique within one structure or union.  This is
 not checked, only one field can be accessed when names are
 repeated.</p>
@@ -1110,7 +1112,8 @@ attributes for names not present in <tt class="docutils literal"><span class="pr
 </div>
 <div class="section">
 <h1><a class="toc-backref" href="#id9" id="arrays-and-pointers" name="arrays-and-pointers">Arrays and pointers</a></h1>
-<p>XXX</p>
+<p>Not yet written - please see <a class="reference" href="tutorial.html#pointers">pointers</a> and
+<a class="reference" href="tutorial.html#arrays">arrays</a> in the tutorial.</p>
 </div>
 </div>
 </body>

@@ -485,8 +485,13 @@ WindowsError: exception: access violation reading 0x00000020
 </pre>
 <p>There are, however, enough ways to crash Python with <tt class="docutils literal"><span class="pre">ctypes</span></tt>, so
 you should be careful anyway.</p>
-<p>Python integers, strings and unicode strings are the only objects that
-can directly be used as parameters in these function calls.</p>
+<p><tt class="docutils literal"><span class="pre">None</span></tt>, integers, longs, byte strings and unicode strings are the
+only native Python objects that can directly be used as parameters in
+these function calls.  <tt class="docutils literal"><span class="pre">None</span></tt> is passed as a C <tt class="docutils literal"><span class="pre">NULL</span></tt> pointer,
+byte strings and unicode strings are passed as pointer to the memory
+block that contains their data (<tt class="docutils literal"><span class="pre">char</span> <span class="pre">*</span></tt> or <tt class="docutils literal"><span class="pre">wchar_t</span> <span class="pre">*</span></tt>).  Python
+integers and Python longs are passed as the platforms default C
+<tt class="docutils literal"><span class="pre">int</span></tt> type, their value is masked to fit into the C type.</p>
 <p>Before we move on calling functions with other parameter types, we
 have to learn more about <tt class="docutils literal"><span class="pre">ctypes</span></tt> data types.</p>
 </div>
@@ -496,9 +501,9 @@ have to learn more about <tt class="docutils literal"><span class="pre">ctypes</
 <blockquote>
 <table border="1" class="docutils">
 <colgroup>
-<col width="31%" />
-<col width="47%" />
-<col width="22%" />
+<col width="29%" />
+<col width="44%" />
+<col width="27%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">ctypes type</th>
@@ -509,49 +514,55 @@ have to learn more about <tt class="docutils literal"><span class="pre">ctypes</
 <tbody valign="top">
 <tr><td><tt class="docutils literal"><span class="pre">c_char</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">char</span></tt></td>
-<td>character</td>
+<td>1-character
+string</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">c_wchar</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">wchar_t</span></tt></td>
+<td>1-character
+unicode string</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_byte</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">char</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_ubyte</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">char</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_short</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">short</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_ushort</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">short</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_int</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">int</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_uint</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_long</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">long</span></tt></td>
-<td>integer</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_ulong</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">long</span></tt></td>
-<td>long</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_longlong</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">__int64</span></tt> or
 <tt class="docutils literal"><span class="pre">long</span> <span class="pre">long</span></tt></td>
-<td>long</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_ulonglong</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">__int64</span></tt> or
 <tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">long</span></tt></td>
-<td>long</td>
+<td>int/long</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_float</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">float</span></tt></td>
@@ -575,8 +586,8 @@ have to learn more about <tt class="docutils literal"><span class="pre">ctypes</
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">c_void_p</span></tt></td>
 <td><tt class="docutils literal"><span class="pre">void</span> <span class="pre">*</span></tt></td>
-<td>integer or
-<tt class="docutils literal"><span class="pre">None</span></tt></td>
+<td>int/long
+or <tt class="docutils literal"><span class="pre">None</span></tt></td>
 </tr>
 </tbody>
 </table>
@@ -748,10 +759,10 @@ the <tt class="docutils literal"><span class="pre">_as_parameter_</span></tt> at
 </div>
 <div class="section">
 <h1><a class="toc-backref" href="#id8" id="return-types" name="return-types">Return types</a></h1>
-<p>By default functions are assumed to return integers.  Other return
-types can be specified by setting the <tt class="docutils literal"><span class="pre">restype</span></tt> attribute of the
-function object.</p>
-<p>Here is a more advanced example, it uses the strchr function, which
+<p>By default functions are assumed to return the C <tt class="docutils literal"><span class="pre">int</span></tt> type.  Other
+return types can be specified by setting the <tt class="docutils literal"><span class="pre">restype</span></tt> attribute of
+the function object.</p>
+<p>Here is a more advanced example, it uses the <tt class="docutils literal"><span class="pre">strchr</span></tt> function, which
 expects a string pointer and a char, and returns a pointer to a
 string:</p>
 <pre class="literal-block">
