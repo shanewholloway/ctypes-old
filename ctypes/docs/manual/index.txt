@@ -54,7 +54,7 @@ Downloads
 ---------
 
     Recent releases can be downloaded in the `sourceforge files
-    section`_.  The current version is 1.0.0.
+    section`_.  The current version is 1.0.1.
 
     ``ctypes`` is licensed under the `MIT License`_.
 
