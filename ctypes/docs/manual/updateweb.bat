@@ -1,1 +1,1 @@
-c:\putty\pscp index.html tutorial.html reference.html theller@starship.python.net:~/public_html/ctypes/
+c:\putty\pscp index.html tutorial.html reference.html _starship:/home/crew/theller/public_html/ctypes/
