@@ -1,3 +1,8 @@
+2006-11-07  Thomas Heller  <theller@python.net>
+
+	* Fixed the _ctypes.py and _ctypes_test.py loader modules to work
+	independend of the cwd.
+
 2006-10-20  Thomas Heller  <theller@python.net>
 
 	* Replaced the mechanism to run ctypes from the SVN sandbox: a
