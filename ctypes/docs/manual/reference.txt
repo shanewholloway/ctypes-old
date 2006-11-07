@@ -776,7 +776,6 @@ These are the fundamental ctypes data types:
     or error information for a function or method call.
 
 ``py_object`` : classdesc*
-
     Represents the C ``PyObject *`` datatype.  Calling this with an
     without an argument creates a ``NULL`` ``PyObject *`` pointer.
 
