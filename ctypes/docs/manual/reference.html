@@ -628,7 +628,7 @@ MessageBoxA(
 <pre class="doctest-block">
 &gt;&gt;&gt; from ctypes import c_int, WINFUNCTYPE, windll
 &gt;&gt;&gt; from ctypes.wintypes import HWND, LPCSTR, UINT
-&gt;&gt;&gt; prototype = WINFUNCTYPE(c_int, HWND, LPCSTR, LPCSTR, c_uint)
+&gt;&gt;&gt; prototype = WINFUNCTYPE(c_int, HWND, LPCSTR, LPCSTR, UINT)
 &gt;&gt;&gt; paramflags = (1, &quot;hwnd&quot;, 0), (1, &quot;text&quot;, &quot;Hi&quot;), (1, &quot;caption&quot;, None), (1, &quot;flags&quot;, 0)
 &gt;&gt;&gt; MessageBox = prototype((&quot;MessageBoxA&quot;, windll.user32), paramflags)
 &gt;&gt;&gt;
@@ -654,7 +654,7 @@ GetWindowRect(
 <p>Here is the wrapping with <tt class="docutils literal"><span class="pre">ctypes</span></tt>:</p>
 <blockquote>
 <pre class="doctest-block">
-&gt;&gt;&gt; from ctypes import POINTER, WINFUNCTYPE, windll
+&gt;&gt;&gt; from ctypes import POINTER, WINFUNCTYPE, windll, WinError
 &gt;&gt;&gt; from ctypes.wintypes import BOOL, HWND, RECT
 &gt;&gt;&gt; prototype = WINFUNCTYPE(BOOL, HWND, POINTER(RECT))
 &gt;&gt;&gt; paramflags = (1, &quot;hwnd&quot;), (2, &quot;lprect&quot;)
@@ -993,11 +993,10 @@ an integer address, or a string.</dd>
 <dt><tt class="docutils literal"><span class="pre">HRESULT</span></tt></dt>
 <dd>Windows only: Represents a <tt class="docutils literal"><span class="pre">HRESULT</span></tt> value, which contains success
 or error information for a function or method call.</dd>
+<dt><tt class="docutils literal"><span class="pre">py_object</span></tt></dt>
+<dd>Represents the C <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> datatype.  Calling this without an
+argument creates a <tt class="docutils literal"><span class="pre">NULL</span></tt> <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> pointer.</dd>
 </dl>
-<p><tt class="docutils literal"><span class="pre">py_object</span></tt></p>
-<blockquote>
-Represents the C <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> datatype.  Calling this with an
-without an argument creates a <tt class="docutils literal"><span class="pre">NULL</span></tt> <tt class="docutils literal"><span class="pre">PyObject</span> <span class="pre">*</span></tt> pointer.</blockquote>
 <p>The <tt class="docutils literal"><span class="pre">ctypes.wintypes</span></tt> module provides quite some other Windows
 specific data types, for example <tt class="docutils literal"><span class="pre">HWND</span></tt>, <tt class="docutils literal"><span class="pre">WPARAM</span></tt>, or <tt class="docutils literal"><span class="pre">DWORD</span></tt>.
 Some useful structures like <tt class="docutils literal"><span class="pre">MSG</span></tt> or <tt class="docutils literal"><span class="pre">RECT</span></tt> are also defined.</p>
