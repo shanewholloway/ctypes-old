@@ -32,10 +32,10 @@ Documentation
 
     - Single HTML pages from the official `Python 2.5 documentation`_.
 
-    The `mailing-list`_ is the place to ask questions about ``ctypes``
-    and related packages; to reduce spam it is now required to be
-    subscribed before posting.  This mailing list is also available on
-    `gmane`_ in several ways.
+    The ctypes-users `mailing-list`_ is the place to ask questions
+    about ``ctypes`` and related packages; to reduce spam it is now
+    required to be subscribed before posting.  This mailing list is
+    also available on `gmane`_ in several ways.
 
     The `ctypes-wiki`_ will hopefully soon contain additional
     documentation, code snippets, answers to FAQs and more.
@@ -47,23 +47,28 @@ Documentation
 .. _gmane: http://gmane.org/info.php?group=gmane.comp.python.ctypes
 
 .. _`Python 2.5 documentation`: http://docs.python.org/dev/lib/module-ctypes.html
-.. _`ctypes-wiki`: http://starship.python.net/crew/theller/ctypeswiki.cgi
+.. _`ctypes-wiki`: http://starship.python.net/crew/theller/wiki
 
 Related projects
 ----------------
 
-    A codegenerator_ which will parse C header files and generate
-    ctypes compatible Python code.  There is currently no official
-    release for the code generator, but you can get it from the
-    `codegenerator SVN repository`_.
+    A codegenerator (`old documentation`_, out of date but you may get
+    the idea) which will parse C header files and generate ctypes
+    compatible Python code.  There is currently no official release
+    for the code generator, but you can get it from the `ctypeslib SVN
+    repository`_.
 
     A pure Python COM package named comtypes_, especially useful for
     calling and implementing custom COM interfaces without the need to
-    write C/C++ code.
+    write C/C++ code.  The `comtypes SVN repository`_ contains a much
+    improved version, I will release this asap.
 
-.. _`codegenerator SVN repository`: http://svn.python.org/projects/ctypes/trunk/codegen/
+.. _`ctypeslib SVN repository`: http://svn.python.org/projects/ctypes/trunk/ctypeslib/
+
+.. _`comtypes SVN repository`: http://svn.python.org/projects/ctypes/trunk/comtypes/
 .. _comtypes: http://cheeseshop.python.org/pypi/comtypes
-.. _codegenerator: http://starship.python.net/crew/theller/ctypes/old/codegen.html
+
+.. _`old documentation`: http://starship.python.net/crew/theller/ctypes/old/codegen.html
 
 Downloads
 ---------
