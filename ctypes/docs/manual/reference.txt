@@ -594,7 +594,7 @@ be exact, they are methods of the metaclass):
     classmethod, normally it returns ``obj`` if that is an instance of
     the type.  Some types accept other objects as well.
 
-``in_dll(name, library)`` : methoddesc
+``in_dll(library, name)`` : methoddesc
     This method returns a ctypes type instance exported by a shared
     library. ``name`` is the name of the symbol that exports the data,
     ``library`` is the loaded shared library.
