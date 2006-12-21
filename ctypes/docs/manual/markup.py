@@ -73,6 +73,8 @@ codemarkup = {
     'count': 'var',
     'code': 'var',
 
+    'library': 'var',
+
     # methods
     'LoadLibrary': 'method',
     'find': 'method',
