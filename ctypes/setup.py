@@ -371,7 +371,7 @@ if __name__ == '__main__':
           author="Thomas Heller",
           author_email="theller@ctypes.org",
           license="MIT License",
-          url="http://starship.python.net/crew/theller/ctypes.html",
+          url="http://starship.python.net/crew/theller/ctypes/",
           platforms=["windows", "Linux", "MacOS X", "Solaris", "FreeBSD"],
           download_url="http://sourceforge.net/project/showfiles.php?group_id=71702",
 
