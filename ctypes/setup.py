@@ -88,8 +88,8 @@ class test(Command):
             ctypes.test.run_tests(package,
                                   "test_*.py",
                                   self.verbose,
-                                  self.refcounts)
-
+                                  self.refcounts,
+                                  [])
     # run()
 
 # class test
